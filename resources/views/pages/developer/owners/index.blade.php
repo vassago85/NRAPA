@@ -69,7 +69,7 @@ new class extends Component {
     <div class="mb-8 flex items-center justify-between">
         <div>
             <div class="inline-flex items-center gap-2 px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-full text-sm mb-4">
-                <x-flux::icon name="shield-check" class="w-4 h-4" />
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                 Developer Access
             </div>
             <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Manage Site Owners</h1>
@@ -77,7 +77,7 @@ new class extends Component {
         </div>
         <a href="{{ route('developer.owners.create') }}" wire:navigate
             class="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors">
-            <x-flux::icon name="plus" class="w-5 h-5" />
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             Nominate Owner
         </a>
     </div>
@@ -146,7 +146,7 @@ new class extends Component {
                 @empty
                     <tr>
                         <td colspan="5" class="px-6 py-12 text-center">
-                            <x-flux::icon name="user-plus" class="w-12 h-12 text-zinc-300 dark:text-zinc-600 mx-auto mb-3" />
+                            <svg class="w-12 h-12 text-zinc-300 dark:text-zinc-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
                             <p class="text-zinc-500 dark:text-zinc-400">No owners found.</p>
                         </td>
                     </tr>
@@ -169,7 +169,7 @@ new class extends Component {
                 <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6">
                     <div class="flex items-center gap-3 mb-4">
                         <div class="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
-                            <x-flux::icon name="exclamation-triangle" class="w-6 h-6 text-red-600 dark:text-red-400" />
+                            <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                         </div>
                         <h2 class="text-xl font-bold text-zinc-900 dark:text-white">Revoke Owner Access</h2>
                     </div>

@@ -31,7 +31,7 @@ new class extends Component {
         <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
             <div class="flex items-center gap-4">
                 <div class="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                    <x-flux::icon name="user-group" class="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                    <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                 </div>
                 <div>
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">Total Admins</p>
@@ -43,7 +43,7 @@ new class extends Component {
         <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
             <div class="flex items-center gap-4">
                 <div class="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                    <x-flux::icon name="users" class="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                    <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                 </div>
                 <div>
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">My Admins</p>
@@ -55,7 +55,7 @@ new class extends Component {
         <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
             <div class="flex items-center gap-4">
                 <div class="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                    <x-flux::icon name="identification" class="w-6 h-6 text-green-600 dark:text-green-400" />
+                    <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/></svg>
                 </div>
                 <div>
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">Total Members</p>
@@ -67,7 +67,7 @@ new class extends Component {
         <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
             <div class="flex items-center gap-4">
                 <div class="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                    <x-flux::icon name="clock" class="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                    <svg class="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
                 <div>
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">Pending Approvals</p>
@@ -84,17 +84,17 @@ new class extends Component {
             <div class="space-y-3">
                 <a href="{{ route('owner.admins.index') }}" wire:navigate
                     class="flex items-center gap-3 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-700/50 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
-                    <x-flux::icon name="user-plus" class="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
+                    <svg class="w-5 h-5 text-zinc-600 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
                     <span class="text-zinc-700 dark:text-zinc-300">Manage Administrators</span>
                 </a>
                 <a href="{{ route('admin.approvals.index') }}" wire:navigate
                     class="flex items-center gap-3 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-700/50 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
-                    <x-flux::icon name="clipboard-document-check" class="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
+                    <svg class="w-5 h-5 text-zinc-600 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
                     <span class="text-zinc-700 dark:text-zinc-300">Review Pending Approvals</span>
                 </a>
                 <a href="{{ route('admin.members.index') }}" wire:navigate
                     class="flex items-center gap-3 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-700/50 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
-                    <x-flux::icon name="users" class="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
+                    <svg class="w-5 h-5 text-zinc-600 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                     <span class="text-zinc-700 dark:text-zinc-300">View All Members</span>
                 </a>
             </div>
