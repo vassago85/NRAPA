@@ -14,12 +14,12 @@ echo "✅ Database is ready"
 echo "📦 Running migrations..."
 php artisan migrate --force
 
-# Clear and cache config for production
-echo "⚡ Optimizing for production..."
-php artisan config:cache
-php artisan route:cache
-# Skip view cache - Flux components compiled at runtime
+# Clear caches - env vars come from docker at runtime, so don't cache config
+echo "⚡ Preparing for production..."
+php artisan config:clear
+php artisan route:clear
 php artisan view:clear
+php artisan cache:clear
 
 # Create storage link if not exists
 php artisan storage:link 2>/dev/null || true
