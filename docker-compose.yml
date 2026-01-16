@@ -34,11 +34,10 @@ services:
     volumes:
       - app-storage:/var/www/html/storage/app
       - app-logs:/var/www/html/storage/logs
-    ports:
-      - "8080:80"
     networks:
       - nrapa-network
       - npm-network  # Connect to Nginx Proxy Manager network
+    # No ports needed - NPM connects via shared network
     depends_on:
       db:
         condition: service_healthy
@@ -108,7 +107,7 @@ networks:
     driver: bridge
   npm-network:
     external: true
-    name: ${NPM_NETWORK:-npm_default}  # Your NPM network name
+    name: nginx-proxy-manager_default
 
 volumes:
   app-storage:
