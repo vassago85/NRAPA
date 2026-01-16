@@ -3,7 +3,7 @@
     <head>
         @include('partials.head')
     </head>
-    <body class="min-h-screen bg-zinc-100 dark:bg-zinc-900" x-data="{ sidebarOpen: false }">
+    <body class="min-h-screen bg-zinc-100 dark:bg-zinc-900 lg:flex" x-data="{ sidebarOpen: false }">
         <!-- Mobile sidebar overlay -->
         <div x-show="sidebarOpen" x-cloak class="fixed inset-0 z-40 lg:hidden">
             <div class="fixed inset-0 bg-zinc-900/80" @click="sidebarOpen = false"></div>
@@ -11,7 +11,7 @@
 
         <!-- Sidebar -->
         <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'" 
-               class="fixed inset-y-0 left-0 z-50 w-64 bg-zinc-50 dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-700 transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-auto">
+               class="fixed inset-y-0 left-0 z-50 w-64 flex-shrink-0 bg-zinc-50 dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-700 transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-auto">
             
             <!-- Logo -->
             <div class="flex items-center justify-between h-16 px-4 border-b border-zinc-200 dark:border-zinc-700">
@@ -148,7 +148,7 @@
         </aside>
 
         <!-- Main Content -->
-        <div class="lg:pl-64">
+        <div class="flex-1 min-w-0">
             <!-- Mobile Header -->
             <header class="sticky top-0 z-30 flex items-center h-16 px-4 bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 lg:hidden">
                 <button @click="sidebarOpen = true" class="p-2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200">
