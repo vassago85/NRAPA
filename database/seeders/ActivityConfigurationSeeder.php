@@ -326,7 +326,7 @@ class ActivityConfigurationSeeder extends Seeder
             ['code' => 'ZW', 'name' => 'Zimbabwe', 'sort_order' => 6],
             ['code' => 'ZM', 'name' => 'Zambia', 'sort_order' => 7],
             ['code' => 'TZ', 'name' => 'Tanzania', 'sort_order' => 8],
-            ['code' => 'OTHER', 'name' => 'Other', 'sort_order' => 999],
+            ['code' => 'XX', 'name' => 'Other', 'sort_order' => 999],
         ];
 
         foreach ($countries as $country) {
