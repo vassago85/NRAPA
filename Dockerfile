@@ -1,6 +1,6 @@
 FROM php:8.3-fpm-alpine
 
-# Install system dependencies
+# Install system dependencies (no Node.js needed - assets are pre-built)
 RUN apk add --no-cache \
     nginx \
     supervisor \
@@ -12,8 +12,6 @@ RUN apk add --no-cache \
     libzip-dev \
     zip \
     unzip \
-    nodejs \
-    npm \
     oniguruma-dev \
     icu-dev \
     sqlite-dev
@@ -43,8 +41,7 @@ COPY . .
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Install Node dependencies and build assets
-RUN npm ci && npm run build && rm -rf node_modules
+# Assets are pre-built and included in the repo - no need to run npm build
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \
