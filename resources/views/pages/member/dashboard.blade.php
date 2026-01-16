@@ -1,0 +1,263 @@
+<?php
+
+use App\Models\Membership;
+use App\Models\Certificate;
+use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\Title;
+use Livewire\Component;
+
+new #[Title('Dashboard')] class extends Component {
+    #[Computed]
+    public function user()
+    {
+        return Auth::user();
+    }
+
+    #[Computed]
+    public function activeMembership()
+    {
+        return $this->user->activeMembership;
+    }
+
+    #[Computed]
+    public function latestMembership()
+    {
+        return $this->user->memberships()->latest()->first();
+    }
+
+    #[Computed]
+    public function certificates()
+    {
+        return $this->user->certificates()->valid()->with('certificateType')->latest()->take(3)->get();
+    }
+
+    #[Computed]
+    public function hasPassedTest()
+    {
+        return $this->user->hasPassedKnowledgeTest();
+    }
+
+    #[Computed]
+    public function requiresTest()
+    {
+        return $this->activeMembership?->type?->requires_knowledge_test ?? false;
+    }
+}; ?>
+
+<div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
+    {{-- Welcome Header --}}
+    <div class="flex flex-col gap-2">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Welcome back, {{ $this->user->name }}!</h1>
+        <p class="text-zinc-500 dark:text-zinc-400">
+            Manage your NRAPA membership, certificates, and compliance requirements.
+        </p>
+    </div>
+
+    {{-- Membership Status Cards --}}
+    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {{-- Membership Card --}}
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+            <div class="mb-4 flex items-center gap-3">
+                <div class="flex size-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900">
+                    <svg class="size-5 text-emerald-600 dark:text-emerald-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm1.294 6.336a6.721 6.721 0 0 1-3.17.789 6.721 6.721 0 0 1-3.168-.789 3.376 3.376 0 0 1 6.338 0Z" />
+                    </svg>
+                </div>
+                <h3 class="font-semibold text-zinc-900 dark:text-white">Membership Status</h3>
+            </div>
+
+            @if($this->activeMembership)
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-zinc-500 dark:text-zinc-400">Type</span>
+                        <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">{{ $this->activeMembership->type->name }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-zinc-500 dark:text-zinc-400">Member #</span>
+                        <span class="font-mono text-sm font-semibold text-zinc-900 dark:text-white">{{ $this->activeMembership->membership_number }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-zinc-500 dark:text-zinc-400">Status</span>
+                        <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Active</span>
+                    </div>
+                    @if($this->activeMembership->expires_at)
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-zinc-500 dark:text-zinc-400">Expires</span>
+                        <span class="text-sm text-zinc-900 dark:text-white">{{ $this->activeMembership->expires_at->format('d M Y') }}</span>
+                    </div>
+                    @else
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-zinc-500 dark:text-zinc-400">Validity</span>
+                        <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Lifetime</span>
+                    </div>
+                    @endif
+                </div>
+                <div class="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-700">
+                    <a href="{{ route('membership.index') }}" wire:navigate class="block w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-center text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
+                        View Details
+                    </a>
+                </div>
+            @elseif($this->latestMembership)
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-zinc-500 dark:text-zinc-400">Application</span>
+                        @switch($this->latestMembership->status)
+                            @case('applied')
+                                <span class="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Pending Review</span>
+                                @break
+                            @case('approved')
+                                <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">Approved - Awaiting Activation</span>
+                                @break
+                            @case('suspended')
+                                <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">Suspended</span>
+                                @break
+                            @case('revoked')
+                                <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">Revoked</span>
+                                @break
+                            @case('expired')
+                                <span class="inline-flex items-center rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900 dark:text-orange-200">Expired</span>
+                                @break
+                            @default
+                                <span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200">{{ ucfirst($this->latestMembership->status) }}</span>
+                        @endswitch
+                    </div>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                        Applied on {{ $this->latestMembership->applied_at->format('d M Y') }}
+                    </p>
+                </div>
+            @else
+                <div class="space-y-4">
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                        You don't have an active membership yet. Apply now to access all member benefits.
+                    </p>
+                    <a href="{{ route('membership.apply') }}" wire:navigate class="block w-full rounded-lg bg-emerald-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">
+                        Apply for Membership
+                    </a>
+                </div>
+            @endif
+        </div>
+
+        {{-- Knowledge Test Card --}}
+        @if($this->requiresTest)
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+            <div class="mb-4 flex items-center gap-3">
+                <div class="flex size-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900">
+                    <svg class="size-5 text-blue-600 dark:text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
+                    </svg>
+                </div>
+                <h3 class="font-semibold text-zinc-900 dark:text-white">Knowledge Test</h3>
+            </div>
+
+            @if($this->hasPassedTest)
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2">
+                        <svg class="size-5 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+                        <span class="font-medium text-green-600 dark:text-green-400">Test Passed</span>
+                    </div>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                        You have successfully completed the knowledge test requirement.
+                    </p>
+                </div>
+            @else
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2">
+                        <svg class="size-5 text-amber-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+                        </svg>
+                        <span class="font-medium text-amber-600 dark:text-amber-400">Test Required</span>
+                    </div>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                        Complete the knowledge test to finalize your membership.
+                    </p>
+                    <a href="{{ route('knowledge-test.index') }}" wire:navigate class="block w-full rounded-lg bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
+                        Take Test
+                    </a>
+                </div>
+            @endif
+        </div>
+        @endif
+
+        {{-- Certificates Card --}}
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+            <div class="mb-4 flex items-center gap-3">
+                <div class="flex size-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900">
+                    <svg class="size-5 text-purple-600 dark:text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.125 2.25h-4.5c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125v-9M10.125 2.25h.375a9 9 0 0 1 9 9v.375M10.125 2.25A3.375 3.375 0 0 1 13.5 5.625v1.5c0 .621.504 1.125 1.125 1.125h1.5a3.375 3.375 0 0 1 3.375 3.375M9 15l2.25 2.25L15 12" />
+                    </svg>
+                </div>
+                <h3 class="font-semibold text-zinc-900 dark:text-white">Certificates</h3>
+            </div>
+
+            @if($this->certificates->count() > 0)
+                <div class="space-y-3">
+                    @foreach($this->certificates as $certificate)
+                        <div class="flex items-center justify-between rounded-lg border border-zinc-200 p-3 dark:border-zinc-700">
+                            <div>
+                                <p class="font-medium text-zinc-900 dark:text-white">{{ $certificate->certificateType->name }}</p>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                                    Issued {{ $certificate->issued_at->format('d M Y') }}
+                                </p>
+                            </div>
+                            <span class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Valid</span>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                    @if($this->activeMembership)
+                        No certificates issued yet. Certificates will be available once your membership is fully processed.
+                    @else
+                        Apply for membership to receive your certificates.
+                    @endif
+                </p>
+            @endif
+
+            <div class="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-700">
+                <a href="{{ route('certificates.index') }}" wire:navigate class="block w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-center text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
+                    View All Certificates
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {{-- Quick Actions --}}
+    @if($this->activeMembership)
+    <div class="mt-4">
+        <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Quick Actions</h2>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <a href="{{ route('certificates.index') }}" wire:navigate class="flex items-center gap-3 rounded-lg border border-zinc-300 bg-white px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
+                <svg class="size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                Download Certificate
+            </a>
+            <a href="{{ route('profile.edit') }}" wire:navigate class="flex items-center gap-3 rounded-lg border border-zinc-300 bg-white px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
+                <svg class="size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                </svg>
+                Update Profile
+            </a>
+            @if($this->activeMembership->requiresRenewal() && $this->activeMembership->isRenewable())
+            <a href="{{ route('membership.apply') }}" wire:navigate class="flex items-center gap-3 rounded-lg border border-zinc-300 bg-white px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
+                <svg class="size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                </svg>
+                Renew Membership
+            </a>
+            @endif
+            @if($this->activeMembership->allowsDedicatedStatus())
+            <a href="#" class="flex items-center gap-3 rounded-lg border border-zinc-300 bg-white px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
+                <svg class="size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
+                </svg>
+                Apply for Dedicated Status
+            </a>
+            @endif
+        </div>
+    </div>
+    @endif
+</div>

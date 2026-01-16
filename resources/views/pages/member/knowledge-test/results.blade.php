@@ -1,0 +1,242 @@
+<?php
+
+use App\Models\KnowledgeTestAttempt;
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\Title;
+use Livewire\Component;
+
+new #[Title('Test Results')] class extends Component {
+    public KnowledgeTestAttempt $attempt;
+
+    public function mount(KnowledgeTestAttempt $attempt): void
+    {
+        // Ensure the attempt belongs to the current user
+        if ($attempt->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        // Ensure the attempt has been submitted
+        if (!$attempt->isSubmitted()) {
+            $this->redirect(route('knowledge-test.take', $attempt->knowledgeTest), navigate: true);
+            return;
+        }
+
+        $this->attempt = $attempt->load(['knowledgeTest', 'answers.question', 'marker']);
+    }
+
+    #[Computed]
+    public function totalPossiblePoints()
+    {
+        return $this->attempt->knowledgeTest->total_points;
+    }
+
+    #[Computed]
+    public function percentage()
+    {
+        if ($this->totalPossiblePoints === 0) return 0;
+        return ($this->attempt->total_score / $this->totalPossiblePoints) * 100;
+    }
+}; ?>
+
+<div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
+    {{-- Header --}}
+    <div class="flex items-center gap-4">
+        <a href="{{ route('knowledge-test.index') }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
+            <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+            </svg>
+            Back to Tests
+        </a>
+        <div>
+            <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Test Results</h1>
+            <p class="text-zinc-600 dark:text-zinc-400">{{ $attempt->knowledgeTest->name }}</p>
+        </div>
+    </div>
+
+    {{-- Pending Marking Notice --}}
+    @if($attempt->passed === null)
+    <div class="rounded-xl border border-yellow-200 bg-yellow-50 p-6 dark:border-yellow-800 dark:bg-yellow-900/20">
+        <div class="flex items-start gap-4">
+            <svg class="mt-0.5 size-6 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+            <div>
+                <h3 class="font-semibold text-yellow-800 dark:text-yellow-200">Awaiting Marking</h3>
+                <p class="mt-1 text-yellow-700 dark:text-yellow-300">
+                    Your test contains written questions that require manual marking by an administrator.
+                    You will be notified once your results are finalized.
+                </p>
+                <p class="mt-2 text-sm text-yellow-600 dark:text-yellow-400">
+                    Multiple choice answers have been auto-scored: {{ $attempt->auto_score ?? 0 }} points
+                </p>
+            </div>
+        </div>
+    </div>
+    @else
+    {{-- Result Card --}}
+    <div class="rounded-xl border {{ $attempt->passed ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' }} p-8 text-center">
+        @if($attempt->passed)
+        <svg class="mx-auto size-16 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        </svg>
+        <h2 class="mt-4 text-2xl font-bold text-green-800 dark:text-green-200">Congratulations! You Passed!</h2>
+        @else
+        <svg class="mx-auto size-16 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        </svg>
+        <h2 class="mt-4 text-2xl font-bold text-red-800 dark:text-red-200">Unfortunately, You Did Not Pass</h2>
+        @endif
+
+        <div class="mt-6 flex items-center justify-center gap-8">
+            <div>
+                <p class="text-4xl font-bold {{ $attempt->passed ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300' }}">
+                    {{ number_format($this->percentage, 1) }}%
+                </p>
+                <p class="text-sm {{ $attempt->passed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">Your Score</p>
+            </div>
+            <div class="h-16 w-px bg-current opacity-20"></div>
+            <div>
+                <p class="text-4xl font-bold {{ $attempt->passed ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300' }}">
+                    {{ $attempt->total_score }} / {{ $this->totalPossiblePoints }}
+                </p>
+                <p class="text-sm {{ $attempt->passed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">Points</p>
+            </div>
+        </div>
+
+        <p class="mt-4 text-sm {{ $attempt->passed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
+            Pass mark: {{ $attempt->knowledgeTest->passing_score }}%
+        </p>
+
+        @if(!$attempt->passed && $attempt->knowledgeTest->canAttempt(auth()->user()))
+        <a href="{{ route('knowledge-test.index') }}" wire:navigate class="mt-6 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-3 text-sm font-medium text-white hover:bg-emerald-700">
+            Try Again
+            <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+            </svg>
+        </a>
+        @endif
+    </div>
+    @endif
+
+    {{-- Test Details --}}
+    <div class="grid gap-6 lg:grid-cols-3">
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+            <h3 class="font-semibold text-zinc-900 dark:text-white">Test Information</h3>
+            <dl class="mt-4 space-y-3 text-sm">
+                <div class="flex justify-between">
+                    <dt class="text-zinc-500 dark:text-zinc-400">Test Name</dt>
+                    <dd class="text-zinc-900 dark:text-white">{{ $attempt->knowledgeTest->name }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-zinc-500 dark:text-zinc-400">Pass Mark</dt>
+                    <dd class="text-zinc-900 dark:text-white">{{ $attempt->knowledgeTest->passing_score }}%</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-zinc-500 dark:text-zinc-400">Total Questions</dt>
+                    <dd class="text-zinc-900 dark:text-white">{{ $attempt->answers->count() }}</dd>
+                </div>
+            </dl>
+        </div>
+
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+            <h3 class="font-semibold text-zinc-900 dark:text-white">Your Attempt</h3>
+            <dl class="mt-4 space-y-3 text-sm">
+                <div class="flex justify-between">
+                    <dt class="text-zinc-500 dark:text-zinc-400">Started</dt>
+                    <dd class="text-zinc-900 dark:text-white">{{ $attempt->started_at->format('d M Y H:i') }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-zinc-500 dark:text-zinc-400">Submitted</dt>
+                    <dd class="text-zinc-900 dark:text-white">{{ $attempt->submitted_at->format('d M Y H:i') }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-zinc-500 dark:text-zinc-400">Duration</dt>
+                    <dd class="text-zinc-900 dark:text-white">{{ $attempt->started_at->diffForHumans($attempt->submitted_at, true) }}</dd>
+                </div>
+            </dl>
+        </div>
+
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+            <h3 class="font-semibold text-zinc-900 dark:text-white">Score Breakdown</h3>
+            <dl class="mt-4 space-y-3 text-sm">
+                <div class="flex justify-between">
+                    <dt class="text-zinc-500 dark:text-zinc-400">Multiple Choice</dt>
+                    <dd class="text-zinc-900 dark:text-white">{{ $attempt->auto_score ?? 0 }} pts</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-zinc-500 dark:text-zinc-400">Written</dt>
+                    <dd class="text-zinc-900 dark:text-white">{{ $attempt->manual_score ?? 0 }} pts</dd>
+                </div>
+                <div class="flex justify-between border-t border-zinc-200 pt-2 dark:border-zinc-700">
+                    <dt class="font-medium text-zinc-900 dark:text-white">Total</dt>
+                    <dd class="font-bold text-zinc-900 dark:text-white">{{ $attempt->total_score ?? '—' }} pts</dd>
+                </div>
+            </dl>
+        </div>
+    </div>
+
+    {{-- Answer Review --}}
+    @if($attempt->passed !== null)
+    <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
+            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Answer Review</h2>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400">Review your answers and see the correct responses.</p>
+        </div>
+
+        <div class="divide-y divide-zinc-200 dark:divide-zinc-700">
+            @foreach($attempt->answers->sortBy('question.sort_order') as $index => $answer)
+            <div class="p-6">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="flex items-start gap-4">
+                        <div class="flex size-8 items-center justify-center rounded-full {{ $answer->points_awarded > 0 ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' }} text-sm font-semibold">
+                            {{ $index + 1 }}
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center rounded-full {{ $answer->question->isMultipleChoice() ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' }} px-2 py-0.5 text-xs font-medium">
+                                    {{ $answer->question->isMultipleChoice() ? 'Multiple Choice' : 'Written' }}
+                                </span>
+                                <span class="text-sm text-zinc-500 dark:text-zinc-400">
+                                    {{ $answer->points_awarded ?? 0 }} / {{ $answer->question->points }} pts
+                                </span>
+                            </div>
+                            <p class="mt-2 font-medium text-zinc-900 dark:text-white">{{ $answer->question->question_text }}</p>
+
+                            <div class="mt-3 space-y-2">
+                                <div class="rounded-lg border {{ $answer->is_correct ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' }} p-3">
+                                    <p class="text-xs font-medium {{ $answer->is_correct ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">Your Answer:</p>
+                                    <p class="mt-1 text-sm {{ $answer->is_correct ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200' }}">
+                                        {{ $answer->answer_text ?: '(No answer provided)' }}
+                                    </p>
+                                </div>
+
+                                @if($answer->question->isMultipleChoice() && !$answer->is_correct)
+                                <div class="rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-900/20">
+                                    <p class="text-xs font-medium text-green-600 dark:text-green-400">Correct Answer:</p>
+                                    <p class="mt-1 text-sm text-green-800 dark:text-green-200">{{ $answer->question->correct_answer }}</p>
+                                </div>
+                                @endif
+
+                                @if($answer->marker_feedback)
+                                <div class="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
+                                    <p class="text-xs font-medium text-blue-600 dark:text-blue-400">Marker Feedback:</p>
+                                    <p class="mt-1 text-sm text-blue-800 dark:text-blue-200">{{ $answer->marker_feedback }}</p>
+                                </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
+    {{-- Marked By --}}
+    @if($attempt->marker)
+    <div class="text-center text-sm text-zinc-500 dark:text-zinc-400">
+        Marked by {{ $attempt->marker->name }} on {{ $attempt->marked_at->format('d M Y \a\t H:i') }}
+    </div>
+    @endif
+</div>

@@ -1,0 +1,363 @@
+<?php
+
+use App\Models\Membership;
+use App\Models\Certificate;
+use App\Models\AuditLog;
+use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\Title;
+use Livewire\Component;
+
+new #[Title('Review Application - Admin')] class extends Component {
+    public Membership $membership;
+    public string $rejectionReason = '';
+    public bool $showRejectModal = false;
+
+    public function mount(Membership $membership): void
+    {
+        $this->membership = $membership->load(['user', 'type']);
+    }
+
+    public function approve(): void
+    {
+        if ($this->membership->status !== 'applied') {
+            session()->flash('error', 'This application has already been processed.');
+            return;
+        }
+
+        $admin = Auth::user();
+
+        // Calculate expiry date based on membership type
+        $expiresAt = $this->membership->type->calculateExpiryDate(now());
+
+        // Update membership
+        $this->membership->update([
+            'status' => 'active',
+            'approved_at' => now(),
+            'approved_by' => $admin->id,
+            'activated_at' => now(),
+            'expires_at' => $expiresAt,
+        ]);
+
+        // Generate membership number if not set
+        if (!$this->membership->membership_number) {
+            $this->membership->update([
+                'membership_number' => 'NRAPA-' . date('Y') . '-' . str_pad($this->membership->id, 5, '0', STR_PAD_LEFT),
+            ]);
+        }
+
+        // Create certificates based on membership type entitlements
+        $this->issueCertificates();
+
+        // Log the action
+        AuditLog::create([
+            'user_id' => $admin->id,
+            'action' => 'membership_approved',
+            'auditable_type' => Membership::class,
+            'auditable_id' => $this->membership->id,
+            'old_values' => ['status' => 'applied'],
+            'new_values' => ['status' => 'active'],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+
+        session()->flash('success', 'Membership application approved successfully!');
+
+        $this->redirect(route('admin.approvals.index'), navigate: true);
+    }
+
+    public function reject(): void
+    {
+        if ($this->membership->status !== 'applied') {
+            session()->flash('error', 'This application has already been processed.');
+            return;
+        }
+
+        $this->validate([
+            'rejectionReason' => ['required', 'string', 'min:10'],
+        ], [
+            'rejectionReason.required' => 'Please provide a reason for rejection.',
+            'rejectionReason.min' => 'The rejection reason must be at least 10 characters.',
+        ]);
+
+        $admin = Auth::user();
+
+        $this->membership->update([
+            'status' => 'revoked',
+            'approved_at' => now(),
+            'approved_by' => $admin->id,
+            'suspension_reason' => $this->rejectionReason,
+        ]);
+
+        // Log the action
+        AuditLog::create([
+            'user_id' => $admin->id,
+            'action' => 'membership_rejected',
+            'auditable_type' => Membership::class,
+            'auditable_id' => $this->membership->id,
+            'old_values' => ['status' => 'applied'],
+            'new_values' => ['status' => 'revoked', 'reason' => $this->rejectionReason],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+
+        session()->flash('success', 'Membership application rejected.');
+
+        $this->redirect(route('admin.approvals.index'), navigate: true);
+    }
+
+    protected function issueCertificates(): void
+    {
+        $certificateEntitlements = $this->membership->type->certificate_entitlements ?? [];
+
+        foreach ($certificateEntitlements as $certificateTypeId) {
+            $certificateType = \App\Models\CertificateType::find($certificateTypeId);
+            if (!$certificateType) continue;
+
+            // Calculate certificate validity
+            $validUntil = null;
+            if ($certificateType->validity_months) {
+                $validUntil = now()->addMonths($certificateType->validity_months);
+            } elseif ($this->membership->expires_at) {
+                $validUntil = $this->membership->expires_at;
+            }
+
+            Certificate::create([
+                'user_id' => $this->membership->user_id,
+                'membership_id' => $this->membership->id,
+                'certificate_type_id' => $certificateType->id,
+                'certificate_number' => 'CERT-' . strtoupper(substr(md5(uniqid()), 0, 8)),
+                'qr_code' => bin2hex(random_bytes(16)),
+                'issued_at' => now(),
+                'valid_until' => $validUntil,
+                'issued_by' => Auth::id(),
+            ]);
+        }
+    }
+}; ?>
+
+<div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
+    {{-- Header --}}
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-center gap-4">
+            <a href="{{ route('admin.approvals.index') }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
+                <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                </svg>
+                Back
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Review Application</h1>
+                <p class="text-zinc-500 dark:text-zinc-400">{{ $this->membership->membership_number ?? 'Pending' }}</p>
+            </div>
+        </div>
+        <span class="inline-flex items-center rounded-full bg-yellow-100 px-3 py-1 text-sm font-medium text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+            Pending Review
+        </span>
+    </div>
+
+    @if(session('error'))
+    <div class="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
+        <div class="flex items-center gap-3">
+            <svg class="size-5 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+            </svg>
+            <p class="text-sm text-red-700 dark:text-red-300">{{ session('error') }}</p>
+        </div>
+    </div>
+    @endif
+
+    <div class="grid gap-6 lg:grid-cols-2">
+        {{-- Applicant Information --}}
+        <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+            <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
+                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Applicant Information</h2>
+            </div>
+            <div class="p-6">
+                <div class="mb-6 flex items-center gap-4">
+                    <div class="flex size-16 items-center justify-center rounded-full bg-emerald-100 text-xl font-semibold text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
+                        {{ $this->membership->user->initials() }}
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-zinc-900 dark:text-white">{{ $this->membership->user->name }}</h3>
+                        <p class="text-zinc-500 dark:text-zinc-400">{{ $this->membership->user->email }}</p>
+                    </div>
+                </div>
+
+                <dl class="space-y-4">
+                    @if($this->membership->user->phone)
+                    <div>
+                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Phone</dt>
+                        <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $this->membership->user->phone }}</dd>
+                    </div>
+                    @endif
+                    @if($this->membership->user->date_of_birth)
+                    <div>
+                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Date of Birth</dt>
+                        <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $this->membership->user->date_of_birth->format('d M Y') }}</dd>
+                    </div>
+                    @endif
+                    @if($this->membership->user->physical_address)
+                    <div>
+                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Physical Address</dt>
+                        <dd class="mt-1 text-sm text-zinc-900 dark:text-white">{{ $this->membership->user->physical_address }}</dd>
+                    </div>
+                    @endif
+                    <div>
+                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Account Created</dt>
+                        <dd class="mt-1 text-zinc-900 dark:text-white">{{ $this->membership->user->created_at->format('d M Y \a\t H:i') }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Email Verified</dt>
+                        <dd class="mt-1">
+                            @if($this->membership->user->email_verified_at)
+                            <span class="inline-flex items-center gap-1 text-green-600 dark:text-green-400">
+                                <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                                </svg>
+                                Verified
+                            </span>
+                            @else
+                            <span class="inline-flex items-center gap-1 text-red-600 dark:text-red-400">
+                                <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                </svg>
+                                Not Verified
+                            </span>
+                            @endif
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+
+        {{-- Membership Details --}}
+        <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+            <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
+                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Membership Details</h2>
+            </div>
+            <div class="p-6">
+                <dl class="space-y-4">
+                    <div>
+                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Membership Type</dt>
+                        <dd class="mt-1">
+                            <span class="text-lg font-semibold text-zinc-900 dark:text-white">{{ $this->membership->type->name }}</span>
+                            @if($this->membership->type->isLifetime())
+                            <span class="ml-2 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Lifetime</span>
+                            @endif
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Description</dt>
+                        <dd class="mt-1 text-sm text-zinc-700 dark:text-zinc-300">{{ $this->membership->type->description }}</dd>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <dt class="text-sm text-zinc-500 dark:text-zinc-400">Price</dt>
+                            <dd class="mt-1 text-lg font-semibold text-emerald-600 dark:text-emerald-400">R{{ number_format($this->membership->type->price, 2) }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm text-zinc-500 dark:text-zinc-400">Duration</dt>
+                            <dd class="mt-1 font-medium text-zinc-900 dark:text-white">
+                                @if($this->membership->type->isLifetime())
+                                    Lifetime
+                                @else
+                                    {{ $this->membership->type->duration_months }} months
+                                @endif
+                            </dd>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <dt class="text-sm text-zinc-500 dark:text-zinc-400">Renewal Required</dt>
+                            <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $this->membership->type->requires_renewal ? 'Yes' : 'No' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm text-zinc-500 dark:text-zinc-400">Dedicated Status</dt>
+                            <dd class="mt-1">
+                                @if($this->membership->type->allows_dedicated_status)
+                                    <span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">Eligible</span>
+                                @else
+                                    <span class="text-zinc-500">Not Available</span>
+                                @endif
+                            </dd>
+                        </div>
+                    </div>
+                    @if($this->membership->type->requires_knowledge_test)
+                    <div>
+                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Knowledge Test</dt>
+                        <dd class="mt-1">
+                            <span class="inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800 dark:bg-purple-900 dark:text-purple-200">Required</span>
+                        </dd>
+                    </div>
+                    @endif
+                    <div>
+                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Applied On</dt>
+                        <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $this->membership->applied_at->format('d M Y \a\t H:i') }}</dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    {{-- Action Buttons --}}
+    @if($this->membership->status === 'applied')
+    <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Decision</h3>
+
+        @if(!$showRejectModal)
+        <div class="flex flex-col gap-4 sm:flex-row">
+            <button
+                wire:click="approve"
+                wire:confirm="Are you sure you want to approve this membership application?"
+                class="inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-6 py-3 text-sm font-medium text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600"
+            >
+                <svg class="size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
+                Approve Application
+            </button>
+            <button
+                wire:click="$set('showRejectModal', true)"
+                class="inline-flex items-center justify-center gap-2 rounded-lg border border-red-300 bg-white px-6 py-3 text-sm font-medium text-red-700 hover:bg-red-50 dark:border-red-700 dark:bg-zinc-800 dark:text-red-400 dark:hover:bg-red-950/20"
+            >
+                <svg class="size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+                Reject Application
+            </button>
+        </div>
+        @else
+        <div class="space-y-4">
+            <div>
+                <label for="rejectionReason" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Reason for Rejection</label>
+                <textarea
+                    wire:model="rejectionReason"
+                    id="rejectionReason"
+                    rows="3"
+                    placeholder="Please provide a reason for rejecting this application..."
+                    class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white dark:placeholder-zinc-400"
+                ></textarea>
+                @error('rejectionReason')
+                    <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
+                @enderror
+            </div>
+            <div class="flex gap-3">
+                <button
+                    wire:click="reject"
+                    class="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-6 py-2 text-sm font-medium text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600"
+                >
+                    Confirm Rejection
+                </button>
+                <button
+                    wire:click="$set('showRejectModal', false)"
+                    class="inline-flex items-center justify-center rounded-lg border border-zinc-300 bg-white px-6 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600"
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
+        @endif
+    </div>
+    @endif
+</div>

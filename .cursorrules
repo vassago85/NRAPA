@@ -1,0 +1,74 @@
+# NRAPA Membership Platform - Cursor Rules
+
+## Project Overview
+NRAPA Secure Membership, Compliance & Motivation Platform built with Laravel 12, Livewire, Volt, and Tailwind CSS.
+
+## Core Design Principle (CRITICAL)
+**Membership logic MUST be attribute-driven, not type-hardcoded.**
+
+- NEVER use `if ($membershipType === 'lifetime')` or similar conditionals
+- ALWAYS check attributes: `if ($membership->type->requires_renewal)`
+- Store rules as DATA in configuration tables, not as CODE
+- New membership types must work WITHOUT code changes
+
+## Architecture Patterns
+
+### Membership Types
+Membership types are admin-defined entities with configurable attributes:
+- `duration_type`: annual | lifetime | custom
+- `requires_renewal`: boolean
+- `expiry_rule`: fixed_date | rolling | none
+- `pricing_model`: annual | once_off | none
+- `allows_dedicated_status`: boolean
+- `requires_knowledge_test`: boolean
+- `certificate_entitlements`: array of certificate types
+
+### Document Types
+Document types are admin-configurable with:
+- Expiry periods (nullable for permanent)
+- Archive retention periods
+- Required per membership type (pivot table)
+
+### State Machine
+Membership lifecycle states: applied → approved → active → (renewed) → suspended → revoked
+State transitions must be explicit and audited.
+
+## Code Style
+
+### Livewire/Volt Components
+- Use Volt functional syntax for simple components
+- Use class-based Volt for complex logic
+- Place pages in `resources/views/pages/`
+- Use Flux UI components consistently
+
+### Models
+- Use attribute casting for JSON fields
+- Implement query scopes for common filters
+- Use policies for authorization
+- Relationships should be explicit and documented
+
+### Database
+- Use UUIDs for public-facing IDs
+- Use soft deletes for compliance data
+- All state changes must be audit logged
+- Timestamps on everything
+
+## Security Requirements
+- POPIA compliance for all personal data
+- Least-privilege access model
+- Immutable audit logs
+- QR verification for certificates (non-sensitive public validation)
+
+## Testing
+- Use Pest for all tests
+- Feature tests for all user flows
+- Unit tests for business logic
+- Test attribute-driven behavior, not hardcoded types
+
+## File Locations
+- SOW: `docs/SOW.md`
+- Database schema docs: `docs/SCHEMA.md`
+- Migrations: `database/migrations/`
+- Models: `app/Models/`
+- Volt pages: `resources/views/pages/`
+- Livewire components: `app/Livewire/`
