@@ -1,0 +1,117 @@
+# NRAPA Docker Stack for Portainer
+# Deploy via Portainer > Stacks > Add Stack
+
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nrapa-app:latest
+    container_name: nrapa-app
+    restart: unless-stopped
+    environment:
+      - APP_NAME=NRAPA
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=${APP_URL:-https://members.nrapa.co.za}
+      - APP_KEY=${APP_KEY}
+      - DB_CONNECTION=${DB_CONNECTION:-mysql}
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE:-nrapa}
+      - DB_USERNAME=${DB_USERNAME:-nrapa}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - MAIL_MAILER=${MAIL_MAILER:-smtp}
+      - MAIL_HOST=${MAIL_HOST}
+      - MAIL_PORT=${MAIL_PORT:-587}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_ENCRYPTION=${MAIL_ENCRYPTION:-tls}
+      - MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS:-noreply@nrapa.co.za}
+      - MAIL_FROM_NAME=${MAIL_FROM_NAME:-NRAPA}
+    volumes:
+      - app-storage:/var/www/html/storage/app
+      - app-logs:/var/www/html/storage/logs
+    networks:
+      - nrapa-network
+    depends_on:
+      db:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nrapa.rule=Host(`${DOMAIN:-members.nrapa.co.za}`)"
+      - "traefik.http.routers.nrapa.entrypoints=websecure"
+      - "traefik.http.routers.nrapa.tls.certresolver=letsencrypt"
+      - "traefik.http.services.nrapa.loadbalancer.server.port=80"
+
+  db:
+    image: mariadb:11
+    container_name: nrapa-db
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${DB_DATABASE:-nrapa}
+      - MYSQL_USER=${DB_USERNAME:-nrapa}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - nrapa-network
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Optional: Redis for caching/sessions
+  redis:
+    image: redis:alpine
+    container_name: nrapa-redis
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    networks:
+      - nrapa-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Optional: Run scheduled tasks
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nrapa-app:latest
+    container_name: nrapa-scheduler
+    restart: unless-stopped
+    command: sh -c "while true; do php /var/www/html/artisan schedule:run --verbose --no-interaction & sleep 60; done"
+    environment:
+      - APP_ENV=production
+      - DB_CONNECTION=${DB_CONNECTION:-mysql}
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE:-nrapa}
+      - DB_USERNAME=${DB_USERNAME:-nrapa}
+      - DB_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - app-storage:/var/www/html/storage/app
+      - app-logs:/var/www/html/storage/logs
+    networks:
+      - nrapa-network
+    depends_on:
+      - app
+      - db
+
+networks:
+  nrapa-network:
+    driver: bridge
+
+volumes:
+  app-storage:
+  app-logs:
+  db-data:
+  redis-data:
