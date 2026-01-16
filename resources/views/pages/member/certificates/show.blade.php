@@ -30,42 +30,43 @@ new class extends Component {
         {{-- Header --}}
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex items-center gap-4">
-                <flux:button href="{{ route('certificates.index') }}" wire:navigate variant="ghost" size="sm">
-                    <flux:icon name="arrow-left" class="size-4" />
+                <a href="{{ route('certificates.index') }}" wire:navigate
+                   class="inline-flex items-center gap-1 text-sm text-zinc-600 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                     Back
-                </flux:button>
+                </a>
                 <div>
-                    <flux:heading size="xl">{{ $this->certificate->certificateType->name }}</flux:heading>
-                    <flux:text class="font-mono text-zinc-500">{{ $this->certificate->certificate_number }}</flux:text>
+                    <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">{{ $this->certificate->certificateType->name }}</h1>
+                    <p class="font-mono text-zinc-500">{{ $this->certificate->certificate_number }}</p>
                 </div>
             </div>
             @if($this->certificate->isValid())
-                <flux:badge color="green" size="lg">
-                    <flux:icon name="check-circle" class="size-4" />
+                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     Valid
-                </flux:badge>
+                </span>
             @elseif($this->certificate->isRevoked())
-                <flux:badge color="red" size="lg">
-                    <flux:icon name="x-circle" class="size-4" />
+                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     Revoked
-                </flux:badge>
+                </span>
             @else
-                <flux:badge color="orange" size="lg">
-                    <flux:icon name="exclamation-circle" class="size-4" />
+                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     Expired
-                </flux:badge>
+                </span>
             @endif
         </div>
 
         <div class="grid gap-6 lg:grid-cols-3">
             {{-- Certificate Preview --}}
             <div class="lg:col-span-2">
-                <flux:card>
-                    <flux:card.header>
-                        <flux:heading size="lg">Certificate Preview</flux:heading>
-                    </flux:card.header>
+                <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+                        <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Certificate Preview</h2>
+                    </div>
 
-                    <flux:card.body>
+                    <div class="p-6">
                         {{-- Certificate Preview Card --}}
                         <div class="relative overflow-hidden rounded-xl border-4 border-emerald-600 bg-gradient-to-br from-emerald-50 to-white p-8 dark:from-emerald-950 dark:to-zinc-900">
                             {{-- Header --}}
@@ -73,178 +74,175 @@ new class extends Component {
                                 <div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-emerald-600 text-white">
                                     <x-app-logo-icon class="size-8" />
                                 </div>
-                                <flux:heading size="xl" class="text-emerald-800 dark:text-emerald-200">
+                                <h2 class="text-xl font-bold text-emerald-800 dark:text-emerald-200">
                                     NATIONAL RIFLE AND PISTOL ASSOCIATION
-                                </flux:heading>
-                                <flux:text class="text-lg text-emerald-600 dark:text-emerald-400">
+                                </h2>
+                                <p class="text-lg text-emerald-600 dark:text-emerald-400">
                                     {{ $this->certificate->certificateType->name }}
-                                </flux:text>
+                                </p>
                             </div>
 
                             {{-- Certificate Body --}}
                             <div class="mb-8 text-center">
-                                <flux:text class="text-zinc-600 dark:text-zinc-400">This is to certify that</flux:text>
-                                <flux:heading size="2xl" class="my-3">{{ Auth::user()->name }}</flux:heading>
-                                <flux:text class="text-zinc-600 dark:text-zinc-400">
+                                <p class="text-zinc-600 dark:text-zinc-400">This is to certify that</p>
+                                <h3 class="text-2xl font-bold my-3 text-zinc-900 dark:text-white">{{ Auth::user()->name }}</h3>
+                                <p class="text-zinc-600 dark:text-zinc-400">
                                     is a registered member of NRAPA
                                     @if($this->certificate->membership)
                                         holding a {{ $this->certificate->membership->type->name }}
                                     @endif
-                                </flux:text>
+                                </p>
                             </div>
 
                             {{-- Details --}}
                             <div class="mb-8 flex justify-center gap-12">
                                 <div class="text-center">
-                                    <flux:text class="text-sm text-zinc-500">Member Number</flux:text>
-                                    <flux:text class="font-mono font-semibold">
+                                    <p class="text-sm text-zinc-500">Member Number</p>
+                                    <p class="font-mono font-semibold text-zinc-900 dark:text-white">
                                         {{ $this->certificate->membership?->membership_number ?? 'N/A' }}
-                                    </flux:text>
+                                    </p>
                                 </div>
                                 <div class="text-center">
-                                    <flux:text class="text-sm text-zinc-500">Certificate Number</flux:text>
-                                    <flux:text class="font-mono font-semibold">{{ $this->certificate->certificate_number }}</flux:text>
+                                    <p class="text-sm text-zinc-500">Certificate Number</p>
+                                    <p class="font-mono font-semibold text-zinc-900 dark:text-white">{{ $this->certificate->certificate_number }}</p>
                                 </div>
                             </div>
 
                             {{-- Validity --}}
                             <div class="flex justify-center gap-12 border-t border-emerald-200 pt-6 dark:border-emerald-800">
                                 <div class="text-center">
-                                    <flux:text class="text-sm text-zinc-500">Issued</flux:text>
-                                    <flux:text class="font-semibold">{{ $this->certificate->issued_at->format('d F Y') }}</flux:text>
+                                    <p class="text-sm text-zinc-500">Issued</p>
+                                    <p class="font-semibold text-zinc-900 dark:text-white">{{ $this->certificate->issued_at->format('d F Y') }}</p>
                                 </div>
                                 <div class="text-center">
-                                    <flux:text class="text-sm text-zinc-500">Valid Until</flux:text>
-                                    <flux:text class="font-semibold">
+                                    <p class="text-sm text-zinc-500">Valid Until</p>
+                                    <p class="font-semibold text-zinc-900 dark:text-white">
                                         @if($this->certificate->valid_until)
                                             {{ $this->certificate->valid_until->format('d F Y') }}
                                         @else
                                             Indefinite
                                         @endif
-                                    </flux:text>
+                                    </p>
                                 </div>
                             </div>
 
                             {{-- QR Code Placeholder --}}
                             <div class="absolute bottom-4 right-4">
                                 <div class="flex size-20 items-center justify-center rounded-lg border-2 border-dashed border-emerald-300 bg-white dark:border-emerald-700 dark:bg-zinc-800">
-                                    <flux:icon name="qr-code" class="size-12 text-emerald-400" />
+                                    <svg class="w-12 h-12 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
                                 </div>
                             </div>
                         </div>
-                    </flux:card.body>
+                    </div>
 
-                    <flux:card.footer class="flex gap-3">
+                    <div class="px-6 py-4 border-t border-zinc-200 dark:border-zinc-700 flex gap-3">
                         @if($this->certificate->file_path)
-                        <flux:button variant="primary">
-                            <flux:icon name="arrow-down-tray" class="size-4" />
+                        <button type="button" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                             Download PDF
-                        </flux:button>
+                        </button>
                         @endif
-                        <flux:button variant="outline">
-                            <flux:icon name="printer" class="size-4" />
+                        <button type="button" class="inline-flex items-center gap-2 px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                             Print
-                        </flux:button>
-                    </flux:card.footer>
-                </flux:card>
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {{-- Certificate Details --}}
             <div class="space-y-6">
-                <flux:card>
-                    <flux:card.header>
-                        <flux:heading size="lg">Certificate Details</flux:heading>
-                    </flux:card.header>
+                <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+                        <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Certificate Details</h2>
+                    </div>
 
-                    <flux:card.body>
+                    <div class="p-6">
                         <dl class="space-y-4">
                             <div>
                                 <dt class="text-sm text-zinc-500">Type</dt>
-                                <dd class="font-medium">{{ $this->certificate->certificateType->name }}</dd>
+                                <dd class="font-medium text-zinc-900 dark:text-white">{{ $this->certificate->certificateType->name }}</dd>
                             </div>
                             <div>
                                 <dt class="text-sm text-zinc-500">Certificate Number</dt>
-                                <dd class="font-mono font-medium">{{ $this->certificate->certificate_number }}</dd>
+                                <dd class="font-mono font-medium text-zinc-900 dark:text-white">{{ $this->certificate->certificate_number }}</dd>
                             </div>
                             <div>
                                 <dt class="text-sm text-zinc-500">Issue Date</dt>
-                                <dd>{{ $this->certificate->issued_at->format('d F Y') }}</dd>
+                                <dd class="text-zinc-900 dark:text-white">{{ $this->certificate->issued_at->format('d F Y') }}</dd>
                             </div>
                             <div>
                                 <dt class="text-sm text-zinc-500">Valid From</dt>
-                                <dd>{{ $this->certificate->valid_from->format('d F Y') }}</dd>
+                                <dd class="text-zinc-900 dark:text-white">{{ $this->certificate->valid_from->format('d F Y') }}</dd>
                             </div>
                             <div>
                                 <dt class="text-sm text-zinc-500">Valid Until</dt>
-                                <dd>
+                                <dd class="text-zinc-900 dark:text-white">
                                     @if($this->certificate->valid_until)
                                         {{ $this->certificate->valid_until->format('d F Y') }}
                                     @else
-                                        <flux:badge color="amber">Indefinite</flux:badge>
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">Indefinite</span>
                                     @endif
                                 </dd>
                             </div>
                             @if($this->certificate->issuer)
                             <div>
                                 <dt class="text-sm text-zinc-500">Issued By</dt>
-                                <dd>{{ $this->certificate->issuer->name }}</dd>
+                                <dd class="text-zinc-900 dark:text-white">{{ $this->certificate->issuer->name }}</dd>
                             </div>
                             @endif
                         </dl>
-                    </flux:card.body>
-                </flux:card>
+                    </div>
+                </div>
 
                 {{-- QR Verification --}}
-                <flux:card>
-                    <flux:card.header>
-                        <flux:heading size="lg">QR Verification</flux:heading>
-                    </flux:card.header>
+                <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+                        <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">QR Verification</h2>
+                    </div>
 
-                    <flux:card.body>
+                    <div class="p-6">
                         <div class="space-y-4">
                             <div class="flex justify-center">
-                                <div class="flex size-32 items-center justify-center rounded-xl bg-white p-2 dark:bg-zinc-800">
+                                <div class="flex size-32 items-center justify-center rounded-xl bg-white p-2 dark:bg-zinc-700">
                                     {{-- QR Code would be generated here --}}
-                                    <flux:icon name="qr-code" class="size-24 text-zinc-800 dark:text-zinc-200" />
+                                    <svg class="w-24 h-24 text-zinc-800 dark:text-zinc-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
                                 </div>
                             </div>
-                            <flux:text class="text-center text-sm text-zinc-500">
+                            <p class="text-center text-sm text-zinc-500">
                                 Scan this QR code to verify the certificate authenticity.
-                            </flux:text>
-                            <flux:input
-                                readonly
-                                :value="$this->verificationUrl"
-                                class="font-mono text-xs"
-                            />
+                            </p>
+                            <input type="text" readonly value="{{ $this->verificationUrl }}"
+                                   class="w-full px-4 py-2 font-mono text-xs border border-zinc-300 dark:border-zinc-600 rounded-lg bg-zinc-50 dark:bg-zinc-700 text-zinc-900 dark:text-white">
                         </div>
-                    </flux:card.body>
-                </flux:card>
+                    </div>
+                </div>
 
                 {{-- Revocation Info --}}
                 @if($this->certificate->isRevoked())
-                <flux:card class="border-red-200 dark:border-red-800">
-                    <flux:card.header>
+                <div class="bg-white dark:bg-zinc-800 rounded-xl border border-red-200 dark:border-red-800 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-red-200 dark:border-red-800">
                         <div class="flex items-center gap-2 text-red-600 dark:text-red-400">
-                            <flux:icon name="exclamation-triangle" class="size-5" />
-                            <flux:heading size="lg">Revoked</flux:heading>
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                            <h2 class="text-lg font-semibold">Revoked</h2>
                         </div>
-                    </flux:card.header>
+                    </div>
 
-                    <flux:card.body>
+                    <div class="p-6">
                         <dl class="space-y-3">
                             <div>
                                 <dt class="text-sm text-zinc-500">Revoked On</dt>
-                                <dd>{{ $this->certificate->revoked_at->format('d F Y') }}</dd>
+                                <dd class="text-zinc-900 dark:text-white">{{ $this->certificate->revoked_at->format('d F Y') }}</dd>
                             </div>
                             @if($this->certificate->revocation_reason)
                             <div>
                                 <dt class="text-sm text-zinc-500">Reason</dt>
-                                <dd>{{ $this->certificate->revocation_reason }}</dd>
+                                <dd class="text-zinc-900 dark:text-white">{{ $this->certificate->revocation_reason }}</dd>
                             </div>
                             @endif
                         </dl>
-                    </flux:card.body>
-                </flux:card>
+                    </div>
+                </div>
                 @endif
             </div>
         </div>
