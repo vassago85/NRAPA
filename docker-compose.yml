@@ -35,9 +35,10 @@ services:
       - app-storage:/var/www/html/storage/app
       - app-logs:/var/www/html/storage/logs
     ports:
-      - "${APP_PORT:-8880}:80"
+      - "8080:80"
     networks:
       - nrapa-network
+      - npm-network  # Connect to Nginx Proxy Manager network
     depends_on:
       db:
         condition: service_healthy
@@ -105,6 +106,9 @@ services:
 networks:
   nrapa-network:
     driver: bridge
+  npm-network:
+    external: true
+    name: ${NPM_NETWORK:-npm_default}  # Your NPM network name
 
 volumes:
   app-storage:
