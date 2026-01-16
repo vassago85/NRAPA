@@ -34,17 +34,13 @@ services:
     volumes:
       - app-storage:/var/www/html/storage/app
       - app-logs:/var/www/html/storage/logs
+    ports:
+      - "${APP_PORT:-8880}:80"
     networks:
       - nrapa-network
     depends_on:
       db:
         condition: service_healthy
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.nrapa.rule=Host(`${DOMAIN:-members.nrapa.co.za}`)"
-      - "traefik.http.routers.nrapa.entrypoints=websecure"
-      - "traefik.http.routers.nrapa.tls.certresolver=letsencrypt"
-      - "traefik.http.services.nrapa.loadbalancer.server.port=80"
 
   db:
     image: mariadb:11
