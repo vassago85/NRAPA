@@ -18,7 +18,8 @@ php artisan migrate --force
 echo "⚡ Optimizing for production..."
 php artisan config:cache
 php artisan route:cache
-php artisan view:cache
+# Skip view cache - Flux components compiled at runtime
+php artisan view:clear
 
 # Create storage link if not exists
 php artisan storage:link 2>/dev/null || true
