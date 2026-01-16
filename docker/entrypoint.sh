@@ -25,10 +25,6 @@ php artisan cache:clear
 echo "📦 Publishing Livewire assets..."
 php artisan livewire:publish --assets 2>/dev/null || true
 
-# Publish Flux assets (required for Flux UI to work)
-echo "📦 Publishing Flux assets..."
-php artisan flux:publish 2>/dev/null || true
-
 # Create storage link if not exists
 php artisan storage:link 2>/dev/null || true
 
