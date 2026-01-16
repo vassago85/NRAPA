@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
@@ -21,39 +22,44 @@ class DatabaseSeeder extends Seeder
         $this->call(ActivityConfigurationSeeder::class);
 
         // Create developer user (Site Developer - Paul Charsley)
-        $developer = User::factory()->create([
-            'uuid' => Str::uuid(),
-            'name' => 'Paul Charsley',
-            'email' => 'paul@charsley.co.za',
-            'password' => bcrypt('PaulCharsley2026!'),
-            'is_admin' => true,
-            'role' => User::ROLE_DEVELOPER,
-        ]);
+        $developer = User::updateOrCreate(
+            ['email' => 'paul@charsley.co.za'],
+            [
+                'uuid' => Str::uuid(),
+                'name' => 'Paul Charsley',
+                'password' => Hash::make('PaulCharsley2026!'),
+                'email_verified_at' => now(),
+                'is_admin' => true,
+                'role' => 'developer',
+            ]
+        );
 
         // Create admin user (legacy - will be managed by owners)
-        $admin = User::factory()->create([
-            'uuid' => Str::uuid(),
-            'name' => 'NRAPA Admin',
-            'email' => 'admin@nrapa.co.za',
-            'is_admin' => true,
-            'role' => User::ROLE_ADMIN,
-            'nominated_by' => $developer->id,
-            'nominated_at' => now(),
-        ]);
-
-        // Assign super-admin role if exists
-        $superAdminRole = Role::where('slug', 'super-admin')->first();
-        if ($superAdminRole) {
-            $admin->roles()->attach($superAdminRole);
-        }
+        User::updateOrCreate(
+            ['email' => 'admin@nrapa.co.za'],
+            [
+                'uuid' => Str::uuid(),
+                'name' => 'NRAPA Admin',
+                'password' => Hash::make('NrapaAdmin2026!'),
+                'email_verified_at' => now(),
+                'is_admin' => true,
+                'role' => 'admin',
+                'nominated_by' => $developer->id,
+                'nominated_at' => now(),
+            ]
+        );
 
         // Create test member
-        User::factory()->create([
-            'uuid' => Str::uuid(),
-            'name' => 'Test Member',
-            'email' => 'member@example.com',
-            'is_admin' => false,
-            'role' => User::ROLE_MEMBER,
-        ]);
+        User::updateOrCreate(
+            ['email' => 'member@example.com'],
+            [
+                'uuid' => Str::uuid(),
+                'name' => 'Test Member',
+                'password' => Hash::make('password'),
+                'email_verified_at' => now(),
+                'is_admin' => false,
+                'role' => 'member',
+            ]
+        );
     }
 }
