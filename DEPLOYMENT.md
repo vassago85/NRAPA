@@ -1,252 +1,245 @@
 # NRAPA Deployment Guide
 
-## Prerequisites
+## Deployment Architecture
 
-- PHP 8.2+ with extensions: BCMath, Ctype, Fileinfo, JSON, Mbstring, OpenSSL, PDO, Tokenizer, XML
-- MySQL 8.0+ or PostgreSQL 13+
-- Composer 2.x
-- Node.js 18+ & NPM (for building assets)
-- Git
+- **Server**: Docker + Portainer
+- **Reverse Proxy**: Nginx Proxy Manager
+- **Domain**: `nrapa.charsley.co.za`
+- **Repository**: `github.com/vassago85/NRAPA` (private)
 
-## Server Setup (Ubuntu/Debian)
+---
 
-### 1. Install Required Packages
+## 🚀 Initial Deployment
 
+### 1. Clone Repository on Server
 ```bash
-# Update system
-sudo apt update && sudo apt upgrade -y
-
-# Install PHP 8.3 and extensions
-sudo add-apt-repository ppa:ondrej/php
-sudo apt install php8.3 php8.3-fpm php8.3-cli php8.3-mysql php8.3-pgsql \
-    php8.3-mbstring php8.3-xml php8.3-bcmath php8.3-curl php8.3-zip \
-    php8.3-gd php8.3-intl -y
-
-# Install Composer
-curl -sS https://getcomposer.org/installer | php
-sudo mv composer.phar /usr/local/bin/composer
-
-# Install Node.js 18
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt install nodejs -y
-
-# Install MySQL
-sudo apt install mysql-server -y
-sudo mysql_secure_installation
+cd /opt
+sudo mkdir nrapa && sudo chown paul:paul nrapa
+git clone git@github.com:vassago85/NRAPA.git /opt/nrapa
+cd /opt/nrapa
 ```
 
-### 2. Create Database
-
+### 2. Build Docker Image
 ```bash
-sudo mysql -u root -p
+docker build -t nrapa-app:latest .
 ```
 
-```sql
-CREATE DATABASE nrapa_members CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'nrapa_user'@'localhost' IDENTIFIED BY 'YOUR_STRONG_PASSWORD';
-GRANT ALL PRIVILEGES ON nrapa_members.* TO 'nrapa_user'@'localhost';
-FLUSH PRIVILEGES;
-EXIT;
+### 3. Deploy Stack in Portainer
+- Go to **Stacks** → **Add Stack** → Name: `nrapa`
+- Use **Web editor** and paste the docker-compose content
+- Or run: `docker compose up -d`
+
+### 4. Configure Nginx Proxy Manager
+- **Domain**: `nrapa.charsley.co.za`
+- **Forward Hostname**: `nrapa-app`
+- **Forward Port**: `80`
+- **SSL**: Request Let's Encrypt certificate
+
+---
+
+## 🔄 Update Process (IMPORTANT)
+
+### When code changes are made locally:
+
+**Step 1: Push changes from local (Windows/Cursor)**
+```powershell
+cd C:\laragon\www\NRAPA
+git add -A
+git commit -m "Description of changes"
+git push
 ```
 
-### 3. Deploy Application
-
+**Step 2: Pull and rebuild on server (SSH)**
 ```bash
-# Navigate to web directory
-cd /var/www
-
-# Clone repository (or upload files)
-git clone YOUR_REPO_URL nrapa
-cd nrapa
-
-# Set permissions
-sudo chown -R www-data:www-data /var/www/nrapa
-sudo chmod -R 755 /var/www/nrapa
-sudo chmod -R 775 /var/www/nrapa/storage
-sudo chmod -R 775 /var/www/nrapa/bootstrap/cache
-
-# Install PHP dependencies (no dev packages)
-composer install --no-dev --optimize-autoloader
-
-# Copy and configure environment
-cp .env.production.example .env
-nano .env  # Edit with your production values
-
-# Generate application key
-php artisan key:generate
-
-# Run migrations
-php artisan migrate --force
-
-# Seed initial data
-php artisan db:seed --force
-
-# Build assets
-npm install
-npm run build
-
-# Cache configuration
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-php artisan icons:cache
+cd /opt/nrapa
+git pull
+docker build -t nrapa-app:latest .
+docker compose down
+docker compose up -d
 ```
 
-### 4. Configure Nginx
-
-Create `/etc/nginx/sites-available/nrapa`:
-
-```nginx
-server {
-    listen 80;
-    listen [::]:80;
-    server_name members.nrapa.co.za;
-    root /var/www/nrapa/public;
-
-    add_header X-Frame-Options "SAMEORIGIN";
-    add_header X-Content-Type-Options "nosniff";
-
-    index index.php;
-
-    charset utf-8;
-
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
-
-    location = /favicon.ico { access_log off; log_not_found off; }
-    location = /robots.txt  { access_log off; log_not_found off; }
-
-    error_page 404 /index.php;
-
-    location ~ \.php$ {
-        fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
-        include fastcgi_params;
-        fastcgi_hide_header X-Powered-By;
-    }
-
-    location ~ /\.(?!well-known).* {
-        deny all;
-    }
-}
-```
-
+**Step 3: Verify**
 ```bash
-# Enable site
-sudo ln -s /etc/nginx/sites-available/nrapa /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl restart nginx
+docker logs nrapa-app --tail 30
 ```
 
-### 5. SSL Certificate (Let's Encrypt)
-
+### Quick Update (one-liner):
 ```bash
-sudo apt install certbot python3-certbot-nginx -y
-sudo certbot --nginx -d members.nrapa.co.za
+cd /opt/nrapa && git pull && docker build -t nrapa-app:latest . && docker compose down && docker compose up -d
 ```
 
-### 6. Set Up Scheduler (Cron)
+---
 
+## 🗄️ Database Operations
+
+### Fresh Install (wipes all data):
 ```bash
-sudo crontab -e -u www-data
+docker volume rm nrapa_db-data
+docker compose up -d
+# Migrations run automatically on startup
 ```
 
-Add this line:
-```
-* * * * * cd /var/www/nrapa && php artisan schedule:run >> /dev/null 2>&1
-```
-
-### 7. Schedule License Notifications
-
-Add to `app/Console/Kernel.php` or `routes/console.php`:
-
-```php
-use Illuminate\Support\Facades\Schedule;
-
-Schedule::command('nrapa:send-license-expiry-notifications')->daily();
-```
-
-## Quick Deployment Updates
-
-After pushing changes to your repository:
-
+### Run Migrations Only:
 ```bash
-cd /var/www/nrapa
-
-# Pull latest changes
-git pull origin main
-
-# Install any new dependencies
-composer install --no-dev --optimize-autoloader
-
-# Run migrations
-php artisan migrate --force
-
-# Clear and rebuild caches
-php artisan optimize:clear
-php artisan optimize
-
-# Rebuild assets if needed
-npm install
-npm run build
-
-# Restart PHP-FPM
-sudo systemctl restart php8.3-fpm
+docker exec nrapa-app php artisan migrate
 ```
 
-## Common Commands
-
+### Seed Data:
 ```bash
-# View logs
-tail -f /var/www/nrapa/storage/logs/laravel.log
-
-# Run queue worker (if using queues)
-php artisan queue:work --daemon
-
-# Clear all caches
-php artisan optimize:clear
-
-# Check application status
-php artisan about
+docker exec nrapa-app php artisan db:seed
 ```
 
-## Security Checklist
-
-- [ ] APP_DEBUG=false
-- [ ] APP_ENV=production
-- [ ] Strong database password
-- [ ] SSL certificate installed
-- [ ] File permissions correct (755 for directories, 644 for files)
-- [ ] Storage and bootstrap/cache writable by web server
-- [ ] .env file not accessible from web
-- [ ] Regular backups configured
-
-## Troubleshooting
-
-### 500 Error
+### Access Database CLI:
 ```bash
-# Check Laravel logs
-tail -100 /var/www/nrapa/storage/logs/laravel.log
-
-# Check PHP-FPM logs
-sudo tail -100 /var/log/php8.3-fpm.log
-
-# Check Nginx logs
-sudo tail -100 /var/log/nginx/error.log
+docker exec -it nrapa-db mysql -unrapa -p'Nrp@2026$Kz9mXvL!' nrapa
 ```
 
-### Permission Issues
+---
+
+## 🔧 Troubleshooting
+
+### Check Container Status:
 ```bash
-sudo chown -R www-data:www-data /var/www/nrapa
-sudo find /var/www/nrapa -type d -exec chmod 755 {} \;
-sudo find /var/www/nrapa -type f -exec chmod 644 {} \;
-sudo chmod -R 775 /var/www/nrapa/storage
-sudo chmod -R 775 /var/www/nrapa/bootstrap/cache
+docker ps -a | grep nrapa
 ```
 
-### Clear All Caches
+### View Logs:
 ```bash
-php artisan optimize:clear
-composer dump-autoload
+docker logs nrapa-app --tail 100
+docker logs nrapa-db --tail 50
+```
+
+### Restart Containers:
+```bash
+docker compose restart
+```
+
+### Shell into Container:
+```bash
+docker exec -it nrapa-app sh
+```
+
+### Clear Laravel Caches:
+```bash
+docker exec nrapa-app php artisan cache:clear
+docker exec nrapa-app php artisan config:clear
+docker exec nrapa-app php artisan route:clear
+docker exec nrapa-app php artisan view:clear
+```
+
+---
+
+## 🔐 Credentials
+
+### Database
+- **Host**: `db` (internal) / `nrapa-db` (container name)
+- **Database**: `nrapa`
+- **Username**: `nrapa`
+- **Password**: `Nrp@2026$Kz9mXvL!`
+- **Root Password**: `R00t#Nrp@Db$2026Qw!`
+
+### App Key
+```
+base64:k2j+RehijTAMeuojTYpp7+7VHbr9BlMLlVPaDBVgDqw=
+```
+
+### Developer Login
+- **Email**: `paul@charsley.co.za`
+- **Password**: `PaulCharsley2026!`
+
+---
+
+## 📁 Important Paths
+
+| Location | Path |
+|----------|------|
+| Local Dev | `C:\laragon\www\NRAPA` |
+| Server | `/opt/nrapa` |
+| Docker Volumes | `/var/lib/docker/volumes/nrapa_*` |
+| Container App | `/var/www/html` |
+
+---
+
+## 🌐 URLs
+
+| Environment | URL |
+|-------------|-----|
+| Production | `https://nrapa.charsley.co.za` |
+| Local Dev | `http://nrapa.test` |
+
+---
+
+## 🐳 Docker Compose (for Portainer Web Editor)
+
+```yaml
+services:
+  app:
+    image: nrapa-app:latest
+    container_name: nrapa-app
+    restart: unless-stopped
+    environment:
+      - APP_NAME=NRAPA
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=https://nrapa.charsley.co.za
+      - APP_KEY=base64:k2j+RehijTAMeuojTYpp7+7VHbr9BlMLlVPaDBVgDqw=
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=nrapa
+      - DB_USERNAME=nrapa
+      - DB_PASSWORD=Nrp@2026$Kz9mXvL!
+      - CACHE_DRIVER=redis
+      - SESSION_DRIVER=redis
+      - REDIS_HOST=redis
+      - MAIL_MAILER=log
+    volumes:
+      - app-storage:/var/www/html/storage/app
+      - app-logs:/var/www/html/storage/logs
+    networks:
+      - nrapa-network
+      - nginx-proxy-manager_default
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mariadb:11
+    container_name: nrapa-db
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=R00t#Nrp@Db$2026Qw!
+      - MYSQL_DATABASE=nrapa
+      - MYSQL_USER=nrapa
+      - MYSQL_PASSWORD=Nrp@2026$Kz9mXvL!
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - nrapa-network
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:alpine
+    container_name: nrapa-redis
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    networks:
+      - nrapa-network
+
+networks:
+  nrapa-network:
+    driver: bridge
+  nginx-proxy-manager_default:
+    external: true
+
+volumes:
+  app-storage:
+  app-logs:
+  db-data:
+  redis-data:
 ```
