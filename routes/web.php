@@ -44,6 +44,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('load-data/{load}/edit', 'pages::member.load-data.edit')->name('load-data.edit');
 });
 
+// Owner Routes (Owners and Developers can access)
+Route::middleware(['auth', 'verified', 'owner'])->prefix('owner')->name('owner.')->group(function () {
+    Route::livewire('dashboard', 'pages::owner.dashboard')->name('dashboard');
+    Route::livewire('admins', 'pages::owner.admins.index')->name('admins.index');
+    Route::livewire('admins/create', 'pages::owner.admins.create')->name('admins.create');
+});
+
+// Developer Routes (Developer only)
+Route::middleware(['auth', 'verified', 'developer'])->prefix('developer')->name('developer.')->group(function () {
+    Route::livewire('dashboard', 'pages::developer.dashboard')->name('dashboard');
+    Route::livewire('owners', 'pages::developer.owners.index')->name('owners.index');
+    Route::livewire('owners/nominate', 'pages::developer.owners.create')->name('owners.create');
+});
+
 // Admin Routes
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::livewire('members', 'pages::admin.members.index')->name('members.index');

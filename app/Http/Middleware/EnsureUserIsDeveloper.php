@@ -7,18 +7,17 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class EnsureUserIsAdmin
+class EnsureUserIsDeveloper
 {
     /**
      * Handle an incoming request.
-     * Allows Admins, Owners, and Developers (who have higher privilege).
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$request->user() || !$request->user()->hasRoleLevel(User::ROLE_ADMIN)) {
-            abort(403, 'Access denied. Admin privileges required.');
+        if (!$request->user() || !$request->user()->isDeveloper()) {
+            abort(403, 'Unauthorized. Developer access required.');
         }
 
         return $next($request);

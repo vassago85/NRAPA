@@ -22,6 +22,29 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
+    /**
+     * Role hierarchy constants.
+     */
+    public const ROLE_DEVELOPER = 'developer';
+    public const ROLE_OWNER = 'owner';
+    public const ROLE_ADMIN = 'admin';
+    public const ROLE_MEMBER = 'member';
+
+    /**
+     * Role hierarchy (higher index = higher privilege).
+     */
+    public const ROLE_HIERARCHY = [
+        self::ROLE_MEMBER => 0,
+        self::ROLE_ADMIN => 1,
+        self::ROLE_OWNER => 2,
+        self::ROLE_DEVELOPER => 3,
+    ];
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
+     */
     protected $fillable = [
         'uuid',
         'name',
@@ -33,6 +56,9 @@ class User extends Authenticatable
         'postal_address',
         'password',
         'is_admin',
+        'role',
+        'nominated_by',
+        'nominated_at',
     ];
 
     /**
@@ -60,7 +86,114 @@ class User extends Authenticatable
             'password' => 'hashed',
             'date_of_birth' => 'date',
             'is_admin' => 'boolean',
+            'nominated_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Get the user who nominated this user.
+     */
+    public function nominatedBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(User::class, 'nominated_by');
+    }
+
+    /**
+     * Get users nominated by this user.
+     */
+    public function nominees(): HasMany
+    {
+        return $this->hasMany(User::class, 'nominated_by');
+    }
+
+    /**
+     * Check if user is a developer (highest level).
+     */
+    public function isDeveloper(): bool
+    {
+        return $this->role === self::ROLE_DEVELOPER;
+    }
+
+    /**
+     * Check if user is an owner.
+     */
+    public function isOwner(): bool
+    {
+        return $this->role === self::ROLE_OWNER;
+    }
+
+    /**
+     * Check if user is an admin.
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === self::ROLE_ADMIN || $this->is_admin;
+    }
+
+    /**
+     * Check if user has at least the given role level.
+     */
+    public function hasRoleLevel(string $role): bool
+    {
+        $userLevel = self::ROLE_HIERARCHY[$this->role] ?? 0;
+        $requiredLevel = self::ROLE_HIERARCHY[$role] ?? 0;
+        
+        return $userLevel >= $requiredLevel;
+    }
+
+    /**
+     * Check if user can manage the given role.
+     * Developers can manage owners and below.
+     * Owners can manage admins only.
+     */
+    public function canManageRole(string $role): bool
+    {
+        if ($this->isDeveloper()) {
+            return true; // Developers can manage everyone
+        }
+        
+        if ($this->isOwner()) {
+            return $role === self::ROLE_ADMIN; // Owners can only manage admins
+        }
+        
+        return false;
+    }
+
+    /**
+     * Check if user can manage another user.
+     */
+    public function canManageUser(User $user): bool
+    {
+        // Can't manage yourself
+        if ($this->id === $user->id) {
+            return false;
+        }
+        
+        // Developers can manage anyone except other developers
+        if ($this->isDeveloper()) {
+            return !$user->isDeveloper();
+        }
+        
+        // Owners can manage admins they nominated
+        if ($this->isOwner()) {
+            return $user->isAdmin() && $user->nominated_by === $this->id;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Get role display name.
+     */
+    public function getRoleDisplayNameAttribute(): string
+    {
+        return match($this->role) {
+            self::ROLE_DEVELOPER => 'Site Developer',
+            self::ROLE_OWNER => 'Owner',
+            self::ROLE_ADMIN => 'Administrator',
+            self::ROLE_MEMBER => 'Member',
+            default => 'Unknown',
+        };
     }
 
     /**

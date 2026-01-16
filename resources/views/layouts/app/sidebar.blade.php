@@ -37,7 +37,35 @@
                     @endif
                 </flux:sidebar.group>
 
-                @if(auth()->user()->is_admin)
+                {{-- Developer Section --}}
+                @if(auth()->user()->isDeveloper())
+                <flux:sidebar.group :heading="__('Developer')" class="grid">
+                    <flux:sidebar.item icon="shield-check" :href="route('developer.dashboard')" :current="request()->routeIs('developer.dashboard')" wire:navigate>
+                        <span class="flex items-center gap-2">
+                            {{ __('Dev Dashboard') }}
+                            <span class="px-1.5 py-0.5 text-xs bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded">DEV</span>
+                        </span>
+                    </flux:sidebar.item>
+                    <flux:sidebar.item icon="star" :href="route('developer.owners.index')" :current="request()->routeIs('developer.owners.*')" wire:navigate>
+                        {{ __('Manage Owners') }}
+                    </flux:sidebar.item>
+                </flux:sidebar.group>
+                @endif
+
+                {{-- Owner Section --}}
+                @if(auth()->user()->hasRoleLevel(\App\Models\User::ROLE_OWNER))
+                <flux:sidebar.group :heading="__('Owner')" class="grid">
+                    <flux:sidebar.item icon="building-office" :href="route('owner.dashboard')" :current="request()->routeIs('owner.dashboard')" wire:navigate>
+                        {{ __('Owner Dashboard') }}
+                    </flux:sidebar.item>
+                    <flux:sidebar.item icon="user-group" :href="route('owner.admins.index')" :current="request()->routeIs('owner.admins.*')" wire:navigate>
+                        {{ __('Manage Admins') }}
+                    </flux:sidebar.item>
+                </flux:sidebar.group>
+                @endif
+
+                {{-- Admin Section --}}
+                @if(auth()->user()->hasRoleLevel(\App\Models\User::ROLE_ADMIN))
                 <flux:sidebar.group :heading="__('Administration')" class="grid">
                     <flux:sidebar.item icon="users" :href="route('admin.members.index')" :current="request()->routeIs('admin.members.*')" wire:navigate>
                         {{ __('Members') }}
