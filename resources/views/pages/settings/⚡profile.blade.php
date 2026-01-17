@@ -15,18 +15,12 @@ new class extends Component {
     public string $name = '';
     public string $email = '';
 
-    /**
-     * Mount the component.
-     */
     public function mount(): void
     {
         $this->name = Auth::user()->name;
         $this->email = Auth::user()->email;
     }
 
-    /**
-     * Update the profile information for the currently authenticated user.
-     */
     public function updateProfileInformation(): void
     {
         $user = Auth::user();
@@ -44,21 +38,16 @@ new class extends Component {
         $this->dispatch('profile-updated', name: $user->name);
     }
 
-    /**
-     * Send an email verification notification to the current user.
-     */
     public function resendVerificationNotification(): void
     {
         $user = Auth::user();
 
         if ($user->hasVerifiedEmail()) {
             $this->redirectIntended(default: route('dashboard', absolute: false));
-
             return;
         }
 
         $user->sendEmailVerificationNotification();
-
         Session::flash('status', 'verification-link-sent');
     }
 
@@ -79,9 +68,7 @@ new class extends Component {
 <section class="w-full">
     @include('partials.settings-heading')
 
-    <h2 class="sr-only">{{ __('Profile Settings') }}</h2>
-
-    <x-pages::settings.layout :heading="__('Profile')" :subheading="__('Update your name and email address')">
+    <x-settings-layout :heading="__('Profile')" :subheading="__('Update your name and email address')">
         <form wire:submit="updateProfileInformation" class="my-6 w-full space-y-6">
             <div>
                 <label for="name" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Name') }}</label>
@@ -115,8 +102,7 @@ new class extends Component {
             </div>
 
             <div class="flex items-center gap-4">
-                <button type="submit" data-test="update-profile-button"
-                        class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium">
+                <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium">
                     {{ __('Save') }}
                 </button>
 
@@ -129,5 +115,5 @@ new class extends Component {
         @if ($this->showDeleteUser)
             <livewire:pages::settings.delete-user-form />
         @endif
-    </x-pages::settings.layout>
+    </x-settings-layout>
 </section>

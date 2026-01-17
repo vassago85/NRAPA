@@ -13,9 +13,6 @@ new class extends Component {
     public string $password = '';
     public string $password_confirmation = '';
 
-    /**
-     * Update the password for the currently authenticated user.
-     */
     public function updatePassword(): void
     {
         try {
@@ -25,7 +22,6 @@ new class extends Component {
             ]);
         } catch (ValidationException $e) {
             $this->reset('current_password', 'password', 'password_confirmation');
-
             throw $e;
         }
 
@@ -34,7 +30,6 @@ new class extends Component {
         ]);
 
         $this->reset('current_password', 'password', 'password_confirmation');
-
         $this->dispatch('password-updated');
     }
 }; ?>
@@ -42,10 +37,8 @@ new class extends Component {
 <section class="w-full">
     @include('partials.settings-heading')
 
-    <h2 class="sr-only">{{ __('Password Settings') }}</h2>
-
-    <x-pages::settings.layout :heading="__('Update password')" :subheading="__('Ensure your account is using a long, random password to stay secure')">
-        <form method="POST" wire:submit="updatePassword" class="mt-6 space-y-6">
+    <x-settings-layout :heading="__('Update password')" :subheading="__('Ensure your account is using a long, random password to stay secure')">
+        <form wire:submit="updatePassword" class="mt-6 space-y-6">
             <div>
                 <label for="current_password" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Current password') }}</label>
                 <input wire:model="current_password" type="password" id="current_password" required autocomplete="current-password"
@@ -67,8 +60,7 @@ new class extends Component {
             </div>
 
             <div class="flex items-center gap-4">
-                <button type="submit" data-test="update-password-button"
-                        class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium">
+                <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium">
                     {{ __('Save') }}
                 </button>
 
@@ -77,5 +69,5 @@ new class extends Component {
                 </x-action-message>
             </div>
         </form>
-    </x-pages::settings.layout>
+    </x-settings-layout>
 </section>

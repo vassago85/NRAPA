@@ -11,9 +11,6 @@ new class extends Component {
     public string $password = '';
     public bool $showModal = false;
 
-    /**
-     * Delete the currently authenticated user.
-     */
     public function deleteUser(Logout $logout): void
     {
         $this->validate([
@@ -26,34 +23,32 @@ new class extends Component {
     }
 }; ?>
 
-<section class="mt-10 space-y-6">
-    <div class="relative mb-5">
-        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">{{ __('Delete account') }}</h3>
-        <p class="text-sm text-zinc-600 dark:text-zinc-400">{{ __('Delete your account and all of its resources') }}</p>
-    </div>
+<section class="mt-10 pt-6 border-t border-zinc-200 dark:border-zinc-700">
+    <h3 class="text-lg font-semibold text-red-600 dark:text-red-400">{{ __('Danger Zone') }}</h3>
+    <p class="text-sm text-zinc-600 dark:text-zinc-400 mt-1">{{ __('Once your account is deleted, all data will be permanently removed.') }}</p>
 
-    <button type="button" wire:click="$set('showModal', true)" data-test="delete-user-button"
-            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium">
-        {{ __('Delete account') }}
+    <button type="button" wire:click="$set('showModal', true)"
+            class="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium">
+        {{ __('Delete Account') }}
     </button>
 
     @if($showModal)
         <div class="fixed inset-0 z-50 overflow-y-auto">
             <div class="flex min-h-screen items-center justify-center p-4">
                 <div wire:click="$set('showModal', false)" class="fixed inset-0 bg-black/50"></div>
-                <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-lg p-6">
+                <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6">
                     <form wire:submit="deleteUser" class="space-y-6">
                         <div>
-                            <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">{{ __('Are you sure you want to delete your account?') }}</h3>
+                            <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">{{ __('Delete Account') }}</h3>
                             <p class="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-                                {{ __('Once your account is deleted, all of its resources and data will be permanently deleted. Please enter your password to confirm you would like to permanently delete your account.') }}
+                                {{ __('This action cannot be undone. Please enter your password to confirm.') }}
                             </p>
                         </div>
 
                         <div>
                             <label for="delete_password" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Password') }}</label>
                             <input wire:model="password" type="password" id="delete_password"
-                                   class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-transparent">
+                                   class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-red-500">
                             @error('password') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                         </div>
 
@@ -62,9 +57,9 @@ new class extends Component {
                                     class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
                                 {{ __('Cancel') }}
                             </button>
-                            <button type="submit" data-test="confirm-delete-user-button"
+                            <button type="submit"
                                     class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium">
-                                {{ __('Delete account') }}
+                                {{ __('Delete Account') }}
                             </button>
                         </div>
                     </form>
