@@ -57,6 +57,7 @@ Route::middleware(['auth', 'verified', 'owner'])->prefix('owner')->name('owner.'
     // Owner Settings (Bank, Email, etc.)
     Route::livewire('settings', 'pages::owner.settings.index')->name('settings.index');
     Route::livewire('settings/email', 'pages::owner.settings.email')->name('settings.email');
+    Route::livewire('settings/approvals', 'pages::owner.settings.approvals')->name('settings.approvals');
 });
 
 // Developer Routes (Developer only)
