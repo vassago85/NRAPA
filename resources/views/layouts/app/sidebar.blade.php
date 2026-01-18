@@ -111,7 +111,13 @@
                     <a href="{{ route('owner.settings.approvals') }}" wire:navigate class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg {{ request()->routeIs('owner.settings.approvals') ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         Config Approvals
-                        @php $pendingCount = \App\Models\ConfigurationChangeRequest::pending()->count(); @endphp
+                        @php
+                            try {
+                                $pendingCount = \App\Models\ConfigurationChangeRequest::pending()->count();
+                            } catch (\Exception $e) {
+                                $pendingCount = 0;
+                            }
+                        @endphp
                         @if($pendingCount > 0)
                         <span class="ml-auto px-2 py-0.5 text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full">{{ $pendingCount }}</span>
                         @endif
