@@ -77,10 +77,11 @@ class MembershipConfigurationSeeder extends Seeder
     protected function seedDocumentTypes(): void
     {
         $documentTypes = [
+            // Identity & Address
             [
                 'slug' => 'identity-document',
                 'name' => 'Identity Document',
-                'description' => 'South African ID document or passport',
+                'description' => 'South African ID document or passport (certified copy)',
                 'expiry_months' => null, // Permanent
                 'archive_months' => 12,
                 'sort_order' => 1,
@@ -94,20 +95,118 @@ class MembershipConfigurationSeeder extends Seeder
                 'sort_order' => 2,
             ],
             [
+                'slug' => 'passport-photo',
+                'name' => 'Passport Photo',
+                'description' => 'Recent passport-sized colour photo (not older than 3 months)',
+                'expiry_months' => 3,
+                'archive_months' => 12,
+                'sort_order' => 3,
+            ],
+            
+            // Safe & Storage
+            [
+                'slug' => 'safe-photo-exterior',
+                'name' => 'Safe Photo (Exterior)',
+                'description' => 'Photo showing safe from outside, including how it is secured/bolted',
+                'expiry_months' => 24,
+                'archive_months' => 12,
+                'sort_order' => 10,
+            ],
+            [
+                'slug' => 'safe-photo-interior',
+                'name' => 'Safe Photo (Interior)',
+                'description' => 'Photo showing inside of safe with current firearm storage',
+                'expiry_months' => 24,
+                'archive_months' => 12,
+                'sort_order' => 11,
+            ],
+            [
+                'slug' => 'sabs-compliance-certificate',
+                'name' => 'SABS Compliance Certificate',
+                'description' => 'South African Bureau of Standards compliance certificate for firearm safe',
+                'expiry_months' => null, // Permanent
+                'archive_months' => 12,
+                'sort_order' => 12,
+            ],
+            
+            // Competency & Training
+            [
                 'slug' => 'firearm-competency',
                 'name' => 'Firearm Competency Certificate',
                 'description' => 'Valid SAPS firearm competency certificate',
                 'expiry_months' => 120, // 10 years
                 'archive_months' => 12,
-                'sort_order' => 3,
+                'sort_order' => 20,
             ],
+            [
+                'slug' => 'training-certificate',
+                'name' => 'Accredited Training Certificate',
+                'description' => 'Certificate from accredited firearms training provider (unit standards)',
+                'expiry_months' => null, // Permanent
+                'archive_months' => 12,
+                'sort_order' => 21,
+            ],
+            
+            // Character References
+            [
+                'slug' => 'character-reference-1',
+                'name' => 'Character Reference 1',
+                'description' => 'Character reference from non-family member (must include contact details)',
+                'expiry_months' => 6,
+                'archive_months' => 12,
+                'sort_order' => 30,
+            ],
+            [
+                'slug' => 'character-reference-2',
+                'name' => 'Character Reference 2',
+                'description' => 'Character reference from non-family member (must include contact details)',
+                'expiry_months' => 6,
+                'archive_months' => 12,
+                'sort_order' => 31,
+            ],
+            [
+                'slug' => 'character-reference-3',
+                'name' => 'Character Reference 3',
+                'description' => 'Character reference from non-family member (must include contact details)',
+                'expiry_months' => 6,
+                'archive_months' => 12,
+                'sort_order' => 32,
+            ],
+            
+            // SAPS Forms
+            [
+                'slug' => 'saps-517-competency',
+                'name' => 'SAPS 517 Form',
+                'description' => 'Completed SAPS 517 - Application for Competency Certificate',
+                'expiry_months' => 6,
+                'archive_months' => 24,
+                'sort_order' => 40,
+            ],
+            [
+                'slug' => 'saps-271-licence',
+                'name' => 'SAPS 271 Form',
+                'description' => 'Completed SAPS 271 - Application for Licence to Possess a Firearm',
+                'expiry_months' => 6,
+                'archive_months' => 24,
+                'sort_order' => 41,
+            ],
+            [
+                'slug' => 'saps-350a-dealer',
+                'name' => 'SAPS 350(a) Form',
+                'description' => 'Dealer purchase form for new firearm acquisition',
+                'expiry_months' => 12,
+                'archive_months' => 24,
+                'sort_order' => 42,
+            ],
+            
+            // Activity Evidence
             [
                 'slug' => 'shooting-activity-evidence',
                 'name' => 'Shooting Activity Evidence',
                 'description' => 'Evidence of shooting activity (range attendance, competition results)',
-                'expiry_months' => 12, // Per membership year
+                'expiry_months' => 12,
                 'archive_months' => 12,
-                'sort_order' => 4,
+                'sort_order' => 50,
             ],
             [
                 'slug' => 'dedicated-activity-log',
@@ -115,7 +214,41 @@ class MembershipConfigurationSeeder extends Seeder
                 'description' => 'Activity log for dedicated status application',
                 'expiry_months' => 12,
                 'archive_months' => 24,
-                'sort_order' => 5,
+                'sort_order' => 51,
+            ],
+            [
+                'slug' => 'competition-scoresheet',
+                'name' => 'Competition Scoresheet',
+                'description' => 'Official scoresheet or results from shooting competition',
+                'expiry_months' => 12,
+                'archive_months' => 24,
+                'sort_order' => 52,
+            ],
+            [
+                'slug' => 'hunting-permit',
+                'name' => 'Hunting Permit',
+                'description' => 'Valid hunting permit or invitation to hunt',
+                'expiry_months' => 12,
+                'archive_months' => 12,
+                'sort_order' => 53,
+            ],
+            
+            // Licence Documents
+            [
+                'slug' => 'firearm-licence',
+                'name' => 'Firearm Licence',
+                'description' => 'Current SAPS firearm licence card',
+                'expiry_months' => 60, // 5 years typical
+                'archive_months' => 24,
+                'sort_order' => 60,
+            ],
+            [
+                'slug' => 'motivation-letter',
+                'name' => 'Motivation Letter',
+                'description' => 'Motivation letter for firearm licence application',
+                'expiry_months' => 6,
+                'archive_months' => 24,
+                'sort_order' => 61,
             ],
         ];
 

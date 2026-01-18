@@ -46,6 +46,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('load-data/create', 'pages::member.load-data.create')->name('load-data.create');
     Route::livewire('load-data/{load}', 'pages::member.load-data.show')->name('load-data.show');
     Route::livewire('load-data/{load}/edit', 'pages::member.load-data.edit')->name('load-data.edit');
+
+    // Documents
+    Route::livewire('documents', 'pages::member.documents.index')->name('documents.index');
+    Route::livewire('documents/upload', 'pages::member.documents.upload')->name('documents.upload');
+    Route::livewire('documents/{document}', 'pages::member.documents.show')->name('documents.show');
 });
 
 // Owner Routes (Owners and Developers can access)
@@ -94,6 +99,10 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 
     // Email Logs
     Route::livewire('email-logs', 'pages::admin.email-logs.index')->name('email-logs.index');
+
+    // Document Verification
+    Route::livewire('documents', 'pages::admin.documents.index')->name('documents.index');
+    Route::livewire('documents/{document}', 'pages::admin.documents.show')->name('documents.show');
 });
 
 // Public Certificate Verification
