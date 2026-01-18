@@ -164,7 +164,7 @@ new class extends Component {
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right">
                             @if(auth()->user()->canManageUser($admin))
-                                <button wire:click="confirmDelete({{ $admin->id }})"
+                                <button wire:click="confirmDelete('{{ $admin->uuid }}')"
                                     class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
                                     Demote
                                 </button>
