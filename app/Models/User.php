@@ -31,6 +31,12 @@ class User extends Authenticatable
     public const ROLE_MEMBER = 'member';
 
     /**
+     * Admin type constants.
+     */
+    public const ADMIN_TYPE_SUPER = 'super_admin';
+    public const ADMIN_TYPE_STANDARD = 'standard_admin';
+
+    /**
      * Role hierarchy (higher index = higher privilege).
      */
     public const ROLE_HIERARCHY = [
@@ -57,6 +63,7 @@ class User extends Authenticatable
         'password',
         'is_admin',
         'role',
+        'admin_type',
         'nominated_by',
         'nominated_at',
     ];
@@ -279,6 +286,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the permissions for the user.
+     */
+    public function permissions(): BelongsToMany
+    {
+        return $this->belongsToMany(Permission::class)
+            ->withPivot(['granted_by', 'granted_at'])
+            ->withTimestamps();
+    }
+
+    /**
      * Get dedicated status applications for the user.
      */
     public function dedicatedStatusApplications(): HasMany
@@ -356,17 +373,154 @@ class User extends Authenticatable
 
     /**
      * Check if user has a specific permission.
+     * 
+     * Hard rules:
+     * - Developer has ALL permissions (system level)
+     * - Owner has ALL permissions (NRAPA level)
+     * - Super Admin / Standard Admin have only assigned permissions
      */
     public function hasPermission(string $permission): bool
     {
-        if ($this->is_admin) {
+        // Developers have all permissions (system level)
+        if ($this->isDeveloper()) {
             return true;
         }
 
-        return $this->roles()
-            ->get()
-            ->flatMap(fn ($role) => $role->permissions ?? [])
-            ->contains($permission);
+        // Owners have all permissions (NRAPA level)
+        if ($this->isOwner()) {
+            return true;
+        }
+
+        // Admins check their assigned permissions
+        if ($this->isAdmin()) {
+            return $this->permissions()->where('slug', $permission)->exists();
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if user can assign roles (Owner only).
+     */
+    public function canAssignRoles(): bool
+    {
+        return $this->isOwner() || $this->isDeveloper();
+    }
+
+    /**
+     * Check if user can grant permissions (Owner only).
+     */
+    public function canGrantPermissions(): bool
+    {
+        return $this->isOwner() || $this->isDeveloper();
+    }
+
+    /**
+     * Check if user is a Super Admin.
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === self::ROLE_ADMIN && $this->admin_type === self::ADMIN_TYPE_SUPER;
+    }
+
+    /**
+     * Check if user is a Standard Admin.
+     */
+    public function isStandardAdmin(): bool
+    {
+        return $this->role === self::ROLE_ADMIN && $this->admin_type === self::ADMIN_TYPE_STANDARD;
+    }
+
+    /**
+     * Grant a permission to this user.
+     */
+    public function grantPermission(Permission $permission, User $grantedBy): void
+    {
+        if (!$grantedBy->canGrantPermissions()) {
+            throw new \Exception('User cannot grant permissions');
+        }
+
+        $this->permissions()->syncWithoutDetaching([
+            $permission->id => [
+                'granted_by' => $grantedBy->id,
+                'granted_at' => now(),
+            ],
+        ]);
+    }
+
+    /**
+     * Revoke a permission from this user.
+     */
+    public function revokePermission(Permission $permission): void
+    {
+        $this->permissions()->detach($permission->id);
+    }
+
+    /**
+     * Grant multiple permissions to this user.
+     */
+    public function grantPermissions(array $permissionSlugs, User $grantedBy): void
+    {
+        if (!$grantedBy->canGrantPermissions()) {
+            throw new \Exception('User cannot grant permissions');
+        }
+
+        $permissions = Permission::whereIn('slug', $permissionSlugs)->get();
+        
+        foreach ($permissions as $permission) {
+            $this->permissions()->syncWithoutDetaching([
+                $permission->id => [
+                    'granted_by' => $grantedBy->id,
+                    'granted_at' => now(),
+                ],
+            ]);
+        }
+    }
+
+    /**
+     * Sync permissions for this user (replace all).
+     */
+    public function syncPermissions(array $permissionSlugs, User $grantedBy): void
+    {
+        if (!$grantedBy->canGrantPermissions()) {
+            throw new \Exception('User cannot grant permissions');
+        }
+
+        $permissions = Permission::whereIn('slug', $permissionSlugs)->pluck('id');
+        
+        $syncData = $permissions->mapWithKeys(fn ($id) => [
+            $id => [
+                'granted_by' => $grantedBy->id,
+                'granted_at' => now(),
+            ],
+        ])->toArray();
+
+        $this->permissions()->sync($syncData);
+    }
+
+    /**
+     * Get all permission slugs for this user.
+     */
+    public function getPermissionSlugs(): array
+    {
+        // Owners and developers have all permissions
+        if ($this->isOwner() || $this->isDeveloper()) {
+            return Permission::pluck('slug')->toArray();
+        }
+
+        return $this->permissions()->pluck('slug')->toArray();
+    }
+
+    /**
+     * Get admin type display name.
+     */
+    public function getAdminTypeDisplayNameAttribute(): ?string
+    {
+        return match ($this->admin_type) {
+            self::ADMIN_TYPE_SUPER => 'Super Admin',
+            self::ADMIN_TYPE_STANDARD => 'Standard Admin',
+            default => null,
+        };
     }
 
     /**
