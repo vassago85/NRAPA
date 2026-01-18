@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
             'owner' => \App\Http\Middleware\EnsureUserIsOwner::class,
             'developer' => \App\Http\Middleware\EnsureUserIsDeveloper::class,
+            'membership.required' => \App\Http\Middleware\RedirectIfNoMembership::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -11,6 +11,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Dashboard
     Route::livewire('dashboard', 'pages::member.dashboard')->name('dashboard');
 
+    // Membership Package Selection (for new users)
+    Route::livewire('membership/select-package', 'pages::member.membership.select-package')->name('membership.select-package');
+    Route::livewire('membership/payment/{membership}', 'pages::member.membership.payment')->name('membership.payment');
+
     // Membership
     Route::livewire('membership', 'pages::member.membership.index')->name('membership.index');
     Route::livewire('membership/apply', 'pages::member.membership.apply')->name('membership.apply');
@@ -49,6 +53,10 @@ Route::middleware(['auth', 'verified', 'owner'])->prefix('owner')->name('owner.'
     Route::livewire('dashboard', 'pages::owner.dashboard')->name('dashboard');
     Route::livewire('admins', 'pages::owner.admins.index')->name('admins.index');
     Route::livewire('admins/create', 'pages::owner.admins.create')->name('admins.create');
+
+    // Owner Settings (Bank, Email, etc.)
+    Route::livewire('settings', 'pages::owner.settings.index')->name('settings.index');
+    Route::livewire('settings/email', 'pages::owner.settings.email')->name('settings.email');
 });
 
 // Developer Routes (Developer only)
