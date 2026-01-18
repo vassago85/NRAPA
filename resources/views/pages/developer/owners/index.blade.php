@@ -137,7 +137,7 @@ new class extends Component {
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right">
-                            <button wire:click="confirmRevoke({{ $owner->id }})"
+                            <button wire:click="confirmRevoke('{{ $owner->uuid }}')"
                                 class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 font-medium">
                                 Revoke
                             </button>
