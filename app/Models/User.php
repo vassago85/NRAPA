@@ -255,6 +255,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the user's notification preferences.
+     */
+    public function notificationPreference(): HasOne
+    {
+        return $this->hasOne(NotificationPreference::class);
+    }
+
+    /**
      * Get all certificates for the user.
      */
     public function certificates(): HasMany

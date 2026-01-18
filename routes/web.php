@@ -90,6 +90,9 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 
     // Activity Configuration
     Route::livewire('activity-config', 'pages::admin.activity-config.index')->name('activity-config.index');
+
+    // Email Logs
+    Route::livewire('email-logs', 'pages::admin.email-logs.index')->name('email-logs.index');
 });
 
 // Public Certificate Verification

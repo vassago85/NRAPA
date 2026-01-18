@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'ntfy' => [
+        'url' => env('NTFY_URL', 'https://ntfy.sh'),
+        'developer_topic' => env('NTFY_DEVELOPER_TOPIC'),
+    ],
+
 ];
+
