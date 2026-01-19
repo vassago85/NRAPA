@@ -72,7 +72,7 @@ class StorageHelper
 
     /**
      * Get a URL for a file.
-     * Uses temporary URLs for R2/S3 (when supported), regular URLs otherwise.
+     * Uses public URL for R2 if configured, otherwise falls back to signed URLs.
      *
      * @param string|null $path The file path
      * @param int $expirationMinutes Expiration time for temporary URLs (default: 60)
@@ -87,13 +87,19 @@ class StorageHelper
         $disk = static::getPublicDisk();
 
         try {
-            // Check if disk supports temporary URLs (S3/R2 do, but Minio may not depending on config)
+            // For R2, prefer the public URL if configured
+            if ($disk === 'r2') {
+                $publicUrl = config('filesystems.disks.r2.url');
+                if (!empty($publicUrl)) {
+                    return rtrim($publicUrl, '/') . '/' . ltrim($path, '/');
+                }
+            }
+            
+            // For S3/R2 without public URL, try signed temporary URL
             if (in_array($disk, ['s3', 'r2'])) {
-                // Try temporary URL first
                 try {
                     return Storage::disk($disk)->temporaryUrl($path, now()->addMinutes($expirationMinutes));
                 } catch (\Exception $e) {
-                    // Minio might not support temporary URLs, fall back to regular URL
                     return Storage::disk($disk)->url($path);
                 }
             }
