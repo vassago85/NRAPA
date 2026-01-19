@@ -150,6 +150,28 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             default => 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-300',
         };
     }
+
+    public function getPreviewUrl(MemberDocument $document): ?string
+    {
+        // Ensure user can only preview their own documents
+        if ($document->user_id !== auth()->id()) {
+            return null;
+        }
+
+        try {
+            $disk = config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
+            
+            // Check if disk supports temporary URLs (S3/R2 do, local doesn't)
+            if (in_array($disk, ['s3', 'r2'])) {
+                return Storage::disk($disk)->temporaryUrl($document->file_path, now()->addMinutes(15));
+            }
+            
+            // For local disk, return regular URL
+            return Storage::disk($disk)->url($document->file_path);
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
 }; ?>
 
 <div>
@@ -406,64 +428,120 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         <div class="fixed inset-0 z-50 overflow-y-auto">
             <div class="flex min-h-screen items-center justify-center p-4">
                 <div wire:click="$set('showViewModal', false)" class="fixed inset-0 bg-black/50"></div>
-                <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-2xl p-6">
-                    <h2 class="text-xl font-bold text-zinc-900 dark:text-white mb-4">Document Details</h2>
+                <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-4xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold text-zinc-900 dark:text-white">Document Details</h2>
+                        <button wire:click="$set('showViewModal', false)" class="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
                     
-                    <div class="space-y-4">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Document Type</p>
-                                <p class="text-base text-zinc-900 dark:text-white">{{ $viewingDocument->documentType->name }}</p>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Status</p>
-                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $this->getStatusBadgeClass($viewingDocument->status) }}">
-                                    {{ ucfirst($viewingDocument->status) }}
-                                </span>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Filename</p>
-                                <p class="text-base text-zinc-900 dark:text-white truncate">{{ $viewingDocument->original_filename }}</p>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">File Size</p>
-                                <p class="text-base text-zinc-900 dark:text-white">{{ number_format($viewingDocument->file_size / 1024, 1) }} KB</p>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Uploaded</p>
-                                <p class="text-base text-zinc-900 dark:text-white">{{ $viewingDocument->uploaded_at->format('d M Y H:i') }}</p>
-                            </div>
-                            @if($viewingDocument->expires_at)
-                                <div>
-                                    <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Expires</p>
-                                    <p class="text-base text-zinc-900 dark:text-white">{{ $viewingDocument->expires_at->format('d M Y') }}</p>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {{-- Document Preview --}}
+                        <div class="bg-zinc-100 dark:bg-zinc-900 rounded-lg overflow-hidden min-h-80">
+                            @php $previewUrl = $this->getPreviewUrl($viewingDocument); @endphp
+                            @if($previewUrl && str_contains($viewingDocument->mime_type, 'image'))
+                                <div class="p-4 h-full flex items-center justify-center">
+                                    <img src="{{ $previewUrl }}" alt="Document preview" class="max-w-full max-h-[400px] rounded-lg object-contain">
                                 </div>
-                            @endif
-                            @if($viewingDocument->verified_at)
-                                <div>
-                                    <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Verified</p>
-                                    <p class="text-base text-zinc-900 dark:text-white">{{ $viewingDocument->verified_at->format('d M Y H:i') }} by {{ $viewingDocument->verifier?->name ?? 'System' }}</p>
+                            @elseif($previewUrl && str_contains($viewingDocument->mime_type, 'pdf'))
+                                <div class="relative h-[400px]">
+                                    {{-- Embedded PDF Viewer --}}
+                                    <iframe 
+                                        src="{{ $previewUrl }}#toolbar=1&navpanes=0&scrollbar=1&view=FitH"
+                                        class="w-full h-full border-0"
+                                        title="PDF Preview">
+                                    </iframe>
+                                    {{-- Fallback link if iframe doesn't work --}}
+                                    <div class="absolute bottom-2 right-2">
+                                        <a href="{{ $previewUrl }}" target="_blank" 
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg shadow-lg">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                            </svg>
+                                            Full Screen
+                                        </a>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="flex flex-col items-center justify-center h-80 p-4">
+                                    <svg class="w-20 h-20 text-zinc-400 mb-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></svg>
+                                    <p class="text-zinc-600 dark:text-zinc-400 text-center">Preview not available for this file type</p>
                                 </div>
                             @endif
                         </div>
-                        
-                        @if($viewingDocument->rejection_reason)
-                            <div class="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
-                                <p class="text-sm font-medium text-red-800 dark:text-red-200">Rejection Reason</p>
-                                <p class="mt-1 text-sm text-red-700 dark:text-red-300">{{ $viewingDocument->rejection_reason }}</p>
+
+                        {{-- Document Info --}}
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Document Type</p>
+                                    <p class="text-base text-zinc-900 dark:text-white">{{ $viewingDocument->documentType->name }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Status</p>
+                                    <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $this->getStatusBadgeClass($viewingDocument->status) }}">
+                                        {{ ucfirst($viewingDocument->status) }}
+                                    </span>
+                                </div>
+                                <div class="col-span-2">
+                                    <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Filename</p>
+                                    <p class="text-base text-zinc-900 dark:text-white truncate" title="{{ $viewingDocument->original_filename }}">{{ $viewingDocument->original_filename }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">File Size</p>
+                                    <p class="text-base text-zinc-900 dark:text-white">{{ number_format($viewingDocument->file_size / 1024, 1) }} KB</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Uploaded</p>
+                                    <p class="text-base text-zinc-900 dark:text-white">{{ $viewingDocument->uploaded_at->format('d M Y H:i') }}</p>
+                                </div>
+                                @if($viewingDocument->expires_at)
+                                    <div>
+                                        <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Expires</p>
+                                        <p class="text-base text-zinc-900 dark:text-white">{{ $viewingDocument->expires_at->format('d M Y') }}</p>
+                                    </div>
+                                @endif
+                                @if($viewingDocument->verified_at)
+                                    <div>
+                                        <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Verified</p>
+                                        <p class="text-base text-zinc-900 dark:text-white">{{ $viewingDocument->verified_at->format('d M Y H:i') }}</p>
+                                    </div>
+                                @endif
                             </div>
-                        @endif
-                        
-                        <div class="flex justify-end gap-3 pt-4">
-                            <button type="button" wire:click="$set('showViewModal', false)"
-                                class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
-                                Close
-                            </button>
-                            <a href="{{ route('documents.show', $viewingDocument) }}" target="_blank"
-                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg inline-flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                Download
-                            </a>
+                            
+                            @if($viewingDocument->rejection_reason)
+                                <div class="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                                    <p class="text-sm font-medium text-red-800 dark:text-red-200">Rejection Reason</p>
+                                    <p class="mt-1 text-sm text-red-700 dark:text-red-300">{{ $viewingDocument->rejection_reason }}</p>
+                                </div>
+                            @endif
+
+                            @if($viewingDocument->status === 'verified')
+                                <div class="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                                    <p class="text-sm font-medium text-green-800 dark:text-green-200 flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                        Document Verified
+                                    </p>
+                                    <p class="mt-1 text-sm text-green-700 dark:text-green-300">
+                                        Verified by {{ $viewingDocument->verifier?->name ?? 'System' }}
+                                    </p>
+                                </div>
+                            @endif
+                            
+                            <div class="flex justify-end gap-3 pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                                <button type="button" wire:click="$set('showViewModal', false)"
+                                    class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                                    Close
+                                </button>
+                                @if($previewUrl)
+                                    <a href="{{ $previewUrl }}" target="_blank"
+                                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg inline-flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                        Download
+                                    </a>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 </div>

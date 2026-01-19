@@ -271,22 +271,40 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                     
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {{-- Document Preview --}}
-                        <div class="bg-zinc-100 dark:bg-zinc-900 rounded-lg p-4 min-h-96">
+                        <div class="bg-zinc-100 dark:bg-zinc-900 rounded-lg overflow-hidden min-h-96">
                             @php $previewUrl = $this->getPreviewUrl($reviewingDocument); @endphp
                             @if($previewUrl && str_contains($reviewingDocument->mime_type, 'image'))
-                                <img src="{{ $previewUrl }}" alt="Document preview" class="max-w-full max-h-96 mx-auto rounded-lg">
+                                <div class="p-4">
+                                    <img src="{{ $previewUrl }}" alt="Document preview" class="max-w-full max-h-[500px] mx-auto rounded-lg object-contain">
+                                </div>
                             @elseif($previewUrl && str_contains($reviewingDocument->mime_type, 'pdf'))
-                                <div class="flex flex-col items-center justify-center h-96">
-                                    <svg class="w-24 h-24 text-red-500 mb-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></svg>
-                                    <p class="text-zinc-600 dark:text-zinc-400 mb-4">PDF Document</p>
-                                    <a href="{{ $previewUrl }}" target="_blank" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
-                                        Open in New Tab
-                                    </a>
+                                <div class="relative h-[500px]">
+                                    {{-- Embedded PDF Viewer --}}
+                                    <iframe 
+                                        src="{{ $previewUrl }}#toolbar=1&navpanes=0&scrollbar=1&view=FitH"
+                                        class="w-full h-full border-0"
+                                        title="PDF Preview">
+                                    </iframe>
+                                    {{-- Fallback link if iframe doesn't work --}}
+                                    <div class="absolute bottom-2 right-2">
+                                        <a href="{{ $previewUrl }}" target="_blank" 
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg shadow-lg">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                            </svg>
+                                            Open Full Screen
+                                        </a>
+                                    </div>
                                 </div>
                             @else
-                                <div class="flex flex-col items-center justify-center h-96">
+                                <div class="flex flex-col items-center justify-center h-96 p-4">
                                     <svg class="w-24 h-24 text-zinc-400 mb-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></svg>
                                     <p class="text-zinc-600 dark:text-zinc-400">Preview not available</p>
+                                    @if($previewUrl)
+                                        <a href="{{ $previewUrl }}" target="_blank" class="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                                            Download File
+                                        </a>
+                                    @endif
                                 </div>
                             @endif
                         </div>
