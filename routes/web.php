@@ -64,9 +64,10 @@ Route::middleware(['auth', 'verified', 'owner'])->prefix('owner')->name('owner.'
     Route::livewire('admins', 'pages::owner.admins.index')->name('admins.index');
     Route::livewire('admins/create', 'pages::owner.admins.create')->name('admins.create');
 
-    // Owner Settings (Bank, Email, etc.)
+    // Owner Settings (Bank, Email, Storage, etc.)
     Route::livewire('settings', 'pages::owner.settings.index')->name('settings.index');
     Route::livewire('settings/email', 'pages::owner.settings.email')->name('settings.email');
+    Route::livewire('settings/storage', 'pages::owner.settings.storage')->name('settings.storage');
     Route::livewire('settings/approvals', 'pages::owner.settings.approvals')->name('settings.approvals');
 });
 
