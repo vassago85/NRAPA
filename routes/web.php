@@ -51,6 +51,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('documents', 'pages::member.documents.index')->name('documents.index');
     Route::livewire('documents/upload', 'pages::member.documents.upload')->name('documents.upload');
     Route::livewire('documents/{document}', 'pages::member.documents.show')->name('documents.show');
+
+    // Learning Center
+    Route::livewire('learning', 'pages::member.learning.index')->name('learning.index');
+    Route::livewire('learning/category/{category}', 'pages::member.learning.category')->name('learning.category');
+    Route::livewire('learning/{article}', 'pages::member.learning.show')->name('learning.show');
 });
 
 // Owner Routes (Owners and Developers can access)
@@ -103,6 +108,9 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     // Document Verification
     Route::livewire('documents', 'pages::admin.documents.index')->name('documents.index');
     Route::livewire('documents/{document}', 'pages::admin.documents.show')->name('documents.show');
+
+    // Learning Center Management
+    Route::livewire('learning', 'pages::admin.learning.index')->name('learning.index');
 });
 
 // Public Certificate Verification

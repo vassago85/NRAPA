@@ -551,4 +551,14 @@ class User extends Authenticatable
             ->where('passed', true)
             ->exists();
     }
+
+    /**
+     * Get learning articles read by the user.
+     */
+    public function learningArticlesRead(): BelongsToMany
+    {
+        return $this->belongsToMany(LearningArticle::class, 'learning_article_reads')
+            ->withPivot('read_at')
+            ->withTimestamps();
+    }
 }
