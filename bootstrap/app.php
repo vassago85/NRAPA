@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Trust all proxies (for Nginx Proxy Manager / reverse proxy setups)
         $middleware->trustProxies(at: '*');
 
+        // Add CORS middleware globally for Livewire uploads
+        $middleware->prepend(\App\Http\Middleware\HandleCors::class);
+
         // Handle CORS for Livewire uploads
         $middleware->validateCsrfTokens(except: [
             'livewire/upload-file',
