@@ -37,6 +37,7 @@
     33 => 'App\\Providers\\AppServiceProvider',
     34 => 'App\\Providers\\FortifyServiceProvider',
     35 => 'App\\Providers\\MailConfigServiceProvider',
+    36 => 'App\\Providers\\StorageConfigServiceProvider',
   ),
   'eager' => 
   array (
@@ -61,6 +62,7 @@
     18 => 'App\\Providers\\AppServiceProvider',
     19 => 'App\\Providers\\FortifyServiceProvider',
     20 => 'App\\Providers\\MailConfigServiceProvider',
+    21 => 'App\\Providers\\StorageConfigServiceProvider',
   ),
   'deferred' => 
   array (

@@ -112,6 +112,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 
     // Learning Center Management
     Route::livewire('learning', 'pages::admin.learning.index')->name('learning.index');
+    Route::livewire('learning/{article}/pages', 'pages::admin.learning.pages')->name('learning.pages');
 });
 
 // Public Certificate Verification

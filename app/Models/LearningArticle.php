@@ -88,6 +88,79 @@ class LearningArticle extends Model
     }
 
     /**
+     * Get the pages for this article.
+     */
+    public function pages(): HasMany
+    {
+        return $this->hasMany(LearningArticlePage::class)->orderBy('page_number');
+    }
+
+    /**
+     * Check if the article has multiple pages.
+     */
+    public function hasPages(): bool
+    {
+        return $this->pages()->count() > 0;
+    }
+
+    /**
+     * Get the total number of pages.
+     */
+    public function getTotalPagesAttribute(): int
+    {
+        return $this->pages()->count();
+    }
+
+    /**
+     * Get the first page of the article.
+     */
+    public function getFirstPageAttribute(): ?LearningArticlePage
+    {
+        return $this->pages()->orderBy('page_number')->first();
+    }
+
+    /**
+     * Check how many pages a user has read.
+     */
+    public function getPagesReadByUser(User $user): int
+    {
+        return $this->pages()
+            ->whereHas('readers', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->count();
+    }
+
+    /**
+     * Check if user has completed all pages.
+     */
+    public function isCompletedBy(User $user): bool
+    {
+        if (!$this->hasPages()) {
+            return $this->isReadBy($user);
+        }
+
+        return $this->getPagesReadByUser($user) >= $this->total_pages;
+    }
+
+    /**
+     * Get completion percentage for a user.
+     */
+    public function getCompletionPercentageFor(User $user): int
+    {
+        if (!$this->hasPages()) {
+            return $this->isReadBy($user) ? 100 : 0;
+        }
+
+        $totalPages = $this->total_pages;
+        if ($totalPages === 0) {
+            return 0;
+        }
+
+        return (int) round(($this->getPagesReadByUser($user) / $totalPages) * 100);
+    }
+
+    /**
      * Get the users who have read this article.
      */
     public function readers(): BelongsToMany

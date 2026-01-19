@@ -43,6 +43,7 @@ new #[Title('Learning Center - Admin')] class extends Component {
     public function articles()
     {
         return LearningArticle::with(['category', 'author'])
+            ->withCount('pages')
             ->orderBy('sort_order')
             ->orderBy('title')
             ->get();
@@ -612,6 +613,14 @@ new #[Title('Learning Center - Admin')] class extends Component {
                                 {{ $article->reading_time_minutes }} min read
                             </span>
                             @endif
+                            @if($article->pages_count > 0)
+                            <span class="ml-3 inline-flex items-center gap-1">
+                                <svg class="size-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                                </svg>
+                                {{ $article->pages_count }} {{ Str::plural('page', $article->pages_count) }}
+                            </span>
+                            @endif
                         </p>
                         @if($article->excerpt)
                         <p class="mt-2 text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2">{{ $article->excerpt }}</p>
@@ -619,6 +628,9 @@ new #[Title('Learning Center - Admin')] class extends Component {
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
+                    <a href="{{ route('admin.learning.pages', $article) }}" wire:navigate class="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                        Pages{{ $article->pages_count > 0 ? " ({$article->pages_count})" : '' }}
+                    </a>
                     <button wire:click="toggleArticlePublished({{ $article->id }})" class="text-sm {{ $article->is_published ? 'text-amber-600 hover:text-amber-700 dark:text-amber-400' : 'text-green-600 hover:text-green-700 dark:text-green-400' }}">
                         {{ $article->is_published ? 'Unpublish' : 'Publish' }}
                     </button>
