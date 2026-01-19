@@ -62,12 +62,12 @@ return [
 
         /*
         |--------------------------------------------------------------------------
-        | Cloudflare R2 Storage
+        | Cloudflare R2 Storage (Private - for sensitive documents)
         |--------------------------------------------------------------------------
         |
-        | Cloudflare R2 is S3-compatible object storage. Configure your R2 bucket
-        | credentials here. The endpoint format is:
-        | https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+        | Cloudflare R2 is S3-compatible object storage. This bucket is for
+        | sensitive member documents (ID copies, certificates, etc.).
+        | Access is via signed URLs only.
         |
         */
         'r2' => [
@@ -77,6 +77,28 @@ return [
             'region' => env('CLOUDFLARE_R2_REGION', 'auto'),
             'bucket' => env('CLOUDFLARE_R2_BUCKET'),
             'url' => env('CLOUDFLARE_R2_URL'),
+            'endpoint' => env('CLOUDFLARE_R2_ENDPOINT'),
+            'use_path_style_endpoint' => env('CLOUDFLARE_R2_USE_PATH_STYLE_ENDPOINT', false),
+            'throw' => false,
+            'report' => false,
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | Cloudflare R2 Public Storage (for learning images, etc.)
+        |--------------------------------------------------------------------------
+        |
+        | A separate R2 bucket with public access enabled for non-sensitive
+        | content like learning article images. Uses R2.dev public URL.
+        |
+        */
+        'r2_public' => [
+            'driver' => 's3',
+            'key' => env('CLOUDFLARE_R2_ACCESS_KEY_ID'),
+            'secret' => env('CLOUDFLARE_R2_SECRET_ACCESS_KEY'),
+            'region' => env('CLOUDFLARE_R2_REGION', 'auto'),
+            'bucket' => env('CLOUDFLARE_R2_PUBLIC_BUCKET'),
+            'url' => env('CLOUDFLARE_R2_PUBLIC_URL'),
             'endpoint' => env('CLOUDFLARE_R2_ENDPOINT'),
             'use_path_style_endpoint' => env('CLOUDFLARE_R2_USE_PATH_STYLE_ENDPOINT', false),
             'throw' => false,

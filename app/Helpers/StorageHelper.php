@@ -3,21 +3,20 @@
 namespace App\Helpers;
 
 use Illuminate\Support\Facades\Storage;
+use App\Models\SystemSetting;
 
 class StorageHelper
 {
     /**
-     * Get the configured storage disk name.
-     * Checks for R2, S3, or falls back to default disk.
+     * Get the private storage disk name (for sensitive documents).
+     * Uses R2 private bucket if configured, otherwise falls back to default.
      */
-    public static function getDisk(): string
+    public static function getPrivateDisk(): string
     {
-        // Check R2 first (user-configured cloud storage)
         if (config('filesystems.disks.r2.key')) {
             return 'r2';
         }
         
-        // Check S3/Minio (docker environment)
         if (config('filesystems.disks.s3.key')) {
             return 's3';
         }
@@ -26,18 +25,15 @@ class StorageHelper
     }
 
     /**
-     * Get the public storage disk name.
-     * This is used for publicly accessible files like learning images.
-     * Checks for R2, S3, or falls back to 'public'.
+     * Get the public storage disk name (for learning images, etc.).
+     * Uses R2 public bucket if configured, otherwise falls back to 'public'.
      */
     public static function getPublicDisk(): string
     {
-        // Check R2 first (user-configured cloud storage)
-        if (config('filesystems.disks.r2.key')) {
-            return 'r2';
+        if (config('filesystems.disks.r2_public.key')) {
+            return 'r2_public';
         }
         
-        // Check S3/Minio (docker environment)
         if (config('filesystems.disks.s3.key')) {
             return 's3';
         }
@@ -46,7 +42,7 @@ class StorageHelper
     }
 
     /**
-     * Store a file to the configured disk.
+     * Store a file to the public disk (for learning images, etc.).
      *
      * @param \Illuminate\Http\UploadedFile|\Livewire\Features\SupportFileUploads\TemporaryUploadedFile $file
      * @param string $path The directory path to store the file
@@ -59,7 +55,7 @@ class StorageHelper
     }
 
     /**
-     * Delete a file from the configured disk.
+     * Delete a file from the public disk.
      *
      * @param string $path The file path to delete
      * @return bool
@@ -71,14 +67,13 @@ class StorageHelper
     }
 
     /**
-     * Get a URL for a file.
-     * Uses public URL for R2 if configured, otherwise falls back to signed URLs.
+     * Get a URL for a public file (learning images, etc.).
+     * Uses direct public URL for R2 public bucket.
      *
      * @param string|null $path The file path
-     * @param int $expirationMinutes Expiration time for temporary URLs (default: 60)
      * @return string|null
      */
-    public static function getUrl(?string $path, int $expirationMinutes = 60): ?string
+    public static function getUrl(?string $path): ?string
     {
         if (empty($path)) {
             return null;
@@ -87,38 +82,24 @@ class StorageHelper
         $disk = static::getPublicDisk();
 
         try {
-            // For R2, prefer the public URL if configured
-            if ($disk === 'r2') {
-                $publicUrl = config('filesystems.disks.r2.url');
+            // For R2 public bucket, use the public URL directly
+            if ($disk === 'r2_public') {
+                $publicUrl = config('filesystems.disks.r2_public.url');
                 if (!empty($publicUrl)) {
                     return rtrim($publicUrl, '/') . '/' . ltrim($path, '/');
-                }
-            }
-            
-            // For S3/R2 without public URL, try signed temporary URL
-            if (in_array($disk, ['s3', 'r2'])) {
-                try {
-                    return Storage::disk($disk)->temporaryUrl($path, now()->addMinutes($expirationMinutes));
-                } catch (\Exception $e) {
-                    return Storage::disk($disk)->url($path);
                 }
             }
 
             // For local/public disk, return regular URL
             return Storage::disk($disk)->url($path);
         } catch (\Exception $e) {
-            // Last resort: try regular URL
-            try {
-                return Storage::disk($disk)->url($path);
-            } catch (\Exception $e) {
-                \Log::error('StorageHelper::getUrl failed', ['path' => $path, 'disk' => $disk, 'error' => $e->getMessage()]);
-                return null;
-            }
+            \Log::error('StorageHelper::getUrl failed', ['path' => $path, 'disk' => $disk, 'error' => $e->getMessage()]);
+            return null;
         }
     }
 
     /**
-     * Check if a file exists on the configured disk.
+     * Check if a file exists on the public disk.
      *
      * @param string|null $path The file path
      * @return bool
