@@ -12,8 +12,8 @@ new #[Title('Knowledge Tests')] class extends Component {
     {
         return KnowledgeTest::active()
             ->forDedicatedStatus()
+            ->whereHas('activeQuestions')
             ->withCount('activeQuestions')
-            ->having('active_questions_count', '>', 0)
             ->orderBy('dedicated_type')
             ->orderBy('name')
             ->get();
