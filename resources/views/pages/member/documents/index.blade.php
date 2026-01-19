@@ -73,10 +73,11 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         $user = auth()->user();
         $documentType = DocumentType::findOrFail($this->selectedDocumentType);
 
-        // Store the file
+        // Store the file - use R2 if configured, otherwise use default disk
+        $disk = config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
         $path = $this->uploadFile->store(
             "documents/{$user->uuid}/{$documentType->slug}",
-            's3'
+            $disk
         );
 
         // Create the document record
@@ -113,7 +114,8 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             return null;
         }
 
-        return Storage::disk('s3')->download(
+        $disk = config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
+        return Storage::disk($disk)->download(
             $document->file_path,
             $document->original_filename
         );
@@ -128,7 +130,8 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         }
 
         // Delete file from storage
-        Storage::disk('s3')->delete($document->file_path);
+        $disk = config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
+        Storage::disk($disk)->delete($document->file_path);
         
         // Delete record
         $document->delete();
@@ -319,27 +322,50 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                             @error('selectedDocumentType') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                         </div>
                         
-                        <div>
+                        <div x-data="{ 
+                                dragging: false,
+                                handleDrop(e) {
+                                    this.dragging = false;
+                                    const files = e.dataTransfer.files;
+                                    if (files.length > 0) {
+                                        // Use Livewire's upload method directly
+                                        @this.upload('uploadFile', files[0], 
+                                            (uploadedFilename) => { console.log('Upload complete:', uploadedFilename); },
+                                            (error) => { console.error('Upload error:', error); },
+                                            (event) => { console.log('Upload progress:', event.detail.progress); }
+                                        );
+                                    }
+                                }
+                            }">
                             <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">File</label>
-                            <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-zinc-300 dark:border-zinc-600 border-dashed rounded-lg hover:border-emerald-400 dark:hover:border-emerald-500 transition-colors"
-                                x-data="{ dragging: false }"
+                            <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-zinc-300 dark:border-zinc-600 border-dashed rounded-lg hover:border-emerald-400 dark:hover:border-emerald-500 transition-colors cursor-pointer"
                                 x-on:dragover.prevent="dragging = true"
                                 x-on:dragleave.prevent="dragging = false"
-                                x-on:drop.prevent="dragging = false; $refs.fileInput.files = $event.dataTransfer.files; $refs.fileInput.dispatchEvent(new Event('change'));"
+                                x-on:drop.prevent="handleDrop($event)"
+                                x-on:click="$refs.fileInput.click()"
                                 :class="{ 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20': dragging }">
                                 <div class="space-y-1 text-center">
                                     <svg class="mx-auto h-12 w-12 text-zinc-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
                                         <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                                     </svg>
-                                    <div class="flex text-sm text-zinc-600 dark:text-zinc-400">
-                                        <label for="file-upload" class="relative cursor-pointer rounded-md font-medium text-emerald-600 hover:text-emerald-500 dark:text-emerald-400">
-                                            <span>Upload a file</span>
-                                            <input id="file-upload" x-ref="fileInput" wire:model="uploadFile" type="file" class="sr-only" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp">
-                                        </label>
+                                    <div class="flex text-sm text-zinc-600 dark:text-zinc-400 justify-center">
+                                        <span class="font-medium text-emerald-600 hover:text-emerald-500 dark:text-emerald-400">Upload a file</span>
                                         <p class="pl-1">or drag and drop</p>
                                     </div>
                                     <p class="text-xs text-zinc-500 dark:text-zinc-500">PDF, PNG, JPG up to 10MB</p>
+                                    
+                                    {{-- Loading indicator --}}
+                                    <div wire:loading wire:target="uploadFile" class="mt-2">
+                                        <div class="flex items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400">
+                                            <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            <span class="text-sm">Uploading...</span>
+                                        </div>
+                                    </div>
                                 </div>
+                                <input x-ref="fileInput" wire:model="uploadFile" type="file" class="sr-only" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp">
                             </div>
                             @error('uploadFile') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             

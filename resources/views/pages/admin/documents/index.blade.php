@@ -106,7 +106,16 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     public function getPreviewUrl(MemberDocument $document): ?string
     {
         try {
-            return Storage::disk('s3')->temporaryUrl($document->file_path, now()->addMinutes(15));
+            $disk = config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
+            
+            // Check if disk supports temporary URLs (S3/R2 do, local doesn't)
+            if (method_exists(Storage::disk($disk)->getDriver(), 'temporaryUrl') || 
+                in_array($disk, ['s3', 'r2'])) {
+                return Storage::disk($disk)->temporaryUrl($document->file_path, now()->addMinutes(15));
+            }
+            
+            // For local disk, return regular URL
+            return Storage::disk($disk)->url($document->file_path);
         } catch (\Exception $e) {
             return null;
         }
