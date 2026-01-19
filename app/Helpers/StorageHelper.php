@@ -8,21 +8,41 @@ class StorageHelper
 {
     /**
      * Get the configured storage disk name.
-     * Returns 'r2' if R2 is configured, otherwise the default disk.
+     * Checks for R2, S3, or falls back to default disk.
      */
     public static function getDisk(): string
     {
-        return config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
+        // Check R2 first (user-configured cloud storage)
+        if (config('filesystems.disks.r2.key')) {
+            return 'r2';
+        }
+        
+        // Check S3/Minio (docker environment)
+        if (config('filesystems.disks.s3.key')) {
+            return 's3';
+        }
+        
+        return config('filesystems.default');
     }
 
     /**
      * Get the public storage disk name.
      * This is used for publicly accessible files like learning images.
-     * Returns 'r2' if R2 is configured, otherwise 'public'.
+     * Checks for R2, S3, or falls back to 'public'.
      */
     public static function getPublicDisk(): string
     {
-        return config('filesystems.disks.r2.key') ? 'r2' : 'public';
+        // Check R2 first (user-configured cloud storage)
+        if (config('filesystems.disks.r2.key')) {
+            return 'r2';
+        }
+        
+        // Check S3/Minio (docker environment)
+        if (config('filesystems.disks.s3.key')) {
+            return 's3';
+        }
+        
+        return 'public';
     }
 
     /**
@@ -52,7 +72,7 @@ class StorageHelper
 
     /**
      * Get a URL for a file.
-     * Uses temporary URLs for R2/S3, regular URLs for local storage.
+     * Uses temporary URLs for R2/S3 (when supported), regular URLs otherwise.
      *
      * @param string|null $path The file path
      * @param int $expirationMinutes Expiration time for temporary URLs (default: 60)
@@ -67,18 +87,25 @@ class StorageHelper
         $disk = static::getPublicDisk();
 
         try {
-            // Check if disk supports temporary URLs (S3/R2 do)
+            // Check if disk supports temporary URLs (S3/R2 do, but Minio may not depending on config)
             if (in_array($disk, ['s3', 'r2'])) {
-                return Storage::disk($disk)->temporaryUrl($path, now()->addMinutes($expirationMinutes));
+                // Try temporary URL first
+                try {
+                    return Storage::disk($disk)->temporaryUrl($path, now()->addMinutes($expirationMinutes));
+                } catch (\Exception $e) {
+                    // Minio might not support temporary URLs, fall back to regular URL
+                    return Storage::disk($disk)->url($path);
+                }
             }
 
             // For local/public disk, return regular URL
             return Storage::disk($disk)->url($path);
         } catch (\Exception $e) {
-            // If temporaryUrl fails, try regular URL
+            // Last resort: try regular URL
             try {
                 return Storage::disk($disk)->url($path);
             } catch (\Exception $e) {
+                \Log::error('StorageHelper::getUrl failed', ['path' => $path, 'disk' => $disk, 'error' => $e->getMessage()]);
                 return null;
             }
         }
