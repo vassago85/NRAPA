@@ -18,9 +18,18 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         $this->document = $document->load('documentType', 'verifier');
     }
 
+    protected function getPrivateDisk(): string
+    {
+        // Use R2 if configured, otherwise fall back to s3 (Minio)
+        if (config('filesystems.disks.r2.key')) {
+            return 'r2';
+        }
+        return 's3';
+    }
+
     public function download(): mixed
     {
-        return Storage::disk('s3')->download(
+        return Storage::disk($this->getPrivateDisk())->download(
             $this->document->file_path,
             $this->document->original_filename
         );
@@ -41,8 +50,9 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     public function getPreviewUrl(): ?string
     {
         try {
-            return Storage::disk('s3')->temporaryUrl($this->document->file_path, now()->addMinutes(15));
+            return Storage::disk($this->getPrivateDisk())->temporaryUrl($this->document->file_path, now()->addMinutes(15));
         } catch (\Exception $e) {
+            \Log::error('Document preview URL failed', ['path' => $this->document->file_path, 'error' => $e->getMessage()]);
             return null;
         }
     }
