@@ -60,6 +60,29 @@ return [
             'report' => false,
         ],
 
+        /*
+        |--------------------------------------------------------------------------
+        | Cloudflare R2 Storage
+        |--------------------------------------------------------------------------
+        |
+        | Cloudflare R2 is S3-compatible object storage. Configure your R2 bucket
+        | credentials here. The endpoint format is:
+        | https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+        |
+        */
+        'r2' => [
+            'driver' => 's3',
+            'key' => env('CLOUDFLARE_R2_ACCESS_KEY_ID'),
+            'secret' => env('CLOUDFLARE_R2_SECRET_ACCESS_KEY'),
+            'region' => env('CLOUDFLARE_R2_REGION', 'auto'),
+            'bucket' => env('CLOUDFLARE_R2_BUCKET'),
+            'url' => env('CLOUDFLARE_R2_URL'),
+            'endpoint' => env('CLOUDFLARE_R2_ENDPOINT'),
+            'use_path_style_endpoint' => env('CLOUDFLARE_R2_USE_PATH_STYLE_ENDPOINT', false),
+            'throw' => false,
+            'report' => false,
+        ],
+
     ],
 
     /*
