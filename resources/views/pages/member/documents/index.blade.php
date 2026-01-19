@@ -224,17 +224,21 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
 
     public function deleteDocument(MemberDocument $document): void
     {
-        // Ensure user can only delete their own pending documents
-        if ($document->user_id !== auth()->id() || !$document->isPending()) {
-            session()->flash('error', 'You can only delete pending documents.');
+        // Ensure user can only delete their own documents
+        if ($document->user_id !== auth()->id()) {
+            session()->flash('error', 'You can only delete your own documents.');
             return;
         }
 
         // Delete file from storage
         $disk = config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
-        Storage::disk($disk)->delete($document->file_path);
+        try {
+            Storage::disk($disk)->delete($document->file_path);
+        } catch (\Exception $e) {
+            // Log error but continue with deletion - file might already be gone
+        }
         
-        // Delete record
+        // Delete record (soft delete)
         $document->delete();
         
         session()->flash('success', 'Document deleted successfully.');
@@ -376,14 +380,12 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                                                 <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {{ $this->getStatusBadgeClass($doc->status) }}">
                                                     {{ ucfirst($doc->status) }}
                                                 </span>
-                                                <button wire:click="viewDocument('{{ $doc->uuid }}')" class="p-1.5 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200">
+                                                <button wire:click="viewDocument('{{ $doc->uuid }}')" class="p-1.5 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200" title="View details">
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                                 </button>
-                                                @if($doc->isPending())
-                                                    <button wire:click="deleteDocument('{{ $doc->uuid }}')" wire:confirm="Are you sure you want to delete this document?" class="p-1.5 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
-                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                                    </button>
-                                                @endif
+                                                <button wire:click="deleteDocument('{{ $doc->uuid }}')" wire:confirm="Are you sure you want to delete this document? This action cannot be undone." class="p-1.5 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300" title="Delete document">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                </button>
                                             </div>
                                         </div>
                                     @endforeach
@@ -725,16 +727,25 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                             </div>
                         @endif
                         
-                        <div class="flex justify-end gap-3 pt-4">
-                            <button type="button" wire:click="$set('showViewModal', false)"
-                                class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
-                                Close
+                        <div class="flex justify-between items-center pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                            <button type="button" 
+                                wire:click="deleteDocument('{{ $viewingDocument->uuid }}')" 
+                                wire:confirm="Are you sure you want to delete this document? This action cannot be undone."
+                                class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg inline-flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                Delete
                             </button>
-                            <a href="{{ route('documents.show', $viewingDocument) }}" target="_blank"
-                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg inline-flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                Download
-                            </a>
+                            <div class="flex gap-3">
+                                <button type="button" wire:click="$set('showViewModal', false)"
+                                    class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                                    Close
+                                </button>
+                                <a href="{{ route('documents.show', $viewingDocument) }}" target="_blank"
+                                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg inline-flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                    Download
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
