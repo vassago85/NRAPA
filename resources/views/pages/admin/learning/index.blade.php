@@ -1,5 +1,6 @@
 <?php
 
+use App\Helpers\StorageHelper;
 use App\Models\LearningCategory;
 use App\Models\LearningArticle;
 use Livewire\Attributes\Computed;
@@ -100,15 +101,15 @@ new #[Title('Learning Center - Admin')] class extends Component {
         $imagePath = $this->existingCategoryImage;
 
         if ($this->removeCategoryImage && $this->existingCategoryImage) {
-            Storage::disk('public')->delete($this->existingCategoryImage);
+            StorageHelper::deleteFile($this->existingCategoryImage);
             $imagePath = null;
         }
 
         if ($this->categoryImage) {
             if ($this->existingCategoryImage) {
-                Storage::disk('public')->delete($this->existingCategoryImage);
+                StorageHelper::deleteFile($this->existingCategoryImage);
             }
-            $imagePath = $this->categoryImage->store('learning/categories', 'public');
+            $imagePath = StorageHelper::storeFile($this->categoryImage, 'learning/categories');
         }
 
         $data = [
@@ -151,7 +152,7 @@ new #[Title('Learning Center - Admin')] class extends Component {
         }
 
         if ($category->image_path) {
-            Storage::disk('public')->delete($category->image_path);
+            StorageHelper::deleteFile($category->image_path);
         }
 
         $category->delete();
@@ -210,15 +211,15 @@ new #[Title('Learning Center - Admin')] class extends Component {
         $imagePath = $this->existingArticleFeaturedImage;
 
         if ($this->removeArticleFeaturedImage && $this->existingArticleFeaturedImage) {
-            Storage::disk('public')->delete($this->existingArticleFeaturedImage);
+            StorageHelper::deleteFile($this->existingArticleFeaturedImage);
             $imagePath = null;
         }
 
         if ($this->articleFeaturedImage) {
             if ($this->existingArticleFeaturedImage) {
-                Storage::disk('public')->delete($this->existingArticleFeaturedImage);
+                StorageHelper::deleteFile($this->existingArticleFeaturedImage);
             }
-            $imagePath = $this->articleFeaturedImage->store('learning/articles', 'public');
+            $imagePath = StorageHelper::storeFile($this->articleFeaturedImage, 'learning/articles');
         }
 
         $data = [
@@ -270,12 +271,19 @@ new #[Title('Learning Center - Admin')] class extends Component {
         $article = LearningArticle::findOrFail($id);
 
         if ($article->featured_image) {
-            Storage::disk('public')->delete($article->featured_image);
+            StorageHelper::deleteFile($article->featured_image);
         }
 
         // Delete article images
         foreach ($article->images as $image) {
-            Storage::disk('public')->delete($image->path);
+            StorageHelper::deleteFile($image->path);
+        }
+
+        // Delete page images
+        foreach ($article->pages as $page) {
+            if ($page->image_path) {
+                StorageHelper::deleteFile($page->image_path);
+            }
         }
 
         $article->delete();
@@ -371,7 +379,7 @@ new #[Title('Learning Center - Admin')] class extends Component {
                     </div>
                     @elseif($existingCategoryImage && !$removeCategoryImage)
                     <div class="relative inline-block">
-                        <img src="{{ Storage::url($existingCategoryImage) }}" alt="Current" class="h-24 w-40 rounded-lg border border-zinc-200 object-cover dark:border-zinc-700">
+                        <img src="{{ StorageHelper::getUrl($existingCategoryImage) }}" alt="Current" class="h-24 w-40 rounded-lg border border-zinc-200 object-cover dark:border-zinc-700">
                         <button type="button" wire:click="$set('removeCategoryImage', true)" class="absolute -right-2 -top-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600">
                             <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -455,7 +463,7 @@ new #[Title('Learning Center - Admin')] class extends Component {
                     </div>
                     @elseif($existingArticleFeaturedImage && !$removeArticleFeaturedImage)
                     <div class="relative inline-block">
-                        <img src="{{ Storage::url($existingArticleFeaturedImage) }}" alt="Current" class="h-32 rounded-lg border border-zinc-200 object-cover dark:border-zinc-700">
+                        <img src="{{ StorageHelper::getUrl($existingArticleFeaturedImage) }}" alt="Current" class="h-32 rounded-lg border border-zinc-200 object-cover dark:border-zinc-700">
                         <button type="button" wire:click="$set('removeArticleFeaturedImage', true)" class="absolute -right-2 -top-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600">
                             <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />

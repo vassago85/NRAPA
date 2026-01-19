@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use App\Helpers\StorageHelper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\Storage;
 
 class LearningCategory extends Model
 {
@@ -69,7 +69,7 @@ class LearningCategory extends Model
             return null;
         }
 
-        return Storage::url($this->image_path);
+        return StorageHelper::getUrl($this->image_path);
     }
 
     /**

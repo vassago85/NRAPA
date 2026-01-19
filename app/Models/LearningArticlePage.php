@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use App\Helpers\StorageHelper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Support\Facades\Storage;
 
 class LearningArticlePage extends Model
 {
@@ -70,7 +70,7 @@ class LearningArticlePage extends Model
             return null;
         }
 
-        return Storage::url($this->image_path);
+        return StorageHelper::getUrl($this->image_path);
     }
 
     /**

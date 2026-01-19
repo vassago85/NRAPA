@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
+use App\Helpers\StorageHelper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class LearningArticle extends Model
@@ -187,7 +187,7 @@ class LearningArticle extends Model
             return null;
         }
 
-        return Storage::url($this->featured_image);
+        return StorageHelper::getUrl($this->featured_image);
     }
 
     /**
