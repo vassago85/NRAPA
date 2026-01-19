@@ -3,6 +3,13 @@ set -e
 
 echo "🚀 Starting NRAPA..."
 
+# Fix storage permissions
+echo "🔧 Setting permissions..."
+chown -R www-data:www-data /var/www/html/storage
+chmod -R 775 /var/www/html/storage
+chown -R www-data:www-data /var/www/html/bootstrap/cache
+chmod -R 775 /var/www/html/bootstrap/cache
+
 # Wait for database to be ready
 echo "⏳ Waiting for database..."
 while ! php artisan db:monitor --databases=mysql > /dev/null 2>&1; do
