@@ -50,7 +50,15 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     public function getPreviewUrl(): ?string
     {
         try {
-            return Storage::disk($this->getPrivateDisk())->temporaryUrl($this->document->file_path, now()->addMinutes(15));
+            // Include ResponseContentDisposition: inline so PDFs display in iframe
+            return Storage::disk($this->getPrivateDisk())->temporaryUrl(
+                $this->document->file_path, 
+                now()->addMinutes(15),
+                [
+                    'ResponseContentDisposition' => 'inline; filename="' . $this->document->original_filename . '"',
+                    'ResponseContentType' => $this->document->mime_type,
+                ]
+            );
         } catch (\Exception $e) {
             \Log::error('Document preview URL failed', ['path' => $this->document->file_path, 'error' => $e->getMessage()]);
             return null;

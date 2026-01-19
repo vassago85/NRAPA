@@ -151,9 +151,23 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
 
         // Store the file - use R2 if configured, otherwise use default disk
         $disk = config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
-        $path = $this->uploadFile->store(
-            "documents/{$user->uuid}/{$documentType->slug}",
-            $disk
+        
+        // Generate unique filename
+        $filename = \Illuminate\Support\Str::random(40) . '.' . $this->uploadFile->getClientOriginalExtension();
+        $directory = "documents/{$user->uuid}/{$documentType->slug}";
+        
+        // Store with ContentDisposition: inline so PDFs display in iframe instead of downloading
+        $path = $this->uploadFile->storeAs(
+            $directory,
+            $filename,
+            [
+                'disk' => $disk,
+                'visibility' => 'private',
+                'options' => [
+                    'ContentDisposition' => 'inline',
+                    'ContentType' => $this->uploadFile->getMimeType(),
+                ],
+            ]
         );
 
         // Build metadata based on document type
