@@ -48,8 +48,8 @@ services:
       # NTFY Notifications
       - NTFY_URL=${NTFY_URL:-https://ntfy.sh}
       - NTFY_DEVELOPER_TOPIC=${NTFY_DEVELOPER_TOPIC}
-      # Livewire temp uploads go to local disk (avoids CORS issues with S3/R2)
-      - LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK=local
+      # Livewire temp uploads go to public disk (avoids CORS issues with S3/R2)
+      - LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK=public
     volumes:
       - app-logs:/var/www/html/storage/logs
     networks:
@@ -158,7 +158,7 @@ services:
       - AWS_USE_PATH_STYLE_ENDPOINT=true
       - NTFY_URL=${NTFY_URL:-https://ntfy.sh}
       - NTFY_DEVELOPER_TOPIC=${NTFY_DEVELOPER_TOPIC}
-      - LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK=local
+      - LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK=public
     volumes:
       - app-logs:/var/www/html/storage/logs
     networks:
@@ -203,7 +203,7 @@ services:
       - MAIL_ENCRYPTION=${MAIL_ENCRYPTION:-tls}
       - MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS:-noreply@nrapa.co.za}
       - MAIL_FROM_NAME=${MAIL_FROM_NAME:-NRAPA}
-      - LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK=local
+      - LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK=public
     volumes:
       - app-logs:/var/www/html/storage/logs
     networks:
