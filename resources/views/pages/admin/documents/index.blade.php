@@ -266,23 +266,24 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         <div class="fixed inset-0 z-50 overflow-y-auto">
             <div class="flex min-h-screen items-center justify-center p-4">
                 <div wire:click="$set('showReviewModal', false)" class="fixed inset-0 bg-black/50"></div>
-                <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-4xl p-6">
+                <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-5xl p-6 max-h-[90vh] overflow-y-auto">
                     <h2 class="text-xl font-bold text-zinc-900 dark:text-white mb-4">Review Document</h2>
                     
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" style="min-height: 70vh;">
                         {{-- Document Preview --}}
-                        <div class="bg-zinc-100 dark:bg-zinc-900 rounded-lg overflow-hidden min-h-96">
+                        <div class="bg-zinc-100 dark:bg-zinc-900 rounded-lg overflow-hidden flex flex-col" style="min-height: 65vh;">
                             @php $previewUrl = $this->getPreviewUrl($reviewingDocument); @endphp
                             @if($previewUrl && str_contains($reviewingDocument->mime_type, 'image'))
-                                <div class="p-4">
-                                    <img src="{{ $previewUrl }}" alt="Document preview" class="max-w-full max-h-[500px] mx-auto rounded-lg object-contain">
+                                <div class="p-4 flex-1 flex items-center justify-center">
+                                    <img src="{{ $previewUrl }}" alt="Document preview" class="max-w-full max-h-full mx-auto rounded-lg object-contain">
                                 </div>
                             @elseif($previewUrl && str_contains($reviewingDocument->mime_type, 'pdf'))
-                                <div class="relative h-[500px]">
+                                <div class="relative flex-1 flex flex-col" style="min-height: 65vh;">
                                     {{-- Embedded PDF Viewer --}}
                                     <iframe 
                                         src="{{ $previewUrl }}#toolbar=1&navpanes=0&scrollbar=1&view=FitH"
-                                        class="w-full h-full border-0"
+                                        class="w-full flex-1 border-0"
+                                        style="min-height: 60vh;"
                                         title="PDF Preview">
                                     </iframe>
                                     {{-- Fallback link if iframe doesn't work --}}
@@ -297,7 +298,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                                     </div>
                                 </div>
                             @else
-                                <div class="flex flex-col items-center justify-center h-96 p-4">
+                                <div class="flex flex-col items-center justify-center flex-1 p-4">
                                     <svg class="w-24 h-24 text-zinc-400 mb-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></svg>
                                     <p class="text-zinc-600 dark:text-zinc-400">Preview not available</p>
                                     @if($previewUrl)
