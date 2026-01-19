@@ -24,6 +24,7 @@ class MemberDocument extends Model
         'original_filename',
         'mime_type',
         'file_size',
+        'metadata',
         'status',
         'uploaded_at',
         'verified_at',
@@ -43,11 +44,76 @@ class MemberDocument extends Model
     {
         return [
             'file_size' => 'integer',
+            'metadata' => 'array',
             'uploaded_at' => 'datetime',
             'verified_at' => 'datetime',
             'expires_at' => 'datetime',
             'archived_at' => 'datetime',
             'archive_until' => 'datetime',
+        ];
+    }
+
+    /**
+     * Document type slugs that require ID information.
+     */
+    public const ID_DOCUMENT_SLUGS = ['id-document', 'id-copy', 'identity-document'];
+
+    /**
+     * Document type slugs that require address information.
+     */
+    public const ADDRESS_DOCUMENT_SLUGS = ['proof-of-address', 'proof-of-residence', 'address-proof'];
+
+    /**
+     * Check if this document type requires ID metadata.
+     */
+    public function requiresIdMetadata(): bool
+    {
+        return $this->documentType && in_array($this->documentType->slug, self::ID_DOCUMENT_SLUGS);
+    }
+
+    /**
+     * Check if this document type requires address metadata.
+     */
+    public function requiresAddressMetadata(): bool
+    {
+        return $this->documentType && in_array($this->documentType->slug, self::ADDRESS_DOCUMENT_SLUGS);
+    }
+
+    /**
+     * Parse South African ID number to extract date of birth.
+     * Format: YYMMDD SSSS C A Z
+     * Example: 8507026265088 = 02 July 1985
+     */
+    public static function parseSaIdNumber(string $idNumber): ?array
+    {
+        // Remove any spaces or dashes
+        $idNumber = preg_replace('/[\s-]/', '', $idNumber);
+
+        // SA ID must be 13 digits
+        if (!preg_match('/^\d{13}$/', $idNumber)) {
+            return null;
+        }
+
+        // Extract date parts (YYMMDD)
+        $year = substr($idNumber, 0, 2);
+        $month = substr($idNumber, 2, 2);
+        $day = substr($idNumber, 4, 2);
+
+        // Determine century (assume 00-29 is 2000s, 30-99 is 1900s)
+        $fullYear = ((int)$year <= 29) ? '20' . $year : '19' . $year;
+
+        // Validate date
+        if (!checkdate((int)$month, (int)$day, (int)$fullYear)) {
+            return null;
+        }
+
+        // Extract gender (digit 7-10, 0000-4999 = female, 5000-9999 = male)
+        $genderDigits = (int)substr($idNumber, 6, 4);
+        $sex = $genderDigits >= 5000 ? 'male' : 'female';
+
+        return [
+            'date_of_birth' => "{$fullYear}-{$month}-{$day}",
+            'sex' => $sex,
         ];
     }
 

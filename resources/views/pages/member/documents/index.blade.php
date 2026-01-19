@@ -17,12 +17,84 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     public bool $showViewModal = false;
     public ?MemberDocument $viewingDocument = null;
 
+    // ID Document metadata fields
+    public string $idSurname = '';
+    public string $idNames = '';
+    public string $idSex = '';
+    public string $idNumber = '';
+    public string $idDateOfBirth = '';
+
+    // Proof of Address metadata fields
+    public string $addressStreet = '';
+    public string $addressSuburb = '';
+    public string $addressCity = '';
+    public string $addressProvince = '';
+    public string $addressPostalCode = '';
+
     protected function rules(): array
     {
-        return [
+        $rules = [
             'selectedDocumentType' => 'required|exists:document_types,id',
             'uploadFile' => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png,gif,webp', // 10MB max
         ];
+
+        // Add conditional validation based on document type
+        if ($this->selectedDocumentType) {
+            $docType = DocumentType::find($this->selectedDocumentType);
+            if ($docType) {
+                if (in_array($docType->slug, MemberDocument::ID_DOCUMENT_SLUGS)) {
+                    $rules['idSurname'] = 'required|string|max:100';
+                    $rules['idNames'] = 'required|string|max:100';
+                    $rules['idSex'] = 'required|in:male,female';
+                    $rules['idNumber'] = 'required|string|size:13';
+                }
+                if (in_array($docType->slug, MemberDocument::ADDRESS_DOCUMENT_SLUGS)) {
+                    $rules['addressStreet'] = 'required|string|max:255';
+                    $rules['addressSuburb'] = 'nullable|string|max:100';
+                    $rules['addressCity'] = 'required|string|max:100';
+                    $rules['addressProvince'] = 'required|string|max:100';
+                    $rules['addressPostalCode'] = 'required|string|max:10';
+                }
+            }
+        }
+
+        return $rules;
+    }
+
+    protected $messages = [
+        'idNumber.size' => 'The ID number must be exactly 13 digits.',
+    ];
+
+    /**
+     * When ID number changes, auto-populate DOB and sex.
+     */
+    public function updatedIdNumber($value): void
+    {
+        $parsed = MemberDocument::parseSaIdNumber($value);
+        if ($parsed) {
+            $this->idDateOfBirth = $parsed['date_of_birth'];
+            $this->idSex = $parsed['sex'];
+        }
+    }
+
+    /**
+     * Check if selected document type requires ID metadata.
+     */
+    public function requiresIdMetadata(): bool
+    {
+        if (!$this->selectedDocumentType) return false;
+        $docType = DocumentType::find($this->selectedDocumentType);
+        return $docType && in_array($docType->slug, MemberDocument::ID_DOCUMENT_SLUGS);
+    }
+
+    /**
+     * Check if selected document type requires address metadata.
+     */
+    public function requiresAddressMetadata(): bool
+    {
+        if (!$this->selectedDocumentType) return false;
+        $docType = DocumentType::find($this->selectedDocumentType);
+        return $docType && in_array($docType->slug, MemberDocument::ADDRESS_DOCUMENT_SLUGS);
     }
 
     public function with(): array
@@ -63,6 +135,10 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     {
         $this->selectedDocumentType = $documentTypeId ?? '';
         $this->uploadFile = null;
+        $this->reset([
+            'idSurname', 'idNames', 'idSex', 'idNumber', 'idDateOfBirth',
+            'addressStreet', 'addressSuburb', 'addressCity', 'addressProvince', 'addressPostalCode',
+        ]);
         $this->showUploadModal = true;
     }
 
@@ -80,6 +156,26 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             $disk
         );
 
+        // Build metadata based on document type
+        $metadata = null;
+        if (in_array($documentType->slug, MemberDocument::ID_DOCUMENT_SLUGS)) {
+            $metadata = [
+                'surname' => $this->idSurname,
+                'names' => $this->idNames,
+                'sex' => $this->idSex,
+                'identity_number' => $this->idNumber,
+                'date_of_birth' => $this->idDateOfBirth,
+            ];
+        } elseif (in_array($documentType->slug, MemberDocument::ADDRESS_DOCUMENT_SLUGS)) {
+            $metadata = [
+                'street_address' => $this->addressStreet,
+                'suburb' => $this->addressSuburb,
+                'city' => $this->addressCity,
+                'province' => $this->addressProvince,
+                'postal_code' => $this->addressPostalCode,
+            ];
+        }
+
         // Create the document record
         MemberDocument::create([
             'user_id' => $user->id,
@@ -88,11 +184,16 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             'original_filename' => $this->uploadFile->getClientOriginalName(),
             'mime_type' => $this->uploadFile->getMimeType(),
             'file_size' => $this->uploadFile->getSize(),
+            'metadata' => $metadata,
             'status' => 'pending',
             'uploaded_at' => now(),
         ]);
 
-        $this->reset(['selectedDocumentType', 'uploadFile', 'showUploadModal']);
+        $this->reset([
+            'selectedDocumentType', 'uploadFile', 'showUploadModal',
+            'idSurname', 'idNames', 'idSex', 'idNumber', 'idDateOfBirth',
+            'addressStreet', 'addressSuburb', 'addressCity', 'addressProvince', 'addressPostalCode',
+        ]);
         session()->flash('success', 'Document uploaded successfully. It will be reviewed by an administrator.');
     }
 
@@ -328,13 +429,13 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         <div class="fixed inset-0 z-50 overflow-y-auto">
             <div class="flex min-h-screen items-center justify-center p-4">
                 <div wire:click="$set('showUploadModal', false)" class="fixed inset-0 bg-black/50"></div>
-                <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-lg p-6">
+                <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
                     <h2 class="text-xl font-bold text-zinc-900 dark:text-white mb-4">Upload Document</h2>
                     
                     <form wire:submit="uploadDocument" class="space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Document Type</label>
-                            <select wire:model="selectedDocumentType"
+                            <select wire:model.live="selectedDocumentType"
                                 class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
                                 <option value="">Select document type...</option>
                                 @foreach($documentTypes as $docType)
@@ -343,6 +444,118 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                             </select>
                             @error('selectedDocumentType') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                         </div>
+
+                        {{-- ID Document Metadata Fields --}}
+                        @if($this->requiresIdMetadata())
+                            <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 space-y-4">
+                                <h3 class="text-sm font-semibold text-blue-800 dark:text-blue-200 flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/></svg>
+                                    ID Document Details
+                                </h3>
+                                <p class="text-xs text-blue-700 dark:text-blue-300">Please enter the details exactly as they appear on your ID document.</p>
+                                
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Surname <span class="text-red-500">*</span></label>
+                                        <input type="text" wire:model="idSurname" placeholder="e.g. SMITH"
+                                            class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent uppercase">
+                                        @error('idSurname') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">First Names <span class="text-red-500">*</span></label>
+                                        <input type="text" wire:model="idNames" placeholder="e.g. JOHN WILLIAM"
+                                            class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent uppercase">
+                                        @error('idNames') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">ID Number <span class="text-red-500">*</span></label>
+                                    <input type="text" wire:model.live.debounce.500ms="idNumber" placeholder="e.g. 8507026265088" maxlength="13"
+                                        class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent font-mono tracking-wider">
+                                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">13-digit South African ID number</p>
+                                    @error('idNumber') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Sex <span class="text-red-500">*</span></label>
+                                        <select wire:model="idSex"
+                                            class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+                                            <option value="">Select...</option>
+                                            <option value="male">Male</option>
+                                            <option value="female">Female</option>
+                                        </select>
+                                        @error('idSex') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Date of Birth</label>
+                                        <input type="date" wire:model="idDateOfBirth" readonly
+                                            class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-zinc-100 dark:bg-zinc-600 text-zinc-900 dark:text-white cursor-not-allowed">
+                                        <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Auto-calculated from ID number</p>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
+                        {{-- Proof of Address Metadata Fields --}}
+                        @if($this->requiresAddressMetadata())
+                            <div class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800 space-y-4">
+                                <h3 class="text-sm font-semibold text-amber-800 dark:text-amber-200 flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                    Address Details
+                                </h3>
+                                <p class="text-xs text-amber-700 dark:text-amber-300">Please enter your residential address as shown on the document.</p>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Street Address <span class="text-red-500">*</span></label>
+                                    <input type="text" wire:model="addressStreet" placeholder="e.g. 123 Main Road"
+                                        class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+                                    @error('addressStreet') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Suburb</label>
+                                        <input type="text" wire:model="addressSuburb" placeholder="e.g. Sandton"
+                                            class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+                                        @error('addressSuburb') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">City/Town <span class="text-red-500">*</span></label>
+                                        <input type="text" wire:model="addressCity" placeholder="e.g. Johannesburg"
+                                            class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+                                        @error('addressCity') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Province <span class="text-red-500">*</span></label>
+                                        <select wire:model="addressProvince"
+                                            class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+                                            <option value="">Select province...</option>
+                                            <option value="Eastern Cape">Eastern Cape</option>
+                                            <option value="Free State">Free State</option>
+                                            <option value="Gauteng">Gauteng</option>
+                                            <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                                            <option value="Limpopo">Limpopo</option>
+                                            <option value="Mpumalanga">Mpumalanga</option>
+                                            <option value="North West">North West</option>
+                                            <option value="Northern Cape">Northern Cape</option>
+                                            <option value="Western Cape">Western Cape</option>
+                                        </select>
+                                        @error('addressProvince') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Postal Code <span class="text-red-500">*</span></label>
+                                        <input type="text" wire:model="addressPostalCode" placeholder="e.g. 2196" maxlength="10"
+                                            class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+                                        @error('addressPostalCode') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
                         
                         <div x-data="{ 
                                 dragging: false,
@@ -359,7 +572,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                                     }
                                 }
                             }">
-                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">File</label>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">File <span class="text-red-500">*</span></label>
                             <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-zinc-300 dark:border-zinc-600 border-dashed rounded-lg hover:border-emerald-400 dark:hover:border-emerald-500 transition-colors cursor-pointer"
                                 x-on:dragover.prevent="dragging = true"
                                 x-on:dragleave.prevent="dragging = false"
