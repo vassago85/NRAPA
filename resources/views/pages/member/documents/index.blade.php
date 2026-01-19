@@ -17,84 +17,12 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     public bool $showViewModal = false;
     public ?MemberDocument $viewingDocument = null;
 
-    // ID Document metadata fields
-    public string $idSurname = '';
-    public string $idNames = '';
-    public string $idSex = '';
-    public string $idNumber = '';
-    public string $idDateOfBirth = '';
-
-    // Proof of Address metadata fields
-    public string $addressStreet = '';
-    public string $addressSuburb = '';
-    public string $addressCity = '';
-    public string $addressProvince = '';
-    public string $addressPostalCode = '';
-
     protected function rules(): array
     {
-        $rules = [
+        return [
             'selectedDocumentType' => 'required|exists:document_types,id',
             'uploadFile' => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png,gif,webp', // 10MB max
         ];
-
-        // Add conditional validation based on document type
-        if ($this->selectedDocumentType) {
-            $docType = DocumentType::find($this->selectedDocumentType);
-            if ($docType) {
-                if (in_array($docType->slug, MemberDocument::ID_DOCUMENT_SLUGS)) {
-                    $rules['idSurname'] = 'required|string|max:100';
-                    $rules['idNames'] = 'required|string|max:100';
-                    $rules['idSex'] = 'required|in:male,female';
-                    $rules['idNumber'] = 'required|string|size:13';
-                }
-                if (in_array($docType->slug, MemberDocument::ADDRESS_DOCUMENT_SLUGS)) {
-                    $rules['addressStreet'] = 'required|string|max:255';
-                    $rules['addressSuburb'] = 'nullable|string|max:100';
-                    $rules['addressCity'] = 'required|string|max:100';
-                    $rules['addressProvince'] = 'required|string|max:100';
-                    $rules['addressPostalCode'] = 'required|string|max:10';
-                }
-            }
-        }
-
-        return $rules;
-    }
-
-    protected $messages = [
-        'idNumber.size' => 'The ID number must be exactly 13 digits.',
-    ];
-
-    /**
-     * When ID number changes, auto-populate DOB and sex.
-     */
-    public function updatedIdNumber($value): void
-    {
-        $parsed = MemberDocument::parseSaIdNumber($value);
-        if ($parsed) {
-            $this->idDateOfBirth = $parsed['date_of_birth'];
-            $this->idSex = $parsed['sex'];
-        }
-    }
-
-    /**
-     * Check if selected document type requires ID metadata.
-     */
-    public function requiresIdMetadata(): bool
-    {
-        if (!$this->selectedDocumentType) return false;
-        $docType = DocumentType::find($this->selectedDocumentType);
-        return $docType && in_array($docType->slug, MemberDocument::ID_DOCUMENT_SLUGS);
-    }
-
-    /**
-     * Check if selected document type requires address metadata.
-     */
-    public function requiresAddressMetadata(): bool
-    {
-        if (!$this->selectedDocumentType) return false;
-        $docType = DocumentType::find($this->selectedDocumentType);
-        return $docType && in_array($docType->slug, MemberDocument::ADDRESS_DOCUMENT_SLUGS);
     }
 
     public function with(): array
@@ -135,10 +63,6 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     {
         $this->selectedDocumentType = $documentTypeId ?? '';
         $this->uploadFile = null;
-        $this->reset([
-            'idSurname', 'idNames', 'idSex', 'idNumber', 'idDateOfBirth',
-            'addressStreet', 'addressSuburb', 'addressCity', 'addressProvince', 'addressPostalCode',
-        ]);
         $this->showUploadModal = true;
     }
 
@@ -156,26 +80,6 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             $disk
         );
 
-        // Build metadata based on document type
-        $metadata = null;
-        if (in_array($documentType->slug, MemberDocument::ID_DOCUMENT_SLUGS)) {
-            $metadata = [
-                'surname' => $this->idSurname,
-                'names' => $this->idNames,
-                'sex' => $this->idSex,
-                'identity_number' => $this->idNumber,
-                'date_of_birth' => $this->idDateOfBirth,
-            ];
-        } elseif (in_array($documentType->slug, MemberDocument::ADDRESS_DOCUMENT_SLUGS)) {
-            $metadata = [
-                'street_address' => $this->addressStreet,
-                'suburb' => $this->addressSuburb,
-                'city' => $this->addressCity,
-                'province' => $this->addressProvince,
-                'postal_code' => $this->addressPostalCode,
-            ];
-        }
-
         // Create the document record
         MemberDocument::create([
             'user_id' => $user->id,
@@ -184,16 +88,11 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             'original_filename' => $this->uploadFile->getClientOriginalName(),
             'mime_type' => $this->uploadFile->getMimeType(),
             'file_size' => $this->uploadFile->getSize(),
-            'metadata' => $metadata,
             'status' => 'pending',
             'uploaded_at' => now(),
         ]);
 
-        $this->reset([
-            'selectedDocumentType', 'uploadFile', 'showUploadModal',
-            'idSurname', 'idNames', 'idSex', 'idNumber', 'idDateOfBirth',
-            'addressStreet', 'addressSuburb', 'addressCity', 'addressProvince', 'addressPostalCode',
-        ]);
+        $this->reset(['selectedDocumentType', 'uploadFile', 'showUploadModal']);
         session()->flash('success', 'Document uploaded successfully. It will be reviewed by an administrator.');
     }
 
@@ -250,28 +149,6 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             'archived' => 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
             default => 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-300',
         };
-    }
-
-    public function getPreviewUrl(MemberDocument $document): ?string
-    {
-        // Ensure user can only preview their own documents
-        if ($document->user_id !== auth()->id()) {
-            return null;
-        }
-
-        try {
-            $disk = config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
-            
-            // Check if disk supports temporary URLs (S3/R2 do, local doesn't)
-            if (in_array($disk, ['s3', 'r2'])) {
-                return Storage::disk($disk)->temporaryUrl($document->file_path, now()->addMinutes(15));
-            }
-            
-            // For local disk, return regular URL
-            return Storage::disk($disk)->url($document->file_path);
-        } catch (\Exception $e) {
-            return null;
-        }
     }
 }; ?>
 
@@ -429,13 +306,13 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         <div class="fixed inset-0 z-50 overflow-y-auto">
             <div class="flex min-h-screen items-center justify-center p-4">
                 <div wire:click="$set('showUploadModal', false)" class="fixed inset-0 bg-black/50"></div>
-                <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+                <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-lg p-6">
                     <h2 class="text-xl font-bold text-zinc-900 dark:text-white mb-4">Upload Document</h2>
                     
                     <form wire:submit="uploadDocument" class="space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Document Type</label>
-                            <select wire:model.live="selectedDocumentType"
+                            <select wire:model="selectedDocumentType"
                                 class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
                                 <option value="">Select document type...</option>
                                 @foreach($documentTypes as $docType)
@@ -444,118 +321,6 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                             </select>
                             @error('selectedDocumentType') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                         </div>
-
-                        {{-- ID Document Metadata Fields --}}
-                        @if($this->requiresIdMetadata())
-                            <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 space-y-4">
-                                <h3 class="text-sm font-semibold text-blue-800 dark:text-blue-200 flex items-center gap-2">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/></svg>
-                                    ID Document Details
-                                </h3>
-                                <p class="text-xs text-blue-700 dark:text-blue-300">Please enter the details exactly as they appear on your ID document.</p>
-                                
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Surname <span class="text-red-500">*</span></label>
-                                        <input type="text" wire:model="idSurname" placeholder="e.g. SMITH"
-                                            class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent uppercase">
-                                        @error('idSurname') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">First Names <span class="text-red-500">*</span></label>
-                                        <input type="text" wire:model="idNames" placeholder="e.g. JOHN WILLIAM"
-                                            class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent uppercase">
-                                        @error('idNames') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">ID Number <span class="text-red-500">*</span></label>
-                                    <input type="text" wire:model.live.debounce.500ms="idNumber" placeholder="e.g. 8507026265088" maxlength="13"
-                                        class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent font-mono tracking-wider">
-                                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">13-digit South African ID number</p>
-                                    @error('idNumber') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Sex <span class="text-red-500">*</span></label>
-                                        <select wire:model="idSex"
-                                            class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
-                                            <option value="">Select...</option>
-                                            <option value="male">Male</option>
-                                            <option value="female">Female</option>
-                                        </select>
-                                        @error('idSex') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Date of Birth</label>
-                                        <input type="date" wire:model="idDateOfBirth" readonly
-                                            class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-zinc-100 dark:bg-zinc-600 text-zinc-900 dark:text-white cursor-not-allowed">
-                                        <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Auto-calculated from ID number</p>
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
-
-                        {{-- Proof of Address Metadata Fields --}}
-                        @if($this->requiresAddressMetadata())
-                            <div class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800 space-y-4">
-                                <h3 class="text-sm font-semibold text-amber-800 dark:text-amber-200 flex items-center gap-2">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                                    Address Details
-                                </h3>
-                                <p class="text-xs text-amber-700 dark:text-amber-300">Please enter your residential address as shown on the document.</p>
-                                
-                                <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Street Address <span class="text-red-500">*</span></label>
-                                    <input type="text" wire:model="addressStreet" placeholder="e.g. 123 Main Road"
-                                        class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
-                                    @error('addressStreet') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Suburb</label>
-                                        <input type="text" wire:model="addressSuburb" placeholder="e.g. Sandton"
-                                            class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
-                                        @error('addressSuburb') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">City/Town <span class="text-red-500">*</span></label>
-                                        <input type="text" wire:model="addressCity" placeholder="e.g. Johannesburg"
-                                            class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
-                                        @error('addressCity') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                                    </div>
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Province <span class="text-red-500">*</span></label>
-                                        <select wire:model="addressProvince"
-                                            class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
-                                            <option value="">Select province...</option>
-                                            <option value="Eastern Cape">Eastern Cape</option>
-                                            <option value="Free State">Free State</option>
-                                            <option value="Gauteng">Gauteng</option>
-                                            <option value="KwaZulu-Natal">KwaZulu-Natal</option>
-                                            <option value="Limpopo">Limpopo</option>
-                                            <option value="Mpumalanga">Mpumalanga</option>
-                                            <option value="North West">North West</option>
-                                            <option value="Northern Cape">Northern Cape</option>
-                                            <option value="Western Cape">Western Cape</option>
-                                        </select>
-                                        @error('addressProvince') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Postal Code <span class="text-red-500">*</span></label>
-                                        <input type="text" wire:model="addressPostalCode" placeholder="e.g. 2196" maxlength="10"
-                                            class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
-                                        @error('addressPostalCode') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
                         
                         <div x-data="{ 
                                 dragging: false,
@@ -572,7 +337,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                                     }
                                 }
                             }">
-                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">File <span class="text-red-500">*</span></label>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">File</label>
                             <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-zinc-300 dark:border-zinc-600 border-dashed rounded-lg hover:border-emerald-400 dark:hover:border-emerald-500 transition-colors cursor-pointer"
                                 x-on:dragover.prevent="dragging = true"
                                 x-on:dragleave.prevent="dragging = false"
@@ -641,120 +406,122 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         <div class="fixed inset-0 z-50 overflow-y-auto">
             <div class="flex min-h-screen items-center justify-center p-4">
                 <div wire:click="$set('showViewModal', false)" class="fixed inset-0 bg-black/50"></div>
-                <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-4xl p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-xl font-bold text-zinc-900 dark:text-white">Document Details</h2>
-                        <button wire:click="$set('showViewModal', false)" class="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                        </button>
-                    </div>
+                <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-2xl p-6">
+                    <h2 class="text-xl font-bold text-zinc-900 dark:text-white mb-4">Document Details</h2>
                     
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {{-- Document Preview --}}
-                        <div class="bg-zinc-100 dark:bg-zinc-900 rounded-lg overflow-hidden min-h-80">
-                            @php $previewUrl = $this->getPreviewUrl($viewingDocument); @endphp
-                            @if($previewUrl && str_contains($viewingDocument->mime_type, 'image'))
-                                <div class="p-4 h-full flex items-center justify-center">
-                                    <img src="{{ $previewUrl }}" alt="Document preview" class="max-w-full max-h-[400px] rounded-lg object-contain">
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Document Type</p>
+                                <p class="text-base text-zinc-900 dark:text-white">{{ $viewingDocument->documentType->name }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Status</p>
+                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $this->getStatusBadgeClass($viewingDocument->status) }}">
+                                    {{ ucfirst($viewingDocument->status) }}
+                                </span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Filename</p>
+                                <p class="text-base text-zinc-900 dark:text-white truncate">{{ $viewingDocument->original_filename }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">File Size</p>
+                                <p class="text-base text-zinc-900 dark:text-white">{{ number_format($viewingDocument->file_size / 1024, 1) }} KB</p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Uploaded</p>
+                                <p class="text-base text-zinc-900 dark:text-white">{{ $viewingDocument->uploaded_at->format('d M Y H:i') }}</p>
+                            </div>
+                            @if($viewingDocument->expires_at)
+                                <div>
+                                    <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Expires</p>
+                                    <p class="text-base text-zinc-900 dark:text-white">{{ $viewingDocument->expires_at->format('d M Y') }}</p>
                                 </div>
-                            @elseif($previewUrl && str_contains($viewingDocument->mime_type, 'pdf'))
-                                <div class="relative h-[400px]">
-                                    {{-- Embedded PDF Viewer --}}
-                                    <iframe 
-                                        src="{{ $previewUrl }}#toolbar=1&navpanes=0&scrollbar=1&view=FitH"
-                                        class="w-full h-full border-0"
-                                        title="PDF Preview">
-                                    </iframe>
-                                    {{-- Fallback link if iframe doesn't work --}}
-                                    <div class="absolute bottom-2 right-2">
-                                        <a href="{{ $previewUrl }}" target="_blank" 
-                                            class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg shadow-lg">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                                            </svg>
-                                            Full Screen
-                                        </a>
-                                    </div>
-                                </div>
-                            @else
-                                <div class="flex flex-col items-center justify-center h-80 p-4">
-                                    <svg class="w-20 h-20 text-zinc-400 mb-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></svg>
-                                    <p class="text-zinc-600 dark:text-zinc-400 text-center">Preview not available for this file type</p>
+                            @endif
+                            @if($viewingDocument->verified_at)
+                                <div>
+                                    <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Verified</p>
+                                    <p class="text-base text-zinc-900 dark:text-white">{{ $viewingDocument->verified_at->format('d M Y H:i') }} by {{ $viewingDocument->verifier?->name ?? 'System' }}</p>
                                 </div>
                             @endif
                         </div>
-
-                        {{-- Document Info --}}
-                        <div class="space-y-4">
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Document Type</p>
-                                    <p class="text-base text-zinc-900 dark:text-white">{{ $viewingDocument->documentType->name }}</p>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Status</p>
-                                    <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $this->getStatusBadgeClass($viewingDocument->status) }}">
-                                        {{ ucfirst($viewingDocument->status) }}
-                                    </span>
-                                </div>
-                                <div class="col-span-2">
-                                    <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Filename</p>
-                                    <p class="text-base text-zinc-900 dark:text-white truncate" title="{{ $viewingDocument->original_filename }}">{{ $viewingDocument->original_filename }}</p>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">File Size</p>
-                                    <p class="text-base text-zinc-900 dark:text-white">{{ number_format($viewingDocument->file_size / 1024, 1) }} KB</p>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Uploaded</p>
-                                    <p class="text-base text-zinc-900 dark:text-white">{{ $viewingDocument->uploaded_at->format('d M Y H:i') }}</p>
-                                </div>
-                                @if($viewingDocument->expires_at)
-                                    <div>
-                                        <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Expires</p>
-                                        <p class="text-base text-zinc-900 dark:text-white">{{ $viewingDocument->expires_at->format('d M Y') }}</p>
-                                    </div>
-                                @endif
-                                @if($viewingDocument->verified_at)
-                                    <div>
-                                        <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Verified</p>
-                                        <p class="text-base text-zinc-900 dark:text-white">{{ $viewingDocument->verified_at->format('d M Y H:i') }}</p>
-                                    </div>
-                                @endif
+                        
+                        @if($viewingDocument->rejection_reason)
+                            <div class="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                                <p class="text-sm font-medium text-red-800 dark:text-red-200">Rejection Reason</p>
+                                <p class="mt-1 text-sm text-red-700 dark:text-red-300">{{ $viewingDocument->rejection_reason }}</p>
                             </div>
-                            
-                            @if($viewingDocument->rejection_reason)
-                                <div class="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
-                                    <p class="text-sm font-medium text-red-800 dark:text-red-200">Rejection Reason</p>
-                                    <p class="mt-1 text-sm text-red-700 dark:text-red-300">{{ $viewingDocument->rejection_reason }}</p>
-                                </div>
-                            @endif
+                        @endif
 
-                            @if($viewingDocument->status === 'verified')
-                                <div class="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                                    <p class="text-sm font-medium text-green-800 dark:text-green-200 flex items-center gap-2">
-                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                        Document Verified
-                                    </p>
-                                    <p class="mt-1 text-sm text-green-700 dark:text-green-300">
-                                        Verified by {{ $viewingDocument->verifier?->name ?? 'System' }}
-                                    </p>
+                        {{-- ID Document Metadata --}}
+                        @if($viewingDocument->metadata && isset($viewingDocument->metadata['identity_number']))
+                            <div class="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                                <h4 class="text-sm font-semibold text-indigo-800 dark:text-indigo-200 mb-3 flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/></svg>
+                                    ID Document Details
+                                </h4>
+                                <div class="grid grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                        <span class="text-indigo-600 dark:text-indigo-400 font-medium">Surname:</span>
+                                        <span class="text-indigo-900 dark:text-indigo-100 ml-1">{{ $viewingDocument->metadata['surname'] ?? '-' }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-indigo-600 dark:text-indigo-400 font-medium">Names:</span>
+                                        <span class="text-indigo-900 dark:text-indigo-100 ml-1">{{ $viewingDocument->metadata['names'] ?? '-' }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-indigo-600 dark:text-indigo-400 font-medium">ID Number:</span>
+                                        <span class="text-indigo-900 dark:text-indigo-100 ml-1 font-mono">{{ $viewingDocument->metadata['identity_number'] ?? '-' }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-indigo-600 dark:text-indigo-400 font-medium">Sex:</span>
+                                        <span class="text-indigo-900 dark:text-indigo-100 ml-1 capitalize">{{ $viewingDocument->metadata['sex'] ?? '-' }}</span>
+                                    </div>
+                                    <div class="col-span-2">
+                                        <span class="text-indigo-600 dark:text-indigo-400 font-medium">Date of Birth:</span>
+                                        <span class="text-indigo-900 dark:text-indigo-100 ml-1">
+                                            @if(isset($viewingDocument->metadata['date_of_birth']))
+                                                {{ \Carbon\Carbon::parse($viewingDocument->metadata['date_of_birth'])->format('d F Y') }}
+                                            @else
+                                                -
+                                            @endif
+                                        </span>
+                                    </div>
                                 </div>
-                            @endif
-                            
-                            <div class="flex justify-end gap-3 pt-4 border-t border-zinc-200 dark:border-zinc-700">
-                                <button type="button" wire:click="$set('showViewModal', false)"
-                                    class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
-                                    Close
-                                </button>
-                                @if($previewUrl)
-                                    <a href="{{ $previewUrl }}" target="_blank"
-                                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg inline-flex items-center gap-2">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                        Download
-                                    </a>
-                                @endif
                             </div>
+                        @endif
+
+                        {{-- Address Metadata --}}
+                        @if($viewingDocument->metadata && isset($viewingDocument->metadata['street_address']))
+                            <div class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                                <h4 class="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-3 flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                    Address Details
+                                </h4>
+                                <div class="text-sm text-amber-900 dark:text-amber-100 space-y-1">
+                                    <p>{{ $viewingDocument->metadata['street_address'] ?? '' }}</p>
+                                    @if(!empty($viewingDocument->metadata['suburb']))
+                                        <p>{{ $viewingDocument->metadata['suburb'] }}</p>
+                                    @endif
+                                    <p>
+                                        {{ $viewingDocument->metadata['city'] ?? '' }}{{ !empty($viewingDocument->metadata['postal_code']) ? ', ' . $viewingDocument->metadata['postal_code'] : '' }}
+                                    </p>
+                                    <p>{{ $viewingDocument->metadata['province'] ?? '' }}</p>
+                                </div>
+                            </div>
+                        @endif
+                        
+                        <div class="flex justify-end gap-3 pt-4">
+                            <button type="button" wire:click="$set('showViewModal', false)"
+                                class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                                Close
+                            </button>
+                            <a href="{{ route('documents.show', $viewingDocument) }}" target="_blank"
+                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg inline-flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                Download
+                            </a>
                         </div>
                     </div>
                 </div>
