@@ -32,24 +32,19 @@ new class extends Component {
 
     public function saveStorageSettings(): void
     {
-        $rules = [
-            'storage_driver' => 'required|string|in:local,r2',
-        ];
+        // R2 is required for Docker deployments - local storage is not persistent
+        $this->storage_driver = 'r2';
+        
+        $this->validate([
+            'r2_access_key_id' => 'required|string|max:255',
+            'r2_secret_access_key' => 'required|string|max:255',
+            'r2_bucket' => 'required|string|max:255',
+            'r2_endpoint' => 'required|url|max:255',
+            'r2_url' => 'nullable|url|max:255',
+            'r2_region' => 'required|string|max:50',
+        ]);
 
-        if ($this->storage_driver === 'r2') {
-            $rules = array_merge($rules, [
-                'r2_access_key_id' => 'required|string|max:255',
-                'r2_secret_access_key' => 'required|string|max:255',
-                'r2_bucket' => 'required|string|max:255',
-                'r2_endpoint' => 'required|url|max:255',
-                'r2_url' => 'nullable|url|max:255',
-                'r2_region' => 'required|string|max:50',
-            ]);
-        }
-
-        $this->validate($rules);
-
-        SystemSetting::set('storage_driver', $this->storage_driver, 'string', 'storage', 'Storage driver');
+        SystemSetting::set('storage_driver', 'r2', 'string', 'storage', 'Storage driver');
         SystemSetting::set('r2_access_key_id', $this->r2_access_key_id, 'string', 'storage', 'R2 Access Key ID');
         SystemSetting::set('r2_secret_access_key', $this->r2_secret_access_key, 'string', 'storage', 'R2 Secret Access Key');
         SystemSetting::set('r2_bucket', $this->r2_bucket, 'string', 'storage', 'R2 Bucket Name');
@@ -58,31 +53,21 @@ new class extends Component {
         SystemSetting::set('r2_region', $this->r2_region, 'string', 'storage', 'R2 Region');
 
         // Update runtime config for R2
-        if ($this->storage_driver === 'r2') {
-            config([
-                'filesystems.default' => 'r2',
-                'filesystems.disks.r2.key' => $this->r2_access_key_id,
-                'filesystems.disks.r2.secret' => $this->r2_secret_access_key,
-                'filesystems.disks.r2.bucket' => $this->r2_bucket,
-                'filesystems.disks.r2.endpoint' => $this->r2_endpoint,
-                'filesystems.disks.r2.url' => $this->r2_url,
-                'filesystems.disks.r2.region' => $this->r2_region,
-            ]);
-        } else {
-            config(['filesystems.default' => 'local']);
-        }
+        config([
+            'filesystems.default' => 'r2',
+            'filesystems.disks.r2.key' => $this->r2_access_key_id,
+            'filesystems.disks.r2.secret' => $this->r2_secret_access_key,
+            'filesystems.disks.r2.bucket' => $this->r2_bucket,
+            'filesystems.disks.r2.endpoint' => $this->r2_endpoint,
+            'filesystems.disks.r2.url' => $this->r2_url,
+            'filesystems.disks.r2.region' => $this->r2_region,
+        ]);
 
         session()->flash('success', 'Storage settings saved successfully.');
     }
 
     public function testConnection(): void
     {
-        if ($this->storage_driver !== 'r2') {
-            $this->connectionStatus = 'success';
-            session()->flash('success', 'Local storage is working correctly.');
-            return;
-        }
-
         try {
             // Apply settings temporarily
             config([
@@ -188,47 +173,19 @@ new class extends Component {
                 </div>
 
                 <form wire:submit="saveStorageSettings" class="space-y-6">
-                    <!-- Storage Driver Selection -->
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">Storage Driver</label>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <label class="relative flex cursor-pointer rounded-lg border p-4 {{ $storage_driver === 'local' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-zinc-300 dark:border-zinc-600' }}">
-                                <input type="radio" wire:model.live="storage_driver" value="local" class="sr-only">
-                                <div class="flex items-center gap-3">
-                                    <div class="p-2 rounded-lg {{ $storage_driver === 'local' ? 'bg-emerald-100 dark:bg-emerald-900/50' : 'bg-zinc-100 dark:bg-zinc-700' }}">
-                                        <svg class="w-5 h-5 {{ $storage_driver === 'local' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-500 dark:text-zinc-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/></svg>
-                                    </div>
-                                    <div>
-                                        <p class="font-medium text-zinc-900 dark:text-white">Local Storage</p>
-                                        <p class="text-xs text-zinc-500 dark:text-zinc-400">Store files on server</p>
-                                    </div>
-                                </div>
-                                @if($storage_driver === 'local')
-                                <svg class="absolute top-4 right-4 w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                                @endif
-                            </label>
-
-                            <label class="relative flex cursor-pointer rounded-lg border p-4 {{ $storage_driver === 'r2' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-zinc-300 dark:border-zinc-600' }}">
-                                <input type="radio" wire:model.live="storage_driver" value="r2" class="sr-only">
-                                <div class="flex items-center gap-3">
-                                    <div class="p-2 rounded-lg {{ $storage_driver === 'r2' ? 'bg-emerald-100 dark:bg-emerald-900/50' : 'bg-zinc-100 dark:bg-zinc-700' }}">
-                                        <svg class="w-5 h-5 {{ $storage_driver === 'r2' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-500 dark:text-zinc-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/></svg>
-                                    </div>
-                                    <div>
-                                        <p class="font-medium text-zinc-900 dark:text-white">Cloudflare R2</p>
-                                        <p class="text-xs text-zinc-500 dark:text-zinc-400">S3-compatible cloud storage</p>
-                                    </div>
-                                </div>
-                                @if($storage_driver === 'r2')
-                                <svg class="absolute top-4 right-4 w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                                @endif
-                            </label>
+                    <!-- Cloud Storage Notice -->
+                    <div class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                        <div class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <div>
+                                <p class="text-sm font-medium text-amber-800 dark:text-amber-200">Cloud Storage Required</p>
+                                <p class="text-sm text-amber-700 dark:text-amber-300 mt-1">This application runs in Docker containers where local storage is not persistent. All uploaded files (documents, images) must be stored in Cloudflare R2 to ensure they are not lost when containers restart.</p>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- R2 Configuration (shown when R2 is selected) -->
-                    @if($storage_driver === 'r2')
-                    <div class="pt-4 border-t border-zinc-200 dark:border-zinc-700 space-y-4">
+                    <!-- R2 Configuration -->
+                    <div class="space-y-4">
                         <h3 class="text-md font-semibold text-zinc-900 dark:text-white">Cloudflare R2 Configuration</h3>
                         
                         <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -293,7 +250,6 @@ new class extends Component {
                             </div>
                         </div>
                     </div>
-                    @endif
 
                     <div class="pt-4 border-t border-zinc-200 dark:border-zinc-700 flex flex-wrap gap-3">
                         <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors">
