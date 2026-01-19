@@ -4,7 +4,7 @@ use App\Models\DocumentType;
 use App\Models\MemberDocument;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
-use Livewire\Volt\Component;
+use Livewire\Component;
 use Livewire\WithFileUploads;
 
 new #[Layout('layouts.app.sidebar')] class extends Component {

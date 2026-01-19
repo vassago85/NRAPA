@@ -3,7 +3,7 @@
 use App\Models\MemberDocument;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
-use Livewire\Volt\Component;
+use Livewire\Component;
 
 new #[Layout('layouts.app.sidebar')] class extends Component {
     public MemberDocument $document;
