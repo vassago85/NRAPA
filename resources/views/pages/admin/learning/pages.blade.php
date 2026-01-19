@@ -236,7 +236,16 @@ new #[Title('Manage Pages - Learning Center')] class extends Component {
                         x-data="{ dragging: false }"
                         x-on:dragover.prevent="dragging = true"
                         x-on:dragleave.prevent="dragging = false"
-                        x-on:drop.prevent="dragging = false; $refs.pageImageInput.files = $event.dataTransfer.files; $refs.pageImageInput.dispatchEvent(new Event('change'))"
+                        x-on:drop.prevent="
+                            dragging = false;
+                            const input = $refs.pageImageInput;
+                            const dataTransfer = new DataTransfer();
+                            for (const file of $event.dataTransfer.files) {
+                                dataTransfer.items.add(file);
+                            }
+                            input.files = dataTransfer.files;
+                            input.dispatchEvent(new Event('input', { bubbles: true }));
+                        "
                         :class="{ 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20': dragging }"
                         class="flex h-32 w-full max-w-md cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-zinc-300 bg-zinc-50 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-900 dark:hover:bg-zinc-800 transition-colors"
                     >
