@@ -5,14 +5,21 @@ use App\Models\KnowledgeTestQuestion;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithFileUploads;
+use Illuminate\Support\Facades\Storage;
 
 new #[Title('Manage Questions - Admin')] class extends Component {
+    use WithFileUploads;
+
     public KnowledgeTest $test;
 
     // Question form
     public ?int $editingQuestionId = null;
     public string $questionType = 'multiple_choice';
     public string $questionText = '';
+    public $questionImage = null;
+    public ?string $existingImagePath = null;
+    public bool $removeImage = false;
     public array $options = ['', '', '', ''];
     public string $correctAnswer = '';
     public int $points = 1;
@@ -47,6 +54,9 @@ new #[Title('Manage Questions - Admin')] class extends Component {
         $this->editingQuestionId = $id;
         $this->questionType = $question->question_type;
         $this->questionText = $question->question_text;
+        $this->existingImagePath = $question->image_path;
+        $this->questionImage = null;
+        $this->removeImage = false;
         $this->options = $question->options ?? ['', '', '', ''];
         $this->correctAnswer = $question->correct_answer ?? '';
         $this->points = $question->points;
@@ -63,6 +73,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
         $this->validate([
             'questionType' => ['required', 'in:multiple_choice,written'],
             'questionText' => ['required', 'string', 'max:2000'],
+            'questionImage' => ['nullable', 'image', 'max:5120'], // 5MB max
             'points' => ['required', 'integer', 'min:1', 'max:100'],
         ]);
 
@@ -74,10 +85,27 @@ new #[Title('Manage Questions - Admin')] class extends Component {
             ]);
         }
 
+        // Handle image upload
+        $imagePath = $this->existingImagePath;
+        
+        if ($this->removeImage && $this->existingImagePath) {
+            Storage::disk('public')->delete($this->existingImagePath);
+            $imagePath = null;
+        }
+        
+        if ($this->questionImage) {
+            // Delete old image if exists
+            if ($this->existingImagePath) {
+                Storage::disk('public')->delete($this->existingImagePath);
+            }
+            $imagePath = $this->questionImage->store('knowledge-test-images', 'public');
+        }
+
         $data = [
             'knowledge_test_id' => $this->test->id,
             'question_type' => $this->questionType,
             'question_text' => $this->questionText,
+            'image_path' => $imagePath,
             'options' => $this->questionType === 'multiple_choice' ? array_values(array_filter($this->options)) : null,
             'correct_answer' => $this->questionType === 'multiple_choice' ? $this->correctAnswer : null,
             'points' => $this->points,
@@ -111,6 +139,11 @@ new #[Title('Manage Questions - Admin')] class extends Component {
         if ($question->answers()->count() > 0) {
             session()->flash('error', 'Cannot delete a question that has answers. Deactivate it instead.');
             return;
+        }
+
+        // Delete image if exists
+        if ($question->image_path) {
+            Storage::disk('public')->delete($question->image_path);
         }
 
         $question->delete();
@@ -151,6 +184,9 @@ new #[Title('Manage Questions - Admin')] class extends Component {
     {
         $this->questionType = 'multiple_choice';
         $this->questionText = '';
+        $this->questionImage = null;
+        $this->existingImagePath = null;
+        $this->removeImage = false;
         $this->options = ['', '', '', ''];
         $this->correctAnswer = '';
         $this->points = 1;
@@ -220,6 +256,52 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Question</label>
                 <textarea wire:model="questionText" rows="3" class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white" placeholder="Enter your question..."></textarea>
                 @error('questionText') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
+            </div>
+
+            {{-- Image Upload --}}
+            <div>
+                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Question Image (Optional)</label>
+                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Add an image to accompany the question. Max 5MB. Supports JPG, PNG, GIF.</p>
+                
+                <div class="mt-2">
+                    @if($questionImage)
+                        {{-- Preview of new upload --}}
+                        <div class="relative inline-block">
+                            <img src="{{ $questionImage->temporaryUrl() }}" alt="Preview" class="max-h-48 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                            <button type="button" wire:click="$set('questionImage', null)" class="absolute -right-2 -top-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600">
+                                <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    @elseif($existingImagePath && !$removeImage)
+                        {{-- Existing image --}}
+                        <div class="relative inline-block">
+                            <img src="{{ Storage::url($existingImagePath) }}" alt="Current image" class="max-h-48 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                            <button type="button" wire:click="$set('removeImage', true)" class="absolute -right-2 -top-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600">
+                                <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    @else
+                        {{-- Upload input --}}
+                        <div class="flex items-center justify-center w-full">
+                            <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-zinc-300 border-dashed rounded-lg cursor-pointer bg-zinc-50 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-900 dark:hover:bg-zinc-800">
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <svg class="w-8 h-8 mb-2 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+                                    </svg>
+                                    <p class="text-sm text-zinc-500 dark:text-zinc-400"><span class="font-semibold">Click to upload</span> or drag and drop</p>
+                                    <p class="text-xs text-zinc-400 dark:text-zinc-500">PNG, JPG, GIF up to 5MB</p>
+                                </div>
+                                <input type="file" wire:model="questionImage" class="hidden" accept="image/*">
+                            </label>
+                        </div>
+                        <div wire:loading wire:target="questionImage" class="mt-2 text-sm text-zinc-500">Uploading...</div>
+                    @endif
+                </div>
+                @error('questionImage') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
             </div>
 
             @if($questionType === 'multiple_choice')
@@ -293,11 +375,25 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                                 {{ $question->question_type === 'multiple_choice' ? 'Multiple Choice' : 'Written' }}
                             </span>
                             <span class="text-sm text-zinc-500 dark:text-zinc-400">{{ $question->points }} {{ Str::plural('point', $question->points) }}</span>
+                            @if($question->hasImage())
+                            <span class="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">
+                                <svg class="size-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+                                </svg>
+                                Image
+                            </span>
+                            @endif
                             @if(!$question->is_active)
                             <span class="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400">Inactive</span>
                             @endif
                         </div>
                         <p class="mt-2 text-zinc-900 dark:text-white">{{ $question->question_text }}</p>
+
+                        @if($question->hasImage())
+                        <div class="mt-3">
+                            <img src="{{ $question->image_url }}" alt="Question image" class="max-h-32 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                        </div>
+                        @endif
 
                         @if($question->question_type === 'multiple_choice' && $question->options)
                         <div class="mt-3 space-y-1">

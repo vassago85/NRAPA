@@ -17,6 +17,7 @@ class KnowledgeTestQuestion extends Model
         'knowledge_test_id',
         'question_type',
         'question_text',
+        'image_path',
         'options',
         'correct_answer',
         'points',
@@ -113,5 +114,25 @@ class KnowledgeTestQuestion extends Model
     public function scopeWritten($query)
     {
         return $query->where('question_type', 'written');
+    }
+
+    /**
+     * Check if the question has an image.
+     */
+    public function hasImage(): bool
+    {
+        return !empty($this->image_path);
+    }
+
+    /**
+     * Get the image URL.
+     */
+    public function getImageUrlAttribute(): ?string
+    {
+        if (!$this->hasImage()) {
+            return null;
+        }
+
+        return \Illuminate\Support\Facades\Storage::url($this->image_path);
     }
 }

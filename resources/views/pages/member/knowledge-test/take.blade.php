@@ -223,6 +223,12 @@ new #[Title('Take Test')] class extends Component {
 
                     <h2 class="text-lg font-medium text-zinc-900 dark:text-white">{{ $this->currentQuestion->question_text }}</h2>
 
+                    @if($this->currentQuestion->hasImage())
+                    <div class="mt-4">
+                        <img src="{{ $this->currentQuestion->image_url }}" alt="Question image" class="max-w-full rounded-lg border border-zinc-200 dark:border-zinc-700">
+                    </div>
+                    @endif
+
                     <div class="mt-6">
                         @if($this->currentQuestion->isMultipleChoice())
                         <div class="space-y-3">

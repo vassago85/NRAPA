@@ -202,6 +202,12 @@ new #[Title('Test Results')] class extends Component {
                             </div>
                             <p class="mt-2 font-medium text-zinc-900 dark:text-white">{{ $answer->question->question_text }}</p>
 
+                            @if($answer->question->hasImage())
+                            <div class="mt-3">
+                                <img src="{{ $answer->question->image_url }}" alt="Question image" class="max-h-48 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                            </div>
+                            @endif
+
                             <div class="mt-3 space-y-2">
                                 <div class="rounded-lg border {{ $answer->is_correct ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' }} p-3">
                                     <p class="text-xs font-medium {{ $answer->is_correct ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">Your Answer:</p>
