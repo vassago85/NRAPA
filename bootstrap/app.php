@@ -15,6 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // Trust all proxies (for Nginx Proxy Manager / reverse proxy setups)
         $middleware->trustProxies(at: '*');
 
+        // Handle CORS for Livewire uploads
+        $middleware->validateCsrfTokens(except: [
+            'livewire/upload-file',
+        ]);
+
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
             'owner' => \App\Http\Middleware\EnsureUserIsOwner::class,
