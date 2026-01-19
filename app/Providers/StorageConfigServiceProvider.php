@@ -20,10 +20,8 @@ class StorageConfigServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Only load from DB if table exists (prevents errors during migration)
-        if (!app()->runningInConsole() || app()->runningUnitTests()) {
-            $this->loadStorageConfigFromDatabase();
-        }
+        // Always load storage config from database
+        $this->loadStorageConfigFromDatabase();
     }
 
     /**
