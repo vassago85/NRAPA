@@ -232,16 +232,23 @@ new #[Title('Manage Pages - Learning Center')] class extends Component {
                         </button>
                     </div>
                     @else
-                    <label class="flex h-32 w-full max-w-md cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-zinc-300 bg-zinc-50 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-900 dark:hover:bg-zinc-800">
-                        <div class="text-center">
+                    <div 
+                        x-data="{ dragging: false }"
+                        x-on:dragover.prevent="dragging = true"
+                        x-on:dragleave.prevent="dragging = false"
+                        x-on:drop.prevent="dragging = false; $refs.pageImageInput.files = $event.dataTransfer.files; $refs.pageImageInput.dispatchEvent(new Event('change'))"
+                        :class="{ 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20': dragging }"
+                        class="flex h-32 w-full max-w-md cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-zinc-300 bg-zinc-50 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-900 dark:hover:bg-zinc-800 transition-colors"
+                    >
+                        <label class="cursor-pointer text-center">
                             <svg class="mx-auto size-8 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
                             </svg>
-                            <p class="mt-2 text-sm text-zinc-500">Click to upload page image</p>
+                            <p class="mt-2 text-sm text-zinc-500">Drop or click to upload page image</p>
                             <p class="text-xs text-zinc-400">PNG, JPG up to 5MB</p>
-                        </div>
-                        <input type="file" wire:model="pageImage" class="hidden" accept="image/*">
-                    </label>
+                            <input x-ref="pageImageInput" type="file" wire:model="pageImage" class="hidden" accept="image/*">
+                        </label>
+                    </div>
                     @endif
                 </div>
                 @error('pageImage') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
