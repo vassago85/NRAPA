@@ -13,7 +13,7 @@
         @include('partials.head')
     </head>
     <body class="min-h-screen bg-zinc-100 dark:bg-zinc-900" x-data="{ sidebarOpen: false }">
-        <div class="flex min-h-screen">
+        <div class="min-h-screen lg:flex">
             <!-- Mobile sidebar overlay -->
             <div 
                 x-show="sidebarOpen" 
@@ -30,17 +30,8 @@
 
             <!-- Sidebar -->
             <aside 
-                x-show="sidebarOpen || window.innerWidth >= 1024"
-                x-transition:enter="transition ease-in-out duration-300 transform"
-                x-transition:enter-start="-translate-x-full"
-                x-transition:enter-end="translate-x-0"
-                x-transition:leave="transition ease-in-out duration-300 transform"
-                x-transition:leave-start="translate-x-0"
-                x-transition:leave-end="-translate-x-full"
                 :class="{ 'translate-x-0': sidebarOpen, '-translate-x-full': !sidebarOpen }"
-                class="fixed inset-y-0 left-0 z-50 w-72 flex flex-col bg-zinc-50 dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-700 lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:w-64"
-                x-cloak
-                @resize.window="if(window.innerWidth >= 1024) sidebarOpen = false"
+                class="fixed inset-y-0 left-0 z-50 w-72 flex flex-col bg-zinc-50 dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-700 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:w-64 lg:flex-shrink-0"
             >
                 
                 <!-- Logo -->
@@ -61,7 +52,7 @@
                 </div>
 
                 <!-- Navigation -->
-                <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto min-h-0">
+                <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
                     <!-- Member Portal -->
                     <div class="mb-4">
                         <p class="px-3 mb-2 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Member Portal</p>
@@ -137,8 +128,11 @@
                             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             Config Approvals
                             @php
+                                $pendingCount = 0;
                                 try {
-                                    $pendingCount = \App\Models\ConfigurationChangeRequest::pending()->count();
+                                    if (\Illuminate\Support\Facades\Schema::hasTable('configuration_change_requests')) {
+                                        $pendingCount = \App\Models\ConfigurationChangeRequest::pending()->count();
+                                    }
                                 } catch (\Exception $e) {
                                     $pendingCount = 0;
                                 }
@@ -166,8 +160,11 @@
                             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                             Documents
                             @php
+                                $pendingDocs = 0;
                                 try {
-                                    $pendingDocs = \App\Models\MemberDocument::where('status', 'pending')->count();
+                                    if (\Illuminate\Support\Facades\Schema::hasTable('member_documents')) {
+                                        $pendingDocs = \App\Models\MemberDocument::where('status', 'pending')->count();
+                                    }
                                 } catch (\Exception $e) {
                                     $pendingDocs = 0;
                                 }
@@ -218,7 +215,7 @@
             </aside>
 
             <!-- Main Content -->
-            <div class="flex-1 flex flex-col min-w-0 lg:min-h-screen">
+            <div class="flex-1 flex flex-col min-h-screen">
                 <!-- Mobile Header -->
                 <header class="sticky top-0 z-30 flex items-center justify-between h-16 px-4 bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 lg:hidden">
                     <button @click="sidebarOpen = true" class="p-2 -ml-2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
@@ -242,8 +239,10 @@
                 </header>
 
                 <!-- Page Content -->
-                <main class="flex-1 p-4 lg:p-8">
-                    {{ $slot }}
+                <main class="flex-1 p-4 sm:p-6 lg:p-8 bg-white dark:bg-zinc-800 lg:bg-zinc-100 lg:dark:bg-zinc-900">
+                    <div class="max-w-7xl mx-auto">
+                        {{ $slot }}
+                    </div>
                 </main>
             </div>
         </div>
