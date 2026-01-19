@@ -1,0 +1,98 @@
+CHATGPT PROMPT FOR NRAPA PRESENTATION CONTENT
+==============================================
+
+Please use this prompt to generate content for your Learning Center presentation:
+
+---
+
+I need you to create content for a presentation about the NRAPA (National Rifle Association of South Africa - or similar) Membership Management Platform. This will be presented to the organization's leadership/committee.
+
+The presentation should cover:
+
+1. PLATFORM OVERVIEW
+- What the platform does (membership management, compliance tracking, document storage, certificates, knowledge tests, activity logging)
+- Benefits for members (easy access to certificates, document management, activity tracking, dedicated status applications)
+- Benefits for administrators (streamlined approvals, compliance monitoring, automated notifications)
+
+2. TECHNICAL STRUCTURE & HOSTING
+- The web application is hosted and maintained by the developer (Paul Charsley / Charsley Development)
+- The organization (NRAPA) is responsible for:
+  * Their own email service (Zoho Mail, Mailgun, or similar)
+  * Document/file storage costs (S3 bucket or similar cloud storage)
+  * Domain name registration and DNS management
+- This separation ensures:
+  * NRAPA maintains control of their member data and documents
+  * Clear responsibility boundaries
+  * Cost transparency
+  * Data sovereignty (POPIA compliance)
+
+3. EMAIL CONFIGURATION
+- Platform supports multiple email providers:
+  * SMTP (Zoho, Gmail, etc.)
+  * Mailgun (transactional email service)
+- NRAPA configures their own email credentials
+- All member communications come from NRAPA's domain (e.g., noreply@nrapa.co.za)
+- Email logs available for administrators
+
+4. STORAGE RESPONSIBILITY
+- Member documents (ID copies, certificates, photos, etc.) stored in cloud storage
+- NRAPA provides/pays for their own S3-compatible storage bucket
+- Options include:
+  * AWS S3
+  * DigitalOcean Spaces
+  * Backblaze B2
+  * MinIO (self-hosted)
+- Benefits:
+  * NRAPA owns their data
+  * Can access backups independently
+  * Scales with membership growth
+  * Cost-effective (pay for what you use)
+
+5. KEY FEATURES TO HIGHLIGHT
+- Membership Management (multiple types, renewals, dedicated status)
+- Document Management (upload, verification, expiry tracking)
+- Knowledge Tests (with images, multiple choice, written answers)
+- Certificate Generation (QR-verified, downloadable)
+- Activity Logging (shooting activities for dedicated status)
+- Learning Center (educational content, categories, articles)
+- Role-based Access (Developer, Owner, Admin, Member)
+- POPIA Compliant (audit logs, data protection)
+
+6. ONGOING RESPONSIBILITIES
+
+Developer (Charsley Development):
+- Application hosting and maintenance
+- Security updates and patches
+- Feature development
+- Technical support
+- Database backups (application data)
+
+NRAPA:
+- Email service subscription and configuration
+- Storage bucket subscription and costs
+- Domain name renewal
+- Content management (Learning Center articles, knowledge test questions)
+- Member support and administration
+- Document storage backups (their S3 bucket)
+
+7. COST STRUCTURE SUGGESTIONS
+- Discuss typical costs:
+  * Email: R0-R500/month depending on volume
+  * Storage: R50-R500/month depending on member count and documents
+  * Domain: R150-R300/year
+- Hosting fee (to developer): [To be discussed]
+
+Please format this as:
+1. A structured outline suitable for a PowerPoint/slide presentation
+2. Include speaker notes for each section
+3. Keep it professional but accessible for non-technical committee members
+4. Emphasize the benefits of this hosting model (control, transparency, compliance)
+5. Include a simple diagram description showing the separation of responsibilities
+
+Target audience: NRAPA committee members who may not be technically savvy but need to understand the platform structure and their responsibilities.
+
+Presentation length: Approximately 15-20 minutes
+
+---
+
+END OF PROMPT
