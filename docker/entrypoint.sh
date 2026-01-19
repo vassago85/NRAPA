@@ -28,6 +28,13 @@ php artisan livewire:publish --assets 2>/dev/null || true
 # Create storage link if not exists
 php artisan storage:link 2>/dev/null || true
 
+# Create required storage directories
+mkdir -p storage/app/public/livewire-tmp
+mkdir -p storage/app/public/learning/categories
+mkdir -p storage/app/public/learning/articles
+mkdir -p storage/app/public/learning/pages
+chown -R www-data:www-data storage/app/public
+
 echo "✅ NRAPA is ready!"
 
 # Start supervisor
