@@ -4,7 +4,7 @@ use App\Models\LearningCategory;
 use App\Models\LearningArticle;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
-use Livewire\Volt\Component;
+use Livewire\Component;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;

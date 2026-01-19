@@ -4,7 +4,7 @@ use App\Models\LearningCategory;
 use App\Models\LearningArticle;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
-use Livewire\Volt\Component;
+use Livewire\Component;
 
 new #[Title('Learning Center')] class extends Component {
     public string $search = '';

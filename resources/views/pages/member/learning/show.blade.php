@@ -3,7 +3,7 @@
 use App\Models\LearningArticle;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
-use Livewire\Volt\Component;
+use Livewire\Component;
 
 new #[Title('Article - Learning Center')] class extends Component {
     public LearningArticle $article;
