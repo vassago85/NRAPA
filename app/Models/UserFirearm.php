@@ -39,6 +39,9 @@ class UserFirearm extends Model
         'expiry_notification_sent_60',
         'expiry_notification_sent_30',
         'expiry_notification_sent_7',
+        'expiry_notification_sent_18m',
+        'expiry_notification_sent_12m',
+        'expiry_notification_sent_6m',
         'notes',
         'image_path',
         'license_document_path',
@@ -52,6 +55,9 @@ class UserFirearm extends Model
         'expiry_notification_sent_60' => 'boolean',
         'expiry_notification_sent_30' => 'boolean',
         'expiry_notification_sent_7' => 'boolean',
+        'expiry_notification_sent_18m' => 'boolean',
+        'expiry_notification_sent_12m' => 'boolean',
+        'expiry_notification_sent_6m' => 'boolean',
         'is_active' => 'boolean',
     ];
 
@@ -137,6 +143,50 @@ class UserFirearm extends Model
         }
 
         return now()->startOfDay()->diffInDays($this->license_expiry_date, false);
+    }
+
+    public function getMonthsUntilExpiryAttribute(): ?int
+    {
+        if (!$this->license_expiry_date) {
+            return null;
+        }
+
+        return (int) now()->startOfDay()->diffInMonths($this->license_expiry_date, false);
+    }
+
+    /**
+     * Check if notification should be sent for a specific month interval.
+     */
+    public function shouldSendNotification(int $months): bool
+    {
+        if (!$this->license_expiry_date) {
+            return false;
+        }
+
+        $expiryDate = $this->license_expiry_date;
+        $notificationDate = now()->addMonths($months);
+        $fieldName = "expiry_notification_sent_{$months}m";
+
+        // Check if expiry is within the notification window (same month or earlier)
+        // and notification hasn't been sent yet
+        if (!isset($this->$fieldName)) {
+            return false;
+        }
+
+        return $expiryDate->lte($notificationDate) && 
+               !$this->is_expired && 
+               !$this->$fieldName;
+    }
+
+    /**
+     * Mark notification as sent for a specific month interval.
+     */
+    public function markNotificationSent(int $months): void
+    {
+        $fieldName = "expiry_notification_sent_{$months}m";
+        if (isset($this->$fieldName)) {
+            $this->update([$fieldName => true]);
+        }
     }
 
     public function getIsExpiredAttribute(): bool

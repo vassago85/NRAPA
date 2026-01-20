@@ -13,6 +13,11 @@ class LearningCategory extends Model
      *
      * @var list<string>
      */
+    // Dedicated type constants (matches MembershipType)
+    public const DEDICATED_TYPE_HUNTER = 'hunter';
+    public const DEDICATED_TYPE_SPORT = 'sport';
+    public const DEDICATED_TYPE_BOTH = 'both';
+
     protected $fillable = [
         'name',
         'slug',
@@ -21,6 +26,7 @@ class LearningCategory extends Model
         'image_path',
         'sort_order',
         'is_active',
+        'dedicated_type',
     ];
 
     /**
@@ -86,6 +92,44 @@ class LearningCategory extends Model
     public function scopeOrdered($query)
     {
         return $query->orderBy('sort_order')->orderBy('name');
+    }
+
+    /**
+     * Scope to filter by user's dedicated type access.
+     * 
+     * @param string|null $userDedicatedType The user's membership dedicated_type
+     */
+    public function scopeForDedicatedType($query, ?string $userDedicatedType)
+    {
+        if ($userDedicatedType === self::DEDICATED_TYPE_BOTH) {
+            // Users with "both" can see all content
+            return $query;
+        }
+
+        if ($userDedicatedType) {
+            // Users with a specific type see: general + their type + both
+            return $query->where(function ($q) use ($userDedicatedType) {
+                $q->whereNull('dedicated_type')
+                    ->orWhere('dedicated_type', $userDedicatedType)
+                    ->orWhere('dedicated_type', self::DEDICATED_TYPE_BOTH);
+            });
+        }
+
+        // Users with no dedicated status only see general content
+        return $query->whereNull('dedicated_type');
+    }
+
+    /**
+     * Get the dedicated type label.
+     */
+    public function getDedicatedTypeLabelAttribute(): string
+    {
+        return match($this->dedicated_type) {
+            self::DEDICATED_TYPE_HUNTER => 'Dedicated Hunters',
+            self::DEDICATED_TYPE_SPORT => 'Dedicated Sport Shooters',
+            self::DEDICATED_TYPE_BOTH => 'All Dedicated Members',
+            default => 'General',
+        };
     }
 
     /**

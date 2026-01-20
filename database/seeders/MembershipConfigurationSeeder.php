@@ -314,29 +314,11 @@ class MembershipConfigurationSeeder extends Seeder
     protected function seedMembershipTypes(): void
     {
         $membershipTypes = [
-            // Standard Annual Membership
+            // Dedicated Sport Shooter
             [
-                'slug' => 'standard-annual',
-                'name' => 'Standard Annual Membership',
-                'description' => 'Standard annual membership with full benefits',
-                'duration_type' => 'annual',
-                'duration_months' => 12,
-                'requires_renewal' => true,
-                'expiry_rule' => 'rolling', // 12 months from activation
-                'expiry_month' => null,
-                'expiry_day' => null,
-                'pricing_model' => 'annual',
-                'price' => 350.00,
-                'allows_dedicated_status' => true,
-                'requires_knowledge_test' => true,
-                'discount_eligible' => true,
-                'sort_order' => 1,
-            ],
-            // Dedicated Annual Membership
-            [
-                'slug' => 'dedicated-annual',
-                'name' => 'Dedicated Annual Membership',
-                'description' => 'Annual membership for dedicated hunters/sport shooters with enhanced benefits',
+                'slug' => 'dedicated-sport',
+                'name' => 'Dedicated Sport Shooter',
+                'description' => 'Annual membership for dedicated sport shooters. Includes full platform access, Virtual Safe, Virtual Loading Bench, and sport shooting learning content.',
                 'duration_type' => 'annual',
                 'duration_months' => 12,
                 'requires_renewal' => true,
@@ -344,11 +326,85 @@ class MembershipConfigurationSeeder extends Seeder
                 'expiry_month' => null,
                 'expiry_day' => null,
                 'pricing_model' => 'annual',
-                'price' => 500.00,
-                'allows_dedicated_status' => true, // Already has dedicated status
+                'price' => 750.00,
+                'admin_fee' => 50.00,
+                'allows_dedicated_status' => true,
+                'dedicated_type' => MembershipType::DEDICATED_TYPE_SPORT,
                 'requires_knowledge_test' => true,
                 'discount_eligible' => true,
+                'is_active' => true,
+                'is_featured' => false,
+                'display_on_landing' => true,
+                'sort_order' => 1,
+            ],
+            // Dedicated Hunter
+            [
+                'slug' => 'dedicated-hunter',
+                'name' => 'Dedicated Hunter',
+                'description' => 'Annual membership for dedicated hunters. Includes full platform access, Virtual Safe, Virtual Loading Bench, and hunting learning content.',
+                'duration_type' => 'annual',
+                'duration_months' => 12,
+                'requires_renewal' => true,
+                'expiry_rule' => 'rolling',
+                'expiry_month' => null,
+                'expiry_day' => null,
+                'pricing_model' => 'annual',
+                'price' => 750.00,
+                'admin_fee' => 50.00,
+                'allows_dedicated_status' => true,
+                'dedicated_type' => MembershipType::DEDICATED_TYPE_HUNTER,
+                'requires_knowledge_test' => true,
+                'discount_eligible' => true,
+                'is_active' => true,
+                'is_featured' => false,
+                'display_on_landing' => true,
                 'sort_order' => 2,
+            ],
+            // Dedicated Hunter & Sport Shooter (Both)
+            [
+                'slug' => 'dedicated-both',
+                'name' => 'Dedicated Hunter & Sport Shooter',
+                'description' => 'Annual membership for both dedicated hunters and sport shooters. Full access to all platform features, learning content, and knowledge tests.',
+                'duration_type' => 'annual',
+                'duration_months' => 12,
+                'requires_renewal' => true,
+                'expiry_rule' => 'rolling',
+                'expiry_month' => null,
+                'expiry_day' => null,
+                'pricing_model' => 'annual',
+                'price' => 1150.00,
+                'admin_fee' => 50.00,
+                'allows_dedicated_status' => true,
+                'dedicated_type' => MembershipType::DEDICATED_TYPE_BOTH,
+                'requires_knowledge_test' => true,
+                'discount_eligible' => true,
+                'is_active' => true,
+                'is_featured' => true, // Featured membership
+                'display_on_landing' => true,
+                'sort_order' => 3,
+            ],
+            // Standard Annual Membership (kept for existing users)
+            [
+                'slug' => 'standard-annual',
+                'name' => 'Standard Annual Membership',
+                'description' => 'Standard annual membership with full benefits',
+                'duration_type' => 'annual',
+                'duration_months' => 12,
+                'requires_renewal' => true,
+                'expiry_rule' => 'rolling',
+                'expiry_month' => null,
+                'expiry_day' => null,
+                'pricing_model' => 'annual',
+                'price' => 350.00,
+                'admin_fee' => 0.00,
+                'allows_dedicated_status' => true,
+                'dedicated_type' => null,
+                'requires_knowledge_test' => true,
+                'discount_eligible' => true,
+                'is_active' => false, // Disabled - kept for legacy
+                'is_featured' => false,
+                'display_on_landing' => false,
+                'sort_order' => 10,
             ],
             // Lifetime Membership
             [
@@ -356,19 +412,24 @@ class MembershipConfigurationSeeder extends Seeder
                 'name' => 'Lifetime Membership',
                 'description' => 'One-time payment for lifetime membership with all benefits',
                 'duration_type' => 'lifetime',
-                'duration_months' => null, // No expiry
+                'duration_months' => null,
                 'requires_renewal' => false,
                 'expiry_rule' => 'none',
                 'expiry_month' => null,
                 'expiry_day' => null,
                 'pricing_model' => 'once_off',
                 'price' => 5000.00,
+                'admin_fee' => 0.00,
                 'allows_dedicated_status' => true,
+                'dedicated_type' => MembershipType::DEDICATED_TYPE_BOTH,
                 'requires_knowledge_test' => true,
-                'discount_eligible' => false, // Already heavily discounted
-                'sort_order' => 3,
+                'discount_eligible' => false,
+                'is_active' => false, // Disabled - kept for legacy
+                'is_featured' => false,
+                'display_on_landing' => false,
+                'sort_order' => 11,
             ],
-            // Junior Membership (example of future type)
+            // Junior Membership
             [
                 'slug' => 'junior-annual',
                 'name' => 'Junior Annual Membership',
@@ -380,11 +441,16 @@ class MembershipConfigurationSeeder extends Seeder
                 'expiry_month' => null,
                 'expiry_day' => null,
                 'pricing_model' => 'annual',
-                'price' => 175.00, // 50% discount
-                'allows_dedicated_status' => false, // Juniors cannot apply
+                'price' => 175.00,
+                'admin_fee' => 0.00,
+                'allows_dedicated_status' => false,
+                'dedicated_type' => null,
                 'requires_knowledge_test' => true,
-                'discount_eligible' => false, // Already discounted
-                'sort_order' => 4,
+                'discount_eligible' => false,
+                'is_active' => false, // Disabled - kept for legacy
+                'is_featured' => false,
+                'display_on_landing' => false,
+                'sort_order' => 12,
             ],
         ];
 

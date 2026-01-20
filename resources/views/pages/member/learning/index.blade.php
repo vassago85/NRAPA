@@ -9,12 +9,22 @@ use Livewire\Component;
 new #[Title('Learning Center')] class extends Component {
     public string $search = '';
 
+    /**
+     * Get the user's dedicated type from their active membership.
+     */
+    #[Computed]
+    public function userDedicatedType(): ?string
+    {
+        return auth()->user()->activeMembership?->type?->dedicated_type;
+    }
+
     #[Computed]
     public function categories()
     {
         return LearningCategory::active()
+            ->forDedicatedType($this->userDedicatedType)
             ->ordered()
-            ->withCount(['articles' => fn($q) => $q->published()])
+            ->withCount(['articles' => fn($q) => $q->published()->forDedicatedType($this->userDedicatedType)])
             ->get();
     }
 
@@ -23,6 +33,7 @@ new #[Title('Learning Center')] class extends Component {
     {
         return LearningArticle::published()
             ->featured()
+            ->forDedicatedType($this->userDedicatedType)
             ->with('category')
             ->latest()
             ->take(3)
@@ -33,6 +44,7 @@ new #[Title('Learning Center')] class extends Component {
     public function recentArticles()
     {
         return LearningArticle::published()
+            ->forDedicatedType($this->userDedicatedType)
             ->with('category')
             ->latest()
             ->take(6)
@@ -47,6 +59,7 @@ new #[Title('Learning Center')] class extends Component {
         }
 
         return LearningArticle::published()
+            ->forDedicatedType($this->userDedicatedType)
             ->with('category')
             ->where(function ($query) {
                 $query->where('title', 'like', "%{$this->search}%")

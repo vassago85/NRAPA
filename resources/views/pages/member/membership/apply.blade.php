@@ -12,9 +12,18 @@ new #[Title('Apply for Membership')] class extends Component {
     public ?int $selectedTypeId = null;
     public bool $agreedToTerms = false;
 
-    public function mount(): void
+    public function mount(?string $type = null): void
     {
-        // Pre-select the first available type
+        // Pre-select based on URL parameter (slug) or use the first available type
+        if ($type) {
+            $preselected = MembershipType::active()->where('slug', $type)->first();
+            if ($preselected) {
+                $this->selectedTypeId = $preselected->id;
+                return;
+            }
+        }
+
+        // Fall back to the first available type
         $firstType = MembershipType::active()->ordered()->first();
         if ($firstType) {
             $this->selectedTypeId = $firstType->id;

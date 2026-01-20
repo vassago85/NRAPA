@@ -6,20 +6,21 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
-// Member Portal Routes
+// Member Portal Routes - Available to all authenticated users (including free members)
 Route::middleware(['auth', 'verified'])->group(function () {
-    // Dashboard
+    // Dashboard - Always accessible
     Route::livewire('dashboard', 'pages::member.dashboard')->name('dashboard');
 
-    // Membership Package Selection (for new users)
+    // Membership - Always accessible (so free members can choose/pay for packages)
     Route::livewire('membership/select-package', 'pages::member.membership.select-package')->name('membership.select-package');
     Route::livewire('membership/payment/{membership}', 'pages::member.membership.payment')->name('membership.payment');
-
-    // Membership
     Route::livewire('membership', 'pages::member.membership.index')->name('membership.index');
     Route::livewire('membership/apply', 'pages::member.membership.apply')->name('membership.apply');
     Route::livewire('membership/{membership}', 'pages::member.membership.show')->name('membership.show');
+});
 
+// Member Portal Routes - Requires ACTIVE membership (paid members only)
+Route::middleware(['auth', 'verified', 'membership.required'])->group(function () {
     // Certificates
     Route::livewire('certificates', 'pages::member.certificates.index')->name('certificates.index');
     Route::livewire('certificates/{certificate}', 'pages::member.certificates.show')->name('certificates.show');
@@ -35,13 +36,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('activities/{activity}', 'pages::member.activities.show')->name('activities.show');
     Route::livewire('activities/{activity}/edit', 'pages::member.activities.edit')->name('activities.edit');
 
-    // Virtual Armoury (My Firearms)
+    // Virtual Safe (My Firearms)
     Route::livewire('armoury', 'pages::member.armoury.index')->name('armoury.index');
     Route::livewire('armoury/add', 'pages::member.armoury.create')->name('armoury.create');
     Route::livewire('armoury/{firearm}', 'pages::member.armoury.show')->name('armoury.show');
     Route::livewire('armoury/{firearm}/edit', 'pages::member.armoury.edit')->name('armoury.edit');
 
-    // Load Data (Reloading)
+    // Virtual Loading Bench (Reloading)
     Route::livewire('load-data', 'pages::member.load-data.index')->name('load-data.index');
     Route::livewire('load-data/create', 'pages::member.load-data.create')->name('load-data.create');
     Route::livewire('load-data/{load}', 'pages::member.load-data.show')->name('load-data.show');
@@ -110,6 +111,9 @@ Route::middleware(['auth', 'verified', 'developer'])->prefix('developer')->name(
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::livewire('members', 'pages::admin.members.index')->name('members.index');
     Route::livewire('members/{user}', 'pages::admin.members.show')->name('members.show');
+    
+    // Membership Types Management
+    Route::livewire('membership-types', 'pages::admin.membership-types.index')->name('membership-types.index');
 
     Route::livewire('approvals', 'pages::admin.approvals.index')->name('approvals.index');
     Route::livewire('approvals/{membership}', 'pages::admin.approvals.show')->name('approvals.show');

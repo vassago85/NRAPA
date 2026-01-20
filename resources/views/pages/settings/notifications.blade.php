@@ -14,7 +14,7 @@ new class extends Component {
     public array $working_days = [1, 2, 3, 4, 5];
     public bool $respect_working_hours = true;
 
-    // Notification Types
+    // Notification Types (Admin)
     public bool $notify_new_member = true;
     public bool $notify_payment_received = true;
     public bool $notify_document_uploaded = true;
@@ -22,6 +22,12 @@ new class extends Component {
     public bool $notify_activity_submitted = true;
     public bool $notify_knowledge_test_completed = true;
     public bool $notify_system_errors = false;
+
+    // License Expiry Notifications (All Members)
+    public bool $notify_license_expiry = true;
+    public bool $license_expiry_18m = true;
+    public bool $license_expiry_12m = true;
+    public bool $license_expiry_6m = true;
 
     public function mount(): void
     {
@@ -41,21 +47,41 @@ new class extends Component {
             $this->notify_activity_submitted = $prefs->notify_activity_submitted;
             $this->notify_knowledge_test_completed = $prefs->notify_knowledge_test_completed;
             $this->notify_system_errors = $prefs->notify_system_errors;
+            $this->notify_license_expiry = $prefs->notify_license_expiry ?? true;
+            
+            // Parse license expiry intervals
+            $intervals = $prefs->license_expiry_intervals ?? [18, 12, 6];
+            $this->license_expiry_18m = in_array(18, $intervals);
+            $this->license_expiry_12m = in_array(12, $intervals);
+            $this->license_expiry_6m = in_array(6, $intervals);
         }
     }
 
     public function save(): void
     {
-        $this->validate([
-            'ntfy_topic' => 'nullable|string|max:255|regex:/^[a-zA-Z0-9_-]+$/',
-            'working_hours_start' => 'required|date_format:H:i',
-            'working_hours_end' => 'required|date_format:H:i|after:working_hours_start',
-            'working_days' => 'required|array|min:1',
-        ]);
+        if (auth()->user()->hasRoleLevel(\App\Models\User::ROLE_ADMIN)) {
+            $this->validate([
+                'ntfy_topic' => 'nullable|string|max:255|regex:/^[a-zA-Z0-9_-]+$/',
+                'working_hours_start' => 'required|date_format:H:i',
+                'working_hours_end' => 'required|date_format:H:i|after:working_hours_start',
+                'working_days' => 'required|array|min:1',
+            ]);
+        }
 
-        NotificationPreference::updateOrCreate(
-            ['user_id' => auth()->id()],
-            [
+        // Build license expiry intervals array
+        $intervals = [];
+        if ($this->license_expiry_18m) $intervals[] = 18;
+        if ($this->license_expiry_12m) $intervals[] = 12;
+        if ($this->license_expiry_6m) $intervals[] = 6;
+
+        $data = [
+            'notify_license_expiry' => $this->notify_license_expiry,
+            'license_expiry_intervals' => $intervals,
+        ];
+
+        // Only save admin settings if user is admin
+        if (auth()->user()->hasRoleLevel(\App\Models\User::ROLE_ADMIN)) {
+            $data = array_merge($data, [
                 'ntfy_topic' => $this->ntfy_topic ?: null,
                 'ntfy_enabled' => $this->ntfy_enabled && !empty($this->ntfy_topic),
                 'working_hours_start' => $this->working_hours_start,
@@ -69,7 +95,12 @@ new class extends Component {
                 'notify_activity_submitted' => $this->notify_activity_submitted,
                 'notify_knowledge_test_completed' => $this->notify_knowledge_test_completed,
                 'notify_system_errors' => $this->notify_system_errors,
-            ]
+            ]);
+        }
+
+        NotificationPreference::updateOrCreate(
+            ['user_id' => auth()->id()],
+            $data
         );
 
         session()->flash('success', 'Notification preferences saved successfully.');
@@ -89,7 +120,7 @@ new class extends Component {
 <section class="w-full">
     @include('partials.settings-heading')
 
-    <x-settings-layout heading="Notifications" subheading="Configure push notifications via NTFY">
+    <x-settings-layout heading="Notifications" subheading="Configure your notification preferences">
 
         @if(session('success'))
             <div class="mb-6 p-4 bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
@@ -97,11 +128,61 @@ new class extends Component {
             </div>
         @endif
 
-        @if(!auth()->user()->hasRoleLevel(\App\Models\User::ROLE_ADMIN))
-            <div class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                <p class="text-amber-700 dark:text-amber-300">Notification settings are only available for administrators and owners.</p>
+        <form wire:submit="save" class="space-y-6">
+            <!-- License Expiry Notifications - Available to ALL members -->
+            <div class="bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 p-4">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="flex size-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                        <svg class="size-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Virtual Safe - License Expiry Alerts</h3>
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400">Get email reminders before your firearm licenses expire</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between py-2">
+                        <div>
+                            <label class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Enable License Expiry Notifications</label>
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400">Receive email alerts when your firearm licenses are approaching expiry</p>
+                        </div>
+                        <button type="button" wire:click="$toggle('notify_license_expiry')"
+                            class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {{ $notify_license_expiry ? 'bg-emerald-600' : 'bg-zinc-300 dark:bg-zinc-600' }}">
+                            <span class="inline-block h-4 w-4 transform rounded-full bg-white transition {{ $notify_license_expiry ? 'translate-x-6' : 'translate-x-1' }}"></span>
+                        </button>
+                    </div>
+
+                    @if($notify_license_expiry)
+                    <div class="pl-4 border-l-2 border-emerald-200 dark:border-emerald-800 space-y-3">
+                        <p class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Notify me at these intervals before expiry:</p>
+                        
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" wire:model="license_expiry_18m" class="rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700">
+                            <span class="text-sm text-zinc-700 dark:text-zinc-300">18 months before expiry</span>
+                        </label>
+                        
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" wire:model="license_expiry_12m" class="rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700">
+                            <span class="text-sm text-zinc-700 dark:text-zinc-300">12 months before expiry</span>
+                        </label>
+                        
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" wire:model="license_expiry_6m" class="rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700">
+                            <span class="text-sm text-zinc-700 dark:text-zinc-300">6 months before expiry</span>
+                        </label>
+                        
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
+                            Select at least one interval to receive notifications. Renewal applications typically take 3-6 months to process, so early notification is recommended.
+                        </p>
+                    </div>
+                    @endif
+                </div>
             </div>
-        @else
+
+        @if(auth()->user()->hasRoleLevel(\App\Models\User::ROLE_ADMIN))
             <form wire:submit="save" class="space-y-6">
                 <!-- NTFY Configuration -->
                 <div class="bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 p-4">
@@ -215,10 +296,11 @@ new class extends Component {
                     </div>
                 </div>
 
-                <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors">
-                    Save Notification Preferences
-                </button>
-            </form>
         @endif
+
+            <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors">
+                Save Notification Preferences
+            </button>
+        </form>
     </x-settings-layout>
 </section>

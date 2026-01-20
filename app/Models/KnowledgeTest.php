@@ -80,13 +80,27 @@ class KnowledgeTest extends Model
 
     /**
      * Scope to tests for a specific dedicated type.
+     * 
+     * @param string|null $userDedicatedType The user's membership dedicated_type
      */
-    public function scopeForDedicatedType($query, string $dedicatedType)
+    public function scopeForDedicatedType($query, ?string $userDedicatedType)
     {
-        return $query->where(function ($q) use ($dedicatedType) {
-            $q->where('dedicated_type', $dedicatedType)
-              ->orWhere('dedicated_type', 'both');
-        });
+        if ($userDedicatedType === 'both') {
+            // Users with "both" can see all tests
+            return $query;
+        }
+
+        if ($userDedicatedType) {
+            // Users with a specific type see: general + their type + both
+            return $query->where(function ($q) use ($userDedicatedType) {
+                $q->whereNull('dedicated_type')
+                    ->orWhere('dedicated_type', $userDedicatedType)
+                    ->orWhere('dedicated_type', 'both');
+            });
+        }
+
+        // Users with no dedicated status only see general tests
+        return $query->whereNull('dedicated_type');
     }
 
     /**

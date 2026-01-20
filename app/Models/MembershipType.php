@@ -13,6 +13,11 @@ class MembershipType extends Model
      *
      * @var list<string>
      */
+    // Dedicated type constants
+    public const DEDICATED_TYPE_HUNTER = 'hunter';
+    public const DEDICATED_TYPE_SPORT = 'sport';
+    public const DEDICATED_TYPE_BOTH = 'both';
+
     protected $fillable = [
         'slug',
         'name',
@@ -25,10 +30,14 @@ class MembershipType extends Model
         'expiry_day',
         'pricing_model',
         'price',
+        'admin_fee',
         'allows_dedicated_status',
+        'dedicated_type',
         'requires_knowledge_test',
         'discount_eligible',
         'is_active',
+        'is_featured',
+        'display_on_landing',
         'sort_order',
     ];
 
@@ -44,11 +53,14 @@ class MembershipType extends Model
             'expiry_month' => 'integer',
             'expiry_day' => 'integer',
             'price' => 'decimal:2',
+            'admin_fee' => 'decimal:2',
             'requires_renewal' => 'boolean',
             'allows_dedicated_status' => 'boolean',
             'requires_knowledge_test' => 'boolean',
             'discount_eligible' => 'boolean',
             'is_active' => 'boolean',
+            'is_featured' => 'boolean',
+            'display_on_landing' => 'boolean',
             'sort_order' => 'integer',
         ];
     }
@@ -111,6 +123,53 @@ class MembershipType extends Model
     public function scopeOrdered($query)
     {
         return $query->orderBy('sort_order');
+    }
+
+    /**
+     * Scope to only featured membership type.
+     */
+    public function scopeFeatured($query)
+    {
+        return $query->where('is_featured', true);
+    }
+
+    /**
+     * Scope to only types displayed on landing page.
+     */
+    public function scopeDisplayOnLanding($query)
+    {
+        return $query->where('display_on_landing', true);
+    }
+
+    /**
+     * Scope to filter by dedicated type.
+     */
+    public function scopeForDedicatedType($query, ?string $type)
+    {
+        if ($type === self::DEDICATED_TYPE_BOTH) {
+            // Users with "both" can see all dedicated types
+            return $query;
+        }
+
+        if ($type) {
+            // Users with specific type see their type + both + general
+            return $query->where(function ($q) use ($type) {
+                $q->whereNull('dedicated_type')
+                    ->orWhere('dedicated_type', $type)
+                    ->orWhere('dedicated_type', self::DEDICATED_TYPE_BOTH);
+            });
+        }
+
+        // Users with no dedicated status see only general content
+        return $query->whereNull('dedicated_type');
+    }
+
+    /**
+     * Get the total price including admin fee.
+     */
+    public function getTotalPriceAttribute(): float
+    {
+        return (float) $this->price + (float) $this->admin_fee;
     }
 
     /**

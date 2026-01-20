@@ -10,21 +10,30 @@ use Symfony\Component\HttpFoundation\Response;
 class RedirectIfNoMembership
 {
     /**
-     * Routes that should be accessible without membership.
+     * Routes that should be accessible without an active membership.
+     * These routes are available to "free members" (registered but not paid).
      */
-    protected array $except = [
-        'membership.select-package',
-        'membership.payment',
+    protected array $freeRoutes = [
+        'dashboard',
+        'membership.*',
         'logout',
         'profile.edit',
         'user-password.edit',
         'two-factor.show',
         'appearance.edit',
         'verification.*',
+        'settings.*',
     ];
 
     /**
      * Handle an incoming request.
+     * 
+     * Free members (registered but no active paid membership) can only access:
+     * - Dashboard
+     * - My Membership page (to select/pay for a package)
+     * - Profile/settings pages
+     * 
+     * All other member features require an active paid membership.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
@@ -36,25 +45,25 @@ class RedirectIfNoMembership
             return $next($request);
         }
 
-        // Skip for admin/owner/developer roles
+        // Skip for admin/owner/developer roles - they have full access
         if ($user->hasRoleLevel(\App\Models\User::ROLE_ADMIN)) {
             return $next($request);
         }
 
-        // Skip for excepted routes
-        foreach ($this->except as $pattern) {
+        // Check if current route is accessible to free members
+        foreach ($this->freeRoutes as $pattern) {
             if ($request->routeIs($pattern)) {
                 return $next($request);
             }
         }
 
-        // Check if user has any membership (pending_payment, pending, active)
-        $membership = Membership::where('user_id', $user->id)
-            ->whereIn('status', ['pending_payment', 'pending', 'active'])
-            ->first();
+        // Check if user has an ACTIVE membership (not just pending)
+        $activeMembership = $user->activeMembership;
 
-        if (!$membership) {
-            return redirect()->route('membership.select-package');
+        if (!$activeMembership) {
+            // Free member trying to access paid features
+            session()->flash('warning', 'An active membership is required to access this feature. Please select a membership package to continue.');
+            return redirect()->route('membership.index');
         }
 
         return $next($request);

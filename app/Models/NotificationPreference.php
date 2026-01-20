@@ -23,6 +23,8 @@ class NotificationPreference extends Model
         'notify_activity_submitted',
         'notify_knowledge_test_completed',
         'notify_system_errors',
+        'notify_license_expiry',
+        'license_expiry_intervals',
     ];
 
     protected function casts(): array
@@ -38,6 +40,8 @@ class NotificationPreference extends Model
             'notify_activity_submitted' => 'boolean',
             'notify_knowledge_test_completed' => 'boolean',
             'notify_system_errors' => 'boolean',
+            'notify_license_expiry' => 'boolean',
+            'license_expiry_intervals' => 'array',
         ];
     }
 

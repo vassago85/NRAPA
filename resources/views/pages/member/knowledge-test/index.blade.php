@@ -7,11 +7,20 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Title('Knowledge Tests')] class extends Component {
+    /**
+     * Get the user's dedicated type from their active membership.
+     */
+    #[Computed]
+    public function userDedicatedType(): ?string
+    {
+        return auth()->user()->activeMembership?->type?->dedicated_type;
+    }
+
     #[Computed]
     public function availableTests()
     {
         return KnowledgeTest::active()
-            ->forDedicatedStatus()
+            ->forDedicatedType($this->userDedicatedType)
             ->whereHas('activeQuestions')
             ->withCount('activeQuestions')
             ->orderBy('dedicated_type')

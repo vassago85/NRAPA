@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Membership;
+use App\Models\MembershipType;
 use App\Models\Certificate;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
@@ -42,6 +43,27 @@ new #[Title('Dashboard')] class extends Component {
     public function requiresTest()
     {
         return $this->activeMembership?->type?->requires_knowledge_test ?? false;
+    }
+
+    #[Computed]
+    public function availableMembershipTypes()
+    {
+        return MembershipType::active()
+            ->displayOnLanding()
+            ->ordered()
+            ->get();
+    }
+
+    #[Computed]
+    public function featuredMembershipType()
+    {
+        return MembershipType::active()->featured()->first();
+    }
+
+    #[Computed]
+    public function needsMembership(): bool
+    {
+        return !$this->activeMembership && !$this->latestMembership;
     }
 }; ?>
 
@@ -127,12 +149,12 @@ new #[Title('Dashboard')] class extends Component {
                     </p>
                 </div>
             @else
-                <div class="space-y-4">
+                <div class="space-y-3">
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">
-                        You don't have an active membership yet. Apply now to access all member benefits.
+                        You don't have an active membership yet. Select a membership below to get started.
                     </p>
                     <a href="{{ route('membership.apply') }}" wire:navigate class="block w-full rounded-lg bg-emerald-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">
-                        Apply for Membership
+                        View All Memberships
                     </a>
                 </div>
             @endif
@@ -223,6 +245,99 @@ new #[Title('Dashboard')] class extends Component {
             </div>
         </div>
     </div>
+
+    {{-- Available Memberships Section (for users without membership) --}}
+    @if($this->needsMembership && $this->availableMembershipTypes->count() > 0)
+    <div class="mt-2">
+        <div class="mb-4 flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Choose Your Membership</h2>
+            <a href="{{ route('membership.apply') }}" wire:navigate class="text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+                View all options &rarr;
+            </a>
+        </div>
+        <p class="mb-6 text-sm text-zinc-500 dark:text-zinc-400">
+            Select a membership to unlock full access to the NRAPA member portal, including the Virtual Safe, Virtual Loading Bench, Learning Center, and more.
+        </p>
+        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            @foreach($this->availableMembershipTypes as $type)
+                <div class="relative rounded-xl border {{ $type->is_featured ? 'border-emerald-500 ring-2 ring-emerald-500' : 'border-zinc-200 dark:border-zinc-700' }} bg-white p-6 shadow-sm dark:bg-zinc-800">
+                    @if($type->is_featured)
+                        <div class="absolute -top-3 left-1/2 -translate-x-1/2 transform">
+                            <span class="inline-flex items-center rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-white">
+                                Recommended
+                            </span>
+                        </div>
+                    @endif
+                    
+                    <div class="mb-4">
+                        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">{{ $type->name }}</h3>
+                        @if($type->dedicated_type)
+                            <span class="mt-1 inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                {{ ucfirst($type->dedicated_type === 'both' ? 'Hunter & Sport Shooter' : ($type->dedicated_type === 'sport' ? 'Sport Shooter' : 'Hunter')) }}
+                            </span>
+                        @endif
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-3xl font-bold text-zinc-900 dark:text-white">R{{ number_format($type->price, 0) }}</span>
+                            @if($type->duration_type === 'annual')
+                                <span class="text-sm text-zinc-500 dark:text-zinc-400">/year</span>
+                            @elseif($type->duration_type === 'lifetime')
+                                <span class="text-sm text-zinc-500 dark:text-zinc-400">once-off</span>
+                            @elseif($type->duration_months)
+                                <span class="text-sm text-zinc-500 dark:text-zinc-400">/{{ $type->duration_months }}mo</span>
+                            @endif
+                        </div>
+                        @if($type->admin_fee > 0)
+                            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                                + R{{ number_format($type->admin_fee, 0) }} admin fee
+                                <span class="font-medium">(Total: R{{ number_format($type->total_price, 0) }})</span>
+                            </p>
+                        @endif
+                    </div>
+                    
+                    @if($type->description)
+                        <p class="mb-4 text-sm text-zinc-600 dark:text-zinc-400 line-clamp-3">{{ $type->description }}</p>
+                    @endif
+                    
+                    <ul class="mb-6 space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
+                        <li class="flex items-center gap-2">
+                            <svg class="h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Virtual Safe access
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Virtual Loading Bench
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Learning Center
+                        </li>
+                        @if($type->allows_dedicated_status)
+                            <li class="flex items-center gap-2">
+                                <svg class="h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                Dedicated Status support
+                            </li>
+                        @endif
+                    </ul>
+                    
+                    <a href="{{ route('membership.apply', ['type' => $type->slug]) }}" wire:navigate class="block w-full rounded-lg {{ $type->is_featured ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'border border-emerald-600 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-500 dark:text-emerald-400 dark:hover:bg-emerald-900/20' }} px-4 py-2.5 text-center text-sm font-semibold transition-colors">
+                        Select Membership
+                    </a>
+                </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
 
     {{-- Quick Actions --}}
     @if($this->activeMembership)
