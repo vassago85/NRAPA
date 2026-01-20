@@ -89,6 +89,9 @@ Route::middleware(['auth', 'verified', 'owner'])->prefix('owner')->name('owner.'
     Route::livewire('admins', 'pages::owner.admins.index')->name('admins.index');
     Route::livewire('admins/create', 'pages::owner.admins.create')->name('admins.create');
 
+    // User Deletion Requests
+    Route::livewire('deletion-requests', 'pages::owner.deletion-requests.index')->name('deletion-requests.index');
+
     // Owner Settings (Bank, Email, Storage, etc.)
     Route::livewire('settings', 'pages::owner.settings.index')->name('settings.index');
     Route::livewire('settings/email', 'pages::owner.settings.email')->name('settings.email');

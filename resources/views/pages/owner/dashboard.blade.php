@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use App\Models\SystemSetting;
+use App\Models\UserDeletionRequest;
 use Livewire\Component;
 
 new class extends Component {
@@ -9,6 +10,7 @@ new class extends Component {
     public int $myAdmins = 0;
     public int $totalMembers = 0;
     public int $pendingApprovals = 0;
+    public int $pendingDeletions = 0;
     
     // Storage status
     public bool $privateStorageConfigured = false;
@@ -24,6 +26,7 @@ new class extends Component {
             ->count();
         $this->totalMembers = User::where('role', User::ROLE_MEMBER)->count();
         $this->pendingApprovals = \App\Models\Membership::where('status', 'pending')->count();
+        $this->pendingDeletions = UserDeletionRequest::pending()->count();
         
         // Check storage configuration
         $this->privateBucket = SystemSetting::get('r2_bucket', '');
@@ -89,6 +92,26 @@ new class extends Component {
             </div>
         </div>
     </div>
+
+    {{-- Pending Deletion Requests Alert --}}
+    @if($pendingDeletions > 0)
+    <div class="mb-8 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-red-100 dark:bg-red-900/50 rounded-lg">
+                    <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+                </div>
+                <div>
+                    <p class="font-medium text-red-800 dark:text-red-200">{{ $pendingDeletions }} Deletion Request{{ $pendingDeletions > 1 ? 's' : '' }} Pending</p>
+                    <p class="text-sm text-red-600 dark:text-red-400">Admin{{ $pendingDeletions > 1 ? 's have' : ' has' }} requested to delete user{{ $pendingDeletions > 1 ? 's' : '' }}.</p>
+                </div>
+            </div>
+            <a href="{{ route('owner.deletion-requests.index') }}" wire:navigate class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors">
+                Review Requests
+            </a>
+        </div>
+    </div>
+    @endif
 
     {{-- Storage Status --}}
     <div class="mb-8 bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
@@ -161,6 +184,14 @@ new class extends Component {
                     class="flex items-center gap-3 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-700/50 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
                     <svg class="w-5 h-5 text-zinc-600 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                     <span class="text-zinc-700 dark:text-zinc-300">View All Members</span>
+                </a>
+                <a href="{{ route('owner.deletion-requests.index') }}" wire:navigate
+                    class="flex items-center gap-3 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-700/50 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors {{ $pendingDeletions > 0 ? 'ring-2 ring-red-500' : '' }}">
+                    <svg class="w-5 h-5 {{ $pendingDeletions > 0 ? 'text-red-600 dark:text-red-400' : 'text-zinc-600 dark:text-zinc-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+                    <span class="text-zinc-700 dark:text-zinc-300">User Deletion Requests</span>
+                    @if($pendingDeletions > 0)
+                    <span class="ml-auto inline-flex items-center justify-center px-2 py-1 text-xs font-bold text-white bg-red-600 rounded-full">{{ $pendingDeletions }}</span>
+                    @endif
                 </a>
             </div>
         </div>

@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use App\Models\Membership;
+use App\Models\UserDeletionRequest;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -9,6 +10,9 @@ use Livewire\Component;
 
 new #[Title('Member Details - Admin')] class extends Component {
     public User $user;
+    public bool $showDeleteModal = false;
+    public bool $showRequestDeleteModal = false;
+    public string $deleteReason = '';
 
     public function mount(User $user): void
     {
@@ -18,6 +22,7 @@ new #[Title('Member Details - Admin')] class extends Component {
             'certificates.certificateType',
             'dedicatedStatusApplications',
             'knowledgeTestAttempts.knowledgeTest',
+            'deletionRequests',
         ]);
     }
 
@@ -27,10 +32,82 @@ new #[Title('Member Details - Admin')] class extends Component {
         return $this->user->memberships->firstWhere('status', 'active');
     }
 
+    #[Computed]
+    public function canDelete(): bool
+    {
+        return auth()->user()->canDeleteUser($this->user);
+    }
+
+    #[Computed]
+    public function canRequestDelete(): bool
+    {
+        return auth()->user()->canRequestUserDeletion($this->user) && !$this->user->hasPendingDeletionRequest();
+    }
+
+    #[Computed]
+    public function pendingDeletionRequest()
+    {
+        return $this->user->deletionRequests()->pending()->first();
+    }
+
     public function toggleAdmin(): void
     {
         $this->user->update(['is_admin' => !$this->user->is_admin]);
         $this->user->refresh();
+    }
+
+    public function deleteUser(): void
+    {
+        if (!$this->canDelete) {
+            session()->flash('error', 'You do not have permission to delete this user.');
+            return;
+        }
+
+        $this->validate([
+            'deleteReason' => 'required|string|min:10|max:500',
+        ]);
+
+        $userName = $this->user->name;
+
+        // Create a deletion record for audit purposes
+        UserDeletionRequest::create([
+            'user_id' => $this->user->id,
+            'requested_by' => auth()->id(),
+            'actioned_by' => auth()->id(),
+            'status' => UserDeletionRequest::STATUS_APPROVED,
+            'reason' => $this->deleteReason,
+            'actioned_at' => now(),
+        ]);
+
+        // Soft delete the user
+        $this->user->delete();
+
+        session()->flash('success', "User {$userName} has been deleted.");
+        $this->redirect(route('admin.members.index'), navigate: true);
+    }
+
+    public function requestDeletion(): void
+    {
+        if (!$this->canRequestDelete) {
+            session()->flash('error', 'You cannot request deletion for this user.');
+            return;
+        }
+
+        $this->validate([
+            'deleteReason' => 'required|string|min:10|max:500',
+        ]);
+
+        UserDeletionRequest::create([
+            'user_id' => $this->user->id,
+            'requested_by' => auth()->id(),
+            'reason' => $this->deleteReason,
+        ]);
+
+        $this->showRequestDeleteModal = false;
+        $this->deleteReason = '';
+        $this->user->refresh();
+        
+        session()->flash('success', 'Deletion request submitted. An owner will review your request.');
     }
 
     public function getStatusClasses(string $status): string
@@ -47,6 +124,19 @@ new #[Title('Member Details - Admin')] class extends Component {
 }; ?>
 
 <div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
+    {{-- Flash Messages --}}
+    @if(session('success'))
+        <div class="rounded-lg border border-green-300 bg-green-100 p-4 text-green-800 dark:border-green-700 dark:bg-green-900/30 dark:text-green-200">
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="rounded-lg border border-red-300 bg-red-100 p-4 text-red-800 dark:border-red-700 dark:bg-red-900/30 dark:text-red-200">
+            {{ session('error') }}
+        </div>
+    @endif
+
     {{-- Header --}}
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-4">
@@ -66,11 +156,33 @@ new #[Title('Member Details - Admin')] class extends Component {
                 </div>
             </div>
         </div>
-        <div class="flex gap-2">
+        <div class="flex items-center gap-2">
             @if($this->user->is_admin)
             <span class="inline-flex items-center rounded-full bg-purple-100 px-3 py-1 text-sm font-medium text-purple-800 dark:bg-purple-900 dark:text-purple-200">
                 Admin
             </span>
+            @endif
+            
+            @if($this->pendingDeletionRequest)
+            <span class="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                Deletion Pending
+            </span>
+            @endif
+
+            @if($this->canDelete)
+            <button wire:click="$set('showDeleteModal', true)" class="inline-flex items-center gap-1 rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 transition-colors">
+                <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                </svg>
+                Delete User
+            </button>
+            @elseif($this->canRequestDelete)
+            <button wire:click="$set('showRequestDeleteModal', true)" class="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700 transition-colors">
+                <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                </svg>
+                Request Deletion
+            </button>
             @endif
         </div>
     </div>
@@ -340,6 +452,94 @@ new #[Title('Member Details - Admin')] class extends Component {
                     @endforeach
                 </tbody>
             </table>
+        </div>
+    </div>
+    @endif
+
+    {{-- Delete User Modal (for Owner/Developer) --}}
+    @if($showDeleteModal)
+    <div class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div wire:click="$set('showDeleteModal', false)" class="fixed inset-0 bg-black/50"></div>
+            <div class="relative w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-zinc-800">
+                <div class="mb-4 flex items-center gap-3">
+                    <div class="flex size-10 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/50">
+                        <svg class="size-5 text-red-600 dark:text-red-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Delete User</h3>
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400">This action cannot be undone.</p>
+                    </div>
+                </div>
+                
+                <p class="mb-4 text-zinc-600 dark:text-zinc-300">
+                    Are you sure you want to delete <strong>{{ $this->user->name }}</strong>? All their data will be archived.
+                </p>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Reason for deletion *</label>
+                    <textarea wire:model="deleteReason" rows="3" placeholder="Please provide a reason for deleting this user..."
+                        class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white"></textarea>
+                    @error('deleteReason') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <button wire:click="$set('showDeleteModal', false)" 
+                        class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700">
+                        Cancel
+                    </button>
+                    <button wire:click="deleteUser"
+                        class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">
+                        Delete User
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Request Deletion Modal (for Admin) --}}
+    @if($showRequestDeleteModal)
+    <div class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div wire:click="$set('showRequestDeleteModal', false)" class="fixed inset-0 bg-black/50"></div>
+            <div class="relative w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-zinc-800">
+                <div class="mb-4 flex items-center gap-3">
+                    <div class="flex size-10 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/50">
+                        <svg class="size-5 text-amber-600 dark:text-amber-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Request User Deletion</h3>
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400">An owner will review your request.</p>
+                    </div>
+                </div>
+                
+                <p class="mb-4 text-zinc-600 dark:text-zinc-300">
+                    You are requesting to delete <strong>{{ $this->user->name }}</strong>. This request will be reviewed by an owner before any action is taken.
+                </p>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Reason for deletion request *</label>
+                    <textarea wire:model="deleteReason" rows="3" placeholder="Please explain why this user should be deleted..."
+                        class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white"></textarea>
+                    @error('deleteReason') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <button wire:click="$set('showRequestDeleteModal', false)" 
+                        class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700">
+                        Cancel
+                    </button>
+                    <button wire:click="requestDeletion"
+                        class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700">
+                        Submit Request
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
     @endif

@@ -562,4 +562,73 @@ class User extends Authenticatable implements MustVerifyEmail
             ->withPivot('read_at')
             ->withTimestamps();
     }
+
+    /**
+     * Get deletion requests for this user.
+     */
+    public function deletionRequests(): HasMany
+    {
+        return $this->hasMany(UserDeletionRequest::class);
+    }
+
+    /**
+     * Get deletion requests made by this user (as admin).
+     */
+    public function requestedDeletions(): HasMany
+    {
+        return $this->hasMany(UserDeletionRequest::class, 'requested_by');
+    }
+
+    /**
+     * Check if this user has a pending deletion request.
+     */
+    public function hasPendingDeletionRequest(): bool
+    {
+        return $this->deletionRequests()->pending()->exists();
+    }
+
+    /**
+     * Check if the current user can delete another user.
+     * Owners and developers can delete directly.
+     * Admins can only request deletion.
+     */
+    public function canDeleteUser(User $targetUser): bool
+    {
+        // Can't delete yourself
+        if ($this->id === $targetUser->id) {
+            return false;
+        }
+
+        // Developers can delete anyone except other developers
+        if ($this->isDeveloper()) {
+            return !$targetUser->isDeveloper();
+        }
+
+        // Owners can delete admins and members
+        if ($this->isOwner()) {
+            return !$targetUser->isDeveloper() && !$targetUser->isOwner();
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if the current user can request deletion of another user.
+     * Admins can request deletion of members only.
+     */
+    public function canRequestUserDeletion(User $targetUser): bool
+    {
+        // Can't request deletion of yourself
+        if ($this->id === $targetUser->id) {
+            return false;
+        }
+
+        // Only admins request deletion (owners/devs delete directly)
+        if (!$this->isAdmin()) {
+            return false;
+        }
+
+        // Can only request deletion of regular members
+        return $targetUser->role === self::ROLE_MEMBER;
+    }
 }
