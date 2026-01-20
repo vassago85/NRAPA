@@ -144,8 +144,8 @@
                                         </svg>
                                     </div>
                                     <div>
-                                        <span class="font-medium text-white">Dedicated Status Tracking</span>
-                                        <p class="text-sm text-zinc-500">Knowledge tests & activity logging for dedicated members</p>
+                                        <span class="font-medium text-white">Virtual Safe</span>
+                                        <p class="text-sm text-zinc-500">Track your firearms, licenses & license expiry dates</p>
                                     </div>
                                 </li>
                                 <li class="flex items-start gap-4">
@@ -155,8 +155,8 @@
                                         </svg>
                                     </div>
                                     <div>
-                                        <span class="font-medium text-white">Virtual Armoury</span>
-                                        <p class="text-sm text-zinc-500">Track your firearms, licenses & load data</p>
+                                        <span class="font-medium text-white">Virtual Loading Bench</span>
+                                        <p class="text-sm text-zinc-500">Store and manage your reloading data</p>
                                     </div>
                                 </li>
                                 <li class="flex items-start gap-4">
@@ -166,8 +166,8 @@
                                         </svg>
                                     </div>
                                     <div>
-                                        <span class="font-medium text-white">Motivation Letters</span>
-                                        <p class="text-sm text-zinc-500">Request firearm motivation documents</p>
+                                        <span class="font-medium text-white">Endorsement Letters</span>
+                                        <p class="text-sm text-zinc-500">Compliance support for firearm license applications</p>
                                     </div>
                                 </li>
                             </ul>
