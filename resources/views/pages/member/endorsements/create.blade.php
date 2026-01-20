@@ -398,11 +398,14 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         if (empty($this->requestType)) return false;
         if (empty($this->firearmCategory)) return false;
         if (empty($this->actionType)) return false;
+        // Calibre is mandatory - either from dropdown or manual entry
+        if (empty($this->calibreId) && empty($this->calibreManual)) return false;
         if (empty($this->make)) return false;
         if (empty($this->model)) return false;
         if (!$this->hasAtLeastOneSerial) return false;
         if (empty($this->purpose)) return false;
         if ($this->purpose === 'other' && empty($this->purposeOtherText)) return false;
+        // Note: SAPS code (calibreCode) is optional
 
         return true;
     }
@@ -423,6 +426,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         }
         if (empty($this->actionType)) {
             $errors[] = 'Action type is required.';
+        }
+        // Calibre is mandatory
+        if (empty($this->calibreId) && empty($this->calibreManual)) {
+            $errors[] = 'Calibre/Gauge is required (select from list or enter manually).';
         }
         if (empty($this->make)) {
             $errors[] = 'Firearm make is required.';
@@ -790,7 +797,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                         <div class="grid gap-6 md:grid-cols-2">
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                    Calibre / Gauge
+                                    Calibre / Gauge <span class="text-red-500">*</span>
                                     <span class="text-xs text-zinc-500">(1.3)</span>
                                 </label>
                                 <select wire:model.live="calibreId" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
@@ -811,12 +818,12 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                    Calibre Code
+                                    SAPS Calibre Code
                                     <span class="text-xs text-zinc-500">(1.4 - Optional)</span>
                                 </label>
                                 <input type="text" wire:model="calibreCode" placeholder="e.g., 9PAR, 223REM" 
                                     class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono uppercase">
-                                <p class="mt-1 text-xs text-zinc-500">Auto-fills when calibre selected</p>
+                                <p class="mt-1 text-xs text-zinc-500">Auto-fills when calibre selected. Leave blank if unknown.</p>
                             </div>
                         </div>
 
