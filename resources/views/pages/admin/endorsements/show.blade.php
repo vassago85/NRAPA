@@ -1,0 +1,572 @@
+<?php
+
+use App\Models\EndorsementRequest;
+use App\Models\AuditLog;
+use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
+use Livewire\Component;
+
+new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin')] class extends Component {
+    public EndorsementRequest $request;
+
+    public bool $showRejectModal = false;
+    public string $rejectionReason = '';
+    public string $adminNotes = '';
+
+    public function mount(EndorsementRequest $request): void
+    {
+        $this->request = $request->load([
+            'user', 
+            'firearm', 
+            'firearm.calibre', 
+            'components', 
+            'components.calibre',
+            'documents',
+            'reviewer',
+            'issuer',
+        ]);
+        $this->adminNotes = $request->admin_notes ?? '';
+    }
+
+    public function markUnderReview(): void
+    {
+        if (!$this->request->isSubmitted() || $this->request->status !== 'submitted') {
+            session()->flash('error', 'This request cannot be marked as under review.');
+            return;
+        }
+
+        $this->request->markUnderReview(auth()->user());
+        
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'endorsement_under_review',
+            'auditable_type' => EndorsementRequest::class,
+            'auditable_id' => $this->request->id,
+            'old_values' => ['status' => 'submitted'],
+            'new_values' => ['status' => 'under_review'],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+
+        session()->flash('success', 'Request marked as under review.');
+        $this->request->refresh();
+    }
+
+    public function requestMoreDocuments(): void
+    {
+        $this->validate([
+            'adminNotes' => 'required|min:10',
+        ], [
+            'adminNotes.required' => 'Please specify which documents are needed.',
+            'adminNotes.min' => 'Please provide more detail about the required documents.',
+        ]);
+
+        $this->request->markPendingDocuments(auth()->user(), $this->adminNotes);
+        
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'endorsement_pending_documents',
+            'auditable_type' => EndorsementRequest::class,
+            'auditable_id' => $this->request->id,
+            'old_values' => ['status' => $this->request->status],
+            'new_values' => ['status' => 'pending_documents', 'notes' => $this->adminNotes],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+
+        session()->flash('success', 'Request marked as pending additional documents.');
+        $this->request->refresh();
+    }
+
+    public function issueEndorsement(): void
+    {
+        // Generate letter reference
+        $letterReference = EndorsementRequest::generateLetterReference();
+        
+        // TODO: Generate PDF letter and store path
+        $letterPath = null; // Will implement PDF generation later
+
+        $this->request->issue(auth()->user(), $letterReference, $letterPath);
+
+        if ($this->adminNotes) {
+            $this->request->update(['admin_notes' => $this->adminNotes]);
+        }
+        
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'endorsement_issued',
+            'auditable_type' => EndorsementRequest::class,
+            'auditable_id' => $this->request->id,
+            'old_values' => ['status' => 'under_review'],
+            'new_values' => ['status' => 'issued', 'letter_reference' => $letterReference],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+
+        session()->flash('success', 'Endorsement letter issued successfully! Reference: ' . $letterReference);
+        $this->request->refresh();
+    }
+
+    public function rejectRequest(): void
+    {
+        $this->validate([
+            'rejectionReason' => 'required|min:10',
+        ], [
+            'rejectionReason.required' => 'Please provide a reason for rejection.',
+            'rejectionReason.min' => 'The rejection reason must be at least 10 characters.',
+        ]);
+
+        $this->request->reject(auth()->user(), $this->rejectionReason);
+        
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'endorsement_rejected',
+            'auditable_type' => EndorsementRequest::class,
+            'auditable_id' => $this->request->id,
+            'old_values' => ['status' => $this->request->status],
+            'new_values' => ['status' => 'rejected', 'reason' => $this->rejectionReason],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+
+        $this->showRejectModal = false;
+        session()->flash('success', 'Request rejected.');
+        $this->request->refresh();
+    }
+
+    public function verifyDocument(int $documentId): void
+    {
+        $document = $this->request->documents()->find($documentId);
+        if ($document) {
+            $document->verify(auth()->user());
+            session()->flash('success', 'Document verified.');
+            $this->request->refresh();
+        }
+    }
+
+    public function rejectDocument(int $documentId, string $reason): void
+    {
+        $document = $this->request->documents()->find($documentId);
+        if ($document && $reason) {
+            $document->reject(auth()->user(), $reason);
+            session()->flash('success', 'Document rejected.');
+            $this->request->refresh();
+        }
+    }
+}; ?>
+
+<div>
+    <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-center gap-4">
+            <a href="{{ route('admin.endorsements.index') }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/>
+                </svg>
+                Back
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Review Endorsement Request</h1>
+                <p class="text-zinc-500 dark:text-zinc-400">{{ $request->request_type_label }} - {{ $request->user->name }}</p>
+            </div>
+        </div>
+        <span class="inline-flex items-center rounded-full px-4 py-2 text-sm font-medium {{ $request->status_badge_class }}">
+            {{ $request->status_label }}
+        </span>
+    </div>
+
+    @if(session('success'))
+        <div class="mb-6 p-4 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg text-green-800 dark:text-green-200">
+            {{ session('success') }}
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg text-red-800 dark:text-red-200">
+            {{ session('error') }}
+        </div>
+    @endif
+
+    <div class="grid gap-6 lg:grid-cols-3">
+        {{-- Main Content --}}
+        <div class="lg:col-span-2 space-y-6">
+            {{-- Member Info --}}
+            <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+                <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+                    <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Member Information</h2>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-2xl font-semibold text-emerald-600 dark:text-emerald-400">
+                            {{ $request->user->initials() }}
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-semibold text-zinc-900 dark:text-white">{{ $request->user->name }}</h3>
+                            <p class="text-zinc-500 dark:text-zinc-400">{{ $request->user->email }}</p>
+                        </div>
+                    </div>
+                    <dl class="grid grid-cols-2 gap-4 text-sm">
+                        @if($request->user->phone)
+                            <div>
+                                <dt class="text-zinc-500">Phone</dt>
+                                <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->user->phone }}</dd>
+                            </div>
+                        @endif
+                        @if($request->user->id_number)
+                            <div>
+                                <dt class="text-zinc-500">ID Number</dt>
+                                <dd class="font-mono font-medium text-zinc-900 dark:text-white">{{ $request->user->id_number }}</dd>
+                            </div>
+                        @endif
+                    </dl>
+                </div>
+            </div>
+
+            {{-- Request Details --}}
+            <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+                <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+                    <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Request Details</h2>
+                </div>
+                <div class="p-6">
+                    <dl class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <dt class="text-zinc-500">Request Type</dt>
+                            <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->request_type_label }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-zinc-500">Purpose</dt>
+                            <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->purpose_label }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-zinc-500">Submitted</dt>
+                            <dd class="font-medium text-zinc-900 dark:text-white">
+                                {{ $request->submitted_at ? $request->submitted_at->format('d M Y H:i') : 'Not yet submitted' }}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt class="text-zinc-500">Declaration</dt>
+                            <dd class="font-medium text-zinc-900 dark:text-white">
+                                @if($request->declaration_accepted_at)
+                                    <span class="text-green-600 dark:text-green-400">Accepted {{ $request->declaration_accepted_at->format('d M Y H:i') }}</span>
+                                @else
+                                    <span class="text-red-600">Not accepted</span>
+                                @endif
+                            </dd>
+                        </div>
+                    </dl>
+                    @if($request->member_notes)
+                        <div class="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                            <dt class="text-sm text-zinc-500 mb-1">Member Notes</dt>
+                            <dd class="text-sm text-zinc-900 dark:text-white">{{ $request->member_notes }}</dd>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+            {{-- Firearm Details --}}
+            @if($request->firearm)
+                <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+                        <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Firearm Details</h2>
+                    </div>
+                    <div class="p-6">
+                        <dl class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <dt class="text-zinc-500">Category</dt>
+                                <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->firearm->category_label }}</dd>
+                            </div>
+                            @if($request->firearm->calibre_display)
+                                <div>
+                                    <dt class="text-zinc-500">Calibre</dt>
+                                    <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->firearm->calibre_display }}</dd>
+                                </div>
+                            @endif
+                            @if($request->firearm->ignition_type)
+                                <div>
+                                    <dt class="text-zinc-500">Ignition</dt>
+                                    <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->firearm->ignition_type_label }}</dd>
+                                </div>
+                            @endif
+                            @if($request->firearm->action_type)
+                                <div>
+                                    <dt class="text-zinc-500">Action</dt>
+                                    <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->firearm->action_type_label }}</dd>
+                                </div>
+                            @endif
+                            @if($request->firearm->make || $request->firearm->model)
+                                <div>
+                                    <dt class="text-zinc-500">Make / Model</dt>
+                                    <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->firearm->make }} {{ $request->firearm->model }}</dd>
+                                </div>
+                            @endif
+                            @if($request->firearm->serial_number)
+                                <div>
+                                    <dt class="text-zinc-500">Serial Number</dt>
+                                    <dd class="font-mono font-medium text-zinc-900 dark:text-white">{{ $request->firearm->serial_number }}</dd>
+                                </div>
+                            @endif
+                            @if($request->firearm->licence_section)
+                                <div>
+                                    <dt class="text-zinc-500">Licence Section</dt>
+                                    <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->firearm->licence_section_label }}</dd>
+                                </div>
+                            @endif
+                            @if($request->firearm->saps_reference)
+                                <div>
+                                    <dt class="text-zinc-500">SAPS Reference</dt>
+                                    <dd class="font-mono font-medium text-zinc-900 dark:text-white">{{ $request->firearm->saps_reference }}</dd>
+                                </div>
+                            @endif
+                        </dl>
+                    </div>
+                </div>
+            @endif
+
+            {{-- Components --}}
+            @if($request->components->count() > 0)
+                <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+                        <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Component Endorsements</h2>
+                    </div>
+                    <div class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                        @foreach($request->components as $component)
+                            <div class="p-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                                        <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-zinc-900 dark:text-white">{{ $component->component_type_label }}</h4>
+                                        @if($component->component_make || $component->component_model)
+                                            <p class="text-sm text-zinc-500">{{ $component->component_make }} {{ $component->component_model }}</p>
+                                        @endif
+                                        @if($component->calibre_display)
+                                            <p class="text-sm text-zinc-500">Calibre: {{ $component->calibre_display }}</p>
+                                        @endif
+                                        @if($component->component_serial)
+                                            <p class="text-sm font-mono text-zinc-500">S/N: {{ $component->component_serial }}</p>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
+            {{-- Documents --}}
+            <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+                <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+                    <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Documents</h2>
+                </div>
+                <div class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                    @foreach($request->documents as $doc)
+                        <div class="p-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    @if($doc->isVerified())
+                                        <div class="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                                            <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                            </svg>
+                                        </div>
+                                    @elseif($doc->isUploaded())
+                                        <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                                            <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            </svg>
+                                        </div>
+                                    @else
+                                        <div class="p-2 bg-zinc-100 dark:bg-zinc-700 rounded-lg">
+                                            <svg class="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                        </div>
+                                    @endif
+                                    <div>
+                                        <h4 class="font-medium text-zinc-900 dark:text-white">
+                                            {{ $doc->document_type_label }}
+                                            @if($doc->is_required)
+                                                <span class="text-red-500">*</span>
+                                            @endif
+                                        </h4>
+                                        @if($doc->original_filename)
+                                            <p class="text-sm text-zinc-500 truncate max-w-sm">{{ $doc->original_filename }}</p>
+                                        @endif
+                                        @if($doc->isActivityProof() && $doc->activity_date)
+                                            <p class="text-xs text-zinc-400">
+                                                {{ $doc->activity_type_label }} - {{ $doc->activity_date->format('d M Y') }}
+                                                @if($doc->activity_venue) · {{ $doc->activity_venue }} @endif
+                                            </p>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-2">
+                                    <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $doc->status_badge_class }}">
+                                        {{ $doc->status_label }}
+                                    </span>
+
+                                    @if($doc->isUploaded() && !$doc->isVerified())
+                                        <button wire:click="verifyDocument({{ $doc->id }})"
+                                            class="p-1.5 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg transition-colors"
+                                            title="Verify">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                        </button>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+
+        {{-- Sidebar - Actions --}}
+        <div class="space-y-6">
+            {{-- Actions Card --}}
+            <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+                <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+                    <h3 class="font-semibold text-zinc-900 dark:text-white">Actions</h3>
+                </div>
+                <div class="p-6 space-y-4">
+                    @if($request->status === 'submitted')
+                        <button wire:click="markUnderReview"
+                            class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                            Mark Under Review
+                        </button>
+                    @endif
+
+                    @if(in_array($request->status, ['submitted', 'under_review']))
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Admin Notes</label>
+                            <textarea wire:model="adminNotes" rows="3"
+                                class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white text-sm resize-none"
+                                placeholder="Add notes for the member or internal use..."></textarea>
+                        </div>
+
+                        <button wire:click="issueEndorsement"
+                            wire:confirm="Are you sure you want to issue this endorsement letter?"
+                            class="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Issue Endorsement
+                        </button>
+
+                        <button wire:click="requestMoreDocuments"
+                            class="w-full px-4 py-2 border border-amber-500 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors">
+                            Request More Documents
+                        </button>
+
+                        <button wire:click="$set('showRejectModal', true)"
+                            class="w-full px-4 py-2 border border-red-500 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+                            Reject Request
+                        </button>
+                    @endif
+
+                    @if($request->isIssued())
+                        <div class="text-center py-4">
+                            <div class="w-16 h-16 mx-auto bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
+                                <svg class="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <p class="text-green-600 dark:text-green-400 font-semibold">Endorsement Issued</p>
+                            @if($request->letter_reference)
+                                <p class="text-sm font-mono text-zinc-500 mt-1">{{ $request->letter_reference }}</p>
+                            @endif
+                        </div>
+                    @endif
+
+                    @if($request->isRejected())
+                        <div class="text-center py-4">
+                            <div class="w-16 h-16 mx-auto bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4">
+                                <svg class="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <p class="text-red-600 dark:text-red-400 font-semibold">Request Rejected</p>
+                            @if($request->rejection_reason)
+                                <p class="text-sm text-zinc-500 mt-2">{{ $request->rejection_reason }}</p>
+                            @endif
+                        </div>
+                    @endif
+
+                    @if($request->isDraft())
+                        <div class="text-center py-4">
+                            <div class="w-16 h-16 mx-auto bg-zinc-100 dark:bg-zinc-700 rounded-full flex items-center justify-center mb-4">
+                                <svg class="w-8 h-8 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                            </div>
+                            <p class="text-zinc-500 font-semibold">Draft</p>
+                            <p class="text-sm text-zinc-400 mt-1">Not yet submitted by member</p>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+            {{-- Request Info --}}
+            @if($request->letter_reference || $request->reviewer || $request->issuer)
+                <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+                        <h3 class="font-semibold text-zinc-900 dark:text-white">Processing Info</h3>
+                    </div>
+                    <div class="p-6 space-y-3 text-sm">
+                        @if($request->letter_reference)
+                            <div>
+                                <span class="text-zinc-500">Reference:</span>
+                                <span class="font-mono font-medium text-zinc-900 dark:text-white ml-2">{{ $request->letter_reference }}</span>
+                            </div>
+                        @endif
+                        @if($request->reviewer)
+                            <div>
+                                <span class="text-zinc-500">Reviewed by:</span>
+                                <span class="font-medium text-zinc-900 dark:text-white ml-2">{{ $request->reviewer->name }}</span>
+                            </div>
+                        @endif
+                        @if($request->issuer)
+                            <div>
+                                <span class="text-zinc-500">Issued by:</span>
+                                <span class="font-medium text-zinc-900 dark:text-white ml-2">{{ $request->issuer->name }}</span>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            @endif
+        </div>
+    </div>
+
+    {{-- Reject Modal --}}
+    @if($showRejectModal)
+        <div class="fixed inset-0 z-50 overflow-y-auto">
+            <div class="flex min-h-screen items-center justify-center p-4">
+                <div wire:click="$set('showRejectModal', false)" class="fixed inset-0 bg-black/50"></div>
+                <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6">
+                    <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Reject Request</h3>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Reason for Rejection <span class="text-red-500">*</span></label>
+                        <textarea wire:model="rejectionReason" rows="4"
+                            class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white resize-none"
+                            placeholder="Provide a clear reason for the rejection..."></textarea>
+                        @error('rejectionReason') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div class="flex justify-end gap-3">
+                        <button wire:click="$set('showRejectModal', false)"
+                            class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                            Cancel
+                        </button>
+                        <button wire:click="rejectRequest"
+                            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg">
+                            Reject Request
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+</div>

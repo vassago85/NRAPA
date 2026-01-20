@@ -174,6 +174,12 @@ Route::middleware(['auth', 'verified', 'membership.required'])->group(function (
     Route::livewire('learning', 'pages::member.learning.index')->name('learning.index');
     Route::livewire('learning/category/{category}', 'pages::member.learning.category')->name('learning.category');
     Route::livewire('learning/{article}', 'pages::member.learning.show')->name('learning.show');
+
+    // Endorsement Letters
+    Route::livewire('endorsements', 'pages::member.endorsements.index')->name('member.endorsements.index');
+    Route::livewire('endorsements/create', 'pages::member.endorsements.create')->name('member.endorsements.create');
+    Route::livewire('endorsements/{request}/edit', 'pages::member.endorsements.create')->name('member.endorsements.edit');
+    Route::livewire('endorsements/{request}', 'pages::member.endorsements.show')->name('member.endorsements.show');
 });
 
 // Owner Routes (Owners and Developers can access)
@@ -263,6 +269,10 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     // Learning Center Management
     Route::livewire('learning', 'pages::admin.learning.index')->name('learning.index');
     Route::livewire('learning/{article}/pages', 'pages::admin.learning.pages')->name('learning.pages');
+
+    // Endorsement Requests Management
+    Route::livewire('endorsements', 'pages::admin.endorsements.index')->name('endorsements.index');
+    Route::livewire('endorsements/{request}', 'pages::admin.endorsements.show')->name('endorsements.show');
 });
 
 // Public Certificate Verification
