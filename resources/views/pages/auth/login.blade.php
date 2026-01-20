@@ -36,14 +36,7 @@
 
             <!-- Password -->
             <div>
-                <div class="flex items-center justify-between mb-1">
-                    <label for="password" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ __('Password') }}</label>
-                    @if (Route::has('password.request'))
-                        <a href="{{ route('password.request') }}" wire:navigate class="text-sm text-emerald-600 dark:text-emerald-400 hover:underline">
-                            {{ __('Forgot your password?') }}
-                        </a>
-                    @endif
-                </div>
+                <label for="password" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Password') }}</label>
                 <input 
                     type="password" 
                     name="password" 
@@ -77,6 +70,12 @@
             >
                 {{ __('Log in') }}
             </button>
+
+            @if (Route::has('password.request'))
+                <a href="{{ route('password.request') }}" wire:navigate class="text-sm text-center text-emerald-600 dark:text-emerald-400 hover:underline">
+                    {{ __('Forgot your password?') }}
+                </a>
+            @endif
         </form>
 
         @if (Route::has('register'))
