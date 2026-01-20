@@ -91,7 +91,20 @@ new #[Title('Dashboard')] class extends Component {
     #[Computed]
     public function showEndorsementStatus(): bool
     {
-        return $this->endorsementEligibility !== null && !$this->endorsementEligibility['eligible'];
+        // Show endorsement status section for all users with dedicated status membership
+        return $this->endorsementEligibility !== null;
+    }
+
+    #[Computed]
+    public function allRequirementsComplete(): bool
+    {
+        if (!$this->endorsementEligibility) {
+            return false;
+        }
+        
+        return $this->endorsementEligibility['knowledge_test_passed'] 
+            && $this->endorsementEligibility['documents_complete'] 
+            && $this->endorsementEligibility['activities_met'];
     }
 }; ?>
 
@@ -147,80 +160,145 @@ new #[Title('Dashboard')] class extends Component {
         </div>
         @endif
 
-        {{-- Endorsement Eligibility Alert --}}
+        {{-- Dedicated Status Progress Card --}}
         @if($this->showEndorsementStatus)
-        <div class="rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
-            <div class="flex items-start gap-4">
-                <div class="flex size-10 flex-shrink-0 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/50">
-                    <svg class="size-5 text-blue-600 dark:text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" />
+        <div class="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-800">
+            {{-- Header --}}
+            <div class="flex items-start gap-3 mb-4">
+                <div class="flex size-10 flex-shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-700">
+                    <svg class="size-5 text-zinc-600 dark:text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
                     </svg>
                 </div>
                 <div class="flex-1">
-                    <h3 class="font-semibold text-blue-800 dark:text-blue-200">Dedicated Status - Action Required</h3>
-                    <p class="mt-1 text-sm text-blue-700 dark:text-blue-300">
-                        Complete the following to request endorsement letters for sport shooting or hunting firearms:
+                    <h3 class="font-semibold text-zinc-900 dark:text-white">Dedicated Status Requirements</h3>
+                    <p class="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
+                        @if($this->allRequirementsComplete)
+                            All requirements complete - you can request endorsement letters
+                        @else
+                            Complete these steps to request endorsement letters for sport shooting or hunting firearms
+                        @endif
                     </p>
-                    <div class="mt-3 grid gap-2 sm:grid-cols-3">
-                        {{-- Knowledge Test Status --}}
-                        <div class="flex items-center gap-2 rounded-lg {{ $this->endorsementEligibility['knowledge_test_passed'] ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30' }} px-3 py-2">
-                            @if($this->endorsementEligibility['knowledge_test_passed'])
-                                <svg class="size-4 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
-                                <span class="text-xs font-medium text-green-700 dark:text-green-300">Knowledge Test</span>
-                            @else
-                                <svg class="size-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                                <a href="{{ route('knowledge-test.index') }}" wire:navigate class="text-xs font-medium text-red-700 hover:underline dark:text-red-300">
-                                    Take Knowledge Test
-                                </a>
-                            @endif
-                        </div>
-
-                        {{-- Documents Status --}}
-                        <div class="flex items-center gap-2 rounded-lg {{ $this->endorsementEligibility['documents_complete'] ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30' }} px-3 py-2">
-                            @if($this->endorsementEligibility['documents_complete'])
-                                <svg class="size-4 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
-                                <span class="text-xs font-medium text-green-700 dark:text-green-300">Documents</span>
-                            @else
-                                <svg class="size-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                                <a href="{{ route('documents.index') }}" wire:navigate class="text-xs font-medium text-red-700 hover:underline dark:text-red-300">
-                                    Upload Documents
-                                </a>
-                            @endif
-                        </div>
-
-                        {{-- Activities Status --}}
-                        <div class="flex items-center gap-2 rounded-lg {{ $this->endorsementEligibility['activities_met'] ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30' }} px-3 py-2">
-                            @if($this->endorsementEligibility['activities_met'])
-                                <svg class="size-4 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
-                                <span class="text-xs font-medium text-green-700 dark:text-green-300">Activities ({{ $this->endorsementEligibility['activity_details']['approved_count'] }}/{{ $this->endorsementEligibility['activity_details']['required'] }})</span>
-                            @else
-                                <svg class="size-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                                <a href="{{ route('activities.index') }}" wire:navigate class="text-xs font-medium text-red-700 hover:underline dark:text-red-300">
-                                    Activities ({{ $this->endorsementEligibility['activity_details']['approved_count'] }}/{{ $this->endorsementEligibility['activity_details']['required'] }})
-                                </a>
-                            @endif
-                        </div>
-                    </div>
-                    <a href="{{ route('member.endorsements.index') }}" wire:navigate 
-                        class="mt-3 inline-flex items-center gap-1 text-sm font-medium text-blue-800 hover:text-blue-900 dark:text-blue-200 dark:hover:text-blue-100">
-                        Manage Dedicated Status
-                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                        </svg>
-                    </a>
                 </div>
+            </div>
+
+            {{-- All Complete Banner --}}
+            @if($this->allRequirementsComplete)
+            <div class="mb-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 px-4 py-3">
+                <div class="flex items-center gap-2">
+                    <svg class="size-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span class="text-sm font-medium text-emerald-700 dark:text-emerald-300">All requirements complete</span>
+                </div>
+            </div>
+            @endif
+
+            {{-- Requirements List --}}
+            <div class="space-y-3">
+                {{-- Knowledge Test --}}
+                <div class="flex items-center justify-between py-2 border-b border-zinc-100 dark:border-zinc-700 last:border-0">
+                    <div class="flex items-center gap-3">
+                        <svg class="size-5 text-zinc-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
+                        </svg>
+                        @if($this->endorsementEligibility['knowledge_test_passed'])
+                            <span class="text-sm text-zinc-700 dark:text-zinc-300">Knowledge Test</span>
+                        @else
+                            <a href="{{ route('knowledge-test.index') }}" wire:navigate class="text-sm text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:underline">
+                                Knowledge Test
+                            </a>
+                        @endif
+                    </div>
+                    @if($this->endorsementEligibility['knowledge_test_passed'])
+                        <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                            <svg class="size-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            Complete
+                        </span>
+                    @else
+                        <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/40 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300">
+                            <svg class="size-3" fill="currentColor" viewBox="0 0 8 8">
+                                <circle cx="4" cy="4" r="3"/>
+                            </svg>
+                            Pending
+                        </span>
+                    @endif
+                </div>
+
+                {{-- Documents --}}
+                <div class="flex items-center justify-between py-2 border-b border-zinc-100 dark:border-zinc-700 last:border-0">
+                    <div class="flex items-center gap-3">
+                        <svg class="size-5 text-zinc-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                        </svg>
+                        @if($this->endorsementEligibility['documents_complete'])
+                            <span class="text-sm text-zinc-700 dark:text-zinc-300">Required Documents</span>
+                        @else
+                            <a href="{{ route('documents.index') }}" wire:navigate class="text-sm text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:underline">
+                                Required Documents
+                            </a>
+                        @endif
+                    </div>
+                    @if($this->endorsementEligibility['documents_complete'])
+                        <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                            <svg class="size-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            Complete
+                        </span>
+                    @else
+                        <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/40 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300">
+                            <svg class="size-3" fill="currentColor" viewBox="0 0 8 8">
+                                <circle cx="4" cy="4" r="3"/>
+                            </svg>
+                            Pending
+                        </span>
+                    @endif
+                </div>
+
+                {{-- Activities --}}
+                <div class="flex items-center justify-between py-2 border-b border-zinc-100 dark:border-zinc-700 last:border-0">
+                    <div class="flex items-center gap-3">
+                        <svg class="size-5 text-zinc-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                        @if($this->endorsementEligibility['activities_met'])
+                            <span class="text-sm text-zinc-700 dark:text-zinc-300">Shooting Activities</span>
+                        @else
+                            <a href="{{ route('activities.index') }}" wire:navigate class="text-sm text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:underline">
+                                Shooting Activities
+                            </a>
+                        @endif
+                    </div>
+                    @if($this->endorsementEligibility['activities_met'])
+                        <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                            <svg class="size-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ $this->endorsementEligibility['activity_details']['approved_count'] }}/{{ $this->endorsementEligibility['activity_details']['required'] }}
+                        </span>
+                    @else
+                        <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/40 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300">
+                            <svg class="size-3" fill="currentColor" viewBox="0 0 8 8">
+                                <circle cx="4" cy="4" r="3"/>
+                            </svg>
+                            {{ $this->endorsementEligibility['activity_details']['approved_count'] }}/{{ $this->endorsementEligibility['activity_details']['required'] }}
+                        </span>
+                    @endif
+                </div>
+            </div>
+
+            {{-- Action Link --}}
+            <div class="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-700">
+                <a href="{{ route('member.endorsements.index') }}" wire:navigate 
+                    class="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors">
+                    Manage Dedicated Status
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </a>
             </div>
         </div>
         @endif
