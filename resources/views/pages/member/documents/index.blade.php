@@ -300,11 +300,34 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
 
     {{-- Document Categories --}}
     <div class="space-y-8">
-        @foreach($documentTypes->groupBy(fn($dt) => explode('-', $dt->slug)[0]) as $category => $types)
+        @php
+            // Custom grouping logic to combine related categories
+            $groupedTypes = $documentTypes->groupBy(function($dt) {
+                $prefix = explode('-', $dt->slug)[0];
+                // Combine shooting and dedicated into "Shooting Activities"
+                if (in_array($prefix, ['shooting', 'dedicated'])) {
+                    return 'shooting-activities';
+                }
+                return $prefix;
+            });
+            
+            // Define proper category labels with correct capitalization
+            $categoryLabels = [
+                'identity' => 'Identity Documents',
+                'proof' => 'Proof of Address',
+                'shooting-activities' => 'Shooting Activities',
+                'firearm' => 'Firearm Documents',
+                'licence' => 'Licence Documents',
+                'competition' => 'Competition Documents',
+                'hunting' => 'Hunting Documents',
+                'motivation' => 'Motivation Documents',
+            ];
+        @endphp
+        @foreach($groupedTypes as $category => $types)
             <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
                 <div class="px-6 py-4 bg-zinc-50 dark:bg-zinc-700/50 border-b border-zinc-200 dark:border-zinc-700">
-                    <h2 class="text-lg font-semibold text-zinc-900 dark:text-white capitalize">
-                        {{ str_replace('-', ' ', $category) }} Documents
+                    <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">
+                        {{ $categoryLabels[$category] ?? ucwords(str_replace('-', ' ', $category)) . ' Documents' }}
                     </h2>
                 </div>
                 
