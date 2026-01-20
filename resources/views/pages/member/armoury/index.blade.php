@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\UserFirearm;
+use App\Models\NotificationPreference;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -10,10 +11,33 @@ new class extends Component {
     public string $search = '';
     public string $filterStatus = '';
     public string $filterType = '';
+    public bool $showNotificationBanner = true;
+
+    public function mount(): void
+    {
+        // Check if user has already configured notification preferences
+        $prefs = auth()->user()->notificationPreference;
+        // Hide banner if they've explicitly set preferences (regardless of value)
+        $this->showNotificationBanner = is_null($prefs);
+    }
 
     public function updatingSearch(): void
     {
         $this->resetPage();
+    }
+
+    public function dismissNotificationBanner(): void
+    {
+        // Create default notification preferences when dismissed
+        // This marks that the user has seen the notice
+        NotificationPreference::firstOrCreate(
+            ['user_id' => auth()->id()],
+            [
+                'notify_license_expiry' => true,
+                'license_expiry_intervals' => [18, 12, 6],
+            ]
+        );
+        $this->showNotificationBanner = false;
     }
 
     public function deleteFirearm(UserFirearm $firearm): void
@@ -81,6 +105,45 @@ new class extends Component {
             </a>
         </div>
     </x-slot>
+
+    <!-- License Expiry Notification Feature Banner -->
+    @if($showNotificationBanner)
+        <div class="mb-6 rounded-lg border border-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-800 p-4">
+            <div class="flex items-start gap-3">
+                <div class="flex-shrink-0 mt-0.5">
+                    <svg class="h-6 w-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <h4 class="font-semibold text-emerald-800 dark:text-emerald-200">License Expiry Reminders Available</h4>
+                    <p class="text-sm text-emerald-700 dark:text-emerald-300 mt-1">
+                        Never miss a renewal deadline! You can receive email reminders at 18, 12, and 6 months before your firearm licenses expire.
+                        Renewal applications typically take 3-6 months to process.
+                    </p>
+                    <div class="mt-3 flex flex-wrap items-center gap-3">
+                        <a href="{{ route('notifications.edit') }}" wire:navigate
+                           class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            Configure Reminders
+                        </a>
+                        <button type="button" wire:click="dismissNotificationBanner"
+                                class="text-sm text-emerald-700 dark:text-emerald-300 hover:text-emerald-900 dark:hover:text-emerald-100 underline">
+                            Dismiss (I'll use default settings)
+                        </button>
+                    </div>
+                </div>
+                <button type="button" wire:click="dismissNotificationBanner" class="flex-shrink-0 text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-200">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    @endif
 
     <!-- Alert banners for expiring licenses -->
     @if($expiredCount > 0)
