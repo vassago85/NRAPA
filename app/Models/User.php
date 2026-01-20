@@ -52,6 +52,11 @@ class User extends Authenticatable implements MustVerifyEmail
      *
      * @var list<string>
      */
+    /**
+     * Maximum logins allowed without 2FA for admins/owners.
+     */
+    public const MAX_LOGINS_WITHOUT_2FA = 10;
+
     protected $fillable = [
         'uuid',
         'name',
@@ -67,6 +72,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'admin_type',
         'nominated_by',
         'nominated_at',
+        'logins_without_2fa',
+        'last_2fa_reminder_at',
     ];
 
     /**
@@ -95,6 +102,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'date_of_birth' => 'date',
             'is_admin' => 'boolean',
             'nominated_at' => 'datetime',
+            'last_2fa_reminder_at' => 'datetime',
         ];
     }
 
@@ -630,5 +638,63 @@ class User extends Authenticatable implements MustVerifyEmail
 
         // Can only request deletion of regular members
         return $targetUser->role === self::ROLE_MEMBER;
+    }
+
+    // ===== 2FA Enforcement Methods =====
+
+    /**
+     * Check if user requires 2FA (admins, owners, developers).
+     */
+    public function requires2FA(): bool
+    {
+        return $this->isAdmin() || $this->isOwner() || $this->isDeveloper();
+    }
+
+    /**
+     * Check if user has 2FA enabled.
+     */
+    public function has2FAEnabled(): bool
+    {
+        return !empty($this->two_factor_secret) && !empty($this->two_factor_confirmed_at);
+    }
+
+    /**
+     * Check if user has exceeded login limit without 2FA.
+     */
+    public function hasExceeded2FALoginLimit(): bool
+    {
+        return $this->requires2FA() && 
+               !$this->has2FAEnabled() && 
+               $this->logins_without_2fa >= self::MAX_LOGINS_WITHOUT_2FA;
+    }
+
+    /**
+     * Get remaining logins before 2FA is required.
+     */
+    public function getRemainingLoginsWithout2FA(): int
+    {
+        if (!$this->requires2FA() || $this->has2FAEnabled()) {
+            return -1; // Unlimited
+        }
+        
+        return max(0, self::MAX_LOGINS_WITHOUT_2FA - $this->logins_without_2fa);
+    }
+
+    /**
+     * Increment the login counter for users without 2FA.
+     */
+    public function incrementLoginWithout2FA(): void
+    {
+        if ($this->requires2FA() && !$this->has2FAEnabled()) {
+            $this->increment('logins_without_2fa');
+        }
+    }
+
+    /**
+     * Reset the login counter (called when 2FA is enabled).
+     */
+    public function reset2FALoginCounter(): void
+    {
+        $this->update(['logins_without_2fa' => 0]);
     }
 }

@@ -29,6 +29,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'developer' => \App\Http\Middleware\EnsureUserIsDeveloper::class,
             'membership.required' => \App\Http\Middleware\RedirectIfNoMembership::class,
             'can' => \App\Http\Middleware\CheckPermission::class,
+            '2fa.enforce' => \App\Http\Middleware\Enforce2FAForAdmins::class,
+        ]);
+
+        // Add 2FA enforcement to web middleware group
+        $middleware->web(append: [
+            \App\Http\Middleware\Enforce2FAForAdmins::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
