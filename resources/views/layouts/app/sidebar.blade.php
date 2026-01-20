@@ -118,55 +118,97 @@
                     @if(auth()->user()->hasRoleLevel(\App\Models\User::ROLE_ADMIN))
                     <div class="mb-4">
                         <p class="px-3 mb-2 text-xs font-semibold text-blue-500 dark:text-blue-400 uppercase tracking-wider">Administration</p>
+                        
+                        {{-- Members --}}
                         <a href="{{ route('admin.members.index') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg {{ request()->routeIs('admin.members.*') ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
                             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                             Members
                         </a>
-                        <a href="{{ route('admin.approvals.index') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg {{ request()->routeIs('admin.approvals.*') ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
-                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            Approvals
-                        </a>
-                        <a href="{{ route('admin.documents.index') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg {{ request()->routeIs('admin.documents.*') ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
-                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                            Documents
-                            @php
-                                $pendingDocs = 0;
-                                try {
-                                    if (\Illuminate\Support\Facades\Schema::hasTable('member_documents')) {
-                                        $pendingDocs = \App\Models\MemberDocument::where('status', 'pending')->count();
-                                    }
-                                } catch (\Exception $e) {
-                                    $pendingDocs = 0;
+                        
+                        {{-- Approvals with dropdown --}}
+                        @php
+                            $pendingDocs = 0;
+                            $pendingMemberships = 0;
+                            $pendingActivities = 0;
+                            try {
+                                if (\Illuminate\Support\Facades\Schema::hasTable('member_documents')) {
+                                    $pendingDocs = \App\Models\MemberDocument::where('status', 'pending')->count();
                                 }
-                            @endphp
-                            @if($pendingDocs > 0)
-                            <span class="ml-auto px-2 py-0.5 text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full">{{ $pendingDocs }}</span>
-                            @endif
-                        </a>
-                        <a href="{{ route('admin.knowledge-tests.index') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg {{ request()->routeIs('admin.knowledge-tests.*') ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
-                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                            Knowledge Tests
-                        </a>
-                        <a href="{{ route('admin.activity-config.index') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg {{ request()->routeIs('admin.activity-config.*') ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
-                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
-                            Activity Config
-                        </a>
-                        <a href="{{ route('admin.learning.index') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg {{ request()->routeIs('admin.learning.*') ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
-                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-                            Learning Center
-                        </a>
-                        <a href="{{ route('admin.membership-types.index') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg {{ request()->routeIs('admin.membership-types.*') ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
-                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-                            Membership Types
-                        </a>
-                        <a href="{{ route('admin.settings.index') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg {{ request()->routeIs('admin.settings.*') ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
-                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                            Settings
-                        </a>
-                        <a href="{{ route('admin.email-logs.index') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg {{ request()->routeIs('admin.email-logs.*') ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
-                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                            Email Logs
-                        </a>
+                                if (\Illuminate\Support\Facades\Schema::hasTable('memberships')) {
+                                    $pendingMemberships = \App\Models\Membership::where('status', 'applied')->count();
+                                }
+                                if (\Illuminate\Support\Facades\Schema::hasTable('shooting_activities')) {
+                                    $pendingActivities = \App\Models\ShootingActivity::where('status', 'pending')->count();
+                                }
+                            } catch (\Exception $e) {}
+                            $totalPending = $pendingDocs + $pendingMemberships + $pendingActivities;
+                        @endphp
+                        <div x-data="{ open: {{ request()->routeIs('admin.approvals.*') || request()->routeIs('admin.documents.*') ? 'true' : 'false' }} }">
+                            <button @click="open = !open" class="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-sm font-medium rounded-lg {{ request()->routeIs('admin.approvals.*') || request()->routeIs('admin.documents.*') ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
+                                <span class="flex items-center gap-3">
+                                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    Approvals
+                                    @if($totalPending > 0)
+                                    <span class="px-2 py-0.5 text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full">{{ $totalPending }}</span>
+                                    @endif
+                                </span>
+                                <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </button>
+                            <div x-show="open" x-collapse class="ml-4 mt-1 space-y-1">
+                                <a href="{{ route('admin.approvals.index') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center gap-3 px-3 py-2 text-sm rounded-lg {{ request()->routeIs('admin.approvals.index') && !request()->has('type') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
+                                    All Approvals
+                                </a>
+                                <a href="{{ route('admin.documents.index') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center justify-between gap-3 px-3 py-2 text-sm rounded-lg {{ request()->routeIs('admin.documents.*') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
+                                    Documents
+                                    @if($pendingDocs > 0)
+                                    <span class="px-1.5 py-0.5 text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded">{{ $pendingDocs }}</span>
+                                    @endif
+                                </a>
+                                <a href="{{ route('admin.approvals.index', ['type' => 'memberships']) }}" wire:navigate @click="sidebarOpen = false" class="flex items-center justify-between gap-3 px-3 py-2 text-sm rounded-lg {{ request()->routeIs('admin.approvals.*') && request('type') === 'memberships' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
+                                    Memberships
+                                    @if($pendingMemberships > 0)
+                                    <span class="px-1.5 py-0.5 text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded">{{ $pendingMemberships }}</span>
+                                    @endif
+                                </a>
+                                <a href="{{ route('admin.approvals.index', ['type' => 'activities']) }}" wire:navigate @click="sidebarOpen = false" class="flex items-center justify-between gap-3 px-3 py-2 text-sm rounded-lg {{ request()->routeIs('admin.approvals.*') && request('type') === 'activities' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
+                                    Activities
+                                    @if($pendingActivities > 0)
+                                    <span class="px-1.5 py-0.5 text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded">{{ $pendingActivities }}</span>
+                                    @endif
+                                </a>
+                            </div>
+                        </div>
+                        
+                        {{-- Settings with dropdown --}}
+                        <div x-data="{ open: {{ request()->routeIs('admin.settings.*') || request()->routeIs('admin.membership-types.*') || request()->routeIs('admin.activity-config.*') || request()->routeIs('admin.learning.*') || request()->routeIs('admin.knowledge-tests.*') ? 'true' : 'false' }} }">
+                            <button @click="open = !open" class="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-sm font-medium rounded-lg {{ request()->routeIs('admin.settings.*') || request()->routeIs('admin.membership-types.*') || request()->routeIs('admin.activity-config.*') || request()->routeIs('admin.learning.*') || request()->routeIs('admin.knowledge-tests.*') ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
+                                <span class="flex items-center gap-3">
+                                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                    Settings
+                                </span>
+                                <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </button>
+                            <div x-show="open" x-collapse class="ml-4 mt-1 space-y-1">
+                                <a href="{{ route('admin.membership-types.index') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center gap-3 px-3 py-2 text-sm rounded-lg {{ request()->routeIs('admin.membership-types.*') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
+                                    Membership Types
+                                </a>
+                                <a href="{{ route('admin.activity-config.index') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center gap-3 px-3 py-2 text-sm rounded-lg {{ request()->routeIs('admin.activity-config.*') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
+                                    Activities
+                                </a>
+                                <a href="{{ route('admin.learning.index') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center gap-3 px-3 py-2 text-sm rounded-lg {{ request()->routeIs('admin.learning.*') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
+                                    Learning Center
+                                </a>
+                                <a href="{{ route('admin.knowledge-tests.index') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center gap-3 px-3 py-2 text-sm rounded-lg {{ request()->routeIs('admin.knowledge-tests.*') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
+                                    Knowledge Tests
+                                </a>
+                                <a href="{{ route('admin.settings.index') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center gap-3 px-3 py-2 text-sm rounded-lg {{ request()->routeIs('admin.settings.index') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
+                                    General Settings
+                                </a>
+                                <a href="{{ route('admin.email-logs.index') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center gap-3 px-3 py-2 text-sm rounded-lg {{ request()->routeIs('admin.email-logs.*') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
+                                    Email Logs
+                                </a>
+                            </div>
+                        </div>
 
                         <!-- Owner-only items within Administration -->
                         @if(auth()->user()->hasRoleLevel(\App\Models\User::ROLE_OWNER))

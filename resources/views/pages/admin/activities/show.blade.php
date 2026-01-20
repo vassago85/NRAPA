@@ -132,7 +132,7 @@ new class extends Component {
                     </div>
 
                     <div>
-                        <dt class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Event Type</dt>
+                        <dt class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Activity Sub-Type</dt>
                         <dd class="mt-1 text-sm text-zinc-900 dark:text-white">{{ $activity->eventType?->name ?? 'N/A' }}</dd>
                     </div>
                 </dl>

@@ -260,7 +260,7 @@ new class extends Component {
 <div>
     <div class="mb-8">
         <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Activity Configuration</h1>
-        <p class="mt-1 text-zinc-600 dark:text-zinc-400">Configure activity types, event categories, firearm types, and calibres</p>
+        <p class="mt-1 text-zinc-600 dark:text-zinc-400">Configure activity types, activity categories, firearm types, and calibres</p>
     </div>
 
     @if(session('success'))
@@ -276,10 +276,10 @@ new class extends Component {
                 Activity Types
             </button>
             <button wire:click="$set('activeTab', 'event-categories')" class="whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium transition-colors {{ $activeTab === 'event-categories' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-700' }}">
-                Event Categories
+                Activity Categories
             </button>
             <button wire:click="$set('activeTab', 'event-types')" class="whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium transition-colors {{ $activeTab === 'event-types' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-700' }}">
-                Event Types
+                Activity Sub-Types
             </button>
             <button wire:click="$set('activeTab', 'firearm-types')" class="whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium transition-colors {{ $activeTab === 'firearm-types' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-700' }}">
                 Firearm Types
@@ -350,11 +350,11 @@ new class extends Component {
         </div>
     @endif
 
-    <!-- Event Categories Tab -->
+    <!-- Activity Categories Tab -->
     @if($activeTab === 'event-categories')
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
-                <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">{{ $editingEventCategoryId ? 'Edit' : 'Add' }} Event Category</h3>
+                <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">{{ $editingEventCategoryId ? 'Edit' : 'Add' }} Activity Category</h3>
                 <form wire:submit="saveEventCategory" class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Name</label>
@@ -422,18 +422,18 @@ new class extends Component {
         </div>
     @endif
 
-    <!-- Event Types Tab -->
+    <!-- Activity Sub-Types Tab -->
     @if($activeTab === 'event-types')
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
-                <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">{{ $editingEventTypeId ? 'Edit' : 'Add' }} Event Type</h3>
+                <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">{{ $editingEventTypeId ? 'Edit' : 'Add' }} Activity Sub-Type</h3>
                 <form wire:submit="saveEventType" class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Name</label>
                         <input type="text" wire:model="eventTypeName" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Event Category</label>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Activity Category</label>
                         <select wire:model="eventTypeEventCategoryId" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
                             <option value="">Select Category</option>
                             @foreach($eventCategories as $category)
