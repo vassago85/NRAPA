@@ -6,7 +6,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Letters')] class extends Component {
+new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends Component {
     
     #[Computed]
     public function requests()
@@ -70,8 +70,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Letters')] class exten
 <div>
     <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Endorsement Letters</h1>
-            <p class="mt-2 text-zinc-600 dark:text-zinc-400">Request endorsement letters for dedicated status firearms.</p>
+            <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Dedicated Status</h1>
+            <p class="mt-2 text-zinc-600 dark:text-zinc-400">Manage your dedicated status and request endorsement letters for firearm applications.</p>
         </div>
         @if($this->eligibility['eligible'])
             <a href="{{ route('member.endorsements.create') }}" wire:navigate
@@ -79,7 +79,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Letters')] class exten
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                 </svg>
-                New Request
+                Request Endorsement
             </a>
         @else
             <button disabled
@@ -95,13 +95,13 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Letters')] class exten
     {{-- Eligibility Status Card --}}
     <div class="mb-8 bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
         <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700 flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Eligibility Requirements</h2>
+            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Endorsement Requirements</h2>
             @if($this->eligibility['eligible'])
                 <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                     </svg>
-                    Eligible
+                    Ready to Request
                 </span>
             @else
                 <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
