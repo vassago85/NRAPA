@@ -388,10 +388,23 @@ new #[Title('Learning Center - Admin')] class extends Component {
                     </div>
                     @else
                     <div 
-                        x-data="{ dragging: false }"
+                        x-data="{ 
+                            dragging: false,
+                            handleDrop(e) {
+                                this.dragging = false;
+                                const files = e.dataTransfer.files;
+                                if (files.length > 0) {
+                                    const input = this.$refs.categoryImageInput;
+                                    const dataTransfer = new DataTransfer();
+                                    dataTransfer.items.add(files[0]);
+                                    input.files = dataTransfer.files;
+                                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                                }
+                            }
+                        }"
                         x-on:dragover.prevent="dragging = true"
                         x-on:dragleave.prevent="dragging = false"
-                        x-on:drop.prevent="dragging = false; $refs.categoryImageInput.files = $event.dataTransfer.files; $refs.categoryImageInput.dispatchEvent(new Event('input', { bubbles: true }))"
+                        x-on:drop.prevent="handleDrop($event)"
                         :class="{ 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20': dragging }"
                         class="flex h-24 w-40 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-zinc-300 bg-zinc-50 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-900 dark:hover:bg-zinc-800 transition-colors"
                     >
@@ -479,10 +492,23 @@ new #[Title('Learning Center - Admin')] class extends Component {
                     </div>
                     @else
                     <div 
-                        x-data="{ dragging: false }"
+                        x-data="{ 
+                            dragging: false,
+                            handleDrop(e) {
+                                this.dragging = false;
+                                const files = e.dataTransfer.files;
+                                if (files.length > 0) {
+                                    const input = this.$refs.articleImageInput;
+                                    const dataTransfer = new DataTransfer();
+                                    dataTransfer.items.add(files[0]);
+                                    input.files = dataTransfer.files;
+                                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                                }
+                            }
+                        }"
                         x-on:dragover.prevent="dragging = true"
                         x-on:dragleave.prevent="dragging = false"
-                        x-on:drop.prevent="dragging = false; $refs.articleImageInput.files = $event.dataTransfer.files; $refs.articleImageInput.dispatchEvent(new Event('input', { bubbles: true }))"
+                        x-on:drop.prevent="handleDrop($event)"
                         :class="{ 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20': dragging }"
                         class="flex h-32 w-full max-w-md cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-zinc-300 bg-zinc-50 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-900 dark:hover:bg-zinc-800 transition-colors"
                     >
