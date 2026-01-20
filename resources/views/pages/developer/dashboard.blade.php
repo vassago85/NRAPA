@@ -10,6 +10,9 @@ new class extends Component {
     public int $totalAdmins = 0;
     public int $totalMembers = 0;
     public int $activeMemberships = 0;
+    
+    public string $userSearch = '';
+    public ?int $selectedUserId = null;
 
     public function mount(): void
     {
@@ -18,6 +21,26 @@ new class extends Component {
         $this->totalAdmins = User::where('role', User::ROLE_ADMIN)->count();
         $this->totalMembers = User::where('role', User::ROLE_MEMBER)->count();
         $this->activeMemberships = Membership::where('status', 'active')->count();
+    }
+
+    public function getSearchResultsProperty()
+    {
+        if (strlen($this->userSearch) < 2) {
+            return collect();
+        }
+        
+        return User::where(function ($q) {
+                $q->where('name', 'like', "%{$this->userSearch}%")
+                  ->orWhere('email', 'like', "%{$this->userSearch}%");
+            })
+            ->where('id', '!=', auth()->id())
+            ->limit(10)
+            ->get();
+    }
+
+    public function impersonateUser(int $userId): void
+    {
+        return redirect()->route('dev.impersonate', $userId);
     }
 }; ?>
 
@@ -54,6 +77,95 @@ new class extends Component {
             <p class="text-2xl font-bold text-green-700 dark:text-green-300">{{ $activeMemberships }}</p>
         </div>
     </div>
+
+    {{-- Login as User --}}
+    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-xl p-4 mb-8">
+        <div class="flex items-center gap-2 mb-3">
+            <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            <h3 class="font-semibold text-red-800 dark:text-red-200">Login as User</h3>
+        </div>
+        <p class="text-sm text-red-700 dark:text-red-300 mb-3">Impersonate any user to test their experience. You can return to your account anytime.</p>
+        
+        <div class="relative">
+            <input type="text" 
+                   wire:model.live.debounce.300ms="userSearch" 
+                   placeholder="Search by name or email..."
+                   class="w-full rounded-lg border border-red-300 dark:border-red-600 bg-white dark:bg-zinc-800 px-4 py-2 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:ring-2 focus:ring-red-500">
+            
+            @if($this->searchResults->count() > 0)
+                <div class="absolute z-10 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                    @foreach($this->searchResults as $user)
+                        <a href="{{ route('dev.impersonate', $user) }}" 
+                           class="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700 border-b border-zinc-100 dark:border-zinc-700 last:border-0">
+                            <div class="flex-1">
+                                <p class="font-medium text-zinc-900 dark:text-white">{{ $user->name }}</p>
+                                <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ $user->email }}</p>
+                            </div>
+                            <span class="px-2 py-1 text-xs font-medium rounded-full
+                                @if($user->role === 'developer') bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-200
+                                @elseif($user->role === 'owner') bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200
+                                @elseif($user->role === 'admin') bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200
+                                @else bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200
+                                @endif">
+                                {{ ucfirst($user->role) }}
+                            </span>
+                            <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+                            </svg>
+                        </a>
+                    @endforeach
+                </div>
+            @elseif(strlen($userSearch) >= 2)
+                <div class="absolute z-10 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg p-4 text-center text-sm text-zinc-500">
+                    No users found
+                </div>
+            @endif
+        </div>
+        
+        {{-- Quick role buttons --}}
+        <div class="flex flex-wrap gap-2 mt-3">
+            <span class="text-xs text-red-600 dark:text-red-400 self-center mr-2">Quick:</span>
+            <a href="{{ route('dev.login', 'owner') }}" class="px-3 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-900/50 transition">
+                Test Owner
+            </a>
+            <a href="{{ route('dev.login', 'admin') }}" class="px-3 py-1 text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 rounded-full hover:bg-amber-200 dark:hover:bg-amber-900/50 transition">
+                Test Admin
+            </a>
+            <a href="{{ route('dev.login', 'member') }}" class="px-3 py-1 text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200 rounded-full hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition">
+                Test Member
+            </a>
+        </div>
+    </div>
+
+    {{-- Dev Quick Test Links --}}
+    @if(app()->environment('local', 'development', 'testing'))
+    <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-4 mb-8">
+        <div class="flex items-center gap-2 mb-3">
+            <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            <h3 class="font-semibold text-amber-800 dark:text-amber-200">Quick Test Pages</h3>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ route('two-factor.show') }}" wire:navigate class="px-3 py-1.5 text-sm font-medium bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 rounded-lg hover:bg-amber-300 dark:hover:bg-amber-700 transition">
+                2FA + Security Questions
+            </a>
+            <a href="{{ route('profile.edit') }}" wire:navigate class="px-3 py-1.5 text-sm font-medium bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 rounded-lg hover:bg-amber-300 dark:hover:bg-amber-700 transition">
+                Profile Settings
+            </a>
+            <a href="{{ route('documents.index') }}" wire:navigate class="px-3 py-1.5 text-sm font-medium bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 rounded-lg hover:bg-amber-300 dark:hover:bg-amber-700 transition">
+                My Documents
+            </a>
+            <a href="{{ route('admin.learning.index') }}" wire:navigate class="px-3 py-1.5 text-sm font-medium bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 rounded-lg hover:bg-amber-300 dark:hover:bg-amber-700 transition">
+                Learning Center (Admin)
+            </a>
+            <a href="{{ route('admin.membership-types.index') }}" wire:navigate class="px-3 py-1.5 text-sm font-medium bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 rounded-lg hover:bg-amber-300 dark:hover:bg-amber-700 transition">
+                Membership Types
+            </a>
+            <a href="{{ route('firearms.index') }}" wire:navigate class="px-3 py-1.5 text-sm font-medium bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 rounded-lg hover:bg-amber-300 dark:hover:bg-amber-700 transition">
+                Virtual Safe
+            </a>
+        </div>
+    </div>
+    @endif
 
     {{-- Quick Actions --}}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">

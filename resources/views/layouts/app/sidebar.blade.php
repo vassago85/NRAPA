@@ -25,6 +25,16 @@
         @include('partials.head')
     </head>
     <body class="min-h-screen bg-zinc-100 dark:bg-zinc-900" x-data="{ sidebarOpen: false }">
+        {{-- Impersonation Banner --}}
+        @if(session('impersonating_from'))
+            <div class="bg-red-600 text-white px-4 py-2 text-center text-sm">
+                <span class="font-medium">You are impersonating {{ auth()->user()->name }} ({{ auth()->user()->email }})</span>
+                <a href="{{ route('dev.stop-impersonating') }}" class="ml-4 underline hover:no-underline font-semibold">
+                    ← Return to your account
+                </a>
+            </div>
+        @endif
+
         <div class="min-h-screen lg:flex">
             <!-- Mobile sidebar overlay -->
             <div 

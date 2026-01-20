@@ -47,7 +47,7 @@ new class extends Component {
         }
 
         $firearm->delete();
-        session()->flash('success', 'Firearm removed from your armoury.');
+        session()->flash('success', 'Firearm removed from your Virtual Safe.');
     }
 
     public function with(): array
@@ -272,8 +272,8 @@ new class extends Component {
             <svg class="mx-auto h-16 w-16 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
             </svg>
-            <h3 class="mt-4 text-lg font-semibold text-zinc-900 dark:text-white">Your armoury is empty</h3>
-            <p class="mt-2 text-zinc-600 dark:text-zinc-400">Add your first firearm to start tracking licenses and managing your collection.</p>
+            <h3 class="mt-4 text-lg font-semibold text-zinc-900 dark:text-white">Your Virtual Safe is empty</h3>
+            <p class="mt-2 text-zinc-600 dark:text-zinc-400">Add your first firearm to start tracking licenses, expiry dates, and managing your collection.</p>
             <a href="{{ route('armoury.create') }}" wire:navigate
                class="mt-6 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

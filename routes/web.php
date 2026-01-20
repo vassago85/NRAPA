@@ -60,6 +60,44 @@ if (app()->environment('local', 'development', 'testing')) {
     })->name('dev.login');
 }
 
+// Developer impersonation route (login as any user) - works in all environments but requires developer role
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dev/impersonate/{user}', function (\App\Models\User $user) {
+        // Only developers can impersonate
+        if (!auth()->user()->isDeveloper()) {
+            abort(403, 'Only developers can impersonate users.');
+        }
+        
+        // Store original user ID in session to allow returning
+        session(['impersonating_from' => auth()->id()]);
+        
+        auth()->login($user);
+        
+        // Redirect based on user's role
+        return match($user->role) {
+            'developer' => redirect()->route('developer.dashboard'),
+            'owner' => redirect()->route('owner.dashboard'),
+            'admin' => redirect()->route('admin.members.index'),
+            default => redirect()->route('dashboard'),
+        };
+    })->name('dev.impersonate');
+    
+    Route::get('/dev/stop-impersonating', function () {
+        $originalUserId = session('impersonating_from');
+        
+        if ($originalUserId) {
+            $originalUser = \App\Models\User::find($originalUserId);
+            if ($originalUser) {
+                session()->forget('impersonating_from');
+                auth()->login($originalUser);
+                return redirect()->route('developer.dashboard')->with('success', 'Returned to your account.');
+            }
+        }
+        
+        return redirect()->route('dashboard');
+    })->name('dev.stop-impersonating');
+});
+
 // Member Portal Routes - Available to all authenticated users (including free members)
 Route::middleware(['auth', 'verified'])->group(function () {
     // Dashboard - Always accessible
