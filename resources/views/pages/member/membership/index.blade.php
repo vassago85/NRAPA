@@ -1,12 +1,17 @@
 <?php
 
 use App\Models\Membership;
+use App\Models\MembershipType;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Title('My Membership')] class extends Component {
+    public bool $showChangeModal = false;
+    public ?int $selectedNewTypeId = null;
+    public string $changeReason = '';
+
     #[Computed]
     public function user()
     {
@@ -25,12 +30,74 @@ new #[Title('My Membership')] class extends Component {
         return $this->user->activeMembership;
     }
 
+    #[Computed]
+    public function availableMembershipTypes()
+    {
+        // Get all active types available for signup, excluding current type
+        $currentTypeId = $this->activeMembership?->membership_type_id;
+        
+        return MembershipType::active()
+            ->displayOnSignup()
+            ->when($currentTypeId, fn($q) => $q->where('id', '!=', $currentTypeId))
+            ->ordered()
+            ->get();
+    }
+
+    #[Computed]
+    public function hasPendingChangeRequest()
+    {
+        // Check if user already has a pending membership change request
+        return $this->user->memberships()
+            ->where('status', 'pending_change')
+            ->exists();
+    }
+
+    public function openChangeModal(): void
+    {
+        if ($this->hasPendingChangeRequest) {
+            session()->flash('error', 'You already have a pending membership change request.');
+            return;
+        }
+        
+        $this->selectedNewTypeId = null;
+        $this->changeReason = '';
+        $this->showChangeModal = true;
+    }
+
+    public function submitChangeRequest(): void
+    {
+        $this->validate([
+            'selectedNewTypeId' => ['required', 'exists:membership_types,id'],
+            'changeReason' => ['required', 'string', 'min:10', 'max:500'],
+        ], [
+            'selectedNewTypeId.required' => 'Please select a new membership type.',
+            'changeReason.required' => 'Please provide a reason for the change.',
+            'changeReason.min' => 'Please provide more detail (at least 10 characters).',
+        ]);
+
+        $newType = MembershipType::findOrFail($this->selectedNewTypeId);
+
+        // Create a new membership record with pending_change status
+        Membership::create([
+            'user_id' => $this->user->id,
+            'membership_type_id' => $newType->id,
+            'status' => 'pending_change',
+            'applied_at' => now(),
+            'notes' => "Change request from {$this->activeMembership->type->name} to {$newType->name}.\n\nReason: {$this->changeReason}",
+        ]);
+
+        $this->showChangeModal = false;
+        session()->flash('success', 'Your membership change request has been submitted for review.');
+    }
+
     public function getStatusClasses(string $status): string
     {
         return match($status) {
             'active' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
             'applied' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
             'approved' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+            'pending_change' => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+            'pending_payment' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
             'suspended', 'revoked' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
             'expired' => 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
             default => 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200',
@@ -120,16 +187,34 @@ new #[Title('My Membership')] class extends Component {
             </div>
         </div>
 
-        @if($this->activeMembership->requiresRenewal() && $this->activeMembership->isRenewable())
         <div class="border-t border-zinc-200 p-6 dark:border-zinc-700">
-            <a href="{{ route('membership.apply') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">
-                <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-                </svg>
-                Renew Membership
-            </a>
+            <div class="flex flex-wrap gap-3">
+                @if($this->activeMembership->requiresRenewal() && $this->activeMembership->isRenewable())
+                <a href="{{ route('membership.apply') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">
+                    <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                    Renew Membership
+                </a>
+                @endif
+                
+                @if($this->availableMembershipTypes->count() > 0 && !$this->hasPendingChangeRequest)
+                <button wire:click="openChangeModal" class="inline-flex items-center gap-2 rounded-lg border border-blue-600 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-900/20">
+                    <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                    </svg>
+                    Change Membership Type
+                </button>
+                @elseif($this->hasPendingChangeRequest)
+                <span class="inline-flex items-center gap-2 rounded-lg border border-purple-300 bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700 dark:border-purple-700 dark:bg-purple-900/20 dark:text-purple-300">
+                    <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    </svg>
+                    Change Request Pending
+                </span>
+                @endif
+            </div>
         </div>
-        @endif
     </div>
     @endif
 
@@ -195,4 +280,82 @@ new #[Title('My Membership')] class extends Component {
         </div>
         @endif
     </div>
+
+    {{-- Change Membership Modal --}}
+    @if($showChangeModal)
+    <div class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div wire:click="$set('showChangeModal', false)" class="fixed inset-0 bg-black/50"></div>
+            <div class="relative w-full max-w-lg rounded-xl bg-white p-6 shadow-xl dark:bg-zinc-800">
+                <h2 class="text-xl font-bold text-zinc-900 dark:text-white mb-2">Change Membership Type</h2>
+                <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-6">
+                    Request to change from <strong>{{ $this->activeMembership->type->name }}</strong> to a different membership type. 
+                    Your request will be reviewed by an administrator.
+                </p>
+
+                <form wire:submit="submitChangeRequest" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Select New Membership Type *</label>
+                        <div class="space-y-2 max-h-64 overflow-y-auto">
+                            @foreach($this->availableMembershipTypes as $type)
+                            <label class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors
+                                {{ $selectedNewTypeId === $type->id 
+                                    ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20' 
+                                    : 'border-zinc-200 hover:border-zinc-300 dark:border-zinc-700 dark:hover:border-zinc-600' }}">
+                                <input type="radio" wire:model="selectedNewTypeId" value="{{ $type->id }}" class="mt-1 text-blue-600 focus:ring-blue-500">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-medium text-zinc-900 dark:text-white">{{ $type->name }}</span>
+                                        @if($type->is_featured)
+                                            <span class="text-xs bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded dark:bg-amber-900 dark:text-amber-200">Recommended</span>
+                                        @endif
+                                    </div>
+                                    <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
+                                        R{{ number_format($type->total_price, 0) }}
+                                        @if($type->duration_type === 'lifetime')
+                                            (Lifetime)
+                                        @else
+                                            /year
+                                        @endif
+                                    </p>
+                                    @if($type->description)
+                                        <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 line-clamp-2">{{ $type->description }}</p>
+                                    @endif
+                                </div>
+                            </label>
+                            @endforeach
+                        </div>
+                        @error('selectedNewTypeId') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Reason for Change *</label>
+                        <textarea wire:model="changeReason" rows="3" 
+                            class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white"
+                            placeholder="Please explain why you'd like to change your membership type..."></textarea>
+                        @error('changeReason') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                        <p class="text-sm text-amber-800 dark:text-amber-200">
+                            <strong>Note:</strong> Membership changes may require additional payment or pro-rata adjustments. 
+                            An administrator will contact you regarding any payment differences.
+                        </p>
+                    </div>
+
+                    <div class="flex justify-end gap-3 pt-2">
+                        <button type="button" wire:click="$set('showChangeModal', false)" 
+                            class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700">
+                            Cancel
+                        </button>
+                        <button type="submit" 
+                            class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                            Submit Change Request
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>

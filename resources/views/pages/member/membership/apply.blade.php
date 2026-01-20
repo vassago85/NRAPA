@@ -16,7 +16,7 @@ new #[Title('Apply for Membership')] class extends Component {
     {
         // Pre-select based on URL parameter (slug) or use the first available type
         if ($type) {
-            $preselected = MembershipType::active()->displayOnLanding()->where('slug', $type)->first();
+            $preselected = MembershipType::active()->displayOnSignup()->where('slug', $type)->first();
             if ($preselected) {
                 $this->selectedTypeId = $preselected->id;
                 return;
@@ -24,13 +24,13 @@ new #[Title('Apply for Membership')] class extends Component {
         }
 
         // Fall back to featured type, then first available
-        $featured = MembershipType::active()->displayOnLanding()->featured()->first();
+        $featured = MembershipType::active()->displayOnSignup()->featured()->first();
         if ($featured) {
             $this->selectedTypeId = $featured->id;
             return;
         }
 
-        $firstType = MembershipType::active()->displayOnLanding()->ordered()->first();
+        $firstType = MembershipType::active()->displayOnSignup()->ordered()->first();
         if ($firstType) {
             $this->selectedTypeId = $firstType->id;
         }
@@ -45,8 +45,8 @@ new #[Title('Apply for Membership')] class extends Component {
     #[Computed]
     public function membershipTypes()
     {
-        // Show only memberships marked for landing page display (consistent across site)
-        return MembershipType::active()->displayOnLanding()->ordered()->get();
+        // Show memberships marked for signup (controlled separately from landing page)
+        return MembershipType::active()->displayOnSignup()->ordered()->get();
     }
 
     #[Computed]

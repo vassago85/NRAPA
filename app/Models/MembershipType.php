@@ -18,9 +18,29 @@ class MembershipType extends Model
     public const DEDICATED_TYPE_SPORT = 'sport';
     public const DEDICATED_TYPE_BOTH = 'both';
 
+    // Available icons for membership types (Heroicons)
+    public const AVAILABLE_ICONS = [
+        'shield-check' => 'Shield Check - Security/Protection',
+        'star' => 'Star - Featured/Premium',
+        'trophy' => 'Trophy - Achievement/Elite',
+        'badge-check' => 'Badge Check - Verified/Certified',
+        'sparkles' => 'Sparkles - Special/New',
+        'fire' => 'Fire - Popular/Hot',
+        'bolt' => 'Bolt - Power/Speed',
+        'heart' => 'Heart - Passion/Love',
+        'academic-cap' => 'Academic Cap - Education/Learning',
+        'user-group' => 'User Group - Community/Team',
+        'globe-alt' => 'Globe - International',
+        'gift' => 'Gift - Special Offer',
+        'clock' => 'Clock - Time-limited',
+        'currency-dollar' => 'Currency - Value/Savings',
+        'identification' => 'ID Card - Membership',
+    ];
+
     protected $fillable = [
         'slug',
         'name',
+        'icon',
         'description',
         'duration_type',
         'duration_months',
@@ -38,6 +58,7 @@ class MembershipType extends Model
         'is_active',
         'is_featured',
         'display_on_landing',
+        'display_on_signup',
         'sort_order',
     ];
 
@@ -61,6 +82,7 @@ class MembershipType extends Model
             'is_active' => 'boolean',
             'is_featured' => 'boolean',
             'display_on_landing' => 'boolean',
+            'display_on_signup' => 'boolean',
             'sort_order' => 'integer',
         ];
     }
@@ -139,6 +161,14 @@ class MembershipType extends Model
     public function scopeDisplayOnLanding($query)
     {
         return $query->where('display_on_landing', true);
+    }
+
+    /**
+     * Scope to only types displayed on signup/apply pages.
+     */
+    public function scopeDisplayOnSignup($query)
+    {
+        return $query->where('display_on_signup', true);
     }
 
     /**

@@ -17,6 +17,9 @@ new #[Title('Membership Types - Admin')] class extends Component {
     #[Validate('required|string|max:255|alpha_dash')]
     public string $slug = '';
     
+    #[Validate('nullable|string')]
+    public ?string $icon = null;
+    
     #[Validate('nullable|string|max:1000')]
     public string $description = '';
     
@@ -38,6 +41,7 @@ new #[Title('Membership Types - Admin')] class extends Component {
     public bool $is_active = true;
     public bool $is_featured = false;
     public bool $display_on_landing = false;
+    public bool $display_on_signup = true;
     public bool $allows_dedicated_status = true;
     public bool $requires_knowledge_test = true;
     
@@ -63,6 +67,7 @@ new #[Title('Membership Types - Admin')] class extends Component {
         $this->editingType = $type;
         $this->name = $type->name;
         $this->slug = $type->slug;
+        $this->icon = $type->icon;
         $this->description = $type->description ?? '';
         $this->price = (float) $type->price;
         $this->admin_fee = (float) $type->admin_fee;
@@ -72,6 +77,7 @@ new #[Title('Membership Types - Admin')] class extends Component {
         $this->is_active = $type->is_active;
         $this->is_featured = $type->is_featured;
         $this->display_on_landing = $type->display_on_landing;
+        $this->display_on_signup = $type->display_on_signup;
         $this->allows_dedicated_status = $type->allows_dedicated_status;
         $this->requires_knowledge_test = $type->requires_knowledge_test;
         $this->sort_order = $type->sort_order;
@@ -85,6 +91,7 @@ new #[Title('Membership Types - Admin')] class extends Component {
         $data = [
             'name' => $this->name,
             'slug' => $this->slug,
+            'icon' => $this->icon ?: null,
             'description' => $this->description ?: null,
             'price' => $this->price,
             'admin_fee' => $this->admin_fee,
@@ -94,6 +101,7 @@ new #[Title('Membership Types - Admin')] class extends Component {
             'is_active' => $this->is_active,
             'is_featured' => $this->is_featured,
             'display_on_landing' => $this->display_on_landing,
+            'display_on_signup' => $this->display_on_signup,
             'allows_dedicated_status' => $this->allows_dedicated_status,
             'requires_knowledge_test' => $this->requires_knowledge_test,
             'sort_order' => $this->sort_order,
@@ -131,6 +139,12 @@ new #[Title('Membership Types - Admin')] class extends Component {
     {
         $type = MembershipType::findOrFail($typeId);
         $type->update(['display_on_landing' => !$type->display_on_landing]);
+    }
+
+    public function toggleSignup(int $typeId): void
+    {
+        $type = MembershipType::findOrFail($typeId);
+        $type->update(['display_on_signup' => !$type->display_on_signup]);
     }
 
     public function setFeatured(int $typeId): void
@@ -175,6 +189,7 @@ new #[Title('Membership Types - Admin')] class extends Component {
     {
         $this->name = '';
         $this->slug = '';
+        $this->icon = null;
         $this->description = '';
         $this->price = 0;
         $this->admin_fee = 0;
@@ -184,10 +199,18 @@ new #[Title('Membership Types - Admin')] class extends Component {
         $this->is_active = true;
         $this->is_featured = false;
         $this->display_on_landing = false;
+        $this->display_on_signup = true;
         $this->allows_dedicated_status = true;
         $this->requires_knowledge_test = true;
         $this->sort_order = MembershipType::max('sort_order') + 1;
         $this->editingType = null;
+    }
+    
+    public function with(): array
+    {
+        return [
+            'availableIcons' => MembershipType::AVAILABLE_ICONS,
+        ];
     }
 
     public function updatedName(): void
@@ -229,7 +252,8 @@ new #[Title('Membership Types - Admin')] class extends Component {
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Price</th>
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Type</th>
                         <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Active</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Landing</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400" title="Show on public landing page">Landing</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400" title="Show on signup/apply pages for new members">Signup</th>
                         <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Featured</th>
                         <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Actions</th>
                     </tr>
@@ -277,8 +301,13 @@ new #[Title('Membership Types - Admin')] class extends Component {
                             </button>
                         </td>
                         <td class="whitespace-nowrap px-4 py-3 text-center">
-                            <button wire:click="toggleLanding({{ $type->id }})" class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {{ $type->display_on_landing ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-600' }}">
+                            <button wire:click="toggleLanding({{ $type->id }})" class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {{ $type->display_on_landing ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-600' }}" title="Toggle landing page visibility">
                                 <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {{ $type->display_on_landing ? 'translate-x-6' : 'translate-x-1' }}"></span>
+                            </button>
+                        </td>
+                        <td class="whitespace-nowrap px-4 py-3 text-center">
+                            <button wire:click="toggleSignup({{ $type->id }})" class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {{ $type->display_on_signup ? 'bg-blue-500' : 'bg-zinc-300 dark:bg-zinc-600' }}" title="Toggle signup page visibility">
+                                <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {{ $type->display_on_signup ? 'translate-x-6' : 'translate-x-1' }}"></span>
                             </button>
                         </td>
                         <td class="whitespace-nowrap px-4 py-3 text-center">
@@ -327,6 +356,20 @@ new #[Title('Membership Types - Admin')] class extends Component {
                             <input type="text" wire:model="slug" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white" {{ $editingType ? 'disabled' : '' }}>
                             @error('slug') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                         </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Icon</label>
+                        <select wire:model="icon" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                            <option value="">No Icon</option>
+                            @foreach($availableIcons as $iconKey => $iconLabel)
+                                <option value="{{ $iconKey }}">{{ $iconLabel }}</option>
+                            @endforeach
+                        </select>
+                        <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                            Icons from <a href="https://heroicons.com" target="_blank" class="text-emerald-600 hover:underline">heroicons.com</a> (MIT License, free for commercial use)
+                        </p>
+                        @error('icon') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
@@ -393,6 +436,11 @@ new #[Title('Membership Types - Admin')] class extends Component {
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" wire:model="display_on_landing" class="rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700">
                             <span class="text-sm text-zinc-700 dark:text-zinc-300">Show on Landing</span>
+                        </label>
+                        
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" wire:model="display_on_signup" class="rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700">
+                            <span class="text-sm text-zinc-700 dark:text-zinc-300">Show on Signup</span>
                         </label>
                         
                         <label class="flex items-center gap-2 cursor-pointer">

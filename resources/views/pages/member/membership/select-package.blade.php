@@ -13,8 +13,8 @@ new class extends Component {
             ->first();
 
         return [
-            // Show only memberships marked for landing page display (same as welcome page and dashboard)
-            'membershipTypes' => MembershipType::active()->displayOnLanding()->ordered()->get(),
+            // Show memberships marked for signup (controlled separately from landing page)
+            'membershipTypes' => MembershipType::active()->displayOnSignup()->ordered()->get(),
             'existingMembership' => $existingMembership,
         ];
     }
@@ -106,7 +106,14 @@ new class extends Component {
                         @endif
                         
                         <div class="mb-4">
-                            <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">{{ $type->name }}</h3>
+                            <div class="flex items-center gap-3">
+                                @if($type->icon)
+                                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
+                                        <x-membership-icon :icon="$type->icon" class="h-6 w-6" />
+                                    </div>
+                                @endif
+                                <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">{{ $type->name }}</h3>
+                            </div>
                             @if($type->dedicated_type)
                                 <span class="mt-1 inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                                     {{ ucfirst($type->dedicated_type === 'both' ? 'Hunter & Sport Shooter' : ($type->dedicated_type === 'sport' ? 'Sport Shooter' : 'Hunter')) }}
