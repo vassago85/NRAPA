@@ -17,6 +17,10 @@ class EndorsementRequest extends Model
     public const TYPE_NEW = 'new';
     public const TYPE_RENEWAL = 'renewal';
 
+    // Minimum activity requirements (can be overridden via SystemSetting)
+    public const DEFAULT_MIN_ACTIVITIES_SPORT = 2; // per 12 months
+    public const DEFAULT_MIN_ACTIVITIES_HUNTER = 2; // per 24 months
+
     // Status constants
     public const STATUS_DRAFT = 'draft';
     public const STATUS_SUBMITTED = 'submitted';
@@ -144,6 +148,178 @@ class EndorsementRequest extends Model
     public function issuer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'issued_by');
+    }
+
+    // ===== Eligibility Checks =====
+
+    /**
+     * Check if a user is eligible to request an endorsement letter.
+     * Requirements:
+     * 1. Must have passed knowledge test (once-off)
+     * 2. Must have required documents on file (verified)
+     * 3. Must have minimum number of approved activities
+     */
+    public static function checkUserEligibility(User $user): array
+    {
+        $errors = [];
+        $warnings = [];
+
+        // 1. Knowledge Test Check (once-off requirement)
+        if (!$user->hasPassedKnowledgeTest()) {
+            $errors[] = [
+                'type' => 'knowledge_test',
+                'message' => 'You must pass the dedicated status knowledge test before requesting an endorsement letter.',
+                'action' => 'Take the knowledge test',
+                'route' => 'knowledge-test.index',
+            ];
+        }
+
+        // 2. Required Documents Check
+        $missingDocs = self::getMissingRequiredDocuments($user);
+        if (count($missingDocs) > 0) {
+            foreach ($missingDocs as $doc) {
+                $errors[] = [
+                    'type' => 'document',
+                    'message' => "Missing required document: {$doc['name']}",
+                    'action' => 'Upload document',
+                    'route' => 'documents.index',
+                ];
+            }
+        }
+
+        // 3. Activity Requirements Check
+        $activityCheck = self::checkActivityRequirements($user);
+        if (!$activityCheck['met']) {
+            $errors[] = [
+                'type' => 'activities',
+                'message' => $activityCheck['message'],
+                'action' => 'Submit activities',
+                'route' => 'activities.index',
+                'details' => $activityCheck,
+            ];
+        }
+
+        // 4. Active membership check
+        $membership = $user->activeMembership();
+        if (!$membership) {
+            $errors[] = [
+                'type' => 'membership',
+                'message' => 'You must have an active membership to request an endorsement letter.',
+                'action' => 'Apply for membership',
+                'route' => 'membership.apply',
+            ];
+        }
+
+        return [
+            'eligible' => count($errors) === 0,
+            'errors' => $errors,
+            'warnings' => $warnings,
+        ];
+    }
+
+    /**
+     * Get missing required documents for endorsement.
+     */
+    public static function getMissingRequiredDocuments(User $user): array
+    {
+        $missing = [];
+
+        // Required document type slugs for endorsement
+        $requiredDocSlugs = [
+            'id-document' => 'South African ID Document',
+            'proof-of-address' => 'Proof of Address',
+        ];
+
+        foreach ($requiredDocSlugs as $slug => $name) {
+            $docType = DocumentType::where('slug', $slug)->first();
+            if (!$docType) continue;
+
+            // Check if user has a valid (verified, not expired) document of this type
+            $hasValid = MemberDocument::where('user_id', $user->id)
+                ->where('document_type_id', $docType->id)
+                ->where('status', 'verified')
+                ->where(function ($q) {
+                    $q->whereNull('expires_at')
+                        ->orWhere('expires_at', '>', now());
+                })
+                ->exists();
+
+            if (!$hasValid) {
+                $missing[] = [
+                    'slug' => $slug,
+                    'name' => $name,
+                    'document_type_id' => $docType->id,
+                ];
+            }
+        }
+
+        return $missing;
+    }
+
+    /**
+     * Check if user meets activity requirements.
+     */
+    public static function checkActivityRequirements(User $user): array
+    {
+        // Get minimum requirements from settings or use defaults
+        $minActivitiesSport = SystemSetting::get('endorsement_min_activities_sport', self::DEFAULT_MIN_ACTIVITIES_SPORT);
+        $minActivitiesHunter = SystemSetting::get('endorsement_min_activities_hunter', self::DEFAULT_MIN_ACTIVITIES_HUNTER);
+        $activityPeriodMonths = SystemSetting::get('endorsement_activity_period_months', 12);
+
+        // Count approved activities in the period
+        $periodStart = now()->subMonths($activityPeriodMonths);
+        $approvedCount = ShootingActivity::where('user_id', $user->id)
+            ->where('status', 'approved')
+            ->where('activity_date', '>=', $periodStart)
+            ->count();
+
+        // For now, use sport shooter requirement (can be made dynamic based on membership type)
+        $required = $minActivitiesSport;
+
+        // Check if user's membership type indicates hunter
+        $membership = $user->activeMembership();
+        if ($membership && $membership->type) {
+            $dedicatedType = $membership->type->dedicated_type ?? null;
+            if ($dedicatedType === 'hunter') {
+                $required = $minActivitiesHunter;
+                $activityPeriodMonths = SystemSetting::get('endorsement_hunter_activity_period_months', 24);
+                $periodStart = now()->subMonths($activityPeriodMonths);
+                $approvedCount = ShootingActivity::where('user_id', $user->id)
+                    ->where('status', 'approved')
+                    ->where('activity_date', '>=', $periodStart)
+                    ->count();
+            }
+        }
+
+        $met = $approvedCount >= $required;
+
+        return [
+            'met' => $met,
+            'approved_count' => $approvedCount,
+            'required' => $required,
+            'period_months' => $activityPeriodMonths,
+            'message' => $met 
+                ? "You have {$approvedCount} approved activities (minimum {$required} required)."
+                : "You need at least {$required} approved activities in the last {$activityPeriodMonths} months. You currently have {$approvedCount}.",
+        ];
+    }
+
+    /**
+     * Get user's eligibility summary for display.
+     */
+    public static function getEligibilitySummary(User $user): array
+    {
+        $eligibility = self::checkUserEligibility($user);
+        
+        return [
+            'eligible' => $eligibility['eligible'],
+            'knowledge_test_passed' => $user->hasPassedKnowledgeTest(),
+            'documents_complete' => count(self::getMissingRequiredDocuments($user)) === 0,
+            'activities_met' => self::checkActivityRequirements($user)['met'],
+            'activity_details' => self::checkActivityRequirements($user),
+            'missing_documents' => self::getMissingRequiredDocuments($user),
+            'errors' => $eligibility['errors'],
+        ];
     }
 
     // ===== Static Options =====

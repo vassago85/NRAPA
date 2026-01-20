@@ -2,23 +2,20 @@
 
 use App\Models\Calibre;
 use App\Models\EndorsementComponent;
-use App\Models\EndorsementDocument;
 use App\Models\EndorsementFirearm;
 use App\Models\EndorsementRequest;
+use App\Models\ShootingActivity;
 use App\Models\UserFirearm;
-use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
-use Livewire\WithFileUploads;
 
 new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] class extends Component {
-    use WithFileUploads;
 
     // Wizard state
     public int $currentStep = 1;
-    public int $totalSteps = 6;
+    public int $totalSteps = 5;
 
     // Step 1: Request type
     public string $requestType = '';
@@ -45,33 +42,32 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     public string $purposeOtherText = '';
     public string $memberNotes = '';
 
-    // Step 5: Documents
-    public array $documentStatuses = [];
-    public array $activityProofs = [];
-    public $currentUpload = null;
-    public string $uploadingDocType = '';
-
-    // Activity proof fields
-    public string $activityType = '';
-    public string $activityDiscipline = '';
-    public ?string $activityDate = null;
-    public string $activityVenue = '';
-    public string $activityOrganiser = '';
-
-    // Step 6: Declaration & Review
+    // Step 5: Declaration & Review
     public bool $declarationAccepted = false;
 
     // Request being edited
     public ?EndorsementRequest $editingRequest = null;
 
+    // Eligibility info
+    public array $eligibility = [];
+
     public function mount(?EndorsementRequest $request = null): void
     {
-        if ($request && $request->exists && $request->user_id === auth()->id()) {
-            $this->editingRequest = $request->load(['firearm', 'components', 'documents']);
+        $user = auth()->user();
+        $this->eligibility = EndorsementRequest::getEligibilitySummary($user);
+
+        // Check eligibility for new requests
+        if (!$request || !$request->exists) {
+            if (!$this->eligibility['eligible']) {
+                session()->flash('error', 'You do not meet the requirements to request an endorsement letter. Please check the eligibility requirements.');
+                $this->redirect(route('member.endorsements.index'), navigate: true);
+                return;
+            }
+        }
+
+        if ($request && $request->exists && $request->user_id === $user->id) {
+            $this->editingRequest = $request->load(['firearm', 'components']);
             $this->loadFromRequest($request);
-        } else {
-            // Initialize document statuses
-            $this->initializeDocumentStatuses('new');
         }
     }
 
@@ -114,61 +110,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                 ];
             }
         }
-
-        // Load document statuses
-        $this->initializeDocumentStatuses($request->request_type);
-        foreach ($request->documents as $doc) {
-            if ($doc->document_type === EndorsementDocument::TYPE_ACTIVITY_PROOF) {
-                $this->activityProofs[] = [
-                    'id' => $doc->id,
-                    'status' => $doc->status,
-                    'activity_type' => $doc->activity_type,
-                    'activity_discipline' => $doc->activity_discipline,
-                    'activity_date' => $doc->activity_date?->format('Y-m-d'),
-                    'activity_venue' => $doc->activity_venue,
-                    'activity_organiser' => $doc->activity_organiser,
-                    'original_filename' => $doc->original_filename,
-                ];
-            } else {
-                $this->documentStatuses[$doc->document_type] = [
-                    'id' => $doc->id,
-                    'status' => $doc->status,
-                    'original_filename' => $doc->original_filename,
-                    'is_required' => $doc->is_required,
-                ];
-            }
-        }
-    }
-
-    protected function initializeDocumentStatuses(string $requestType): void
-    {
-        $required = EndorsementRequest::getRequiredDocumentTypes($requestType);
-        $optional = EndorsementRequest::getOptionalDocumentTypes($requestType);
-
-        $this->documentStatuses = [];
-
-        foreach ($required as $docType) {
-            if ($docType !== 'activity_proof') {
-                $this->documentStatuses[$docType] = [
-                    'status' => 'required',
-                    'is_required' => true,
-                    'original_filename' => null,
-                ];
-            }
-        }
-
-        foreach ($optional as $docType) {
-            if ($docType !== 'activity_proof') {
-                $this->documentStatuses[$docType] = [
-                    'status' => 'required',
-                    'is_required' => false,
-                    'original_filename' => null,
-                ];
-            }
-        }
-
-        // Activity proofs handled separately
-        $this->activityProofs = [];
     }
 
     #[Computed]
@@ -178,6 +119,18 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             ->with('calibre')
             ->orderBy('make')
             ->orderBy('model')
+            ->get();
+    }
+
+    #[Computed]
+    public function userActivities()
+    {
+        $periodMonths = $this->eligibility['activity_details']['period_months'] ?? 12;
+        return ShootingActivity::where('user_id', auth()->id())
+            ->where('status', 'approved')
+            ->where('activity_date', '>=', now()->subMonths($periodMonths))
+            ->with(['activityType', 'eventCategory'])
+            ->orderBy('activity_date', 'desc')
             ->get();
     }
 
@@ -242,11 +195,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
 
     protected function getMaxAllowedStep(): int
     {
-        // Basic validation to determine how far user can go
         if (empty($this->requestType)) return 1;
         if (empty($this->firearmCategory)) return 2;
-        if ($this->requestType === 'new') return 6;
-        return 6;
+        if ($this->requestType === 'new') return 5;
+        return 5;
     }
 
     protected function validateCurrentStep(): void
@@ -261,8 +213,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                 'purpose' => 'required',
                 'purposeOtherText' => 'required_if:purpose,other|max:500',
             ],
-            5 => [], // Documents validated on submit
-            6 => [], // Declaration validated on submit
+            5 => [], // Declaration validated on submit
             default => [],
         };
 
@@ -272,7 +223,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     // Request type changed
     public function updatedRequestType(): void
     {
-        $this->initializeDocumentStatuses($this->requestType);
         $this->requestComponent = false;
         $this->components = [];
     }
@@ -299,7 +249,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             $this->model = $firearm->model ?? '';
             $this->serialNumber = $firearm->serial_number ?? '';
             $this->calibreId = $firearm->calibre_id;
-            // Try to determine category from firearm type
             if ($firearm->firearmType) {
                 $cat = $firearm->firearmType->category;
                 if ($cat === 'handgun') $this->firearmCategory = 'handgun';
@@ -335,77 +284,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         $this->components = array_values($this->components);
     }
 
-    // Document handling
-    public function markSubmitLater(string $docType): void
-    {
-        if (isset($this->documentStatuses[$docType])) {
-            $this->documentStatuses[$docType]['status'] = 'pending_upload';
-        }
-    }
-
-    public function setUploadingDoc(string $docType): void
-    {
-        $this->uploadingDocType = $docType;
-        $this->currentUpload = null;
-    }
-
-    public function uploadDocument(): void
-    {
-        $this->validate([
-            'currentUpload' => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png,gif,webp',
-        ]);
-
-        if ($this->uploadingDocType && $this->currentUpload) {
-            $this->documentStatuses[$this->uploadingDocType] = [
-                'status' => 'uploaded',
-                'is_required' => $this->documentStatuses[$this->uploadingDocType]['is_required'] ?? true,
-                'original_filename' => $this->currentUpload->getClientOriginalName(),
-                'temp_path' => $this->currentUpload->getRealPath(),
-                'mime_type' => $this->currentUpload->getMimeType(),
-                'file_size' => $this->currentUpload->getSize(),
-            ];
-        }
-
-        $this->uploadingDocType = '';
-        $this->currentUpload = null;
-    }
-
-    public function addActivityProof(): void
-    {
-        $this->validate([
-            'currentUpload' => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png,gif,webp',
-            'activityType' => 'required',
-            'activityDate' => 'required|date',
-        ]);
-
-        $this->activityProofs[] = [
-            'status' => 'uploaded',
-            'activity_type' => $this->activityType,
-            'activity_discipline' => $this->activityDiscipline,
-            'activity_date' => $this->activityDate,
-            'activity_venue' => $this->activityVenue,
-            'activity_organiser' => $this->activityOrganiser,
-            'original_filename' => $this->currentUpload->getClientOriginalName(),
-            'temp_path' => $this->currentUpload->getRealPath(),
-            'mime_type' => $this->currentUpload->getMimeType(),
-            'file_size' => $this->currentUpload->getSize(),
-        ];
-
-        // Reset fields
-        $this->currentUpload = null;
-        $this->activityType = '';
-        $this->activityDiscipline = '';
-        $this->activityDate = null;
-        $this->activityVenue = '';
-        $this->activityOrganiser = '';
-    }
-
-    public function removeActivityProof(int $index): void
-    {
-        unset($this->activityProofs[$index]);
-        $this->activityProofs = array_values($this->activityProofs);
-    }
-
     // Check if can submit
     #[Computed]
     public function canSubmit(): bool
@@ -415,19 +293,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         if (empty($this->firearmCategory)) return false;
         if (empty($this->purpose)) return false;
         if ($this->purpose === 'other' && empty($this->purposeOtherText)) return false;
-
-        // Check required documents
-        $requiredTypes = EndorsementRequest::getRequiredDocumentTypes($this->requestType);
-        foreach ($requiredTypes as $docType) {
-            if ($docType === 'activity_proof') {
-                if (count($this->activityProofs) === 0) return false;
-            } else {
-                $status = $this->documentStatuses[$docType]['status'] ?? 'required';
-                if (!in_array($status, ['uploaded', 'verified', 'system_verified'])) {
-                    return false;
-                }
-            }
-        }
 
         return true;
     }
@@ -450,27 +315,13 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             $errors[] = 'Purpose is required.';
         }
 
-        $requiredTypes = EndorsementRequest::getRequiredDocumentTypes($this->requestType ?: 'new');
-        foreach ($requiredTypes as $docType) {
-            if ($docType === 'activity_proof') {
-                if (count($this->activityProofs) === 0) {
-                    $errors[] = 'At least one activity proof is required.';
-                }
-            } else {
-                $status = $this->documentStatuses[$docType]['status'] ?? 'required';
-                if (!in_array($status, ['uploaded', 'verified', 'system_verified'])) {
-                    $errors[] = 'Missing document: ' . EndorsementRequest::getDocumentTypeLabel($docType);
-                }
-            }
-        }
-
         return $errors;
     }
 
     // Save as draft
     public function saveDraft(): void
     {
-        $request = $this->saveRequest(false);
+        $this->saveRequest(false);
         session()->flash('success', 'Draft saved successfully.');
         $this->redirect(route('member.endorsements.index'), navigate: true);
     }
@@ -497,7 +348,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     protected function saveRequest(bool $isSubmitting): EndorsementRequest
     {
         $user = auth()->user();
-        $disk = config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
 
         // Create or update request
         $request = $this->editingRequest ?? new EndorsementRequest();
@@ -533,7 +383,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
 
         // Save components (renewal only)
         if ($this->requestType === 'renewal' && $this->requestComponent) {
-            // Delete removed components
             $existingIds = collect($this->components)->pluck('id')->filter()->toArray();
             $request->components()->whereNotIn('id', $existingIds)->delete();
 
@@ -560,82 +409,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             $request->components()->delete();
         }
 
-        // Save documents
-        foreach ($this->documentStatuses as $docType => $docData) {
-            $doc = $request->documents()->where('document_type', $docType)->first() 
-                ?? new EndorsementDocument(['endorsement_request_id' => $request->id]);
-
-            $updateData = [
-                'document_type' => $docType,
-                'status' => $docData['status'],
-                'is_required' => $docData['is_required'] ?? true,
-            ];
-
-            // Handle file upload
-            if (isset($docData['temp_path']) && file_exists($docData['temp_path'])) {
-                $filename = \Illuminate\Support\Str::random(40) . '.' . pathinfo($docData['original_filename'], PATHINFO_EXTENSION);
-                $directory = "endorsements/{$user->uuid}/{$request->uuid}";
-                
-                $path = Storage::disk($disk)->putFileAs($directory, $docData['temp_path'], $filename, [
-                    'visibility' => 'private',
-                ]);
-
-                $updateData['file_path'] = $path;
-                $updateData['original_filename'] = $docData['original_filename'];
-                $updateData['mime_type'] = $docData['mime_type'];
-                $updateData['file_size'] = $docData['file_size'];
-                $updateData['uploaded_by'] = $user->id;
-                $updateData['uploaded_at'] = now();
-                $updateData['status'] = EndorsementDocument::STATUS_UPLOADED;
-            }
-
-            $doc->fill($updateData);
-            $doc->save();
-        }
-
-        // Save activity proofs
-        $existingActivityIds = collect($this->activityProofs)->pluck('id')->filter()->toArray();
-        $request->documents()->where('document_type', 'activity_proof')
-            ->whereNotIn('id', $existingActivityIds)->delete();
-
-        foreach ($this->activityProofs as $activityData) {
-            $doc = isset($activityData['id'])
-                ? EndorsementDocument::find($activityData['id'])
-                : new EndorsementDocument(['endorsement_request_id' => $request->id]);
-
-            $updateData = [
-                'document_type' => 'activity_proof',
-                'status' => $activityData['status'],
-                'is_required' => true,
-                'activity_type' => $activityData['activity_type'],
-                'activity_discipline' => $activityData['activity_discipline'] ?? null,
-                'activity_date' => $activityData['activity_date'],
-                'activity_venue' => $activityData['activity_venue'] ?? null,
-                'activity_organiser' => $activityData['activity_organiser'] ?? null,
-            ];
-
-            // Handle file upload for new activity proofs
-            if (isset($activityData['temp_path']) && file_exists($activityData['temp_path'])) {
-                $filename = \Illuminate\Support\Str::random(40) . '.' . pathinfo($activityData['original_filename'], PATHINFO_EXTENSION);
-                $directory = "endorsements/{$user->uuid}/{$request->uuid}/activities";
-                
-                $path = Storage::disk($disk)->putFileAs($directory, $activityData['temp_path'], $filename, [
-                    'visibility' => 'private',
-                ]);
-
-                $updateData['file_path'] = $path;
-                $updateData['original_filename'] = $activityData['original_filename'];
-                $updateData['mime_type'] = $activityData['mime_type'];
-                $updateData['file_size'] = $activityData['file_size'];
-                $updateData['uploaded_by'] = $user->id;
-                $updateData['uploaded_at'] = now();
-                $updateData['status'] = EndorsementDocument::STATUS_UPLOADED;
-            }
-
-            $doc->fill($updateData);
-            $doc->save();
-        }
-
         return $request;
     }
 
@@ -658,9 +431,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             'licenceSectionOptions' => EndorsementFirearm::getLicenceSectionOptions(),
             'purposeOptions' => EndorsementRequest::getPurposeOptions(),
             'componentTypeOptions' => EndorsementComponent::getComponentTypeOptions(),
-            'documentTypeLabels' => EndorsementDocument::getDocumentTypeOptions(),
-            'activityTypeOptions' => EndorsementDocument::getActivityTypeOptions(),
-            'disciplineOptions' => EndorsementDocument::getDisciplineOptions(),
         ];
     }
 }; ?>
@@ -690,8 +460,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                     2 => 'Firearm',
                     3 => 'Components',
                     4 => 'Purpose',
-                    5 => 'Documents',
-                    6 => 'Review',
+                    5 => 'Review',
                 ];
                 $skipStep3 = $requestType === 'new';
             @endphp
@@ -753,16 +522,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                     <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                                         First-time endorsement letter for a Section 16 firearm application.
                                     </p>
-                                    <ul class="mt-3 text-sm text-zinc-500 dark:text-zinc-400 space-y-1">
-                                        <li class="flex items-center gap-2">
-                                            <svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                            Full document verification
-                                        </li>
-                                        <li class="flex items-center gap-2">
-                                            <svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                            Confirms dedicated status
-                                        </li>
-                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -781,18 +540,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                 <div class="flex-1">
                                     <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Renewal Endorsement</h3>
                                     <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                                        Endorsement renewal for existing firearms, with optional component requests.
+                                        Endorsement renewal for existing firearms. Can include component requests (barrels, actions).
                                     </p>
-                                    <ul class="mt-3 text-sm text-zinc-500 dark:text-zinc-400 space-y-1">
-                                        <li class="flex items-center gap-2">
-                                            <svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                            Streamlined document requirements
-                                        </li>
-                                        <li class="flex items-center gap-2">
-                                            <svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                            Can include component endorsement
-                                        </li>
-                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -810,7 +559,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             <div class="p-6">
                 <h2 class="text-xl font-semibold text-zinc-900 dark:text-white mb-6">Firearm Details</h2>
 
-                {{-- Load from existing firearm --}}
                 @if($this->userFirearms->count() > 0)
                     <div class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                         <label class="block text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">Load from your Virtual Safe</label>
@@ -833,7 +581,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                 @endif
 
                 <div class="space-y-6">
-                    {{-- Firearm Category --}}
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                             Firearm Category <span class="text-red-500">*</span>
@@ -853,7 +600,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
 
                     @if($firearmCategory)
                         <div class="grid gap-6 md:grid-cols-2">
-                            {{-- Ignition Type --}}
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Ignition Type</label>
                                 <select wire:model.live="ignitionType" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
@@ -863,8 +609,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                     @endforeach
                                 </select>
                             </div>
-
-                            {{-- Action Type --}}
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Action Type</label>
                                 <select wire:model="actionType" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
@@ -876,7 +620,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                             </div>
                         </div>
 
-                        {{-- Calibre --}}
                         <div>
                             <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Calibre / Gauge</label>
                             <select wire:model="calibreId" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
@@ -890,16 +633,15 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                 class="mt-2 w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
                         </div>
 
-                        {{-- Make, Model, Serial --}}
                         <div class="grid gap-6 md:grid-cols-3">
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Make</label>
-                                <input type="text" wire:model="make" placeholder="e.g., Glock, Ruger" 
+                                <input type="text" wire:model="make" placeholder="e.g., Glock" 
                                     class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Model</label>
-                                <input type="text" wire:model="model" placeholder="e.g., 17, 10/22" 
+                                <input type="text" wire:model="model" placeholder="e.g., 17" 
                                     class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
                             </div>
                             <div>
@@ -909,7 +651,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                             </div>
                         </div>
 
-                        {{-- Licence Section & SAPS Reference --}}
                         <div class="grid gap-6 md:grid-cols-2">
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Licence Section</label>
@@ -921,7 +662,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">SAPS Reference (if applicable)</label>
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">SAPS Reference</label>
                                 <input type="text" wire:model="sapsReference" placeholder="CFR reference number" 
                                     class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono">
                             </div>
@@ -943,7 +684,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                         <span class="text-zinc-900 dark:text-white font-medium">Request component endorsement</span>
                     </label>
                     <p class="mt-1 ml-8 text-sm text-zinc-500 dark:text-zinc-400">
-                        Enable this to request endorsement for firearm components (barrels, actions, etc.)
+                        Enable to request endorsement for firearm components (barrels, actions, etc.)
                     </p>
                 </div>
 
@@ -1062,215 +803,42 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                         <textarea wire:model="memberNotes" rows="4"
                             placeholder="Any additional information you'd like to include..."
                             class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white resize-none"></textarea>
-                        <p class="mt-1 text-xs text-zinc-500">This will be included in your endorsement request for admin review.</p>
                     </div>
                 </div>
             </div>
         @endif
 
-        {{-- Step 5: Documents --}}
+        {{-- Step 5: Review & Submit --}}
         @if($currentStep === 5)
-            <div class="p-6">
-                <h2 class="text-xl font-semibold text-zinc-900 dark:text-white mb-2">Required Documents</h2>
-                <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-6">Upload your supporting documents or mark as "Submit Later" to save as draft.</p>
-
-                <div class="space-y-4">
-                    {{-- Regular Documents --}}
-                    @foreach($documentStatuses as $docType => $docData)
-                        <div class="p-4 border rounded-lg {{ $docData['is_required'] ? 'border-zinc-300 dark:border-zinc-600' : 'border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/30' }}">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-3">
-                                    {{-- Status Icon --}}
-                                    @if($docData['status'] === 'uploaded' || $docData['status'] === 'verified')
-                                        <div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                                            <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                            </svg>
-                                        </div>
-                                    @elseif($docData['status'] === 'pending_upload')
-                                        <div class="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                                            <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                            </svg>
-                                        </div>
-                                    @else
-                                        <div class="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-700 flex items-center justify-center">
-                                            <svg class="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                                            </svg>
-                                        </div>
-                                    @endif
-
-                                    <div>
-                                        <h4 class="font-medium text-zinc-900 dark:text-white">
-                                            {{ $documentTypeLabels[$docType] ?? $docType }}
-                                            @if($docData['is_required'])
-                                                <span class="text-red-500">*</span>
-                                            @else
-                                                <span class="text-xs text-zinc-500">(Optional)</span>
-                                            @endif
-                                        </h4>
-                                        @if($docData['original_filename'])
-                                            <p class="text-sm text-zinc-500 truncate max-w-xs">{{ $docData['original_filename'] }}</p>
-                                        @elseif($docData['status'] === 'pending_upload')
-                                            <p class="text-sm text-amber-600 dark:text-amber-400">Will submit later</p>
-                                        @endif
-                                    </div>
-                                </div>
-
-                                <div class="flex items-center gap-2">
-                                    @if($docData['status'] !== 'uploaded' && $docData['status'] !== 'verified')
-                                        <button wire:click="setUploadingDoc('{{ $docType }}')" type="button"
-                                            class="px-3 py-1.5 text-sm font-medium text-emerald-700 bg-emerald-100 hover:bg-emerald-200 dark:text-emerald-300 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 rounded-lg transition-colors">
-                                            Upload
-                                        </button>
-                                        @if($docData['is_required'])
-                                            <button wire:click="markSubmitLater('{{ $docType }}')" type="button"
-                                                class="px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700 rounded-lg transition-colors">
-                                                Later
-                                            </button>
-                                        @endif
-                                    @else
-                                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                                            Uploaded
-                                        </span>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-
-                    {{-- Activity Proofs Section --}}
-                    <div class="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-700">
-                        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
-                            Activity Proof / Participation Records <span class="text-red-500">*</span>
-                        </h3>
-                        <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
-                            Upload proof of your shooting activities (match results, attendance registers, training confirmations, etc.)
-                        </p>
-
-                        {{-- Existing activity proofs --}}
-                        @if(count($activityProofs) > 0)
-                            <div class="space-y-3 mb-4">
-                                @foreach($activityProofs as $index => $activity)
-                                    <div class="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-center justify-between">
-                                        <div class="flex items-center gap-3">
-                                            <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                            </svg>
-                                            <div>
-                                                <p class="text-sm font-medium text-zinc-900 dark:text-white">
-                                                    {{ $activityTypeOptions[$activity['activity_type']] ?? $activity['activity_type'] }}
-                                                    @if($activity['activity_discipline'])
-                                                        - {{ $disciplineOptions[$activity['activity_discipline']] ?? $activity['activity_discipline'] }}
-                                                    @endif
-                                                </p>
-                                                <p class="text-xs text-zinc-500">
-                                                    {{ $activity['activity_date'] }}
-                                                    @if($activity['activity_venue']) · {{ $activity['activity_venue'] }} @endif
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <button wire:click="removeActivityProof({{ $index }})" type="button"
-                                            class="text-red-500 hover:text-red-700">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                            </svg>
-                                        </button>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
-
-                        {{-- Add activity proof form --}}
-                        <div class="p-4 border-2 border-dashed border-zinc-300 dark:border-zinc-600 rounded-lg">
-                            <div class="grid gap-4 md:grid-cols-2 mb-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Activity Type <span class="text-red-500">*</span></label>
-                                    <select wire:model="activityType" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                        <option value="">Select...</option>
-                                        @foreach($activityTypeOptions as $value => $label)
-                                            <option value="{{ $value }}">{{ $label }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Discipline</label>
-                                    <select wire:model="activityDiscipline" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                        <option value="">Select...</option>
-                                        @foreach($disciplineOptions as $value => $label)
-                                            <option value="{{ $value }}">{{ $label }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Date <span class="text-red-500">*</span></label>
-                                    <input type="date" wire:model="activityDate" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Venue</label>
-                                    <input type="text" wire:model="activityVenue" placeholder="e.g., False Bay Gun Club" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                </div>
-                            </div>
-                            <div class="mb-4">
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Organising Body</label>
-                                <input type="text" wire:model="activityOrganiser" placeholder="e.g., SAPSA, SAHGCA" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                            </div>
-                            <div class="mb-4">
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Proof Document <span class="text-red-500">*</span></label>
-                                <input type="file" wire:model="currentUpload" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp"
-                                    class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
-                                @error('currentUpload') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                            </div>
-                            <button wire:click="addActivityProof" type="button"
-                                class="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                                </svg>
-                                Add Activity Proof
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Upload Modal --}}
-            @if($uploadingDocType)
-                <div class="fixed inset-0 z-50 overflow-y-auto">
-                    <div class="flex min-h-screen items-center justify-center p-4">
-                        <div wire:click="$set('uploadingDocType', '')" class="fixed inset-0 bg-black/50"></div>
-                        <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6">
-                            <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
-                                Upload {{ $documentTypeLabels[$uploadingDocType] ?? $uploadingDocType }}
-                            </h3>
-                            <div class="mb-4">
-                                <input type="file" wire:model="currentUpload" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp"
-                                    class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
-                                @error('currentUpload') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                            </div>
-                            <div class="flex justify-end gap-3">
-                                <button wire:click="$set('uploadingDocType', '')" type="button"
-                                    class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
-                                    Cancel
-                                </button>
-                                <button wire:click="uploadDocument" type="button"
-                                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg">
-                                    Upload
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            @endif
-        @endif
-
-        {{-- Step 6: Review & Submit --}}
-        @if($currentStep === 6)
             <div class="p-6">
                 <h2 class="text-xl font-semibold text-zinc-900 dark:text-white mb-6">Review & Submit</h2>
 
-                {{-- Summary --}}
                 <div class="space-y-6">
+                    {{-- Verified Prerequisites --}}
+                    <div class="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                        <h3 class="text-sm font-semibold text-green-800 dark:text-green-200 mb-3">Verified Prerequisites</h3>
+                        <ul class="space-y-2 text-sm text-green-700 dark:text-green-300">
+                            <li class="flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                                Knowledge Test Passed
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                                Required Documents Verified
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                                {{ $eligibility['activity_details']['approved_count'] }} Approved Activities ({{ $eligibility['activity_details']['required'] }} required)
+                            </li>
+                        </ul>
+                    </div>
+
                     {{-- Request Summary --}}
                     <div class="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg">
                         <h3 class="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-3">Request Details</h3>
@@ -1343,47 +911,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                         </div>
                     @endif
 
-                    {{-- Documents Summary --}}
-                    <div class="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg">
-                        <h3 class="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-3">Documents</h3>
-                        <ul class="space-y-2 text-sm">
-                            @foreach($documentStatuses as $docType => $docData)
-                                <li class="flex items-center gap-2">
-                                    @if(in_array($docData['status'], ['uploaded', 'verified']))
-                                        <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                        </svg>
-                                    @elseif($docData['status'] === 'pending_upload')
-                                        <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                    @else
-                                        <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                        </svg>
-                                    @endif
-                                    <span class="text-zinc-900 dark:text-white">{{ $documentTypeLabels[$docType] ?? $docType }}</span>
-                                    <span class="text-zinc-500 text-xs">
-                                        ({{ $docData['status'] === 'uploaded' ? 'Uploaded' : ($docData['status'] === 'pending_upload' ? 'Submit later' : 'Required') }})
-                                    </span>
-                                </li>
-                            @endforeach
-                            <li class="flex items-center gap-2">
-                                @if(count($activityProofs) > 0)
-                                    <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                    </svg>
-                                @else
-                                    <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                    </svg>
-                                @endif
-                                <span class="text-zinc-900 dark:text-white">Activity Proofs</span>
-                                <span class="text-zinc-500 text-xs">({{ count($activityProofs) }} uploaded)</span>
-                            </li>
-                        </ul>
-                    </div>
-
                     {{-- Submission Errors --}}
                     @if(count($this->submissionErrors) > 0)
                         <div class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
@@ -1409,7 +936,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                             <div>
                                 <span class="font-medium text-zinc-900 dark:text-white">I accept the declaration</span>
                                 <p class="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-                                    I, the undersigned, hereby declare that all information provided in this endorsement request is true, correct, and complete to the best of my knowledge. I am an active member in good standing with NRAPA and maintain my dedicated status requirements. I understand that providing false information may result in the revocation of my endorsement and membership. I acknowledge that loss of compliance with dedicated status requirements may void this endorsement.
+                                    I hereby declare that all information provided is true and correct. I am an active member in good standing with NRAPA and maintain my dedicated status requirements. I understand that providing false information may result in revocation of my endorsement and membership.
                                 </p>
                             </div>
                         </label>

@@ -25,6 +25,12 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Letters')] class exten
             ->exists();
     }
 
+    #[Computed]
+    public function eligibility()
+    {
+        return EndorsementRequest::getEligibilitySummary(auth()->user());
+    }
+
     public function deleteRequest(EndorsementRequest $request): void
     {
         if ($request->user_id !== auth()->id()) {
@@ -67,13 +73,141 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Letters')] class exten
             <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Endorsement Letters</h1>
             <p class="mt-2 text-zinc-600 dark:text-zinc-400">Request endorsement letters for dedicated status firearms.</p>
         </div>
-        <a href="{{ route('member.endorsements.create') }}" wire:navigate
-            class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            New Request
-        </a>
+        @if($this->eligibility['eligible'])
+            <a href="{{ route('member.endorsements.create') }}" wire:navigate
+                class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                New Request
+            </a>
+        @else
+            <button disabled
+                class="inline-flex items-center gap-2 px-4 py-2 bg-zinc-400 text-white rounded-lg cursor-not-allowed opacity-75">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+                Requirements Not Met
+            </button>
+        @endif
+    </div>
+
+    {{-- Eligibility Status Card --}}
+    <div class="mb-8 bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+        <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700 flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Eligibility Requirements</h2>
+            @if($this->eligibility['eligible'])
+                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                    Eligible
+                </span>
+            @else
+                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    Action Required
+                </span>
+            @endif
+        </div>
+        <div class="p-6">
+            <div class="grid gap-4 md:grid-cols-3">
+                {{-- Knowledge Test --}}
+                <div class="p-4 rounded-lg border {{ $this->eligibility['knowledge_test_passed'] ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' }}">
+                    <div class="flex items-center gap-3 mb-2">
+                        @if($this->eligibility['knowledge_test_passed'])
+                            <div class="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
+                                <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                        @else
+                            <div class="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
+                                <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </div>
+                        @endif
+                        <h3 class="font-semibold text-zinc-900 dark:text-white">Knowledge Test</h3>
+                    </div>
+                    <p class="text-sm {{ $this->eligibility['knowledge_test_passed'] ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300' }}">
+                        @if($this->eligibility['knowledge_test_passed'])
+                            Completed (once-off requirement)
+                        @else
+                            <a href="{{ route('knowledge-test.index') }}" wire:navigate class="underline hover:no-underline">
+                                Take the knowledge test
+                            </a>
+                        @endif
+                    </p>
+                </div>
+
+                {{-- Documents --}}
+                <div class="p-4 rounded-lg border {{ $this->eligibility['documents_complete'] ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' }}">
+                    <div class="flex items-center gap-3 mb-2">
+                        @if($this->eligibility['documents_complete'])
+                            <div class="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
+                                <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                        @else
+                            <div class="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
+                                <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </div>
+                        @endif
+                        <h3 class="font-semibold text-zinc-900 dark:text-white">Required Documents</h3>
+                    </div>
+                    @if($this->eligibility['documents_complete'])
+                        <p class="text-sm text-green-700 dark:text-green-300">All documents verified</p>
+                    @else
+                        <div class="text-sm text-red-700 dark:text-red-300">
+                            <p class="mb-1">Missing:</p>
+                            <ul class="list-disc list-inside">
+                                @foreach($this->eligibility['missing_documents'] as $doc)
+                                    <li>{{ $doc['name'] }}</li>
+                                @endforeach
+                            </ul>
+                            <a href="{{ route('documents.index') }}" wire:navigate class="underline hover:no-underline mt-2 inline-block">
+                                Upload documents
+                            </a>
+                        </div>
+                    @endif
+                </div>
+
+                {{-- Activities --}}
+                <div class="p-4 rounded-lg border {{ $this->eligibility['activities_met'] ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' }}">
+                    <div class="flex items-center gap-3 mb-2">
+                        @if($this->eligibility['activities_met'])
+                            <div class="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
+                                <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                        @else
+                            <div class="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
+                                <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </div>
+                        @endif
+                        <h3 class="font-semibold text-zinc-900 dark:text-white">Approved Activities</h3>
+                    </div>
+                    <p class="text-sm {{ $this->eligibility['activities_met'] ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300' }}">
+                        {{ $this->eligibility['activity_details']['approved_count'] }} / {{ $this->eligibility['activity_details']['required'] }} required
+                        <span class="text-xs">(last {{ $this->eligibility['activity_details']['period_months'] }} months)</span>
+                    </p>
+                    @if(!$this->eligibility['activities_met'])
+                        <a href="{{ route('activities.index') }}" wire:navigate class="text-sm underline hover:no-underline text-red-700 dark:text-red-300 mt-1 inline-block">
+                            Submit activities
+                        </a>
+                    @endif
+                </div>
+            </div>
+        </div>
     </div>
 
     {{-- Flash Messages --}}
