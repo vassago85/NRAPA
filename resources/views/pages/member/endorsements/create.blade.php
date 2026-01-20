@@ -20,15 +20,24 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     // Step 1: Request type
     public string $requestType = '';
 
-    // Step 2: Firearm details
-    public string $firearmCategory = '';
+    // Step 2: Firearm details (SAPS 271 Form Section E)
+    public string $firearmCategory = '';       // 1. Type of Firearm
     public string $ignitionType = '';
-    public string $actionType = '';
-    public ?int $calibreId = null;
-    public string $calibreManual = '';
-    public string $make = '';
-    public string $model = '';
-    public string $serialNumber = '';
+    public string $actionType = '';            // 1.1 Action
+    public string $actionOtherSpecify = '';    // 1.1 Other action (specify)
+    public string $metalEngraving = '';        // 1.2 Names and addresses engraved
+    public ?int $calibreId = null;             // 1.3 Calibre
+    public string $calibreManual = '';         // 1.3 Calibre (manual)
+    public string $calibreCode = '';           // 1.4 Calibre code
+    public string $make = '';                  // 1.5 Make
+    public string $model = '';                 // 1.6 Model
+    public string $barrelSerialNumber = '';    // 1.7 Barrel serial number
+    public string $barrelMake = '';            // 1.8 Barrel Make
+    public string $frameSerialNumber = '';     // 1.9 Frame serial number
+    public string $frameMake = '';             // 1.10 Frame Make
+    public string $receiverSerialNumber = '';  // 1.11 Receiver serial number
+    public string $receiverMake = '';          // 1.12 Receiver Make
+    public string $serialNumber = '';          // Legacy serial (backward compat)
     public string $licenceSection = '';
     public string $sapsReference = '';
     public ?int $existingFirearmId = null;
@@ -79,16 +88,25 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         $this->memberNotes = $request->member_notes ?? '';
         $this->declarationAccepted = $request->declaration_accepted_at !== null;
 
-        // Load firearm
+        // Load firearm (SAPS 271 fields)
         if ($request->firearm) {
             $this->firearmCategory = $request->firearm->firearm_category;
             $this->ignitionType = $request->firearm->ignition_type ?? '';
             $this->actionType = $request->firearm->action_type ?? '';
+            $this->actionOtherSpecify = $request->firearm->action_other_specify ?? '';
+            $this->metalEngraving = $request->firearm->metal_engraving ?? '';
             $this->calibreId = $request->firearm->calibre_id;
             $this->calibreManual = $request->firearm->calibre_manual ?? '';
+            $this->calibreCode = $request->firearm->calibre_code ?? '';
             $this->make = $request->firearm->make ?? '';
             $this->model = $request->firearm->model ?? '';
             $this->serialNumber = $request->firearm->serial_number ?? '';
+            $this->barrelSerialNumber = $request->firearm->barrel_serial_number ?? '';
+            $this->barrelMake = $request->firearm->barrel_make ?? '';
+            $this->frameSerialNumber = $request->firearm->frame_serial_number ?? '';
+            $this->frameMake = $request->firearm->frame_make ?? '';
+            $this->receiverSerialNumber = $request->firearm->receiver_serial_number ?? '';
+            $this->receiverMake = $request->firearm->receiver_make ?? '';
             $this->licenceSection = $request->firearm->licence_section ?? '';
             $this->sapsReference = $request->firearm->saps_reference ?? '';
             $this->existingFirearmId = $request->firearm->user_firearm_id;
@@ -284,6 +302,16 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         $this->components = array_values($this->components);
     }
 
+    // Check if at least one serial number is provided
+    #[Computed]
+    public function hasAtLeastOneSerial(): bool
+    {
+        return !empty($this->barrelSerialNumber) 
+            || !empty($this->frameSerialNumber) 
+            || !empty($this->receiverSerialNumber)
+            || !empty($this->serialNumber); // Legacy fallback
+    }
+
     // Check if can submit
     #[Computed]
     public function canSubmit(): bool
@@ -291,6 +319,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         if (!$this->declarationAccepted) return false;
         if (empty($this->requestType)) return false;
         if (empty($this->firearmCategory)) return false;
+        if (empty($this->actionType)) return false;
+        if (empty($this->make)) return false;
+        if (empty($this->model)) return false;
+        if (!$this->hasAtLeastOneSerial) return false;
         if (empty($this->purpose)) return false;
         if ($this->purpose === 'other' && empty($this->purposeOtherText)) return false;
 
@@ -309,7 +341,19 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             $errors[] = 'Request type is required.';
         }
         if (empty($this->firearmCategory)) {
-            $errors[] = 'Firearm category is required.';
+            $errors[] = 'Firearm type is required.';
+        }
+        if (empty($this->actionType)) {
+            $errors[] = 'Action type is required.';
+        }
+        if (empty($this->make)) {
+            $errors[] = 'Firearm make is required.';
+        }
+        if (empty($this->model)) {
+            $errors[] = 'Firearm model is required.';
+        }
+        if (!$this->hasAtLeastOneSerial) {
+            $errors[] = 'At least one serial number is required (barrel, frame, or receiver).';
         }
         if (empty($this->purpose)) {
             $errors[] = 'Purpose is required.';
@@ -363,18 +407,27 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         ]);
         $request->save();
 
-        // Save firearm
+        // Save firearm (SAPS 271 Form Section E fields)
         $firearm = $request->firearm ?? new EndorsementFirearm();
         $firearm->fill([
             'endorsement_request_id' => $request->id,
-            'firearm_category' => $this->firearmCategory,
+            'firearm_category' => $this->firearmCategory,          // 1. Type
             'ignition_type' => $this->ignitionType ?: null,
-            'action_type' => $this->actionType ?: null,
-            'calibre_id' => $this->calibreId,
+            'action_type' => $this->actionType ?: null,            // 1.1 Action
+            'action_other_specify' => $this->actionOtherSpecify ?: null,
+            'metal_engraving' => $this->metalEngraving ?: null,    // 1.2 Engraving
+            'calibre_id' => $this->calibreId,                      // 1.3 Calibre
             'calibre_manual' => $this->calibreManual ?: null,
-            'make' => $this->make ?: null,
-            'model' => $this->model ?: null,
-            'serial_number' => $this->serialNumber ?: null,
+            'calibre_code' => $this->calibreCode ?: null,          // 1.4 Calibre code
+            'make' => $this->make ?: null,                         // 1.5 Make
+            'model' => $this->model ?: null,                       // 1.6 Model
+            'serial_number' => $this->serialNumber ?: null,        // Legacy
+            'barrel_serial_number' => $this->barrelSerialNumber ?: null,    // 1.7
+            'barrel_make' => $this->barrelMake ?: null,            // 1.8
+            'frame_serial_number' => $this->frameSerialNumber ?: null,      // 1.9
+            'frame_make' => $this->frameMake ?: null,              // 1.10
+            'receiver_serial_number' => $this->receiverSerialNumber ?: null, // 1.11
+            'receiver_make' => $this->receiverMake ?: null,        // 1.12
             'licence_section' => $this->licenceSection ?: null,
             'saps_reference' => $this->sapsReference ?: null,
             'user_firearm_id' => $this->existingFirearmId,
@@ -599,58 +652,178 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                     </div>
 
                     @if($firearmCategory)
+                        {{-- SAPS 271 Form Section E Fields --}}
+                        <div class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-4">
+                            <p class="text-sm text-blue-700 dark:text-blue-300">
+                                <strong>Note:</strong> These fields align with SAPS Form 271 Section E - Description of Firearm. 
+                                At least one serial number (barrel, frame, or receiver) is required.
+                            </p>
+                        </div>
+
+                        {{-- 1.1 Action Type --}}
                         <div class="grid gap-6 md:grid-cols-2">
                             <div>
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Ignition Type</label>
-                                <select wire:model.live="ignitionType" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                    <option value="">Select...</option>
-                                    @foreach($ignitionOptions as $value => $label)
-                                        <option value="{{ $value }}">{{ $label }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Action Type</label>
-                                <select wire:model="actionType" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                    Action Type <span class="text-red-500">*</span>
+                                    <span class="text-xs text-zinc-500">(1.1)</span>
+                                </label>
+                                <select wire:model.live="actionType" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
                                     <option value="">Select...</option>
                                     @foreach($this->actionTypeOptions as $value => $label)
                                         <option value="{{ $value }}">{{ $label }}</option>
                                     @endforeach
                                 </select>
                             </div>
+                            @if($actionType === 'other')
+                                <div>
+                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Other Action (specify)</label>
+                                    <input type="text" wire:model="actionOtherSpecify" placeholder="Specify action type" 
+                                        class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                                </div>
+                            @else
+                                <div>
+                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Ignition Type</label>
+                                    <select wire:model.live="ignitionType" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                                        <option value="">Select...</option>
+                                        @foreach($ignitionOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            @endif
                         </div>
 
+                        {{-- 1.2 Metal Engraving --}}
                         <div>
-                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Calibre / Gauge</label>
-                            <select wire:model="calibreId" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                <option value="">Select calibre...</option>
-                                @foreach($this->calibres as $cal)
-                                    <option value="{{ $cal->id }}">{{ $cal->name }}</option>
-                                @endforeach
-                            </select>
-                            <p class="mt-1 text-xs text-zinc-500">Or enter manually below if not listed</p>
-                            <input type="text" wire:model="calibreManual" placeholder="e.g., .338 Lapua Magnum" 
-                                class="mt-2 w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                Names/Addresses Engraved in Metal
+                                <span class="text-xs text-zinc-500">(1.2)</span>
+                            </label>
+                            <input type="text" wire:model="metalEngraving" placeholder="If any text is engraved on the firearm" 
+                                class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
                         </div>
 
-                        <div class="grid gap-6 md:grid-cols-3">
+                        {{-- 1.3 & 1.4 Calibre --}}
+                        <div class="grid gap-6 md:grid-cols-2">
                             <div>
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Make</label>
-                                <input type="text" wire:model="make" placeholder="e.g., Glock" 
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                    Calibre / Gauge
+                                    <span class="text-xs text-zinc-500">(1.3)</span>
+                                </label>
+                                <select wire:model="calibreId" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                                    <option value="">Select calibre...</option>
+                                    @foreach($this->calibres as $cal)
+                                        <option value="{{ $cal->id }}">{{ $cal->name }}</option>
+                                    @endforeach
+                                </select>
+                                <input type="text" wire:model="calibreManual" placeholder="Or enter manually if not listed" 
+                                    class="mt-2 w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                    Calibre Code
+                                    <span class="text-xs text-zinc-500">(1.4 - Official SAPS code if known)</span>
+                                </label>
+                                <input type="text" wire:model="calibreCode" placeholder="e.g., 9PAR, 223REM" 
+                                    class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono uppercase">
+                            </div>
+                        </div>
+
+                        {{-- 1.5 & 1.6 Make and Model --}}
+                        <div class="grid gap-6 md:grid-cols-2">
+                            <div>
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                    Make <span class="text-red-500">*</span>
+                                    <span class="text-xs text-zinc-500">(1.5)</span>
+                                </label>
+                                <input type="text" wire:model="make" placeholder="e.g., Glock, CZ, Howa" 
                                     class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Model</label>
-                                <input type="text" wire:model="model" placeholder="e.g., 17" 
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                    Model <span class="text-red-500">*</span>
+                                    <span class="text-xs text-zinc-500">(1.6)</span>
+                                </label>
+                                <input type="text" wire:model="model" placeholder="e.g., 17, Shadow 2, 1500" 
                                     class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Serial Number</label>
-                                <input type="text" wire:model="serialNumber" placeholder="If known" 
-                                    class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono">
                             </div>
                         </div>
 
+                        {{-- Serial Numbers Section - At least one required --}}
+                        <div class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                            <h4 class="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-3">
+                                Serial Numbers <span class="text-red-500">*</span>
+                                <span class="font-normal text-amber-700 dark:text-amber-300">(At least one required)</span>
+                            </h4>
+                            
+                            {{-- 1.7 & 1.8 Barrel --}}
+                            <div class="grid gap-4 md:grid-cols-2 mb-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                        Barrel Serial Number
+                                        <span class="text-xs text-zinc-500">(1.7)</span>
+                                    </label>
+                                    <input type="text" wire:model="barrelSerialNumber" placeholder="Barrel serial" 
+                                        class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                        Barrel Make
+                                        <span class="text-xs text-zinc-500">(1.8)</span>
+                                    </label>
+                                    <input type="text" wire:model="barrelMake" placeholder="Barrel manufacturer" 
+                                        class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                                </div>
+                            </div>
+
+                            {{-- 1.9 & 1.10 Frame --}}
+                            <div class="grid gap-4 md:grid-cols-2 mb-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                        Frame Serial Number
+                                        <span class="text-xs text-zinc-500">(1.9)</span>
+                                    </label>
+                                    <input type="text" wire:model="frameSerialNumber" placeholder="Frame serial" 
+                                        class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                        Frame Make
+                                        <span class="text-xs text-zinc-500">(1.10)</span>
+                                    </label>
+                                    <input type="text" wire:model="frameMake" placeholder="Frame manufacturer" 
+                                        class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                                </div>
+                            </div>
+
+                            {{-- 1.11 & 1.12 Receiver --}}
+                            <div class="grid gap-4 md:grid-cols-2">
+                                <div>
+                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                        Receiver Serial Number
+                                        <span class="text-xs text-zinc-500">(1.11)</span>
+                                    </label>
+                                    <input type="text" wire:model="receiverSerialNumber" placeholder="Receiver serial" 
+                                        class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                        Receiver Make
+                                        <span class="text-xs text-zinc-500">(1.12)</span>
+                                    </label>
+                                    <input type="text" wire:model="receiverMake" placeholder="Receiver manufacturer" 
+                                        class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                                </div>
+                            </div>
+
+                            @if(!$this->hasAtLeastOneSerial)
+                                <p class="mt-3 text-sm text-red-600 dark:text-red-400">
+                                    Please provide at least one serial number (barrel, frame, or receiver).
+                                </p>
+                            @endif
+                        </div>
+
+                        {{-- Licence Information (for renewals) --}}
                         <div class="grid gap-6 md:grid-cols-2">
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Licence Section</label>
@@ -662,8 +835,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">SAPS Reference</label>
-                                <input type="text" wire:model="sapsReference" placeholder="CFR reference number" 
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">SAPS/CFR Reference</label>
+                                <input type="text" wire:model="sapsReference" placeholder="Existing CFR reference number" 
                                     class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono">
                             </div>
                         </div>

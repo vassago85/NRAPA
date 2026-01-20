@@ -36,18 +36,28 @@ class EndorsementFirearm extends Model
 
     /**
      * The attributes that are mass assignable.
+     * Aligned with SAPS 271 Form Section E - Description of Firearm
      */
     protected $fillable = [
         'uuid',
         'endorsement_request_id',
-        'firearm_category',
+        'firearm_category',          // 1. Type of Firearm
         'ignition_type',
-        'action_type',
-        'calibre_id',
-        'calibre_manual',
-        'make',
-        'model',
-        'serial_number',
+        'action_type',               // 1.1 Action
+        'action_other_specify',      // 1.1 Other action (specify)
+        'metal_engraving',           // 1.2 Names and addresses engraved in the metal
+        'calibre_id',                // 1.3 Calibre
+        'calibre_manual',            // 1.3 Calibre (manual entry)
+        'calibre_code',              // 1.4 Calibre code
+        'make',                      // 1.5 Make
+        'model',                     // 1.6 Model
+        'serial_number',             // Legacy - general serial
+        'barrel_serial_number',      // 1.7 Barrel serial number
+        'barrel_make',               // 1.8 Barrel Make
+        'frame_serial_number',       // 1.9 Frame serial number
+        'frame_make',                // 1.10 Frame Make
+        'receiver_serial_number',    // 1.11 Receiver serial number
+        'receiver_make',             // 1.12 Receiver Make
         'licence_section',
         'saps_reference',
         'licence_expiry_date',
@@ -218,6 +228,70 @@ class EndorsementFirearm extends Model
             self::CATEGORY_SHOTGUN => Calibre::CATEGORY_SHOTGUN,
             default => null,
         };
+    }
+
+    // ===== Validation =====
+
+    /**
+     * Check if at least one serial number is provided (SAPS requirement).
+     */
+    public function hasAtLeastOneSerialNumber(): bool
+    {
+        return !empty($this->serial_number) 
+            || !empty($this->barrel_serial_number) 
+            || !empty($this->frame_serial_number) 
+            || !empty($this->receiver_serial_number);
+    }
+
+    /**
+     * Get all serial numbers as array.
+     */
+    public function getSerialNumbersAttribute(): array
+    {
+        $serials = [];
+        
+        if (!empty($this->barrel_serial_number)) {
+            $serials['barrel'] = [
+                'serial' => $this->barrel_serial_number,
+                'make' => $this->barrel_make,
+            ];
+        }
+        if (!empty($this->frame_serial_number)) {
+            $serials['frame'] = [
+                'serial' => $this->frame_serial_number,
+                'make' => $this->frame_make,
+            ];
+        }
+        if (!empty($this->receiver_serial_number)) {
+            $serials['receiver'] = [
+                'serial' => $this->receiver_serial_number,
+                'make' => $this->receiver_make,
+            ];
+        }
+        // Legacy serial number
+        if (!empty($this->serial_number) && empty($serials)) {
+            $serials['general'] = [
+                'serial' => $this->serial_number,
+                'make' => null,
+            ];
+        }
+        
+        return $serials;
+    }
+
+    /**
+     * Get validation rules for SAPS 271 submission.
+     */
+    public static function getSaps271ValidationRules(): array
+    {
+        return [
+            'firearm_category' => 'required',
+            'action_type' => 'required',
+            'make' => 'required|string|max:100',
+            'model' => 'required|string|max:100',
+            // At least one of these serial numbers required
+            'has_serial' => 'required', // Custom validation in controller
+        ];
     }
 
     // ===== Accessors =====
