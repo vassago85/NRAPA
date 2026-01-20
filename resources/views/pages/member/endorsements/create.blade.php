@@ -736,16 +736,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                                     Calibre Code
-                                    <span class="text-xs text-zinc-500">(1.4 - Auto-filled from selection)</span>
+                                    <span class="text-xs text-zinc-500">(1.4 - Optional)</span>
                                 </label>
                                 <input type="text" wire:model="calibreCode" placeholder="e.g., 9PAR, 223REM" 
-                                    class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono uppercase"
-                                    {{ $calibreId ? 'readonly' : '' }}>
-                                @if($calibreCode)
-                                    <p class="mt-1 text-xs text-emerald-600 dark:text-emerald-400">SAPS code auto-filled</p>
-                                @else
-                                    <p class="mt-1 text-xs text-zinc-500">Will auto-fill when calibre is selected, or enter manually</p>
-                                @endif
+                                    class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono uppercase">
+                                <p class="mt-1 text-xs text-zinc-500">Auto-fills when calibre selected</p>
                             </div>
                         </div>
 
