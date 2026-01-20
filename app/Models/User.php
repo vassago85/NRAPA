@@ -725,6 +725,47 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Check if user has a verified ID document.
+     */
+    public function hasVerifiedIdDocument(): bool
+    {
+        return $this->documents()
+            ->verified()
+            ->whereHas('documentType', function ($query) {
+                $query->whereIn('slug', MemberDocument::ID_DOCUMENT_SLUGS);
+            })
+            ->exists();
+    }
+
+    /**
+     * Check if user can enable 2FA.
+     * Regular members must have security questions set up OR have a verified ID document.
+     * Admins and owners can always enable 2FA (they need it for security).
+     */
+    public function canEnable2FA(): bool
+    {
+        // Admins and owners can always enable 2FA (it's mandatory for them)
+        if ($this->requires2FA()) {
+            return true;
+        }
+
+        // Regular members need security questions OR verified ID
+        return $this->hasSecurityQuestions() || $this->hasVerifiedIdDocument();
+    }
+
+    /**
+     * Get the reason why 2FA cannot be enabled.
+     */
+    public function get2FABlockReason(): ?string
+    {
+        if ($this->canEnable2FA()) {
+            return null;
+        }
+
+        return 'You must set up security questions or have a verified ID document before enabling two-factor authentication. This is required to verify your identity if you need to reset 2FA in the future.';
+    }
+
+    /**
      * Check if current user can reset password for target user.
      * Developer can reset: Owner, Admin, Member
      * Owner can reset: Admin, Member

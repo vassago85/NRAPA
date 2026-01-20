@@ -43,10 +43,18 @@ new class extends Component {
 
     public function enable(EnableTwoFactorAuthentication $enableTwoFactorAuthentication): void
     {
-        $enableTwoFactorAuthentication(auth()->user());
+        $user = auth()->user();
+        
+        // Check if user can enable 2FA
+        if (!$user->canEnable2FA()) {
+            $this->addError('enable', $user->get2FABlockReason());
+            return;
+        }
+        
+        $enableTwoFactorAuthentication($user);
 
         if (! $this->requiresConfirmation) {
-            $this->twoFactorEnabled = auth()->user()->hasEnabledTwoFactorAuthentication();
+            $this->twoFactorEnabled = $user->hasEnabledTwoFactorAuthentication();
         }
 
         $this->loadSetupData();
@@ -235,6 +243,57 @@ new class extends Component {
                     </div>
                 </div>
 
+                {{-- Security Requirements Check for Regular Members --}}
+                @if(!auth()->user()->requires2FA() && !auth()->user()->canEnable2FA())
+                    <div class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <div class="flex items-start gap-3">
+                            <svg class="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <div>
+                                <p class="font-semibold text-blue-800 dark:text-blue-200">Setup Required Before Enabling 2FA</p>
+                                <p class="text-sm text-blue-600 dark:text-blue-400 mt-1">
+                                    To enable two-factor authentication, you must first complete <strong>one</strong> of the following:
+                                </p>
+                                <ul class="text-sm text-blue-600 dark:text-blue-400 mt-2 space-y-2">
+                                    <li class="flex items-center gap-2">
+                                        @if(auth()->user()->hasSecurityQuestions())
+                                            <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                        @else
+                                            <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01"/></svg>
+                                        @endif
+                                        <span>Set up security questions</span>
+                                        @if(!auth()->user()->hasSecurityQuestions())
+                                            <a href="{{ route('security-questions.edit') }}" wire:navigate class="text-blue-700 dark:text-blue-300 underline font-medium">Set up now</a>
+                                        @endif
+                                    </li>
+                                    <li class="flex items-center gap-2">
+                                        @if(auth()->user()->hasVerifiedIdDocument())
+                                            <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                        @else
+                                            <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01"/></svg>
+                                        @endif
+                                        <span>Have a verified ID document on file</span>
+                                        @if(!auth()->user()->hasVerifiedIdDocument())
+                                            <a href="{{ route('documents.index') }}" wire:navigate class="text-blue-700 dark:text-blue-300 underline font-medium">Upload documents</a>
+                                        @endif
+                                    </li>
+                                </ul>
+                                <p class="text-xs text-blue-500 dark:text-blue-400 mt-3">
+                                    This ensures we can verify your identity if you ever need to reset your 2FA.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                {{-- Show error if enable was blocked --}}
+                @error('enable')
+                    <div class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                        <p class="text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                    </div>
+                @enderror
+
                 {{-- Recommended Authenticator Apps --}}
                 <div class="p-4 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-lg">
                     <h4 class="font-medium text-zinc-900 dark:text-white mb-3">Recommended Authenticator Apps</h4>
@@ -289,10 +348,18 @@ new class extends Component {
                     </div>
                 </div>
 
-                <button type="button" wire:click="enable"
-                        class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium">
-                    {{ __('Enable Two-Factor Authentication') }}
-                </button>
+                @if(auth()->user()->canEnable2FA())
+                    <button type="button" wire:click="enable"
+                            class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium">
+                        {{ __('Enable Two-Factor Authentication') }}
+                    </button>
+                @else
+                    <button type="button" disabled
+                            class="px-4 py-2 bg-zinc-400 text-white rounded-lg font-medium cursor-not-allowed">
+                        {{ __('Enable Two-Factor Authentication') }}
+                    </button>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400">Complete the requirements above to enable 2FA.</p>
+                @endif
             @endif
         </div>
     </x-settings-layout>
