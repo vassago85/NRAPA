@@ -35,7 +35,7 @@ class ActivityConfigurationSeeder extends Seeder
     {
         $types = [
             ['name' => 'Dedicated Hunting', 'dedicated_type' => 'hunter'],
-            ['name' => 'Dedicated Sport-Shooting', 'dedicated_type' => 'sport_shooter'],
+            ['name' => 'Dedicated Sport-Shooting', 'dedicated_type' => 'sport'],
         ];
 
         foreach ($types as $index => $type) {
@@ -83,8 +83,8 @@ class ActivityConfigurationSeeder extends Seeder
 
         // Sport-shooting specific categories
         $sportCategories = [
-            ['name' => 'Sport-Shooting Meeting', 'dedicated_type' => 'sport_shooter'],
-            ['name' => 'Sport-Shooting Related Activity', 'dedicated_type' => 'sport_shooter'],
+            ['name' => 'Sport-Shooting Meeting', 'dedicated_type' => 'sport'],
+            ['name' => 'Sport-Shooting Related Activity', 'dedicated_type' => 'sport'],
         ];
 
         foreach ($sportCategories as $index => $category) {
@@ -201,13 +201,13 @@ class ActivityConfigurationSeeder extends Seeder
             ['name' => 'Barrel (Main Firearm Component)', 'dedicated_type' => 'both'],
             ['name' => 'Combination', 'dedicated_type' => 'both'],
             ['name' => 'Competency', 'dedicated_type' => 'both'],
-            ['name' => 'Handgun', 'dedicated_type' => 'sport_shooter'],
+            ['name' => 'Handgun', 'dedicated_type' => 'sport'],
             ['name' => 'Other', 'dedicated_type' => 'both'],
-            ['name' => 'Pistol', 'dedicated_type' => 'sport_shooter'],
+            ['name' => 'Pistol', 'dedicated_type' => 'sport'],
             ['name' => 'Receiver (Main Firearm Component)', 'dedicated_type' => 'both'],
-            ['name' => 'Revolver', 'dedicated_type' => 'sport_shooter'],
+            ['name' => 'Revolver', 'dedicated_type' => 'sport'],
             ['name' => 'Rifle', 'dedicated_type' => 'both'],
-            ['name' => 'Self Loading Pistol/Carbine', 'dedicated_type' => 'sport_shooter'],
+            ['name' => 'Self Loading Pistol/Carbine', 'dedicated_type' => 'sport'],
             ['name' => 'Self Loading Rifle/Carbine', 'dedicated_type' => 'both'],
             ['name' => 'Shotgun', 'dedicated_type' => 'both'],
         ];
