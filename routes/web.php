@@ -51,6 +51,31 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('documents', 'pages::member.documents.index')->name('documents.index');
     Route::livewire('documents/upload', 'pages::member.documents.upload')->name('documents.upload');
     Route::livewire('documents/{document}', 'pages::member.documents.show')->name('documents.show');
+    
+    // Document preview proxy (streams file through Laravel to bypass R2 signed URL issues)
+    Route::get('documents/{document}/preview', function (\App\Models\MemberDocument $document) {
+        // Ensure user can only view their own documents
+        if ($document->user_id !== auth()->id()) {
+            abort(403);
+        }
+        
+        $disk = config('filesystems.disks.r2.key') ? 'r2' : 's3';
+        
+        if (!\Illuminate\Support\Facades\Storage::disk($disk)->exists($document->file_path)) {
+            abort(404);
+        }
+        
+        return response()->stream(function () use ($disk, $document) {
+            $stream = \Illuminate\Support\Facades\Storage::disk($disk)->readStream($document->file_path);
+            fpassthru($stream);
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }, 200, [
+            'Content-Type' => $document->mime_type,
+            'Content-Disposition' => 'inline; filename="' . $document->original_filename . '"',
+        ]);
+    })->name('documents.preview');
 
     // Learning Center
     Route::livewire('learning', 'pages::member.learning.index')->name('learning.index');
