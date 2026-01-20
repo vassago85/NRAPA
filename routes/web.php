@@ -134,6 +134,26 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     // Document Verification
     Route::livewire('documents', 'pages::admin.documents.index')->name('documents.index');
     Route::livewire('documents/{document}', 'pages::admin.documents.show')->name('documents.show');
+    
+    // Admin document preview proxy (streams file through Laravel)
+    Route::get('documents/{document}/preview', function (\App\Models\MemberDocument $document) {
+        $disk = config('filesystems.disks.r2.key') ? 'r2' : 's3';
+        
+        if (!\Illuminate\Support\Facades\Storage::disk($disk)->exists($document->file_path)) {
+            abort(404);
+        }
+        
+        return response()->stream(function () use ($disk, $document) {
+            $stream = \Illuminate\Support\Facades\Storage::disk($disk)->readStream($document->file_path);
+            fpassthru($stream);
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }, 200, [
+            'Content-Type' => $document->mime_type,
+            'Content-Disposition' => 'inline; filename="' . $document->original_filename . '"',
+        ]);
+    })->name('documents.preview');
 
     // Learning Center Management
     Route::livewire('learning', 'pages::admin.learning.index')->name('learning.index');
