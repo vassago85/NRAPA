@@ -10,6 +10,12 @@ chmod -R 775 /var/www/html/storage
 chown -R www-data:www-data /var/www/html/bootstrap/cache
 chmod -R 775 /var/www/html/bootstrap/cache
 
+# Create Livewire cache directories
+mkdir -p /var/www/html/storage/framework/views/livewire/classes
+mkdir -p /var/www/html/storage/framework/views/livewire/views
+chown -R www-data:www-data /var/www/html/storage/framework/views
+chmod -R 775 /var/www/html/storage/framework/views
+
 # Wait for database to be ready
 echo "⏳ Waiting for database..."
 while ! php artisan db:monitor --databases=mysql > /dev/null 2>&1; do

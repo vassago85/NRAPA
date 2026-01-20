@@ -543,7 +543,7 @@ class EndorsementRequest extends Model
             $errors[] = 'Purpose is required.';
         }
 
-        $missingDocs = $this->getMissingRequiredDocuments();
+        $missingDocs = $this->getMissingRequestDocuments();
         foreach ($missingDocs as $docType) {
             $errors[] = "Missing required document: " . self::getDocumentTypeLabel($docType);
         }
@@ -556,13 +556,13 @@ class EndorsementRequest extends Model
      */
     public function hasAllRequiredDocuments(): bool
     {
-        return count($this->getMissingRequiredDocuments()) === 0;
+        return count($this->getMissingRequestDocuments()) === 0;
     }
 
     /**
-     * Get list of missing required documents.
+     * Get list of missing required documents for this request.
      */
-    public function getMissingRequiredDocuments(): array
+    public function getMissingRequestDocuments(): array
     {
         $required = self::getRequiredDocumentTypes($this->request_type);
         $uploaded = $this->documents()
