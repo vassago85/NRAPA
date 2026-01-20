@@ -135,6 +135,9 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     // Activity Configuration
     Route::livewire('activity-config', 'pages::admin.activity-config.index')->name('activity-config.index');
 
+    // Firearm Settings
+    Route::livewire('firearm-settings', 'pages::admin.firearm-settings.index')->name('firearm-settings.index');
+
     // Email Logs
     Route::livewire('email-logs', 'pages::admin.email-logs.index')->name('email-logs.index');
 
