@@ -298,7 +298,8 @@ class MembershipType extends Model
      */
     public function calculateExpiryDate(?\DateTimeInterface $startDate = null): ?\DateTimeInterface
     {
-        $startDate = $startDate ?? now();
+        // Ensure we have a Carbon instance for date manipulation
+        $startDate = $startDate ? \Carbon\Carbon::parse($startDate) : now();
 
         // Lifetime memberships don't expire
         if ($this->duration_type === 'lifetime' || $this->expiry_rule === 'none') {
