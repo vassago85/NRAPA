@@ -38,9 +38,9 @@ new class extends Component {
             ->get();
     }
 
-    public function impersonateUser(int $userId): void
+    public function impersonateUser(int $userId)
     {
-        return redirect()->route('dev.impersonate', $userId);
+        return $this->redirect(route('dev.impersonate', $userId));
     }
 }; ?>
 
@@ -122,7 +122,8 @@ new class extends Component {
             @endif
         </div>
         
-        {{-- Quick role buttons --}}
+        {{-- Quick role buttons (only in dev/test environments) --}}
+        @if(app()->environment('local', 'development', 'testing'))
         <div class="flex flex-wrap gap-2 mt-3">
             <span class="text-xs text-red-600 dark:text-red-400 self-center mr-2">Quick:</span>
             <a href="{{ route('dev.login', 'owner') }}" class="px-3 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-full hover:bg-blue-200 dark:hover:bg-blue-900/50 transition">
@@ -135,6 +136,7 @@ new class extends Component {
                 Test Member
             </a>
         </div>
+        @endif
     </div>
 
     {{-- Dev Quick Test Links --}}
