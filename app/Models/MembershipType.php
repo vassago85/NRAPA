@@ -132,6 +132,89 @@ class MembershipType extends Model
     }
 
     /**
+     * Get the knowledge tests required for this membership type.
+     */
+    public function knowledgeTests(): BelongsToMany
+    {
+        return $this->belongsToMany(KnowledgeTest::class)
+            ->withPivot('is_required')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get only the required knowledge tests for endorsement.
+     */
+    public function requiredKnowledgeTests(): BelongsToMany
+    {
+        return $this->knowledgeTests()->wherePivot('is_required', true);
+    }
+
+    /**
+     * Get available knowledge tests for this membership type based on dedicated_type.
+     */
+    public function getAvailableKnowledgeTestsAttribute()
+    {
+        return KnowledgeTest::active()
+            ->where(function ($q) {
+                // Tests matching this membership's dedicated type
+                if ($this->dedicated_type === 'both') {
+                    // Both type can use hunter, sport, or both tests
+                    $q->whereIn('dedicated_type', ['hunter', 'sport_shooter', 'both'])
+                      ->orWhereNull('dedicated_type');
+                } elseif ($this->dedicated_type === 'hunter') {
+                    $q->whereIn('dedicated_type', ['hunter', 'both'])
+                      ->orWhereNull('dedicated_type');
+                } elseif ($this->dedicated_type === 'sport') {
+                    $q->whereIn('dedicated_type', ['sport_shooter', 'both'])
+                      ->orWhereNull('dedicated_type');
+                } else {
+                    // No dedicated type - only general tests
+                    $q->whereNull('dedicated_type');
+                }
+            })
+            ->orderBy('name')
+            ->get();
+    }
+
+    /**
+     * Check if a user has passed all required tests for this membership type.
+     */
+    public function hasUserPassedAllRequiredTests(User $user): bool
+    {
+        $requiredTests = $this->requiredKnowledgeTests()->pluck('knowledge_tests.id');
+        
+        if ($requiredTests->isEmpty()) {
+            return true; // No required tests means they've "passed"
+        }
+
+        $passedTests = KnowledgeTestAttempt::where('user_id', $user->id)
+            ->whereIn('knowledge_test_id', $requiredTests)
+            ->where('passed', true)
+            ->pluck('knowledge_test_id')
+            ->unique();
+
+        return $passedTests->count() >= $requiredTests->count();
+    }
+
+    /**
+     * Get the tests a user still needs to pass for this membership type.
+     */
+    public function getOutstandingTestsForUser(User $user)
+    {
+        $requiredTestIds = $this->requiredKnowledgeTests()->pluck('knowledge_tests.id');
+        
+        $passedTestIds = KnowledgeTestAttempt::where('user_id', $user->id)
+            ->whereIn('knowledge_test_id', $requiredTestIds)
+            ->where('passed', true)
+            ->pluck('knowledge_test_id')
+            ->unique();
+
+        return KnowledgeTest::whereIn('id', $requiredTestIds)
+            ->whereNotIn('id', $passedTestIds)
+            ->get();
+    }
+
+    /**
      * Scope to only active membership types.
      */
     public function scopeActive($query)

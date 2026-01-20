@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\KnowledgeTest;
 use App\Models\MembershipType;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -8,7 +9,9 @@ use Livewire\Component;
 
 new #[Title('Membership Types - Admin')] class extends Component {
     public bool $showEditModal = false;
+    public bool $showTestsModal = false;
     public ?MembershipType $editingType = null;
+    public ?MembershipType $configuringTestsType = null;
     
     // Form fields
     #[Validate('required|string|max:255')]
@@ -47,11 +50,23 @@ new #[Title('Membership Types - Admin')] class extends Component {
     
     #[Validate('required|integer|min:0')]
     public int $sort_order = 0;
+    
+    // Required tests selection
+    public array $selectedTestIds = [];
 
     #[Computed]
     public function membershipTypes()
     {
-        return MembershipType::ordered()->get();
+        return MembershipType::ordered()->with('requiredKnowledgeTests')->get();
+    }
+
+    #[Computed]
+    public function availableTests()
+    {
+        if (!$this->configuringTestsType) {
+            return collect();
+        }
+        return $this->configuringTestsType->availableKnowledgeTests;
     }
 
     public function openCreateModal(): void
@@ -82,6 +97,33 @@ new #[Title('Membership Types - Admin')] class extends Component {
         $this->requires_knowledge_test = $type->requires_knowledge_test;
         $this->sort_order = $type->sort_order;
         $this->showEditModal = true;
+    }
+
+    public function openTestsModal(int $typeId): void
+    {
+        $this->configuringTestsType = MembershipType::with('requiredKnowledgeTests')->findOrFail($typeId);
+        $this->selectedTestIds = $this->configuringTestsType->requiredKnowledgeTests->pluck('id')->toArray();
+        $this->showTestsModal = true;
+    }
+
+    public function saveRequiredTests(): void
+    {
+        if (!$this->configuringTestsType) {
+            return;
+        }
+
+        // Sync the required tests
+        $syncData = [];
+        foreach ($this->selectedTestIds as $testId) {
+            $syncData[$testId] = ['is_required' => true];
+        }
+        
+        $this->configuringTestsType->knowledgeTests()->sync($syncData);
+        
+        session()->flash('success', "Required tests updated for {$this->configuringTestsType->name}.");
+        $this->showTestsModal = false;
+        $this->configuringTestsType = null;
+        $this->selectedTestIds = [];
     }
 
     public function save(): void
@@ -322,9 +364,17 @@ new #[Title('Membership Types - Admin')] class extends Component {
                             @endif
                         </td>
                         <td class="whitespace-nowrap px-4 py-3 text-right">
-                            <button wire:click="openEditModal({{ $type->id }})" class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
-                                Edit
-                            </button>
+                            <div class="flex items-center justify-end gap-2">
+                                @if($type->allows_dedicated_status)
+                                <button wire:click="openTestsModal({{ $type->id }})" class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50" title="Configure required tests">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                                    Tests ({{ $type->requiredKnowledgeTests->count() }})
+                                </button>
+                                @endif
+                                <button wire:click="openEditModal({{ $type->id }})" class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+                                    Edit
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     @endforeach
@@ -473,6 +523,96 @@ new #[Title('Membership Types - Admin')] class extends Component {
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Required Tests Modal --}}
+    @if($showTestsModal && $configuringTestsType)
+    <div class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div wire:click="$set('showTestsModal', false)" class="fixed inset-0 bg-black/50"></div>
+            <div class="relative w-full max-w-lg rounded-xl bg-white p-6 shadow-xl dark:bg-zinc-800">
+                <h2 class="text-xl font-bold text-zinc-900 dark:text-white mb-2">Required Knowledge Tests</h2>
+                <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+                    Select the tests members must pass to receive endorsements for <strong>{{ $configuringTestsType->name }}</strong>.
+                </p>
+
+                @if($configuringTestsType->dedicated_type)
+                    <div class="mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                        <p class="text-sm text-blue-800 dark:text-blue-200">
+                            <strong>Dedicated Type:</strong> 
+                            {{ $configuringTestsType->dedicated_type === 'both' ? 'Hunter & Sport Shooter' : ucfirst($configuringTestsType->dedicated_type) }}
+                        </p>
+                        <p class="text-xs text-blue-600 dark:text-blue-300 mt-1">
+                            Only tests matching this dedicated type are shown.
+                        </p>
+                    </div>
+                @endif
+
+                <div class="space-y-2 max-h-80 overflow-y-auto">
+                    @forelse($this->availableTests as $test)
+                        <label class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors
+                            {{ in_array($test->id, $selectedTestIds) 
+                                ? 'border-purple-500 bg-purple-50 dark:border-purple-400 dark:bg-purple-900/20' 
+                                : 'border-zinc-200 hover:border-zinc-300 dark:border-zinc-700 dark:hover:border-zinc-600' }}">
+                            <input type="checkbox" 
+                                   wire:model="selectedTestIds" 
+                                   value="{{ $test->id }}" 
+                                   class="mt-1 rounded border-zinc-300 text-purple-600 focus:ring-purple-500 dark:border-zinc-600 dark:bg-zinc-700">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-medium text-zinc-900 dark:text-white">{{ $test->name }}</span>
+                                    @if($test->dedicated_type)
+                                        <span class="text-xs px-1.5 py-0.5 rounded-full 
+                                            {{ $test->dedicated_type === 'hunter' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' : '' }}
+                                            {{ $test->dedicated_type === 'sport_shooter' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : '' }}
+                                            {{ $test->dedicated_type === 'both' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' : '' }}">
+                                            {{ $test->dedicated_type === 'sport_shooter' ? 'Sport' : ucfirst($test->dedicated_type) }}
+                                        </span>
+                                    @else
+                                        <span class="text-xs px-1.5 py-0.5 rounded-full bg-zinc-100 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+                                            General
+                                        </span>
+                                    @endif
+                                </div>
+                                @if($test->description)
+                                    <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 line-clamp-2">{{ $test->description }}</p>
+                                @endif
+                                <p class="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
+                                    {{ $test->activeQuestions()->count() }} questions &bull; Pass: {{ $test->passing_score }}%
+                                </p>
+                            </div>
+                        </label>
+                    @empty
+                        <div class="text-center py-8 text-zinc-500 dark:text-zinc-400">
+                            <svg class="mx-auto h-12 w-12 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                            <p class="mt-2">No matching tests available.</p>
+                            <p class="text-xs mt-1">Create a knowledge test that matches this membership's dedicated type.</p>
+                        </div>
+                    @endforelse
+                </div>
+
+                @if(count($selectedTestIds) > 0)
+                    <div class="mt-4 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+                        <p class="text-sm text-emerald-800 dark:text-emerald-200">
+                            <strong>{{ count($selectedTestIds) }}</strong> test(s) selected. 
+                            Members must pass <strong>all</strong> selected tests to receive endorsements.
+                        </p>
+                    </div>
+                @endif
+
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" wire:click="$set('showTestsModal', false)" class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700">
+                        Cancel
+                    </button>
+                    <button type="button" wire:click="saveRequiredTests" class="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700">
+                        Save Required Tests
+                    </button>
+                </div>
             </div>
         </div>
     </div>

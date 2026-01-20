@@ -120,16 +120,59 @@ class DedicatedStatusApplication extends Model
     }
 
     /**
-     * Check if the user has passed the required knowledge test for this dedicated type.
+     * Check if the user has passed ALL required knowledge tests for their membership type.
+     * Falls back to checking dedicated_type if no specific tests are configured.
      */
-    public function hasPassedRequiredTest(): bool
+    public function hasPassedRequiredTests(): bool
     {
+        // Get the membership type to check for specific required tests
+        $membershipType = $this->membership?->type;
+        
+        if ($membershipType) {
+            // If membership type has specific required tests, check those
+            $requiredTestIds = $membershipType->requiredKnowledgeTests()->pluck('knowledge_tests.id');
+            
+            if ($requiredTestIds->isNotEmpty()) {
+                $passedTestIds = KnowledgeTestAttempt::where('user_id', $this->user_id)
+                    ->whereIn('knowledge_test_id', $requiredTestIds)
+                    ->where('passed', true)
+                    ->pluck('knowledge_test_id')
+                    ->unique();
+
+                // Must pass ALL required tests
+                return $passedTestIds->count() >= $requiredTestIds->count();
+            }
+        }
+
+        // Fallback: Check if user passed any test for this dedicated type
         return KnowledgeTestAttempt::where('user_id', $this->user_id)
             ->whereHas('knowledgeTest', function ($q) {
                 $q->forDedicatedType($this->dedicated_type);
             })
             ->where('passed', true)
             ->exists();
+    }
+
+    /**
+     * Legacy method name for backwards compatibility.
+     */
+    public function hasPassedRequiredTest(): bool
+    {
+        return $this->hasPassedRequiredTests();
+    }
+
+    /**
+     * Get the list of tests the user still needs to pass.
+     */
+    public function getOutstandingTests()
+    {
+        $membershipType = $this->membership?->type;
+        
+        if (!$membershipType) {
+            return collect();
+        }
+
+        return $membershipType->getOutstandingTestsForUser($this->user);
     }
 
     // ===== Status Checks =====
