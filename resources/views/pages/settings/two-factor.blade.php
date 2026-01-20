@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\UserSecurityQuestion;
 use Laravel\Fortify\Actions\ConfirmTwoFactorAuthentication;
 use Laravel\Fortify\Actions\DisableTwoFactorAuthentication;
 use Laravel\Fortify\Actions\EnableTwoFactorAuthentication;
@@ -29,6 +30,11 @@ new class extends Component {
     #[Validate('required|string|size:6', onUpdate: false)]
     public string $code = '';
 
+    // Security Questions properties
+    public array $securityQuestions = [];
+    public array $securityAnswers = [];
+    public bool $isEditingQuestions = false;
+
     public function mount(DisableTwoFactorAuthentication $disableTwoFactorAuthentication): void
     {
         abort_unless(Features::enabled(Features::twoFactorAuthentication()), Response::HTTP_FORBIDDEN);
@@ -39,6 +45,77 @@ new class extends Component {
 
         $this->twoFactorEnabled = auth()->user()->hasEnabledTwoFactorAuthentication();
         $this->requiresConfirmation = Features::optionEnabled(Features::twoFactorAuthentication(), 'confirm');
+        
+        // Load security questions
+        $this->loadSecurityQuestions();
+    }
+
+    private function loadSecurityQuestions(): void
+    {
+        $existingQuestions = auth()->user()->securityQuestions;
+        
+        if ($existingQuestions->count() > 0) {
+            $this->securityQuestions = [];
+            $this->securityAnswers = [];
+            foreach ($existingQuestions as $q) {
+                $this->securityQuestions[] = $q->question;
+                $this->securityAnswers[] = '';
+            }
+        } else {
+            $this->securityQuestions = array_fill(0, UserSecurityQuestion::REQUIRED_QUESTIONS, '');
+            $this->securityAnswers = array_fill(0, UserSecurityQuestion::REQUIRED_QUESTIONS, '');
+        }
+    }
+
+    public function startEditingQuestions(): void
+    {
+        $this->isEditingQuestions = true;
+        $this->securityAnswers = array_fill(0, count($this->securityQuestions), '');
+    }
+
+    public function saveSecurityQuestions(): void
+    {
+        $rules = [];
+        $messages = [];
+        
+        for ($i = 0; $i < UserSecurityQuestion::REQUIRED_QUESTIONS; $i++) {
+            $rules["securityQuestions.{$i}"] = 'required|string';
+            $rules["securityAnswers.{$i}"] = 'required|string|min:2';
+            $messages["securityQuestions.{$i}.required"] = 'Please select security question ' . ($i + 1);
+            $messages["securityAnswers.{$i}.required"] = 'Please provide an answer for question ' . ($i + 1);
+            $messages["securityAnswers.{$i}.min"] = 'Answer ' . ($i + 1) . ' must be at least 2 characters';
+        }
+
+        $this->validate($rules, $messages);
+
+        // Check for duplicate questions
+        $uniqueQuestions = array_unique($this->securityQuestions);
+        if (count($uniqueQuestions) !== count($this->securityQuestions)) {
+            $this->addError('securityQuestions', 'Each security question must be unique.');
+            return;
+        }
+
+        // Delete existing questions and create new ones
+        auth()->user()->securityQuestions()->delete();
+
+        for ($i = 0; $i < UserSecurityQuestion::REQUIRED_QUESTIONS; $i++) {
+            $question = auth()->user()->securityQuestions()->create([
+                'question' => $this->securityQuestions[$i],
+                'answer_hash' => '',
+            ]);
+            $question->setAnswer($this->securityAnswers[$i]);
+        }
+
+        $this->isEditingQuestions = false;
+        $this->securityAnswers = array_fill(0, count($this->securityQuestions), '');
+        
+        session()->flash('questions_success', 'Security questions saved successfully.');
+    }
+
+    public function cancelEditingQuestions(): void
+    {
+        $this->isEditingQuestions = false;
+        $this->loadSecurityQuestions();
     }
 
     public function enable(EnableTwoFactorAuthentication $enableTwoFactorAuthentication): void
@@ -138,6 +215,14 @@ new class extends Component {
         return [
             'title' => __('Enable Two-Factor Authentication'),
             'description' => __('Scan the QR code or enter the setup key in your authenticator app.'),
+        ];
+    }
+
+    public function with(): array
+    {
+        return [
+            'availableQuestions' => UserSecurityQuestion::getQuestionOptions(),
+            'hasExistingQuestions' => auth()->user()->hasSecurityQuestions(),
         ];
     }
 } ?>
@@ -243,46 +328,135 @@ new class extends Component {
                     </div>
                 </div>
 
-                {{-- Security Requirements Check for Regular Members --}}
-                @if(!auth()->user()->requires2FA() && !auth()->user()->canEnable2FA())
-                    <div class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                        <div class="flex items-start gap-3">
-                            <svg class="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            <div>
-                                <p class="font-semibold text-blue-800 dark:text-blue-200">Setup Required Before Enabling 2FA</p>
-                                <p class="text-sm text-blue-600 dark:text-blue-400 mt-1">
-                                    To enable two-factor authentication, you must first complete <strong>one</strong> of the following:
-                                </p>
-                                <ul class="text-sm text-blue-600 dark:text-blue-400 mt-2 space-y-2">
-                                    <li class="flex items-center gap-2">
-                                        @if(auth()->user()->hasSecurityQuestions())
-                                            <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                {{-- Security Questions Section --}}
+                <div class="border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden">
+                    <div class="p-4 bg-zinc-50 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg flex items-center justify-center {{ $hasExistingQuestions ? 'bg-green-100 dark:bg-green-900/30' : 'bg-amber-100 dark:bg-amber-900/30' }}">
+                                    <svg class="w-5 h-5 {{ $hasExistingQuestions ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-zinc-900 dark:text-white">Security Questions</h4>
+                                    <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                                        @if($hasExistingQuestions)
+                                            Questions configured for identity verification
                                         @else
-                                            <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01"/></svg>
+                                            Required to enable 2FA (for account recovery)
                                         @endif
-                                        <span>Set up security questions</span>
-                                        @if(!auth()->user()->hasSecurityQuestions())
-                                            <a href="{{ route('security-questions.edit') }}" wire:navigate class="text-blue-700 dark:text-blue-300 underline font-medium">Set up now</a>
-                                        @endif
-                                    </li>
-                                    <li class="flex items-center gap-2">
-                                        @if(auth()->user()->hasVerifiedIdDocument())
-                                            <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                        @else
-                                            <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01"/></svg>
-                                        @endif
-                                        <span>Have a verified ID document on file</span>
-                                        @if(!auth()->user()->hasVerifiedIdDocument())
-                                            <a href="{{ route('documents.index') }}" wire:navigate class="text-blue-700 dark:text-blue-300 underline font-medium">Upload documents</a>
-                                        @endif
-                                    </li>
-                                </ul>
-                                <p class="text-xs text-blue-500 dark:text-blue-400 mt-3">
-                                    This ensures we can verify your identity if you ever need to reset your 2FA.
+                                    </p>
+                                </div>
+                            </div>
+                            @if($hasExistingQuestions && !$isEditingQuestions)
+                                <span class="flex items-center gap-1.5 text-xs font-medium text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2.5 py-1 rounded-full">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    Set up
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="p-4">
+                        @if(session('questions_success'))
+                            <div class="mb-4 p-3 bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
+                                <p class="text-sm text-green-700 dark:text-green-300">{{ session('questions_success') }}</p>
+                            </div>
+                        @endif
+
+                        @error('securityQuestions')
+                            <div class="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm">
+                                {{ $message }}
+                            </div>
+                        @enderror
+
+                        @if($hasExistingQuestions && !$isEditingQuestions)
+                            {{-- Show existing questions --}}
+                            <div class="space-y-2 mb-4">
+                                @foreach($securityQuestions as $index => $question)
+                                    <div class="flex items-start gap-2 text-sm">
+                                        <span class="font-medium text-zinc-500 dark:text-zinc-400 w-5">{{ $index + 1 }}.</span>
+                                        <span class="text-zinc-700 dark:text-zinc-300">{{ $question }}</span>
+                                    </div>
+                                @endforeach
+                            </div>
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-4">For security, answers are not displayed.</p>
+                            <button wire:click="startEditingQuestions" type="button"
+                                    class="px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-700 border border-zinc-300 dark:border-zinc-600 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-600 transition-colors">
+                                Update Questions
+                            </button>
+                        @else
+                            {{-- Question setup form --}}
+                            <div class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                <p class="text-sm text-blue-700 dark:text-blue-300">
+                                    <strong>Why?</strong> If you lose access to your authenticator app, our support team will use these questions to verify your identity before resetting your 2FA.
                                 </p>
                             </div>
+
+                            <form wire:submit="saveSecurityQuestions" class="space-y-4">
+                                @for($i = 0; $i < \App\Models\UserSecurityQuestion::REQUIRED_QUESTIONS; $i++)
+                                    <div class="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                                        <p class="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-2">Question {{ $i + 1 }}</p>
+                                        <select wire:model="securityQuestions.{{ $i }}"
+                                                class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent mb-2">
+                                            <option value="">Choose a question...</option>
+                                            @foreach($availableQuestions as $questionText)
+                                                <option value="{{ $questionText }}">{{ $questionText }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error("securityQuestions.{$i}") <p class="text-xs text-red-600 mb-2">{{ $message }}</p> @enderror
+                                        
+                                        <input type="text" wire:model="securityAnswers.{{ $i }}"
+                                               placeholder="Your answer..."
+                                               class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+                                        @error("securityAnswers.{$i}") <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                    </div>
+                                @endfor
+
+                                <div class="flex items-center gap-3">
+                                    <button type="submit"
+                                            class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-sm transition-colors">
+                                        Save Questions
+                                    </button>
+                                    @if($isEditingQuestions)
+                                        <button type="button" wire:click="cancelEditingQuestions"
+                                                class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 font-medium rounded-lg text-sm transition-colors">
+                                            Cancel
+                                        </button>
+                                    @endif
+                                </div>
+                            </form>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Verified ID alternative (if no security questions) --}}
+                @if(!auth()->user()->requires2FA() && !$hasExistingQuestions)
+                    <div class="p-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg flex items-center justify-center {{ auth()->user()->hasVerifiedIdDocument() ? 'bg-green-100 dark:bg-green-900/30' : 'bg-zinc-200 dark:bg-zinc-700' }}">
+                                <svg class="w-5 h-5 {{ auth()->user()->hasVerifiedIdDocument() ? 'text-green-600 dark:text-green-400' : 'text-zinc-500 dark:text-zinc-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-medium text-zinc-900 dark:text-white text-sm">Alternative: Verified ID Document</h4>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                                    @if(auth()->user()->hasVerifiedIdDocument())
+                                        You have a verified ID on file. You can enable 2FA now.
+                                    @else
+                                        Upload your ID document as an alternative to security questions.
+                                        <a href="{{ route('documents.index') }}" wire:navigate class="text-emerald-600 dark:text-emerald-400 underline">Upload documents</a>
+                                    @endif
+                                </p>
+                            </div>
+                            @if(auth()->user()->hasVerifiedIdDocument())
+                                <span class="flex items-center gap-1.5 text-xs font-medium text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2.5 py-1 rounded-full">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    Verified
+                                </span>
+                            @endif
                         </div>
                     </div>
                 @endif
