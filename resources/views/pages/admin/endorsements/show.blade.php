@@ -2,6 +2,7 @@
 
 use App\Models\EndorsementRequest;
 use App\Models\AuditLog;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -12,6 +13,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
     public bool $showRejectModal = false;
     public string $rejectionReason = '';
     public string $adminNotes = '';
+    public string $approvalReason = ''; // Required when approving non-compliant member
 
     public function mount(EndorsementRequest $request): void
     {
@@ -26,6 +28,18 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             'issuer',
         ]);
         $this->adminNotes = $request->admin_notes ?? '';
+    }
+
+    #[Computed]
+    public function memberEligibility(): array
+    {
+        return EndorsementRequest::getEligibilitySummary($this->request->user);
+    }
+
+    #[Computed]
+    public function isFullyCompliant(): bool
+    {
+        return $this->memberEligibility['eligible'] ?? false;
     }
 
     public function markUnderReview(): void
@@ -80,6 +94,16 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
 
     public function issueEndorsement(): void
     {
+        // If member is NOT fully compliant, require a reason/comment
+        if (!$this->isFullyCompliant) {
+            $this->validate([
+                'approvalReason' => 'required|min:20',
+            ], [
+                'approvalReason.required' => 'You must provide a reason for approving this request since the member is not fully compliant.',
+                'approvalReason.min' => 'Please provide a more detailed reason (at least 20 characters).',
+            ]);
+        }
+
         // Generate letter reference
         $letterReference = EndorsementRequest::generateLetterReference();
         
@@ -88,8 +112,15 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
 
         $this->request->issue(auth()->user(), $letterReference, $letterPath);
 
-        if ($this->adminNotes) {
-            $this->request->update(['admin_notes' => $this->adminNotes]);
+        // Build admin notes with compliance info if non-compliant
+        $notes = $this->adminNotes;
+        if (!$this->isFullyCompliant && $this->approvalReason) {
+            $complianceNote = "[APPROVED DESPITE NON-COMPLIANCE] Reason: " . $this->approvalReason;
+            $notes = $notes ? $notes . "\n\n" . $complianceNote : $complianceNote;
+        }
+
+        if ($notes) {
+            $this->request->update(['admin_notes' => $notes]);
         }
         
         AuditLog::create([
@@ -98,7 +129,12 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             'auditable_type' => EndorsementRequest::class,
             'auditable_id' => $this->request->id,
             'old_values' => ['status' => 'under_review'],
-            'new_values' => ['status' => 'issued', 'letter_reference' => $letterReference],
+            'new_values' => [
+                'status' => 'issued', 
+                'letter_reference' => $letterReference,
+                'fully_compliant' => $this->isFullyCompliant,
+                'approval_reason' => $this->approvalReason ?: null,
+            ],
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
         ]);
@@ -217,6 +253,124 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                             </div>
                         @endif
                     </dl>
+                </div>
+            </div>
+
+            {{-- Compliance Status Card --}}
+            <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border {{ $this->isFullyCompliant ? 'border-emerald-300 dark:border-emerald-700' : 'border-amber-300 dark:border-amber-700' }} overflow-hidden">
+                <div class="px-6 py-4 border-b {{ $this->isFullyCompliant ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20' : 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20' }}">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-lg font-semibold {{ $this->isFullyCompliant ? 'text-emerald-800 dark:text-emerald-200' : 'text-amber-800 dark:text-amber-200' }}">
+                            Member Compliance Status
+                        </h2>
+                        @if($this->isFullyCompliant)
+                            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                                Fully Compliant
+                            </span>
+                        @else
+                            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                Not Fully Compliant
+                            </span>
+                        @endif
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="grid gap-4 md:grid-cols-3">
+                        {{-- Knowledge Test --}}
+                        <div class="p-4 rounded-lg border {{ $this->memberEligibility['knowledge_test_passed'] ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20' }}">
+                            <div class="flex items-center gap-3 mb-2">
+                                @if($this->memberEligibility['knowledge_test_passed'])
+                                    <div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
+                                        <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                        </svg>
+                                    </div>
+                                @else
+                                    <div class="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+                                        <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </div>
+                                @endif
+                                <h3 class="font-semibold text-zinc-900 dark:text-white">Knowledge Test</h3>
+                            </div>
+                            <p class="text-sm {{ $this->memberEligibility['knowledge_test_passed'] ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300' }}">
+                                {{ $this->memberEligibility['knowledge_test_passed'] ? 'Passed' : 'Not Completed' }}
+                            </p>
+                        </div>
+
+                        {{-- Documents --}}
+                        <div class="p-4 rounded-lg border {{ $this->memberEligibility['documents_complete'] ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20' }}">
+                            <div class="flex items-center gap-3 mb-2">
+                                @if($this->memberEligibility['documents_complete'])
+                                    <div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
+                                        <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                        </svg>
+                                    </div>
+                                @else
+                                    <div class="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+                                        <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </div>
+                                @endif
+                                <h3 class="font-semibold text-zinc-900 dark:text-white">Documents</h3>
+                            </div>
+                            @if($this->memberEligibility['documents_complete'])
+                                <p class="text-sm text-emerald-700 dark:text-emerald-300">All Required</p>
+                            @else
+                                <p class="text-sm text-amber-700 dark:text-amber-300">
+                                    Missing {{ count($this->memberEligibility['missing_documents']) }} doc(s)
+                                </p>
+                            @endif
+                        </div>
+
+                        {{-- Activities --}}
+                        <div class="p-4 rounded-lg border {{ $this->memberEligibility['activities_met'] ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20' }}">
+                            <div class="flex items-center gap-3 mb-2">
+                                @if($this->memberEligibility['activities_met'])
+                                    <div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
+                                        <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                        </svg>
+                                    </div>
+                                @else
+                                    <div class="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+                                        <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </div>
+                                @endif
+                                <h3 class="font-semibold text-zinc-900 dark:text-white">Activities</h3>
+                            </div>
+                            <p class="text-sm {{ $this->memberEligibility['activities_met'] ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300' }}">
+                                {{ $this->memberEligibility['activity_details']['approved_count'] ?? 0 }} / {{ $this->memberEligibility['activity_details']['required'] ?? 2 }} required
+                            </p>
+                        </div>
+                    </div>
+
+                    @if(!$this->isFullyCompliant && count($this->memberEligibility['errors'] ?? []) > 0)
+                        <div class="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                            <h4 class="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-2">Issues:</h4>
+                            <ul class="text-sm text-amber-700 dark:text-amber-300 space-y-1">
+                                @foreach($this->memberEligibility['errors'] as $error)
+                                    <li class="flex items-start gap-2">
+                                        <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                        </svg>
+                                        {{ $error }}
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -448,8 +602,36 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                                 placeholder="Add notes for the member or internal use..."></textarea>
                         </div>
 
+                        {{-- Non-compliant approval warning --}}
+                        @if(!$this->isFullyCompliant)
+                            <div class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-lg">
+                                <div class="flex items-start gap-3">
+                                    <svg class="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                    </svg>
+                                    <div>
+                                        <h4 class="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                                            Member Not Fully Compliant
+                                        </h4>
+                                        <p class="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                                            You can still approve this request at your discretion, but you must provide a reason explaining why.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <label class="block text-sm font-medium text-amber-800 dark:text-amber-200 mb-1">
+                                        Reason for Approval <span class="text-red-500">*</span>
+                                    </label>
+                                    <textarea wire:model="approvalReason" rows="3"
+                                        class="w-full px-3 py-2 border border-amber-300 dark:border-amber-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white text-sm resize-none"
+                                        placeholder="Explain why you are approving this despite non-compliance (e.g., documents pending verification, recent membership, exceptional circumstances...)"></textarea>
+                                    @error('approvalReason') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                </div>
+                            </div>
+                        @endif
+
                         <button wire:click="issueEndorsement"
-                            wire:confirm="Are you sure you want to issue this endorsement letter?"
+                            wire:confirm="Are you sure you want to issue this endorsement letter?{{ !$this->isFullyCompliant ? ' The member is NOT fully compliant.' : '' }}"
                             class="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
