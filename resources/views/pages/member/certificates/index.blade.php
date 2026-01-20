@@ -6,7 +6,7 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-new #[Title('My Certificates')] class extends Component {
+new #[Title('Certificates & Endorsements')] class extends Component {
     #[Computed]
     public function user()
     {
@@ -37,9 +37,9 @@ new #[Title('My Certificates')] class extends Component {
 
 <div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
     <div class="flex flex-col gap-2">
-        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">My Certificates</h1>
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Certificates & Endorsements</h1>
         <p class="text-zinc-600 dark:text-zinc-400">
-            View and download your NRAPA membership certificates.
+            View and download your NRAPA membership certificates and endorsement letters.
         </p>
     </div>
 
@@ -109,12 +109,12 @@ new #[Title('My Certificates')] class extends Component {
             <svg class="mx-auto size-12 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
             </svg>
-            <h3 class="mt-4 font-semibold text-zinc-900 dark:text-white">No Valid Certificates</h3>
+            <h3 class="mt-4 font-semibold text-zinc-900 dark:text-white">No Valid Certificates or Endorsements</h3>
             <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
                 @if($this->user->hasActiveMembership())
-                    Certificates will be issued once your membership is fully processed.
+                    Certificates and endorsement letters will be issued once your membership is fully processed.
                 @else
-                    Apply for membership to receive your certificates.
+                    Apply for membership to receive your certificates and endorsements.
                 @endif
             </p>
         </div>

@@ -203,7 +203,7 @@ new #[Title('Dashboard')] class extends Component {
         </div>
         @endif
 
-        {{-- Certificates Card --}}
+        {{-- Certificates & Endorsements Card --}}
         <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
             <div class="mb-4 flex items-center gap-3">
                 <div class="flex size-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900">
@@ -211,7 +211,7 @@ new #[Title('Dashboard')] class extends Component {
                         <path stroke-linecap="round" stroke-linejoin="round" d="M10.125 2.25h-4.5c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125v-9M10.125 2.25h.375a9 9 0 0 1 9 9v.375M10.125 2.25A3.375 3.375 0 0 1 13.5 5.625v1.5c0 .621.504 1.125 1.125 1.125h1.5a3.375 3.375 0 0 1 3.375 3.375M9 15l2.25 2.25L15 12" />
                     </svg>
                 </div>
-                <h3 class="font-semibold text-zinc-900 dark:text-white">Certificates</h3>
+                <h3 class="font-semibold text-zinc-900 dark:text-white">Certificates & Endorsements</h3>
             </div>
 
             @if($this->certificates->count() > 0)
@@ -231,16 +231,16 @@ new #[Title('Dashboard')] class extends Component {
             @else
                 <p class="text-sm text-zinc-500 dark:text-zinc-400">
                     @if($this->activeMembership)
-                        No certificates issued yet. Certificates will be available once your membership is fully processed.
+                        No certificates or endorsements issued yet. These will be available once your membership is fully processed.
                     @else
-                        Apply for membership to receive your certificates.
+                        Apply for membership to receive your certificates and endorsements.
                     @endif
                 </p>
             @endif
 
             <div class="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-700">
                 <a href="{{ route('certificates.index') }}" wire:navigate class="block w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-center text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
-                    View All Certificates
+                    View All Certificates & Endorsements
                 </a>
             </div>
         </div>
