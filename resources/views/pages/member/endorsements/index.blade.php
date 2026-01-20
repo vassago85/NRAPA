@@ -1,6 +1,9 @@
 <?php
 
 use App\Models\EndorsementRequest;
+use App\Models\MembershipType;
+use App\Models\ShootingActivity;
+use Carbon\Carbon;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -29,6 +32,97 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
     public function eligibility()
     {
         return EndorsementRequest::getEligibilitySummary(auth()->user());
+    }
+
+    #[Computed]
+    public function membership()
+    {
+        return auth()->user()->activeMembership;
+    }
+
+    #[Computed]
+    public function dedicatedType()
+    {
+        return $this->membership?->type?->dedicated_type;
+    }
+
+    #[Computed]
+    public function dedicatedTypeLabel()
+    {
+        return match($this->dedicatedType) {
+            MembershipType::DEDICATED_TYPE_SPORT => 'Dedicated Sport Shooter',
+            MembershipType::DEDICATED_TYPE_HUNTER => 'Dedicated Hunter',
+            MembershipType::DEDICATED_TYPE_BOTH => 'Dedicated Sport Shooter & Hunter',
+            default => 'Dedicated Member',
+        };
+    }
+
+    #[Computed]
+    public function activityYear()
+    {
+        // Activity year runs Jan 1 - Sep 30, with Oct 1 deadline for NRAPA
+        // SAPS receives report in December
+        $now = now();
+        return $now->month >= 10 ? $now->year : $now->year;
+    }
+
+    #[Computed]
+    public function activityPeriod()
+    {
+        $year = $this->activityYear;
+        return [
+            'start' => Carbon::create($year, 1, 1)->startOfDay(),
+            'end' => Carbon::create($year, 9, 30)->endOfDay(),
+            'nrapa_deadline' => Carbon::create($year, 10, 1),
+            'saps_report' => Carbon::create($year, 12, 1),
+            'label' => "1 Jan {$year} - 30 Sep {$year}",
+        ];
+    }
+
+    #[Computed]
+    public function complianceStatus()
+    {
+        $user = auth()->user();
+        $period = $this->activityPeriod;
+        $dedicatedType = $this->dedicatedType;
+
+        // Get approved activities for this year's period
+        $approvedActivities = ShootingActivity::where('user_id', $user->id)
+            ->where('status', 'approved')
+            ->whereBetween('activity_date', [$period['start'], $period['end']])
+            ->count();
+
+        // Requirements based on dedicated type
+        $requiredSport = 2; // 2 activities for sport shooters
+        $requiredHunter = 2; // 2 activities for hunters (per 24 months, but tracked yearly)
+
+        $sportCompliant = $approvedActivities >= $requiredSport;
+        $hunterCompliant = $approvedActivities >= $requiredHunter;
+
+        // Determine overall compliance based on dedicated type
+        $isCompliant = match($dedicatedType) {
+            MembershipType::DEDICATED_TYPE_SPORT => $sportCompliant,
+            MembershipType::DEDICATED_TYPE_HUNTER => $hunterCompliant,
+            MembershipType::DEDICATED_TYPE_BOTH => $sportCompliant && $hunterCompliant,
+            default => true,
+        };
+
+        // Days until NRAPA deadline (October 1)
+        $daysUntilDeadline = now()->diffInDays($period['nrapa_deadline'], false);
+        $isPastDeadline = $daysUntilDeadline < 0;
+
+        return [
+            'approved_count' => $approvedActivities,
+            'required_sport' => $requiredSport,
+            'required_hunter' => $requiredHunter,
+            'sport_compliant' => $sportCompliant,
+            'hunter_compliant' => $hunterCompliant,
+            'is_compliant' => $isCompliant,
+            'days_until_deadline' => max(0, $daysUntilDeadline),
+            'is_past_deadline' => $isPastDeadline,
+            'deadline_date' => $period['nrapa_deadline']->format('d M Y'),
+            'period_label' => $period['label'],
+        ];
     }
 
     public function deleteRequest(EndorsementRequest $request): void
@@ -68,27 +162,172 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
 }; ?>
 
 <div>
-    <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Dedicated Status</h1>
-            <p class="mt-2 text-zinc-600 dark:text-zinc-400">Manage your dedicated status and request endorsement letters for firearm applications.</p>
+    {{-- Dedicated Status Header & Compliance Bar --}}
+    <div class="mb-8">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
+            <div>
+                <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Dedicated Status</h1>
+                <p class="mt-2 text-zinc-600 dark:text-zinc-400">Manage your dedicated status and request endorsement letters for firearm applications.</p>
+            </div>
+            @if($this->eligibility['eligible'])
+                <a href="{{ route('member.endorsements.create') }}" wire:navigate
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Request Endorsement
+                </a>
+            @else
+                <button disabled
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-zinc-400 text-white rounded-lg cursor-not-allowed opacity-75">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                    Requirements Not Met
+                </button>
+            @endif
         </div>
-        @if($this->eligibility['eligible'])
-            <a href="{{ route('member.endorsements.create') }}" wire:navigate
-                class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                </svg>
-                Request Endorsement
-            </a>
-        @else
-            <button disabled
-                class="inline-flex items-center gap-2 px-4 py-2 bg-zinc-400 text-white rounded-lg cursor-not-allowed opacity-75">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                </svg>
-                Requirements Not Met
-            </button>
+
+        {{-- Compliance Status Bar --}}
+        @if($this->dedicatedType)
+        <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+            {{-- Status Header --}}
+            <div class="px-6 py-4 {{ $this->complianceStatus['is_compliant'] ? 'bg-gradient-to-r from-emerald-500 to-emerald-600' : 'bg-gradient-to-r from-amber-500 to-amber-600' }}">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex items-center gap-3">
+                        {{-- Status Icon --}}
+                        <div class="p-2 bg-white/20 rounded-lg">
+                            @if($this->dedicatedType === 'sport')
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                            @elseif($this->dedicatedType === 'hunter')
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            @else
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                                </svg>
+                            @endif
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-white">{{ $this->dedicatedTypeLabel }}</h2>
+                            <p class="text-sm text-white/80">Activity Period: {{ $this->complianceStatus['period_label'] }}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        @if($this->complianceStatus['is_compliant'])
+                            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-white/20 text-white">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                                Compliant
+                            </span>
+                        @else
+                            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-white/20 text-white">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                Action Required
+                            </span>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            {{-- Activity Progress --}}
+            <div class="p-6">
+                <div class="grid gap-6 {{ $this->dedicatedType === 'both' ? 'md:grid-cols-2' : 'md:grid-cols-1' }}">
+                    {{-- Sport Shooter Activities --}}
+                    @if($this->dedicatedType === 'sport' || $this->dedicatedType === 'both')
+                    <div class="p-4 rounded-lg border {{ $this->complianceStatus['sport_compliant'] ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20' }}">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-5 h-5 {{ $this->complianceStatus['sport_compliant'] ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                <span class="font-semibold text-zinc-900 dark:text-white">Sport Shooting</span>
+                            </div>
+                            @if($this->complianceStatus['sport_compliant'])
+                                <span class="text-sm font-medium text-emerald-600 dark:text-emerald-400">Complete</span>
+                            @else
+                                <span class="text-sm font-medium text-amber-600 dark:text-amber-400">{{ $this->complianceStatus['required_sport'] - $this->complianceStatus['approved_count'] }} more needed</span>
+                            @endif
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="flex-1 bg-zinc-200 dark:bg-zinc-700 rounded-full h-3">
+                                <div class="h-3 rounded-full transition-all {{ $this->complianceStatus['sport_compliant'] ? 'bg-emerald-500' : 'bg-amber-500' }}" 
+                                    style="width: {{ min(100, ($this->complianceStatus['approved_count'] / $this->complianceStatus['required_sport']) * 100) }}%"></div>
+                            </div>
+                            <span class="text-sm font-bold {{ $this->complianceStatus['sport_compliant'] ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}">
+                                {{ $this->complianceStatus['approved_count'] }}/{{ $this->complianceStatus['required_sport'] }}
+                            </span>
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Hunter Activities --}}
+                    @if($this->dedicatedType === 'hunter' || $this->dedicatedType === 'both')
+                    <div class="p-4 rounded-lg border {{ $this->complianceStatus['hunter_compliant'] ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20' }}">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-5 h-5 {{ $this->complianceStatus['hunter_compliant'] ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span class="font-semibold text-zinc-900 dark:text-white">Hunting</span>
+                            </div>
+                            @if($this->complianceStatus['hunter_compliant'])
+                                <span class="text-sm font-medium text-emerald-600 dark:text-emerald-400">Complete</span>
+                            @else
+                                <span class="text-sm font-medium text-amber-600 dark:text-amber-400">{{ $this->complianceStatus['required_hunter'] - $this->complianceStatus['approved_count'] }} more needed</span>
+                            @endif
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="flex-1 bg-zinc-200 dark:bg-zinc-700 rounded-full h-3">
+                                <div class="h-3 rounded-full transition-all {{ $this->complianceStatus['hunter_compliant'] ? 'bg-emerald-500' : 'bg-amber-500' }}" 
+                                    style="width: {{ min(100, ($this->complianceStatus['approved_count'] / $this->complianceStatus['required_hunter']) * 100) }}%"></div>
+                            </div>
+                            <span class="text-sm font-bold {{ $this->complianceStatus['hunter_compliant'] ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}">
+                                {{ $this->complianceStatus['approved_count'] }}/{{ $this->complianceStatus['required_hunter'] }}
+                            </span>
+                        </div>
+                    </div>
+                    @endif
+                </div>
+
+                {{-- Deadline Notice --}}
+                <div class="mt-4 flex items-center justify-between pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                    <div class="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <span>NRAPA Submission Deadline: <strong>{{ $this->complianceStatus['deadline_date'] }}</strong></span>
+                    </div>
+                    @if(!$this->complianceStatus['is_past_deadline'])
+                        <span class="text-sm {{ $this->complianceStatus['days_until_deadline'] <= 30 ? 'text-amber-600 dark:text-amber-400 font-semibold' : 'text-zinc-500 dark:text-zinc-400' }}">
+                            {{ $this->complianceStatus['days_until_deadline'] }} days remaining
+                        </span>
+                    @else
+                        <span class="text-sm text-red-600 dark:text-red-400 font-semibold">
+                            Deadline passed
+                        </span>
+                    @endif
+                </div>
+
+                @if(!$this->complianceStatus['is_compliant'])
+                    <div class="mt-4">
+                        <a href="{{ route('activities.index') }}" wire:navigate
+                            class="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors text-sm font-medium">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Submit Activities
+                        </a>
+                    </div>
+                @endif
+            </div>
+        </div>
         @endif
     </div>
 
