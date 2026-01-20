@@ -138,6 +138,9 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     // Firearm Settings
     Route::livewire('firearm-settings', 'pages::admin.firearm-settings.index')->name('firearm-settings.index');
 
+    // Calibre Requests
+    Route::livewire('calibre-requests', 'pages::admin.calibre-requests.index')->name('calibre-requests.index');
+
     // Email Logs
     Route::livewire('email-logs', 'pages::admin.email-logs.index')->name('email-logs.index');
 

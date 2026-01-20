@@ -17,6 +17,10 @@ new class extends Component {
     public string $serial_number = '';
     public string $nickname = '';
 
+    // Category filters for calibre selector
+    public ?string $selectedCategory = null;
+    public ?string $selectedIgnition = null;
+
     // Barrel details
     public string $barrel_length = '';
     public string $barrel_twist = '';
@@ -43,6 +47,21 @@ new class extends Component {
     // File uploads
     public $firearm_image = null;
     public $license_document = null;
+
+    public function updatedFirearmTypeId($value): void
+    {
+        // Auto-set category filter based on firearm type
+        if ($value) {
+            $firearmType = FirearmType::find($value);
+            if ($firearmType) {
+                $this->selectedCategory = $firearmType->category;
+                $this->selectedIgnition = $firearmType->ignition_type !== 'both' ? $firearmType->ignition_type : null;
+            }
+        } else {
+            $this->selectedCategory = null;
+            $this->selectedIgnition = null;
+        }
+    }
 
     public function rules(): array
     {
@@ -108,15 +127,21 @@ new class extends Component {
 
         $firearm = UserFirearm::create($data);
 
-        session()->flash('success', 'Firearm added to your armoury successfully.');
+        session()->flash('success', 'Firearm added to your Virtual Safe successfully.');
         $this->redirect(route('armoury.show', $firearm), navigate: true);
     }
 
     public function with(): array
     {
+        // Get firearm types grouped by category
+        $firearmTypes = FirearmType::where('is_active', true)
+            ->ordered()
+            ->get()
+            ->groupBy('category');
+
         return [
-            'firearmTypes' => FirearmType::where('is_active', true)->orderBy('name')->get(),
-            'calibres' => Calibre::where('is_active', true)->orderBy('name')->get(),
+            'firearmTypesByCategory' => $firearmTypes,
+            'categoryLabels' => FirearmType::getCategoryOptions(),
             'licenseTypes' => UserFirearm::licenseTypes(),
         ];
     }
@@ -151,11 +176,15 @@ new class extends Component {
 
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Firearm Type</label>
-                    <select wire:model="firearm_type_id"
+                    <select wire:model.live="firearm_type_id"
                             class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
                         <option value="">Select type...</option>
-                        @foreach($firearmTypes as $type)
-                            <option value="{{ $type->id }}">{{ $type->name }}</option>
+                        @foreach($firearmTypesByCategory as $category => $types)
+                            <optgroup label="{{ $categoryLabels[$category] ?? ucfirst($category) }}">
+                                @foreach($types as $type)
+                                    <option value="{{ $type->id }}">{{ $type->name }}</option>
+                                @endforeach
+                            </optgroup>
                         @endforeach
                     </select>
                     @error('firearm_type_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
@@ -163,13 +192,11 @@ new class extends Component {
 
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Calibre</label>
-                    <select wire:model="calibre_id"
-                            class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
-                        <option value="">Select calibre...</option>
-                        @foreach($calibres as $calibre)
-                            <option value="{{ $calibre->id }}">{{ $calibre->name }}</option>
-                        @endforeach
-                    </select>
+                    <livewire:components.calibre-selector 
+                        wire:model="calibre_id"
+                        :category-filter="$selectedCategory"
+                        :ignition-filter="$selectedIgnition"
+                    />
                     @error('calibre_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
 

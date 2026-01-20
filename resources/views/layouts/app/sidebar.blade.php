@@ -130,6 +130,7 @@
                             $pendingDocs = 0;
                             $pendingMemberships = 0;
                             $pendingActivities = 0;
+                            $pendingCalibres = 0;
                             try {
                                 if (\Illuminate\Support\Facades\Schema::hasTable('member_documents')) {
                                     $pendingDocs = \App\Models\MemberDocument::where('status', 'pending')->count();
@@ -140,11 +141,14 @@
                                 if (\Illuminate\Support\Facades\Schema::hasTable('shooting_activities')) {
                                     $pendingActivities = \App\Models\ShootingActivity::where('status', 'pending')->count();
                                 }
+                                if (\Illuminate\Support\Facades\Schema::hasTable('calibre_requests')) {
+                                    $pendingCalibres = \App\Models\CalibreRequest::where('status', 'pending')->count();
+                                }
                             } catch (\Exception $e) {}
-                            $totalPending = $pendingDocs + $pendingMemberships + $pendingActivities;
+                            $totalPending = $pendingDocs + $pendingMemberships + $pendingActivities + $pendingCalibres;
                         @endphp
-                        <div x-data="{ open: {{ request()->routeIs('admin.approvals.*') || request()->routeIs('admin.documents.*') ? 'true' : 'false' }} }">
-                            <button @click="open = !open" class="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-sm font-medium rounded-lg {{ request()->routeIs('admin.approvals.*') || request()->routeIs('admin.documents.*') ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
+                        <div x-data="{ open: {{ request()->routeIs('admin.approvals.*') || request()->routeIs('admin.documents.*') || request()->routeIs('admin.calibre-requests.*') ? 'true' : 'false' }} }">
+                            <button @click="open = !open" class="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-sm font-medium rounded-lg {{ request()->routeIs('admin.approvals.*') || request()->routeIs('admin.documents.*') || request()->routeIs('admin.calibre-requests.*') ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
                                 <span class="flex items-center gap-3">
                                     <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                     Approvals
@@ -174,6 +178,12 @@
                                     Activities
                                     @if($pendingActivities > 0)
                                     <span class="px-1.5 py-0.5 text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded">{{ $pendingActivities }}</span>
+                                    @endif
+                                </a>
+                                <a href="{{ route('admin.calibre-requests.index') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center justify-between gap-3 px-3 py-2 text-sm rounded-lg {{ request()->routeIs('admin.calibre-requests.*') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
+                                    Calibres
+                                    @if($pendingCalibres > 0)
+                                    <span class="px-1.5 py-0.5 text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded">{{ $pendingCalibres }}</span>
                                     @endif
                                 </a>
                             </div>
