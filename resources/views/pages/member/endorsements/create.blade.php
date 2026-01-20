@@ -72,16 +72,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     public function mount(?EndorsementRequest $request = null): void
     {
         $user = auth()->user();
+        // Get eligibility summary for display (not for blocking)
         $this->eligibility = EndorsementRequest::getEligibilitySummary($user);
-
-        // Check eligibility for new requests
-        if (!$request || !$request->exists) {
-            if (!$this->eligibility['eligible']) {
-                session()->flash('error', 'You do not meet the requirements to request an endorsement letter. Please check the eligibility requirements.');
-                $this->redirect(route('member.endorsements.index'), navigate: true);
-                return;
-            }
-        }
 
         if ($request && $request->exists && $request->user_id === $user->id) {
             $this->editingRequest = $request->load(['firearm', 'components']);
