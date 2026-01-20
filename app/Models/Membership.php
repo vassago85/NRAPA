@@ -234,7 +234,7 @@ class Membership extends Model
      */
     public function allowsDedicatedStatus(): bool
     {
-        return $this->type->allows_dedicated_status;
+        return $this->type?->allows_dedicated_status ?? false;
     }
 
     // ===== State Transitions =====

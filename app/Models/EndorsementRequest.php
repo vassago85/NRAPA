@@ -200,7 +200,7 @@ class EndorsementRequest extends Model
         }
 
         // 4. Active membership check
-        $membership = $user->activeMembership();
+        $membership = $user->activeMembership;
         if (!$membership) {
             $errors[] = [
                 'type' => 'membership',
@@ -277,7 +277,7 @@ class EndorsementRequest extends Model
         $required = $minActivitiesSport;
 
         // Check if user's membership type indicates hunter
-        $membership = $user->activeMembership();
+        $membership = $user->activeMembership;
         if ($membership && $membership->type) {
             $dedicatedType = $membership->type->dedicated_type ?? null;
             if ($dedicatedType === 'hunter') {
