@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Calibre;
+use App\Models\CalibreRequest;
 use App\Models\EndorsementComponent;
 use App\Models\EndorsementFirearm;
 use App\Models\EndorsementRequest;
@@ -59,6 +60,14 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
 
     // Eligibility info
     public array $eligibility = [];
+
+    // Calibre request modal
+    public bool $showCalibreRequestModal = false;
+    public string $newCalibreName = '';
+    public string $newCalibreCategory = '';
+    public string $newCalibreIgnition = 'centerfire';
+    public string $newCalibreSapsCode = '';
+    public string $newCalibreReason = '';
 
     public function mount(?EndorsementRequest $request = null): void
     {
@@ -265,6 +274,69 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         } else {
             $this->calibreCode = '';
         }
+    }
+
+    // Open calibre request modal
+    public function openCalibreRequestModal(): void
+    {
+        $this->showCalibreRequestModal = true;
+        $this->newCalibreName = $this->calibreManual; // Pre-fill from manual entry
+        $this->newCalibreCategory = match($this->firearmCategory) {
+            'handgun' => 'handgun',
+            'rifle_manual', 'rifle_self_loading' => 'rifle',
+            'shotgun' => 'shotgun',
+            default => '',
+        };
+        $this->newCalibreIgnition = $this->ignitionType ?: 'centerfire';
+        $this->newCalibreSapsCode = '';
+        $this->newCalibreReason = '';
+    }
+
+    // Close calibre request modal
+    public function closeCalibreRequestModal(): void
+    {
+        $this->showCalibreRequestModal = false;
+        $this->resetCalibreRequestForm();
+    }
+
+    // Reset calibre request form
+    protected function resetCalibreRequestForm(): void
+    {
+        $this->newCalibreName = '';
+        $this->newCalibreCategory = '';
+        $this->newCalibreIgnition = 'centerfire';
+        $this->newCalibreSapsCode = '';
+        $this->newCalibreReason = '';
+    }
+
+    // Submit calibre request
+    public function submitCalibreRequest(): void
+    {
+        $this->validate([
+            'newCalibreName' => 'required|string|min:2|max:100',
+            'newCalibreCategory' => 'required|in:handgun,rifle,shotgun,other',
+            'newCalibreIgnition' => 'required|in:rimfire,centerfire',
+        ], [
+            'newCalibreName.required' => 'Please enter the calibre name.',
+            'newCalibreCategory.required' => 'Please select a category.',
+        ]);
+
+        CalibreRequest::create([
+            'user_id' => auth()->id(),
+            'name' => $this->newCalibreName,
+            'category' => $this->newCalibreCategory,
+            'ignition_type' => $this->newCalibreIgnition,
+            'saps_code' => $this->newCalibreSapsCode ?: null,
+            'reason' => $this->newCalibreReason ?: null,
+            'status' => CalibreRequest::STATUS_PENDING,
+        ]);
+
+        // Use the requested calibre name as manual entry
+        $this->calibreManual = $this->newCalibreName;
+        $this->calibreCode = $this->newCalibreSapsCode;
+
+        $this->closeCalibreRequestModal();
+        session()->flash('calibre_request_success', 'Calibre request submitted for admin approval. You can continue with your endorsement using the manual calibre entry.');
     }
 
     // Load from existing firearm
@@ -718,6 +790,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                         </div>
 
                         {{-- 1.3 & 1.4 Calibre --}}
+                        @if(session('calibre_request_success'))
+                            <div class="p-3 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg text-sm text-green-700 dark:text-green-300">
+                                {{ session('calibre_request_success') }}
+                            </div>
+                        @endif
                         <div class="grid gap-6 md:grid-cols-2">
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
@@ -730,8 +807,15 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                         <option value="{{ $cal->id }}">{{ $cal->name }}@if($cal->saps_code) ({{ $cal->saps_code }})@endif</option>
                                     @endforeach
                                 </select>
-                                <input type="text" wire:model="calibreManual" placeholder="Or enter manually if not listed" 
-                                    class="mt-2 w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                                <div class="mt-2 flex gap-2">
+                                    <input type="text" wire:model="calibreManual" placeholder="Or enter manually if not listed" 
+                                        class="flex-1 px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                                    <button type="button" wire:click="openCalibreRequestModal"
+                                        class="px-3 py-2 text-sm font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 dark:text-blue-300 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 rounded-lg transition-colors whitespace-nowrap">
+                                        Request New
+                                    </button>
+                                </div>
+                                <p class="mt-1 text-xs text-zinc-500">Can't find your calibre? Request it to be added.</p>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
@@ -1167,4 +1251,105 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             </div>
         </div>
     </div>
+
+    {{-- Calibre Request Modal --}}
+    @if($showCalibreRequestModal)
+    <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            {{-- Background overlay --}}
+            <div class="fixed inset-0 bg-zinc-500/75 dark:bg-zinc-900/75 transition-opacity" wire:click="closeCalibreRequestModal"></div>
+
+            {{-- Modal panel --}}
+            <div class="inline-block align-bottom bg-white dark:bg-zinc-800 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+                    <h3 class="text-lg font-semibold text-zinc-900 dark:text-white" id="modal-title">
+                        Request New Calibre
+                    </h3>
+                    <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                        Submit a request to add a calibre that's not in our list. An admin will review and approve it.
+                    </p>
+                </div>
+
+                <div class="px-6 py-4 space-y-4">
+                    {{-- Calibre Name --}}
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                            Calibre Name <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" wire:model="newCalibreName" 
+                            placeholder="e.g., 6.5 PRC, .300 PRC, 6mm ARC"
+                            class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                        @error('newCalibreName') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    {{-- Category --}}
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                            Category <span class="text-red-500">*</span>
+                        </label>
+                        <select wire:model="newCalibreCategory" 
+                            class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                            <option value="">Select category...</option>
+                            <option value="handgun">Handgun</option>
+                            <option value="rifle">Rifle</option>
+                            <option value="shotgun">Shotgun</option>
+                            <option value="other">Other</option>
+                        </select>
+                        @error('newCalibreCategory') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    {{-- Ignition Type --}}
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                            Ignition Type <span class="text-red-500">*</span>
+                        </label>
+                        <div class="flex gap-4">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" wire:model="newCalibreIgnition" value="centerfire" 
+                                    class="text-emerald-600 focus:ring-emerald-500">
+                                <span class="text-zinc-700 dark:text-zinc-300">Centerfire</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" wire:model="newCalibreIgnition" value="rimfire"
+                                    class="text-emerald-600 focus:ring-emerald-500">
+                                <span class="text-zinc-700 dark:text-zinc-300">Rimfire</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    {{-- SAPS Code (optional) --}}
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                            SAPS Code <span class="text-xs text-zinc-500">(Optional - if known)</span>
+                        </label>
+                        <input type="text" wire:model="newCalibreSapsCode" 
+                            placeholder="e.g., 65PRC"
+                            class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono uppercase">
+                    </div>
+
+                    {{-- Reason/Notes --}}
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                            Additional Notes <span class="text-xs text-zinc-500">(Optional)</span>
+                        </label>
+                        <textarea wire:model="newCalibreReason" rows="2"
+                            placeholder="Any additional information about this calibre..."
+                            class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white resize-none"></textarea>
+                    </div>
+                </div>
+
+                <div class="px-6 py-4 bg-zinc-50 dark:bg-zinc-900/50 border-t border-zinc-200 dark:border-zinc-700 flex justify-end gap-3">
+                    <button type="button" wire:click="closeCalibreRequestModal"
+                        class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="button" wire:click="submitCalibreRequest"
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                        Submit Request
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>

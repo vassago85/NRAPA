@@ -16,6 +16,8 @@ class CalibreRequest extends Model
         'name',
         'category',
         'ignition_type',
+        'saps_code',
+        'aliases',
         'reason',
         'status',
         'reviewed_by',
@@ -26,7 +28,9 @@ class CalibreRequest extends Model
 
     protected $casts = [
         'reviewed_at' => 'datetime',
+        'aliases' => 'array',
     ];
+
 
     /**
      * Get the user who submitted the request.
