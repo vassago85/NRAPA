@@ -57,8 +57,9 @@ new #[Title('Membership Types - Admin')] class extends Component {
         $this->showEditModal = true;
     }
 
-    public function openEditModal(MembershipType $type): void
+    public function openEditModal(int $typeId): void
     {
+        $type = MembershipType::findOrFail($typeId);
         $this->editingType = $type;
         $this->name = $type->name;
         $this->slug = $type->slug;
@@ -120,18 +121,21 @@ new #[Title('Membership Types - Admin')] class extends Component {
         $this->resetForm();
     }
 
-    public function toggleActive(MembershipType $type): void
+    public function toggleActive(int $typeId): void
     {
+        $type = MembershipType::findOrFail($typeId);
         $type->update(['is_active' => !$type->is_active]);
     }
 
-    public function toggleLanding(MembershipType $type): void
+    public function toggleLanding(int $typeId): void
     {
+        $type = MembershipType::findOrFail($typeId);
         $type->update(['display_on_landing' => !$type->display_on_landing]);
     }
 
-    public function setFeatured(MembershipType $type): void
+    public function setFeatured(int $typeId): void
     {
+        $type = MembershipType::findOrFail($typeId);
         // Unset all featured
         MembershipType::where('is_featured', true)->update(['is_featured' => false]);
         // Set this one
@@ -139,8 +143,9 @@ new #[Title('Membership Types - Admin')] class extends Component {
         session()->flash('success', "{$type->name} is now the featured membership.");
     }
 
-    public function moveUp(MembershipType $type): void
+    public function moveUp(int $typeId): void
     {
+        $type = MembershipType::findOrFail($typeId);
         $prev = MembershipType::where('sort_order', '<', $type->sort_order)
             ->orderBy('sort_order', 'desc')
             ->first();
@@ -152,8 +157,9 @@ new #[Title('Membership Types - Admin')] class extends Component {
         }
     }
 
-    public function moveDown(MembershipType $type): void
+    public function moveDown(int $typeId): void
     {
+        $type = MembershipType::findOrFail($typeId);
         $next = MembershipType::where('sort_order', '>', $type->sort_order)
             ->orderBy('sort_order', 'asc')
             ->first();
