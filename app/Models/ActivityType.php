@@ -61,11 +61,24 @@ class ActivityType extends Model
 
     /**
      * Scope to activity types for a specific dedicated type.
+     * Includes: null (general), matching type, and 'both'
      */
-    public function scopeForDedicatedType($query, string $dedicatedType)
+    public function scopeForDedicatedType($query, ?string $dedicatedType)
     {
+        if (!$dedicatedType) {
+            // No dedicated type - only show general activities
+            return $query->whereNull('dedicated_type');
+        }
+
+        if ($dedicatedType === 'both') {
+            // User has both - show all activity types
+            return $query;
+        }
+
+        // User has specific type - show general + their type + both
         return $query->where(function ($q) use ($dedicatedType) {
-            $q->where('dedicated_type', $dedicatedType)
+            $q->whereNull('dedicated_type')
+              ->orWhere('dedicated_type', $dedicatedType)
               ->orWhere('dedicated_type', 'both');
         });
     }

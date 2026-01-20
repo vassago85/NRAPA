@@ -80,8 +80,21 @@ new class extends Component {
             return;
         }
 
+        $user = auth()->user();
+
         // Set default country to South Africa
         $this->country_id = Country::where('code', 'ZA')->first()?->id;
+        
+        // Set default closest city from user's address
+        if ($user->physical_address) {
+            // Try to extract city from address (usually last part before postal code or country)
+            $addressParts = array_map('trim', explode(',', $user->physical_address));
+            if (count($addressParts) >= 2) {
+                // Usually format is: Street, Suburb, City, Province, Code
+                // Try to get the 3rd part (city) or 2nd-to-last
+                $this->closest_town_city = $addressParts[min(2, count($addressParts) - 2)] ?? $addressParts[1] ?? null;
+            }
+        }
         
         // Check for preselected firearm from query string
         $preselectedFirearm = request()->query('firearm');
@@ -97,9 +110,11 @@ new class extends Component {
             }
         }
         
-        // If user has no firearms in armoury, default to manual
+        // If user has firearms in armoury, default to armoury; otherwise manual
         $hasFirearms = UserFirearm::where('user_id', auth()->id())->active()->exists();
-        if (!$hasFirearms) {
+        if ($hasFirearms) {
+            $this->firearm_source = 'armoury';
+        } else {
             $this->firearm_source = 'manual';
         }
     }
@@ -235,17 +250,20 @@ new class extends Component {
         $dedicatedType = $user->activeMembership?->dedicated_type ?? null;
 
         return [
+            // Get all active activity types (hunting, sport shooting, etc.)
             'activityTypes' => ActivityType::active()
-                ->when($dedicatedType, fn($q) => $q->forDedicatedType($dedicatedType))
+                ->forDedicatedType($dedicatedType)
                 ->ordered()
                 ->get(),
+            // Get all active firearm types for manual entry
             'firearmTypes' => FirearmType::active()
-                ->when($dedicatedType, fn($q) => $q->forDedicatedType($dedicatedType))
+                ->forDedicatedType($dedicatedType)
                 ->ordered()
                 ->get(),
             'calibres' => Calibre::active()->ordered()->get(),
             'countries' => Country::active()->ordered()->get(),
             'provinces' => Province::active()->ordered()->get(),
+            // Get user's firearms from armoury
             'userFirearms' => UserFirearm::where('user_id', auth()->id())
                 ->active()
                 ->with(['firearmType', 'calibre'])
