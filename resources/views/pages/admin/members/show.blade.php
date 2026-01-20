@@ -3,7 +3,10 @@
 use App\Models\User;
 use App\Models\Membership;
 use App\Models\UserDeletionRequest;
+use App\Models\AccountResetLog;
+use App\Models\UserSecurityQuestion;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Password;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -13,6 +16,16 @@ new #[Title('Member Details - Admin')] class extends Component {
     public bool $showDeleteModal = false;
     public bool $showRequestDeleteModal = false;
     public string $deleteReason = '';
+    
+    // Account reset properties
+    public bool $showResetPasswordModal = false;
+    public bool $showReset2FAModal = false;
+    public string $resetNotes = '';
+    
+    // 2FA verification for members
+    public array $securityAnswers = [];
+    public bool $verificationPassed = false;
+    public ?string $verificationError = null;
 
     public function mount(User $user): void
     {
@@ -48,6 +61,139 @@ new #[Title('Member Details - Admin')] class extends Component {
     public function pendingDeletionRequest()
     {
         return $this->user->deletionRequests()->pending()->first();
+    }
+
+    #[Computed]
+    public function canResetPassword(): bool
+    {
+        return auth()->user()->canResetPasswordFor($this->user);
+    }
+
+    #[Computed]
+    public function canReset2FA(): bool
+    {
+        return auth()->user()->canReset2FAFor($this->user) && $this->user->has2FAEnabled();
+    }
+
+    #[Computed]
+    public function requiresVerification(): bool
+    {
+        // Only regular members require security question verification for 2FA reset
+        return $this->user->role === User::ROLE_MEMBER;
+    }
+
+    #[Computed]
+    public function userSecurityQuestions()
+    {
+        return $this->user->securityQuestions;
+    }
+
+    public function openResetPasswordModal(): void
+    {
+        $this->resetNotes = '';
+        $this->showResetPasswordModal = true;
+    }
+
+    public function openReset2FAModal(): void
+    {
+        $this->resetNotes = '';
+        $this->securityAnswers = [];
+        $this->verificationPassed = false;
+        $this->verificationError = null;
+        $this->showReset2FAModal = true;
+    }
+
+    public function sendPasswordReset(): void
+    {
+        if (!$this->canResetPassword) {
+            session()->flash('error', 'You do not have permission to reset this user\'s password.');
+            return;
+        }
+
+        // Send password reset email
+        $status = Password::sendResetLink(['email' => $this->user->email]);
+
+        // Log the action
+        AccountResetLog::create([
+            'user_id' => $this->user->id,
+            'reset_by' => auth()->id(),
+            'reset_type' => AccountResetLog::TYPE_PASSWORD,
+            'verification_passed' => true, // No verification needed for password reset
+            'notes' => $this->resetNotes ?: 'Password reset email sent via admin panel.',
+            'ip_address' => request()->ip(),
+        ]);
+
+        $this->showResetPasswordModal = false;
+        $this->resetNotes = '';
+
+        if ($status === Password::RESET_LINK_SENT) {
+            session()->flash('success', 'Password reset email has been sent to ' . $this->user->email);
+        } else {
+            session()->flash('warning', 'Password reset initiated. The user should check their email.');
+        }
+    }
+
+    public function verifySecurityAnswers(): void
+    {
+        $this->verificationError = null;
+        $questions = $this->userSecurityQuestions;
+        
+        if ($questions->count() < UserSecurityQuestion::REQUIRED_QUESTIONS) {
+            $this->verificationError = 'User has not set up security questions. Cannot verify identity.';
+            return;
+        }
+
+        $correctAnswers = 0;
+        foreach ($questions as $question) {
+            $answer = $this->securityAnswers[$question->id] ?? '';
+            if ($answer && $question->verifyAnswer($answer)) {
+                $correctAnswers++;
+            }
+        }
+
+        // Require all answers to be correct
+        if ($correctAnswers >= $questions->count()) {
+            $this->verificationPassed = true;
+        } else {
+            $this->verificationError = 'Security answers are incorrect. Please ask the user to verify their answers.';
+        }
+    }
+
+    public function reset2FA(): void
+    {
+        if (!$this->canReset2FA) {
+            session()->flash('error', 'You do not have permission to reset 2FA for this user.');
+            return;
+        }
+
+        // For members, require verification unless they have no security questions
+        if ($this->requiresVerification && $this->userSecurityQuestions->count() >= UserSecurityQuestion::REQUIRED_QUESTIONS) {
+            if (!$this->verificationPassed) {
+                session()->flash('error', 'You must verify the user\'s identity before resetting 2FA.');
+                return;
+            }
+        }
+
+        // Reset 2FA
+        $this->user->reset2FA();
+
+        // Log the action
+        AccountResetLog::create([
+            'user_id' => $this->user->id,
+            'reset_by' => auth()->id(),
+            'reset_type' => AccountResetLog::TYPE_2FA,
+            'verification_passed' => $this->verificationPassed || !$this->requiresVerification,
+            'notes' => $this->resetNotes ?: '2FA reset via admin panel.',
+            'ip_address' => request()->ip(),
+        ]);
+
+        $this->showReset2FAModal = false;
+        $this->resetNotes = '';
+        $this->securityAnswers = [];
+        $this->verificationPassed = false;
+        $this->user->refresh();
+
+        session()->flash('success', '2FA has been reset for ' . $this->user->name . '. They will need to set it up again on their next login.');
     }
 
     public function toggleAdmin(): void
@@ -156,10 +302,16 @@ new #[Title('Member Details - Admin')] class extends Component {
                 </div>
             </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
             @if($this->user->is_admin)
             <span class="inline-flex items-center rounded-full bg-purple-100 px-3 py-1 text-sm font-medium text-purple-800 dark:bg-purple-900 dark:text-purple-200">
                 Admin
+            </span>
+            @endif
+            
+            @if($this->user->has2FAEnabled())
+            <span class="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800 dark:bg-green-900 dark:text-green-200">
+                2FA Enabled
             </span>
             @endif
             
@@ -167,6 +319,25 @@ new #[Title('Member Details - Admin')] class extends Component {
             <span class="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">
                 Deletion Pending
             </span>
+            @endif
+
+            {{-- Account Reset Actions --}}
+            @if($this->canResetPassword)
+            <button wire:click="openResetPasswordModal" class="inline-flex items-center gap-1 rounded-lg border border-blue-300 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-700 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50 transition-colors">
+                <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                </svg>
+                Reset Password
+            </button>
+            @endif
+
+            @if($this->canReset2FA)
+            <button wire:click="openReset2FAModal" class="inline-flex items-center gap-1 rounded-lg border border-purple-300 bg-purple-50 px-3 py-1.5 text-sm font-medium text-purple-700 hover:bg-purple-100 dark:border-purple-700 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50 transition-colors">
+                <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
+                </svg>
+                Reset 2FA
+            </button>
             @endif
 
             @if($this->canDelete)
@@ -537,6 +708,171 @@ new #[Title('Member Details - Admin')] class extends Component {
                     <button wire:click="requestDeletion"
                         class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700">
                         Submit Request
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Reset Password Modal --}}
+    @if($showResetPasswordModal)
+    <div class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div wire:click="$set('showResetPasswordModal', false)" class="fixed inset-0 bg-black/50"></div>
+            <div class="relative w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-zinc-800">
+                <div class="mb-4 flex items-center gap-3">
+                    <div class="flex size-10 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/50">
+                        <svg class="size-5 text-blue-600 dark:text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Reset Password</h3>
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400">Send password reset email</p>
+                    </div>
+                </div>
+                
+                <p class="mb-4 text-zinc-600 dark:text-zinc-300">
+                    A password reset email will be sent to <strong>{{ $this->user->email }}</strong>. The user will receive a link to create a new password.
+                </p>
+
+                <div class="mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                    <p class="text-sm text-blue-700 dark:text-blue-300">
+                        <strong>Note:</strong> The user must have called in to verify their identity before sending this reset link.
+                    </p>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Notes (optional)</label>
+                    <textarea wire:model="resetNotes" rows="2" placeholder="Reason for password reset..."
+                        class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <button wire:click="$set('showResetPasswordModal', false)" 
+                        class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700">
+                        Cancel
+                    </button>
+                    <button wire:click="sendPasswordReset"
+                        class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                        Send Reset Email
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Reset 2FA Modal --}}
+    @if($showReset2FAModal)
+    <div class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div wire:click="$set('showReset2FAModal', false)" class="fixed inset-0 bg-black/50"></div>
+            <div class="relative w-full max-w-lg rounded-xl bg-white p-6 shadow-xl dark:bg-zinc-800">
+                <div class="mb-4 flex items-center gap-3">
+                    <div class="flex size-10 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/50">
+                        <svg class="size-5 text-purple-600 dark:text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Reset Two-Factor Authentication</h3>
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400">Remove 2FA from user account</p>
+                    </div>
+                </div>
+                
+                <p class="mb-4 text-zinc-600 dark:text-zinc-300">
+                    Resetting 2FA for <strong>{{ $this->user->name }}</strong> will disable their current authenticator. They will need to set up 2FA again.
+                </p>
+
+                @if($this->requiresVerification)
+                    {{-- Security Questions Verification for Members --}}
+                    @if($this->userSecurityQuestions->count() >= \App\Models\UserSecurityQuestion::REQUIRED_QUESTIONS)
+                        <div class="mb-4 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                            <h4 class="font-medium text-amber-800 dark:text-amber-200 mb-2">
+                                <svg class="inline size-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                                </svg>
+                                Identity Verification Required
+                            </h4>
+                            <p class="text-sm text-amber-700 dark:text-amber-300 mb-3">
+                                Ask the user to answer these security questions over the phone. Enter their answers below.
+                            </p>
+
+                            @if($verificationError)
+                                <div class="mb-3 p-2 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm">
+                                    {{ $verificationError }}
+                                </div>
+                            @endif
+
+                            @if($verificationPassed)
+                                <div class="mb-3 p-2 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm flex items-center gap-2">
+                                    <svg class="size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                                    </svg>
+                                    Identity verified successfully!
+                                </div>
+                            @else
+                                <div class="space-y-3">
+                                    @foreach($this->userSecurityQuestions as $question)
+                                        <div>
+                                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                                {{ $question->question }}
+                                            </label>
+                                            <input type="text" 
+                                                   wire:model="securityAnswers.{{ $question->id }}"
+                                                   placeholder="Enter user's answer..."
+                                                   class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                                        </div>
+                                    @endforeach
+                                </div>
+
+                                <button wire:click="verifySecurityAnswers" 
+                                        class="mt-3 w-full rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700">
+                                    Verify Answers
+                                </button>
+                            @endif
+                        </div>
+                    @else
+                        <div class="mb-4 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                            <h4 class="font-medium text-red-800 dark:text-red-200 mb-2">
+                                <svg class="inline size-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                                </svg>
+                                No Security Questions Set Up
+                            </h4>
+                            <p class="text-sm text-red-700 dark:text-red-300">
+                                This user has not set up security questions. You may proceed with the reset, but ensure you have verified their identity through other means (e.g., ID document, in-person verification).
+                            </p>
+                        </div>
+                    @endif
+                @else
+                    {{-- No verification needed for admins/owners --}}
+                    <div class="mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                        <p class="text-sm text-blue-700 dark:text-blue-300">
+                            <strong>Note:</strong> This user is an {{ $this->user->role_display_name }}. Security question verification is not required, but ensure you have confirmed their identity.
+                        </p>
+                    </div>
+                @endif
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Notes (optional)</label>
+                    <textarea wire:model="resetNotes" rows="2" placeholder="Reason for 2FA reset..."
+                        class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <button wire:click="$set('showReset2FAModal', false)" 
+                        class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700">
+                        Cancel
+                    </button>
+                    <button wire:click="reset2FA"
+                        @if($this->requiresVerification && $this->userSecurityQuestions->count() >= \App\Models\UserSecurityQuestion::REQUIRED_QUESTIONS && !$verificationPassed)
+                            disabled
+                        @endif
+                        class="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Reset 2FA
                     </button>
                 </div>
             </div>

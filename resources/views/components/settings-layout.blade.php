@@ -16,17 +16,19 @@
                    class="block px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('two-factor.show') ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
                     {{ __('Two-Factor Auth') }}
                 </a>
+                <a href="{{ route('security-questions.edit') }}" wire:navigate
+                   class="block px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('security-questions.edit') ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
+                    {{ __('Security Questions') }}
+                </a>
             @endif
             <a href="{{ route('appearance.edit') }}" wire:navigate
                class="block px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('appearance.edit') ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
                 {{ __('Appearance') }}
             </a>
-            @if(auth()->user()->hasRoleLevel(\App\Models\User::ROLE_ADMIN))
-                <a href="{{ route('notifications.edit') }}" wire:navigate
-                   class="block px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('notifications.edit') ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
-                    {{ __('Notifications') }}
-                </a>
-            @endif
+            <a href="{{ route('notifications.edit') }}" wire:navigate
+               class="block px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('notifications.edit') ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}">
+                {{ __('Notifications') }}
+            </a>
         </nav>
     </div>
 

@@ -697,4 +697,79 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         $this->update(['logins_without_2fa' => 0]);
     }
+
+    // ===== Security Questions & Account Reset =====
+
+    /**
+     * Get security questions for this user.
+     */
+    public function securityQuestions(): HasMany
+    {
+        return $this->hasMany(UserSecurityQuestion::class);
+    }
+
+    /**
+     * Get account reset logs for this user.
+     */
+    public function accountResetLogs(): HasMany
+    {
+        return $this->hasMany(AccountResetLog::class);
+    }
+
+    /**
+     * Check if user has set up security questions.
+     */
+    public function hasSecurityQuestions(): bool
+    {
+        return $this->securityQuestions()->count() >= UserSecurityQuestion::REQUIRED_QUESTIONS;
+    }
+
+    /**
+     * Check if current user can reset password for target user.
+     * Developer can reset: Owner, Admin, Member
+     * Owner can reset: Admin, Member
+     * Admin can reset: Member
+     */
+    public function canResetPasswordFor(User $targetUser): bool
+    {
+        if ($this->id === $targetUser->id) {
+            return false;
+        }
+
+        if ($this->isDeveloper()) {
+            return !$targetUser->isDeveloper();
+        }
+
+        if ($this->isOwner()) {
+            return !$targetUser->isDeveloper() && !$targetUser->isOwner();
+        }
+
+        if ($this->isAdmin()) {
+            return $targetUser->role === self::ROLE_MEMBER;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if current user can reset 2FA for target user.
+     * Same hierarchy as password reset.
+     */
+    public function canReset2FAFor(User $targetUser): bool
+    {
+        return $this->canResetPasswordFor($targetUser);
+    }
+
+    /**
+     * Reset 2FA for this user.
+     */
+    public function reset2FA(): void
+    {
+        $this->forceFill([
+            'two_factor_secret' => null,
+            'two_factor_recovery_codes' => null,
+            'two_factor_confirmed_at' => null,
+            'logins_without_2fa' => 0,
+        ])->save();
+    }
 }

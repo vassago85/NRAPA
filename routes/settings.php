@@ -13,6 +13,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('settings/password', 'pages::settings.password')->name('user-password.edit');
     Route::livewire('settings/appearance', 'pages::settings.appearance')->name('appearance.edit');
     Route::livewire('settings/notifications', 'pages::settings.notifications')->name('notifications.edit');
+    Route::livewire('settings/security-questions', 'pages::settings.security-questions')->name('security-questions.edit');
 
     Route::livewire('settings/two-factor', 'pages::settings.two-factor')
         ->middleware(
