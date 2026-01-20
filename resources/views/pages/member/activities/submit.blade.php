@@ -126,8 +126,15 @@ new class extends Component {
         $this->eventTypes = [];
 
         if ($value) {
+            // Get categories for this specific activity type OR categories that apply to both types
             $this->eventCategories = EventCategory::active()
-                ->where('activity_type_id', $value)
+                ->where(function ($query) use ($value) {
+                    $query->where('activity_type_id', $value)
+                          ->orWhere(function ($q) {
+                              $q->whereNull('activity_type_id')
+                                ->where('dedicated_type', 'both');
+                          });
+                })
                 ->ordered()
                 ->get()
                 ->toArray();
