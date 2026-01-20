@@ -290,10 +290,35 @@ new #[Title('Dashboard')] class extends Component {
                 </div>
             </div>
 
-            {{-- Action Link --}}
-            <div class="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-700">
+            {{-- Warning if activities not complete --}}
+            @if(!$this->endorsementEligibility['activities_met'])
+            <div class="mt-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                <div class="flex items-start gap-2">
+                    <svg class="size-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-amber-800 dark:text-amber-200">Activities Required</p>
+                        <p class="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                            Endorsement letters will not be issued until you have {{ $this->endorsementEligibility['activity_details']['required'] }} approved activities. 
+                            You currently have {{ $this->endorsementEligibility['activity_details']['approved_count'] }}.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            @endif
+
+            {{-- Action Buttons --}}
+            <div class="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-700 flex flex-col sm:flex-row gap-3">
+                <a href="{{ route('member.endorsements.create') }}" wire:navigate 
+                    class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors">
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Request Endorsement
+                </a>
                 <a href="{{ route('member.endorsements.index') }}" wire:navigate 
-                    class="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors">
+                    class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                     Manage Dedicated Status
                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
