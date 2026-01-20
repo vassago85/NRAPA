@@ -39,7 +39,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     public string $receiverSerialNumber = '';  // 1.11 Receiver serial number
     public string $receiverMake = '';          // 1.12 Receiver Make
     public string $serialNumber = '';          // Legacy serial (backward compat)
-    public string $licenceSection = '';
+    public string $licenceSection = 'section_16'; // Always Section 16 for dedicated endorsements
     public string $sapsReference = '';
     public ?int $existingFirearmId = null;
 
@@ -108,7 +108,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             $this->frameMake = $request->firearm->frame_make ?? '';
             $this->receiverSerialNumber = $request->firearm->receiver_serial_number ?? '';
             $this->receiverMake = $request->firearm->receiver_make ?? '';
-            $this->licenceSection = $request->firearm->licence_section ?? '';
+            $this->licenceSection = 'section_16'; // Always Section 16 for dedicated endorsements
             $this->sapsReference = $request->firearm->saps_reference ?? '';
             $this->existingFirearmId = $request->firearm->user_firearm_id;
         }
@@ -921,20 +921,17 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                             @endif
                         </div>
 
-                        {{-- Licence Information (for renewals) --}}
+                        {{-- Licence Information --}}
                         <div class="grid gap-6 md:grid-cols-2">
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Licence Section</label>
-                                <select wire:model="licenceSection" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                    <option value="">Select...</option>
-                                    @foreach($licenceSectionOptions as $value => $label)
-                                        <option value="{{ $value }}">{{ $label }}</option>
-                                    @endforeach
-                                </select>
+                                <input type="text" value="Section 16 - Dedicated Hunter/Sport Shooter" readonly disabled
+                                    class="w-full px-4 py-2 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 cursor-not-allowed">
+                                <p class="mt-1 text-xs text-zinc-500">Endorsement letters are for Section 16 licences only</p>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">SAPS/CFR Reference</label>
-                                <input type="text" wire:model="sapsReference" placeholder="Existing CFR reference number" 
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">SAPS/CFR Reference <span class="text-xs text-zinc-500">(Optional)</span></label>
+                                <input type="text" wire:model="sapsReference" placeholder="Existing CFR reference number (if renewal)" 
                                     class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono">
                             </div>
                         </div>
