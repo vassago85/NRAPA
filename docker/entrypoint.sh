@@ -1,5 +1,6 @@
 #!/bin/sh
 set -e
+# Build: 2026-01-20-v2 - Livewire cache directories fix
 
 echo "🚀 Starting NRAPA..."
 
