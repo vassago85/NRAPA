@@ -25,6 +25,7 @@ class Calibre extends Model
     protected $fillable = [
         'slug',
         'name',
+        'saps_code',  // Official SAPS CFR calibre code
         'category',
         'ignition_type',
         'aliases',

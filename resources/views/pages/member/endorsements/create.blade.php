@@ -251,6 +251,20 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         $this->actionType = '';
         $this->calibreId = null;
         $this->ignitionType = '';
+        $this->calibreCode = '';
+    }
+
+    // Calibre selected - auto-fill SAPS code if available
+    public function updatedCalibreId(): void
+    {
+        if ($this->calibreId) {
+            $calibre = Calibre::find($this->calibreId);
+            if ($calibre && $calibre->saps_code) {
+                $this->calibreCode = $calibre->saps_code;
+            }
+        } else {
+            $this->calibreCode = '';
+        }
     }
 
     // Load from existing firearm
@@ -710,10 +724,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                     Calibre / Gauge
                                     <span class="text-xs text-zinc-500">(1.3)</span>
                                 </label>
-                                <select wire:model="calibreId" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                                <select wire:model.live="calibreId" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
                                     <option value="">Select calibre...</option>
                                     @foreach($this->calibres as $cal)
-                                        <option value="{{ $cal->id }}">{{ $cal->name }}</option>
+                                        <option value="{{ $cal->id }}">{{ $cal->name }}@if($cal->saps_code) ({{ $cal->saps_code }})@endif</option>
                                     @endforeach
                                 </select>
                                 <input type="text" wire:model="calibreManual" placeholder="Or enter manually if not listed" 
@@ -722,10 +736,16 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                                     Calibre Code
-                                    <span class="text-xs text-zinc-500">(1.4 - Official SAPS code if known)</span>
+                                    <span class="text-xs text-zinc-500">(1.4 - Auto-filled from selection)</span>
                                 </label>
                                 <input type="text" wire:model="calibreCode" placeholder="e.g., 9PAR, 223REM" 
-                                    class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono uppercase">
+                                    class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono uppercase"
+                                    {{ $calibreId ? 'readonly' : '' }}>
+                                @if($calibreCode)
+                                    <p class="mt-1 text-xs text-emerald-600 dark:text-emerald-400">SAPS code auto-filled</p>
+                                @else
+                                    <p class="mt-1 text-xs text-zinc-500">Will auto-fill when calibre is selected, or enter manually</p>
+                                @endif
                             </div>
                         </div>
 
