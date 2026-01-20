@@ -300,20 +300,18 @@ class ShootingActivity extends Model
     }
 
     /**
-     * Scope to activities within a user's activity year.
+     * Scope to activities within the current activity year.
+     * Activity period is fixed: 1 January to 30 September (deadline 1 October).
      */
     public function scopeWithinActivityYear($query, User $user, ?int $year = null)
     {
-        $startMonth = $user->activity_period_start_month ?? 10; // Default October
         $year = $year ?? now()->year;
 
-        // If we're before the start month, use previous year as the start
-        if (now()->month < $startMonth) {
-            $year = $year - 1;
-        }
-
-        $startDate = Carbon::create($year, $startMonth, 1)->startOfDay();
-        $endDate = $startDate->copy()->addYear()->subDay()->endOfDay();
+        // Activity period runs 1 Jan - 30 Sep
+        // If we're in Oct-Dec, we're in the "submission grace period" for current year
+        // If we're in Jan-Sep, we're in the current activity period
+        $startDate = Carbon::create($year, 1, 1)->startOfDay();
+        $endDate = Carbon::create($year, 9, 30)->endOfDay();
 
         return $query->whereBetween('activity_date', [$startDate, $endDate]);
     }
@@ -321,25 +319,25 @@ class ShootingActivity extends Model
     // ===== Helpers =====
 
     /**
-     * Get the activity period boundaries for a user.
+     * Get the activity period boundaries.
+     * Fixed period: 1 January to 30 September (submissions due by 1 October).
      */
     public static function getActivityPeriod(User $user, ?int $year = null): array
     {
-        $startMonth = $user->activity_period_start_month ?? 10; // Default October
         $year = $year ?? now()->year;
 
-        // If we're before the start month, use previous year as the start
-        if (now()->month < $startMonth) {
-            $year = $year - 1;
-        }
-
-        $startDate = Carbon::create($year, $startMonth, 1)->startOfDay();
-        $endDate = $startDate->copy()->addYear()->subDay()->endOfDay();
+        // Activity period is 1 January to 30 September each year
+        // Deadline for submission is 1 October
+        $startDate = Carbon::create($year, 1, 1)->startOfDay();
+        $endDate = Carbon::create($year, 9, 30)->endOfDay();
+        $deadline = Carbon::create($year, 10, 1);
 
         return [
             'start' => $startDate,
             'end' => $endDate,
+            'deadline' => $deadline,
             'label' => $startDate->format('d M Y') . ' - ' . $endDate->format('d M Y'),
+            'deadline_label' => 'Submissions due by ' . $deadline->format('d M Y'),
         ];
     }
 

@@ -210,7 +210,7 @@ new class extends Component {
             'province_id' => $this->province_id,
             'closest_town_city' => $this->closest_town_city,
             'description' => $this->description,
-            'activity_year_month_start' => auth()->user()->activity_period_start_month,
+            'activity_year_month_start' => 1, // Fixed: January (activity period is 1 Jan - 30 Sep)
             'status' => 'pending',
         ]);
 

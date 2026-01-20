@@ -75,7 +75,9 @@ new class extends Component {
             <div>
                 <p class="font-medium text-blue-800 dark:text-blue-200">Current Activity Period</p>
                 <p class="text-sm text-blue-700 dark:text-blue-300">{{ $activityPeriod['label'] }}</p>
-                <a href="{{ route('profile.edit') }}" wire:navigate class="text-xs text-blue-600 dark:text-blue-400 hover:underline">Change start month in settings</a>
+                @if(isset($activityPeriod['deadline_label']))
+                    <p class="text-xs text-blue-600 dark:text-blue-400 mt-1">{{ $activityPeriod['deadline_label'] }}</p>
+                @endif
             </div>
         </div>
     </div>
