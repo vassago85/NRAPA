@@ -13,7 +13,8 @@ new class extends Component {
             ->first();
 
         return [
-            'membershipTypes' => MembershipType::active()->ordered()->get(),
+            // Show only memberships marked for landing page display (same as welcome page and dashboard)
+            'membershipTypes' => MembershipType::active()->displayOnLanding()->ordered()->get(),
             'existingMembership' => $existingMembership,
         ];
     }
@@ -93,65 +94,82 @@ new class extends Component {
             </div>
         @else
             <!-- Membership Packages Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @foreach($membershipTypes as $type)
-                    <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden flex flex-col {{ $type->slug === 'standard-annual' ? 'ring-2 ring-emerald-500' : '' }}">
-                        @if($type->slug === 'standard-annual')
-                            <div class="bg-emerald-500 text-white text-center py-1.5 text-sm font-medium">
-                                Most Popular
+                    <div class="relative rounded-xl border {{ $type->is_featured ? 'border-emerald-500 ring-2 ring-emerald-500' : 'border-zinc-200 dark:border-zinc-700' }} bg-white p-6 shadow-sm dark:bg-zinc-800">
+                        @if($type->is_featured)
+                            <div class="absolute -top-3 left-1/2 -translate-x-1/2 transform">
+                                <span class="inline-flex items-center rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-white">
+                                    Recommended
+                                </span>
                             </div>
                         @endif
-
-                        <div class="p-6 flex-1 flex flex-col">
-                            <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-2">{{ $type->name }}</h3>
-                            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4 flex-1">{{ $type->description }}</p>
-
-                            <div class="mb-4">
+                        
+                        <div class="mb-4">
+                            <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">{{ $type->name }}</h3>
+                            @if($type->dedicated_type)
+                                <span class="mt-1 inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                    {{ ucfirst($type->dedicated_type === 'both' ? 'Hunter & Sport Shooter' : ($type->dedicated_type === 'sport' ? 'Sport Shooter' : 'Hunter')) }}
+                                </span>
+                            @endif
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="flex items-baseline gap-1">
                                 <span class="text-3xl font-bold text-zinc-900 dark:text-white">R{{ number_format($type->price, 0) }}</span>
-                                @if($type->pricing_model === 'annual')
-                                    <span class="text-zinc-500 dark:text-zinc-400">/year</span>
-                                @elseif($type->pricing_model === 'once_off')
-                                    <span class="text-zinc-500 dark:text-zinc-400">/once-off</span>
+                                @if($type->duration_type === 'annual')
+                                    <span class="text-sm text-zinc-500 dark:text-zinc-400">/year</span>
+                                @elseif($type->duration_type === 'lifetime')
+                                    <span class="text-sm text-zinc-500 dark:text-zinc-400">once-off</span>
+                                @elseif($type->duration_months)
+                                    <span class="text-sm text-zinc-500 dark:text-zinc-400">/{{ $type->duration_months }}mo</span>
                                 @endif
                             </div>
-
-                            <ul class="space-y-2 mb-6 text-sm">
-                                <li class="flex items-center gap-2 text-zinc-600 dark:text-zinc-300">
-                                    <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                    @if($type->duration_type === 'lifetime')
-                                        Lifetime membership
-                                    @else
-                                        {{ $type->duration_months }} months validity
-                                    @endif
-                                </li>
-                                <li class="flex items-center gap-2 text-zinc-600 dark:text-zinc-300">
-                                    <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                    Membership certificates
-                                </li>
-                                @if($type->allows_dedicated_status)
-                                    <li class="flex items-center gap-2 text-zinc-600 dark:text-zinc-300">
-                                        <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                        Dedicated status eligible
-                                    </li>
-                                @else
-                                    <li class="flex items-center gap-2 text-zinc-400 dark:text-zinc-500">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                                        No dedicated status
-                                    </li>
-                                @endif
-                                @if($type->requires_knowledge_test)
-                                    <li class="flex items-center gap-2 text-zinc-600 dark:text-zinc-300">
-                                        <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                        Knowledge test access
-                                    </li>
-                                @endif
-                            </ul>
-
-                            <button wire:click="selectPackage({{ $type->id }})"
-                                    class="w-full py-2.5 px-4 font-medium rounded-lg transition-colors {{ $type->slug === 'standard-annual' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 text-zinc-900 dark:text-white' }}">
-                                Select Package
-                            </button>
+                            @if($type->admin_fee > 0)
+                                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                                    + R{{ number_format($type->admin_fee, 0) }} admin fee
+                                    <span class="font-medium">(Total: R{{ number_format($type->total_price, 0) }})</span>
+                                </p>
+                            @endif
                         </div>
+                        
+                        @if($type->description)
+                            <p class="mb-4 text-sm text-zinc-600 dark:text-zinc-400 line-clamp-3">{{ $type->description }}</p>
+                        @endif
+                        
+                        <ul class="mb-6 space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
+                            <li class="flex items-center gap-2">
+                                <svg class="h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                Virtual Safe access
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <svg class="h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                Virtual Loading Bench
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <svg class="h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                Learning Center
+                            </li>
+                            @if($type->allows_dedicated_status)
+                                <li class="flex items-center gap-2">
+                                    <svg class="h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                    Dedicated Status & Endorsements
+                                </li>
+                            @endif
+                        </ul>
+                        
+                        <button wire:click="selectPackage({{ $type->id }})"
+                                class="block w-full rounded-lg {{ $type->is_featured ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'border border-emerald-600 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-500 dark:text-emerald-400 dark:hover:bg-emerald-900/20' }} px-4 py-2.5 text-center text-sm font-semibold transition-colors">
+                            Select Membership
+                        </button>
                     </div>
                 @endforeach
             </div>
