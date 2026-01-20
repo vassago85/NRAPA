@@ -8,9 +8,98 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ============================================
+   2026 SaaS Design System - CSS Variables
+   ============================================ */
+
+:root {
+    /* Background & Surfaces */
+    --color-bg: 248 250 252;           /* slate-50 - calm tinted background */
+    --color-surface: 255 255 255;       /* white - card surfaces */
+    --color-surface-alt: 241 245 249;   /* slate-100 - alternate surface */
+    --color-surface-hover: 248 250 252; /* slate-50 */
+    
+    /* Text Colors */
+    --color-text: 15 23 42;             /* slate-900 */
+    --color-text-secondary: 71 85 105;  /* slate-500 */
+    --color-text-muted: 148 163 184;    /* slate-400 */
+    
+    /* Borders */
+    --color-border: 226 232 240;        /* slate-200 */
+    --color-border-hover: 203 213 225;  /* slate-300 */
+    
+    /* Brand Colors */
+    --color-brand: 16 185 129;          /* emerald-500 */
+    --color-brand-hover: 5 150 105;     /* emerald-600 */
+    --color-brand-muted: 209 250 229;   /* emerald-100 */
+    
+    /* Semantic Colors */
+    --color-success: 34 197 94;         /* green-500 */
+    --color-success-muted: 220 252 231; /* green-100 */
+    --color-warning: 245 158 11;        /* amber-500 */
+    --color-warning-muted: 254 243 199; /* amber-100 */
+    --color-danger: 239 68 68;          /* red-500 */
+    --color-danger-muted: 254 226 226;  /* red-100 */
+    --color-info: 59 130 246;           /* blue-500 */
+    --color-info-muted: 219 234 254;    /* blue-100 */
+    
+    /* Ring/Focus */
+    --color-ring: 16 185 129;           /* emerald-500 */
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.03);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.03);
+}
+
+.dark {
+    /* Background & Surfaces */
+    --color-bg: 15 23 42;               /* slate-900 */
+    --color-surface: 30 41 59;          /* slate-800 */
+    --color-surface-alt: 51 65 85;      /* slate-700 */
+    --color-surface-hover: 51 65 85;    /* slate-700 */
+    
+    /* Text Colors - ALL LIGHT in dark mode */
+    --color-text: 248 250 252;          /* slate-50 */
+    --color-text-secondary: 203 213 225;/* slate-300 */
+    --color-text-muted: 148 163 184;    /* slate-400 */
+    
+    /* Borders */
+    --color-border: 51 65 85;           /* slate-700 */
+    --color-border-hover: 71 85 105;    /* slate-600 */
+    
+    /* Brand Colors */
+    --color-brand: 52 211 153;          /* emerald-400 */
+    --color-brand-hover: 16 185 129;    /* emerald-500 */
+    --color-brand-muted: 6 78 59;       /* emerald-900 */
+    
+    /* Semantic Colors */
+    --color-success: 74 222 128;        /* green-400 */
+    --color-success-muted: 20 83 45;    /* green-900 */
+    --color-warning: 251 191 36;        /* amber-400 */
+    --color-warning-muted: 120 53 15;   /* amber-900 */
+    --color-danger: 248 113 113;        /* red-400 */
+    --color-danger-muted: 127 29 29;    /* red-900 */
+    --color-info: 96 165 250;           /* blue-400 */
+    --color-info-muted: 30 58 138;      /* blue-900 */
+    
+    /* Ring/Focus */
+    --color-ring: 52 211 153;           /* emerald-400 */
+    
+    /* Shadows - subtle in dark mode */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.2);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.2);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.2);
+}
+
+/* ============================================
+   Tailwind Theme Extension
+   ============================================ */
+
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
+    /* Zinc scale for backward compatibility */
     --color-zinc-50: #fafafa;
     --color-zinc-100: #f5f5f5;
     --color-zinc-200: #e5e5e5;
@@ -37,30 +126,547 @@
 }
 
 @layer base {
-
     *,
     ::after,
     ::before,
     ::backdrop,
     ::file-selector-button {
-        border-color: var(--color-gray-200, currentColor);
+        border-color: rgb(var(--color-border));
+    }
+    
+    body {
+        @apply antialiased;
+        color: rgb(var(--color-text));
+        background-color: rgb(var(--color-bg));
     }
 }
+
+/* ============================================
+   Component Layer - 2026 SaaS Primitives
+   ============================================ */
+
+@layer components {
+    /* App Shell */
+    .app-shell {
+        @apply min-h-screen;
+        background-color: rgb(var(--color-bg));
+    }
+    
+    .app-container {
+        @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    }
+
+    /* Sidebar */
+    .sidebar {
+        background-color: rgb(var(--color-surface));
+        border-color: rgb(var(--color-border));
+        @apply fixed inset-y-0 left-0 z-50 w-72 flex flex-col border-r transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:w-64 lg:flex-shrink-0;
+    }
+    
+    .sidebar-header {
+        @apply flex items-center justify-between h-16 px-5 border-b flex-shrink-0;
+        border-color: rgb(var(--color-border));
+    }
+    
+    .sidebar-nav {
+        @apply flex-1 px-3 py-6 space-y-1 overflow-y-auto;
+    }
+    
+    .sidebar-footer {
+        @apply p-4 flex-shrink-0 border-t;
+        border-color: rgb(var(--color-border));
+    }
+
+    /* Navigation */
+    .nav-section {
+        @apply px-3 mb-3 text-[11px] font-semibold uppercase tracking-widest;
+        color: rgb(var(--color-text-muted));
+    }
+    
+    .nav-section-brand {
+        color: rgb(var(--color-brand));
+    }
+    
+    .nav-link {
+        @apply flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-150;
+        color: rgb(var(--color-text-secondary));
+    }
+    
+    .nav-link:hover {
+        background-color: rgb(var(--color-surface-alt));
+        color: rgb(var(--color-text));
+    }
+    
+    .nav-link-active {
+        @apply flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-xl;
+        background-color: rgb(var(--color-brand-muted));
+        color: rgb(var(--color-brand));
+    }
+    
+    .nav-link-icon {
+        @apply w-5 h-5 flex-shrink-0 opacity-70;
+    }
+    
+    .nav-link-active .nav-link-icon {
+        @apply opacity-100;
+    }
+
+    /* Topbar */
+    .topbar {
+        @apply sticky top-0 z-30 flex items-center justify-between h-16 px-4 border-b backdrop-blur-xl;
+        background-color: rgb(var(--color-surface) / 0.8);
+        border-color: rgb(var(--color-border));
+    }
+    
+    .topbar-title {
+        @apply text-lg font-semibold;
+        color: rgb(var(--color-text));
+    }
+
+    /* Cards */
+    .card {
+        @apply rounded-2xl p-6;
+        background-color: rgb(var(--color-surface));
+        border: 1px solid rgb(var(--color-border));
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .card-hover:hover {
+        box-shadow: var(--shadow-md);
+        border-color: rgb(var(--color-border-hover));
+    }
+    
+    .card-header {
+        @apply flex items-center justify-between pb-4 mb-4 border-b;
+        border-color: rgb(var(--color-border));
+    }
+    
+    .card-title {
+        @apply text-base font-semibold;
+        color: rgb(var(--color-text));
+    }
+    
+    .card-subtitle {
+        @apply text-sm mt-1;
+        color: rgb(var(--color-text-secondary));
+    }
+    
+    .card-body {
+        @apply space-y-4;
+    }
+    
+    .card-footer {
+        @apply flex items-center justify-end gap-3 pt-4 mt-4 border-t;
+        border-color: rgb(var(--color-border));
+    }
+
+    /* KPI / Stats Cards */
+    .kpi {
+        @apply rounded-2xl p-5;
+        background-color: rgb(var(--color-surface));
+        border: 1px solid rgb(var(--color-border));
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .kpi-icon {
+        @apply w-10 h-10 rounded-xl flex items-center justify-center mb-3;
+    }
+    
+    .kpi-label {
+        @apply text-xs font-medium uppercase tracking-wide mb-1;
+        color: rgb(var(--color-text-muted));
+    }
+    
+    .kpi-value {
+        @apply text-2xl font-bold;
+        color: rgb(var(--color-text));
+    }
+    
+    .kpi-change {
+        @apply text-xs font-medium mt-1;
+    }
+    
+    .kpi-change-positive {
+        color: rgb(var(--color-success));
+    }
+    
+    .kpi-change-negative {
+        color: rgb(var(--color-danger));
+    }
+
+    /* Buttons */
+    .btn {
+        @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2;
+        --tw-ring-color: rgb(var(--color-ring));
+    }
+    
+    .btn-sm {
+        @apply px-3 py-1.5 text-xs rounded-lg;
+    }
+    
+    .btn-lg {
+        @apply px-6 py-3 text-base rounded-xl;
+    }
+    
+    .btn-primary {
+        @apply btn;
+        background-color: rgb(var(--color-brand));
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background-color: rgb(var(--color-brand-hover));
+    }
+    
+    .btn-secondary {
+        @apply btn;
+        background-color: rgb(var(--color-surface-alt));
+        color: rgb(var(--color-text));
+        border: 1px solid rgb(var(--color-border));
+    }
+    
+    .btn-secondary:hover {
+        background-color: rgb(var(--color-surface-hover));
+        border-color: rgb(var(--color-border-hover));
+    }
+    
+    .btn-ghost {
+        @apply btn;
+        background-color: transparent;
+        color: rgb(var(--color-text-secondary));
+    }
+    
+    .btn-ghost:hover {
+        background-color: rgb(var(--color-surface-alt));
+        color: rgb(var(--color-text));
+    }
+    
+    .btn-danger {
+        @apply btn;
+        background-color: rgb(var(--color-danger));
+        color: white;
+    }
+    
+    .btn-danger:hover {
+        background-color: rgb(220 38 38); /* red-600 */
+    }
+
+    /* Badges */
+    .badge {
+        @apply inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full;
+    }
+    
+    .badge-default {
+        background-color: rgb(var(--color-surface-alt));
+        color: rgb(var(--color-text-secondary));
+    }
+    
+    .badge-brand {
+        background-color: rgb(var(--color-brand-muted));
+        color: rgb(var(--color-brand));
+    }
+    
+    .badge-success {
+        background-color: rgb(var(--color-success-muted));
+        color: rgb(var(--color-success));
+    }
+    
+    .badge-warning {
+        background-color: rgb(var(--color-warning-muted));
+        color: rgb(var(--color-warning));
+    }
+    
+    .badge-danger {
+        background-color: rgb(var(--color-danger-muted));
+        color: rgb(var(--color-danger));
+    }
+    
+    .badge-info {
+        background-color: rgb(var(--color-info-muted));
+        color: rgb(var(--color-info));
+    }
+
+    /* Alerts */
+    .alert {
+        @apply rounded-2xl p-4 flex items-start gap-4;
+    }
+    
+    .alert-icon {
+        @apply w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0;
+    }
+    
+    .alert-content {
+        @apply flex-1 min-w-0;
+    }
+    
+    .alert-title {
+        @apply font-semibold;
+    }
+    
+    .alert-description {
+        @apply text-sm mt-1 opacity-90;
+    }
+    
+    .alert-info {
+        background-color: rgb(var(--color-info-muted));
+        border: 1px solid rgb(var(--color-info) / 0.2);
+    }
+    
+    .alert-info .alert-icon {
+        background-color: rgb(var(--color-info) / 0.2);
+        color: rgb(var(--color-info));
+    }
+    
+    .alert-info .alert-title,
+    .alert-info .alert-description {
+        color: rgb(var(--color-info));
+    }
+    
+    .alert-warning {
+        background-color: rgb(var(--color-warning-muted));
+        border: 1px solid rgb(var(--color-warning) / 0.2);
+    }
+    
+    .alert-warning .alert-icon {
+        background-color: rgb(var(--color-warning) / 0.2);
+        color: rgb(var(--color-warning));
+    }
+    
+    .alert-warning .alert-title,
+    .alert-warning .alert-description {
+        color: rgb(var(--color-warning));
+    }
+    
+    .alert-success {
+        background-color: rgb(var(--color-success-muted));
+        border: 1px solid rgb(var(--color-success) / 0.2);
+    }
+    
+    .alert-success .alert-icon {
+        background-color: rgb(var(--color-success) / 0.2);
+        color: rgb(var(--color-success));
+    }
+    
+    .alert-success .alert-title,
+    .alert-success .alert-description {
+        color: rgb(var(--color-success));
+    }
+    
+    .alert-danger {
+        background-color: rgb(var(--color-danger-muted));
+        border: 1px solid rgb(var(--color-danger) / 0.2);
+    }
+    
+    .alert-danger .alert-icon {
+        background-color: rgb(var(--color-danger) / 0.2);
+        color: rgb(var(--color-danger));
+    }
+    
+    .alert-danger .alert-title,
+    .alert-danger .alert-description {
+        color: rgb(var(--color-danger));
+    }
+
+    /* Tables */
+    .table-container {
+        @apply rounded-2xl overflow-hidden;
+        background-color: rgb(var(--color-surface));
+        border: 1px solid rgb(var(--color-border));
+    }
+    
+    .table {
+        @apply w-full text-sm;
+    }
+    
+    .table thead {
+        background-color: rgb(var(--color-surface-alt));
+    }
+    
+    .table th {
+        @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide;
+        color: rgb(var(--color-text-muted));
+    }
+    
+    .table td {
+        @apply px-4 py-4;
+        color: rgb(var(--color-text));
+        border-top: 1px solid rgb(var(--color-border));
+    }
+    
+    .table tbody tr:hover {
+        background-color: rgb(var(--color-surface-alt) / 0.5);
+    }
+
+    /* Form Inputs */
+    .input {
+        @apply w-full px-4 py-2.5 text-sm rounded-xl transition-all duration-150;
+        background-color: rgb(var(--color-surface));
+        border: 1px solid rgb(var(--color-border));
+        color: rgb(var(--color-text));
+    }
+    
+    .input::placeholder {
+        color: rgb(var(--color-text-muted));
+    }
+    
+    .input:hover {
+        border-color: rgb(var(--color-border-hover));
+    }
+    
+    .input:focus {
+        @apply outline-none ring-2;
+        --tw-ring-color: rgb(var(--color-ring) / 0.3);
+        border-color: rgb(var(--color-brand));
+    }
+    
+    .label {
+        @apply block text-sm font-medium mb-2;
+        color: rgb(var(--color-text));
+    }
+    
+    .hint {
+        @apply text-xs mt-1.5;
+        color: rgb(var(--color-text-muted));
+    }
+
+    /* Avatar */
+    .avatar {
+        @apply w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold;
+        background-color: rgb(var(--color-brand));
+        color: white;
+    }
+    
+    .avatar-sm {
+        @apply w-8 h-8 text-xs;
+    }
+    
+    .avatar-lg {
+        @apply w-12 h-12 text-base;
+    }
+
+    /* Divider */
+    .divider {
+        @apply border-t my-6;
+        border-color: rgb(var(--color-border));
+    }
+
+    /* Page Header */
+    .page-header {
+        @apply mb-8;
+    }
+    
+    .page-title {
+        @apply text-2xl font-bold tracking-tight;
+        color: rgb(var(--color-text));
+    }
+    
+    .page-subtitle {
+        @apply text-sm mt-2;
+        color: rgb(var(--color-text-secondary));
+    }
+
+    /* Empty State */
+    .empty-state {
+        @apply py-16 text-center;
+    }
+    
+    .empty-state-icon {
+        @apply w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center;
+        background-color: rgb(var(--color-surface-alt));
+        color: rgb(var(--color-text-muted));
+    }
+    
+    .empty-state-title {
+        @apply text-lg font-semibold mb-2;
+        color: rgb(var(--color-text));
+    }
+    
+    .empty-state-description {
+        @apply text-sm max-w-sm mx-auto;
+        color: rgb(var(--color-text-secondary));
+    }
+
+    /* Dropdown Menu */
+    .dropdown-menu {
+        @apply rounded-xl py-1 min-w-[200px];
+        background-color: rgb(var(--color-surface));
+        border: 1px solid rgb(var(--color-border));
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .dropdown-item {
+        @apply flex items-center gap-3 px-4 py-2.5 text-sm transition-colors;
+        color: rgb(var(--color-text-secondary));
+    }
+    
+    .dropdown-item:hover {
+        background-color: rgb(var(--color-surface-alt));
+        color: rgb(var(--color-text));
+    }
+    
+    .dropdown-divider {
+        @apply my-1;
+        border-top: 1px solid rgb(var(--color-border));
+    }
+}
+
+/* ============================================
+   Flux UI Overrides
+   ============================================ */
 
 [data-flux-field]:not(ui-radio, ui-checkbox) {
     @apply grid gap-2;
 }
 
 [data-flux-label] {
-    @apply  !mb-0 !leading-tight;
+    @apply !mb-0 !leading-tight;
 }
 
 input:focus[data-flux-control],
 textarea:focus[data-flux-control],
 select:focus[data-flux-control] {
-    @apply outline-hidden ring-2 ring-accent ring-offset-2 ring-offset-accent-foreground;
+    @apply outline-hidden ring-2 ring-offset-2;
+    --tw-ring-color: rgb(var(--color-ring));
 }
 
-/* \[:where(&)\]:size-4 {
-    @apply size-4;
-} */
+/* ============================================
+   Theme Toggle Button
+   ============================================ */
+
+.theme-toggle {
+    @apply p-2 rounded-xl transition-colors;
+    color: rgb(var(--color-text-secondary));
+}
+
+.theme-toggle:hover {
+    background-color: rgb(var(--color-surface-alt));
+    color: rgb(var(--color-text));
+}
+
+/* ============================================
+   Scrollbar Styling
+   ============================================ */
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: rgb(var(--color-border));
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(var(--color-border-hover));
+}
+
+/* Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--color-border)) transparent;
+}
