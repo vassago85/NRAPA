@@ -6,6 +6,60 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
+// Dev/Test Quick Login Routes (only available in non-production)
+if (app()->environment('local', 'development', 'testing')) {
+    Route::get('/dev/login/{role}', function (string $role) {
+        $validRoles = ['developer', 'owner', 'admin', 'member'];
+        
+        if (!in_array($role, $validRoles)) {
+            abort(404);
+        }
+        
+        // Find or create a test user for this role
+        $user = \App\Models\User::where('email', "test-{$role}@nrapa.dev")->first();
+        
+        if (!$user) {
+            $user = \App\Models\User::create([
+                'name' => ucfirst($role) . ' Test User',
+                'email' => "test-{$role}@nrapa.dev",
+                'password' => bcrypt('password'),
+                'email_verified_at' => now(),
+                'role' => $role,
+                'id_number' => '000000000000' . array_search($role, $validRoles),
+                'phone' => '0000000000',
+                'date_of_birth' => now()->subYears(30),
+                'physical_address' => 'Test Address',
+                'postal_address' => 'Test Address',
+            ]);
+            
+            // Create an active membership for the member test user
+            if ($role === 'member') {
+                $membershipType = \App\Models\MembershipType::where('is_active', true)->first();
+                if ($membershipType) {
+                    \App\Models\UserMembership::create([
+                        'user_id' => $user->id,
+                        'membership_type_id' => $membershipType->id,
+                        'status' => 'active',
+                        'starts_at' => now(),
+                        'expires_at' => now()->addYear(),
+                        'amount_paid' => $membershipType->price,
+                    ]);
+                }
+            }
+        }
+        
+        auth()->login($user);
+        
+        // Redirect based on role
+        return match($role) {
+            'developer' => redirect()->route('developer.dashboard'),
+            'owner' => redirect()->route('owner.dashboard'),
+            'admin' => redirect()->route('admin.members.index'),
+            default => redirect()->route('dashboard'),
+        };
+    })->name('dev.login');
+}
+
 // Member Portal Routes - Available to all authenticated users (including free members)
 Route::middleware(['auth', 'verified'])->group(function () {
     // Dashboard - Always accessible
