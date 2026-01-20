@@ -258,13 +258,14 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     // Calibre selected - auto-fill SAPS code if available
     public function updatedCalibreId(): void
     {
+        // Always clear the calibre code first to avoid stale data
+        $this->calibreCode = '';
+        
         if ($this->calibreId) {
             $calibre = Calibre::find($this->calibreId);
             if ($calibre && $calibre->saps_code) {
                 $this->calibreCode = $calibre->saps_code;
             }
-        } else {
-            $this->calibreCode = '';
         }
     }
 
