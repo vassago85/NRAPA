@@ -359,7 +359,7 @@ new class extends Component {
             </a>
             <button type="submit"
                     class="rounded-lg bg-emerald-600 px-6 py-2 text-sm font-medium text-white hover:bg-emerald-700">
-                Add to Armoury
+                Add to Virtual Safe
             </button>
         </div>
     </form>

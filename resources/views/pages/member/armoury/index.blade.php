@@ -93,7 +93,7 @@ new class extends Component {
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <div>
-                <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">My Armoury</h1>
+                <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Virtual Safe</h1>
                 <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Manage your firearms, licenses, and track expiry dates</p>
             </div>
             <a href="{{ route('armoury.create') }}" wire:navigate
