@@ -78,10 +78,27 @@ new #[Title('Dashboard')] class extends Component {
     }
 
     #[Computed]
+    public function hasDedicatedMembership(): bool
+    {
+        // Check if user has active membership that allows dedicated status
+        // Either by allows_dedicated_status flag OR by having a dedicated_type set
+        if (!$this->activeMembership) {
+            return false;
+        }
+        
+        $type = $this->activeMembership->type;
+        if (!$type) {
+            return false;
+        }
+        
+        return $type->allows_dedicated_status || !empty($type->dedicated_type);
+    }
+
+    #[Computed]
     public function endorsementEligibility()
     {
         // Only show endorsement eligibility for active members with dedicated status
-        if (!$this->activeMembership || !$this->activeMembership->allowsDedicatedStatus()) {
+        if (!$this->hasDedicatedMembership) {
             return null;
         }
 
@@ -92,7 +109,7 @@ new #[Title('Dashboard')] class extends Component {
     public function showEndorsementStatus(): bool
     {
         // Show endorsement status section for all users with dedicated status membership
-        return $this->endorsementEligibility !== null;
+        return $this->hasDedicatedMembership;
     }
 
     #[Computed]
@@ -162,6 +179,14 @@ new #[Title('Dashboard')] class extends Component {
 
         {{-- Dedicated Status Progress Card --}}
         @if($this->showEndorsementStatus)
+        @php
+            $eligibility = $this->endorsementEligibility;
+            $knowledgeTestPassed = $eligibility['knowledge_test_passed'] ?? false;
+            $documentsComplete = $eligibility['documents_complete'] ?? false;
+            $activitiesMet = $eligibility['activities_met'] ?? false;
+            $approvedCount = $eligibility['activity_details']['approved_count'] ?? 0;
+            $requiredCount = $eligibility['activity_details']['required'] ?? 2;
+        @endphp
         <div class="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-800">
             {{-- Header --}}
             <div class="flex items-start gap-3 mb-4">
@@ -202,7 +227,7 @@ new #[Title('Dashboard')] class extends Component {
                         <svg class="size-5 text-zinc-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
                         </svg>
-                        @if($this->endorsementEligibility['knowledge_test_passed'])
+                        @if($knowledgeTestPassed)
                             <span class="text-sm text-zinc-700 dark:text-zinc-300">Knowledge Test</span>
                         @else
                             <a href="{{ route('knowledge-test.index') }}" wire:navigate class="text-sm text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:underline">
@@ -210,7 +235,7 @@ new #[Title('Dashboard')] class extends Component {
                             </a>
                         @endif
                     </div>
-                    @if($this->endorsementEligibility['knowledge_test_passed'])
+                    @if($knowledgeTestPassed)
                         <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
                             <svg class="size-3" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
@@ -233,7 +258,7 @@ new #[Title('Dashboard')] class extends Component {
                         <svg class="size-5 text-zinc-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                         </svg>
-                        @if($this->endorsementEligibility['documents_complete'])
+                        @if($documentsComplete)
                             <span class="text-sm text-zinc-700 dark:text-zinc-300">Required Documents</span>
                         @else
                             <a href="{{ route('documents.index') }}" wire:navigate class="text-sm text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:underline">
@@ -241,7 +266,7 @@ new #[Title('Dashboard')] class extends Component {
                             </a>
                         @endif
                     </div>
-                    @if($this->endorsementEligibility['documents_complete'])
+                    @if($documentsComplete)
                         <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
                             <svg class="size-3" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
@@ -264,7 +289,7 @@ new #[Title('Dashboard')] class extends Component {
                         <svg class="size-5 text-zinc-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                         </svg>
-                        @if($this->endorsementEligibility['activities_met'])
+                        @if($activitiesMet)
                             <span class="text-sm text-zinc-700 dark:text-zinc-300">Shooting Activities</span>
                         @else
                             <a href="{{ route('activities.index') }}" wire:navigate class="text-sm text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:underline">
@@ -272,26 +297,26 @@ new #[Title('Dashboard')] class extends Component {
                             </a>
                         @endif
                     </div>
-                    @if($this->endorsementEligibility['activities_met'])
+                    @if($activitiesMet)
                         <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
                             <svg class="size-3" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                             </svg>
-                            {{ $this->endorsementEligibility['activity_details']['approved_count'] }}/{{ $this->endorsementEligibility['activity_details']['required'] }}
+                            {{ $approvedCount }}/{{ $requiredCount }}
                         </span>
                     @else
                         <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/40 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300">
                             <svg class="size-3" fill="currentColor" viewBox="0 0 8 8">
                                 <circle cx="4" cy="4" r="3"/>
                             </svg>
-                            {{ $this->endorsementEligibility['activity_details']['approved_count'] }}/{{ $this->endorsementEligibility['activity_details']['required'] }}
+                            {{ $approvedCount }}/{{ $requiredCount }}
                         </span>
                     @endif
                 </div>
             </div>
 
             {{-- Warning if activities not complete --}}
-            @if(!$this->endorsementEligibility['activities_met'])
+            @if(!$activitiesMet)
             <div class="mt-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
                 <div class="flex items-start gap-2">
                     <svg class="size-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -300,8 +325,8 @@ new #[Title('Dashboard')] class extends Component {
                     <div class="flex-1">
                         <p class="text-sm font-medium text-amber-800 dark:text-amber-200">Activities Required</p>
                         <p class="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
-                            Endorsement letters will not be issued until you have {{ $this->endorsementEligibility['activity_details']['required'] }} approved activities. 
-                            You currently have {{ $this->endorsementEligibility['activity_details']['approved_count'] }}.
+                            Endorsement letters will not be issued until you have {{ $requiredCount }} approved activities. 
+                            You currently have {{ $approvedCount }}.
                         </p>
                     </div>
                 </div>
