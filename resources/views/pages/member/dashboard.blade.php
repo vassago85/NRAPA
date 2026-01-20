@@ -524,7 +524,7 @@ new #[Title('Dashboard')] class extends Component {
             @else
                 <p class="text-sm text-zinc-500 dark:text-zinc-400">
                     @if($this->activeMembership)
-                        No certificates or endorsements issued yet. These will be available once your membership is fully processed.
+                        No certificates or endorsements issued yet. These will be available once approved and requirements have been met.
                     @else
                         Apply for membership to receive your certificates and endorsements.
                     @endif
