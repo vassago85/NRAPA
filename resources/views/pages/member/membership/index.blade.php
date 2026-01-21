@@ -11,6 +11,7 @@ new #[Title('My Membership')] class extends Component {
     public bool $showChangeModal = false;
     public ?int $selectedNewTypeId = null;
     public string $changeReason = '';
+    public bool $showDetails = false;
 
     #[Computed]
     public function user()
@@ -31,9 +32,30 @@ new #[Title('My Membership')] class extends Component {
     }
 
     #[Computed]
+    public function membershipStatus(): array
+    {
+        $membership = $this->activeMembership;
+        
+        if (!$membership || !$membership->expires_at) {
+            return [
+                'days_to_expiry' => null,
+                'expiring_soon' => false,
+                'expired' => false,
+            ];
+        }
+
+        $daysToExpiry = now()->startOfDay()->diffInDays($membership->expires_at->startOfDay(), false);
+        
+        return [
+            'days_to_expiry' => $daysToExpiry,
+            'expiring_soon' => $daysToExpiry >= 0 && $daysToExpiry <= 30,
+            'expired' => $daysToExpiry < 0,
+        ];
+    }
+
+    #[Computed]
     public function availableMembershipTypes()
     {
-        // Get all active types available for signup, excluding current type
         $currentTypeId = $this->activeMembership?->membership_type_id;
         
         return MembershipType::active()
@@ -46,10 +68,29 @@ new #[Title('My Membership')] class extends Component {
     #[Computed]
     public function hasPendingChangeRequest()
     {
-        // Check if user already has a pending membership change request
         return $this->user->memberships()
             ->where('status', 'pending_change')
             ->exists();
+    }
+
+    #[Computed]
+    public function canRenew(): bool
+    {
+        $membership = $this->activeMembership;
+        if (!$membership) return false;
+        
+        return $membership->requiresRenewal() && $membership->isRenewable();
+    }
+
+    #[Computed]
+    public function canChangeMembership(): bool
+    {
+        return $this->availableMembershipTypes->count() > 0 && !$this->hasPendingChangeRequest;
+    }
+
+    public function toggleDetails(): void
+    {
+        $this->showDetails = !$this->showDetails;
     }
 
     public function openChangeModal(): void
@@ -77,7 +118,6 @@ new #[Title('My Membership')] class extends Component {
 
         $newType = MembershipType::findOrFail($this->selectedNewTypeId);
 
-        // Create a new membership record with pending_change status
         Membership::create([
             'user_id' => $this->user->id,
             'membership_type_id' => $newType->id,
@@ -93,188 +133,292 @@ new #[Title('My Membership')] class extends Component {
     public function getStatusClasses(string $status): string
     {
         return match($status) {
-            'active' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-            'applied' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-            'approved' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-            'pending_change' => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-            'pending_payment' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
-            'suspended', 'revoked' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-            'expired' => 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-            default => 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200',
+            'active' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300',
+            'applied' => 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300',
+            'approved' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
+            'pending_change' => 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300',
+            'pending_payment' => 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300',
+            'suspended', 'revoked' => 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
+            'expired' => 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300',
+            default => 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-300',
         };
     }
 }; ?>
 
 <div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
+    {{-- Header --}}
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">My Membership</h1>
-            <p class="text-zinc-600 dark:text-zinc-400">
-                View and manage your NRAPA membership status.
-            </p>
+            <p class="text-zinc-500 dark:text-zinc-400">View and manage your NRAPA membership.</p>
         </div>
         @if(!$this->activeMembership)
-        <a href="{{ route('membership.apply') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">
-            <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        <a href="{{ route('membership.apply') }}" wire:navigate 
+            class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors">
+            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
             Apply for Membership
         </a>
         @endif
     </div>
 
-    {{-- Current Membership Details --}}
-    @if($this->activeMembership)
-    <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
-        <div class="flex items-center justify-between border-b border-zinc-200 p-6 dark:border-zinc-700">
-            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Current Membership</h2>
-            <span class="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Active</span>
-        </div>
-
-        <div class="p-6">
-            <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <div>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">Membership Type</p>
-                    <p class="mt-1 font-semibold text-zinc-900 dark:text-white">{{ $this->activeMembership->type->name }}</p>
-                </div>
-                <div>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">Membership Number</p>
-                    <p class="mt-1 font-mono font-semibold text-zinc-900 dark:text-white">{{ $this->activeMembership->membership_number }}</p>
-                </div>
-                <div>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">Member Since</p>
-                    <p class="mt-1 font-semibold text-zinc-900 dark:text-white">{{ $this->activeMembership->activated_at?->format('d F Y') ?? 'N/A' }}</p>
-                </div>
-                <div>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">
-                        @if($this->activeMembership->type->isLifetime())
-                            Validity
-                        @else
-                            Expires On
-                        @endif
-                    </p>
-                    <div class="mt-1">
-                        @if($this->activeMembership->type->isLifetime())
-                            <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-sm font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Lifetime - Never Expires</span>
-                        @else
-                            <span class="font-semibold text-zinc-900 dark:text-white">{{ $this->activeMembership->expires_at?->format('d F Y') ?? 'N/A' }}</span>
-                            @if($this->activeMembership->expires_at && $this->activeMembership->expires_at->diffInDays(now()) < 30)
-                                <span class="ml-2 inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900 dark:text-orange-200">Expiring Soon</span>
-                            @endif
-                        @endif
-                    </div>
-                </div>
-                <div>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">Renewal Required</p>
-                    <div class="mt-1">
-                        @if($this->activeMembership->type->requires_renewal)
-                            <span class="font-semibold text-zinc-900 dark:text-white">Yes</span>
-                        @else
-                            <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-sm font-medium text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">No - Lifetime</span>
-                        @endif
-                    </div>
-                </div>
-                <div>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">Dedicated Status Eligible</p>
-                    <div class="mt-1">
-                        @if($this->activeMembership->type->allows_dedicated_status)
-                            <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">Eligible</span>
-                        @else
-                            <span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-sm font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200">Not Available</span>
-                        @endif
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="border-t border-zinc-200 p-6 dark:border-zinc-700">
-            <div class="flex flex-wrap gap-3">
-                @if($this->activeMembership->requiresRenewal() && $this->activeMembership->isRenewable())
-                <a href="{{ route('membership.apply') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">
-                    <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-                    </svg>
-                    Renew Membership
-                </a>
-                @endif
-                
-                @if($this->availableMembershipTypes->count() > 0 && !$this->hasPendingChangeRequest)
-                <button wire:click="openChangeModal" class="inline-flex items-center gap-2 rounded-lg border border-blue-600 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-900/20">
-                    <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
-                    </svg>
-                    Change Membership Type
-                </button>
-                @elseif($this->hasPendingChangeRequest)
-                <span class="inline-flex items-center gap-2 rounded-lg border border-purple-300 bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700 dark:border-purple-700 dark:bg-purple-900/20 dark:text-purple-300">
-                    <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                    </svg>
-                    Change Request Pending
-                </span>
-                @endif
-            </div>
+    @if(session('success'))
+    <div class="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4">
+        <div class="flex items-center gap-3">
+            <svg class="size-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-sm text-emerald-700 dark:text-emerald-300">{{ session('success') }}</p>
         </div>
     </div>
     @endif
 
+    @if(session('error'))
+    <div class="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4">
+        <div class="flex items-center gap-3">
+            <svg class="size-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-sm text-red-700 dark:text-red-300">{{ session('error') }}</p>
+        </div>
+    </div>
+    @endif
+
+    {{-- Current Membership Summary Card --}}
+    @if($this->activeMembership)
+    @php
+        $membership = $this->activeMembership;
+        $status = $this->membershipStatus;
+    @endphp
+    <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-sm overflow-hidden">
+        {{-- Top Row: Type & Status --}}
+        <div class="p-6 pb-4">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">Membership Type</p>
+                    <h2 class="text-xl font-semibold text-zinc-900 dark:text-white mt-1">{{ $membership->type->name }}</h2>
+                </div>
+                <div class="flex items-center gap-2">
+                    @if($status['expired'])
+                        <span class="inline-flex items-center gap-1.5 rounded-full bg-red-100 dark:bg-red-900/50 px-3 py-1 text-sm font-medium text-red-800 dark:text-red-300">
+                            <span class="size-1.5 rounded-full bg-red-500"></span>
+                            Expired
+                        </span>
+                    @elseif($status['expiring_soon'])
+                        <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 dark:bg-amber-900/50 px-3 py-1 text-sm font-medium text-amber-800 dark:text-amber-300">
+                            <span class="size-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                            Expiring Soon
+                        </span>
+                    @else
+                        <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 px-3 py-1 text-sm font-medium text-emerald-800 dark:text-emerald-300">
+                            <span class="size-1.5 rounded-full bg-emerald-500"></span>
+                            Active
+                        </span>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        {{-- Key Facts Row --}}
+        <div class="px-6 pb-4">
+            <div class="flex flex-wrap gap-x-8 gap-y-3 text-sm">
+                {{-- Expires On / Lifetime --}}
+                <div>
+                    <span class="text-zinc-500 dark:text-zinc-400">Expires</span>
+                    <p class="font-medium text-zinc-900 dark:text-white mt-0.5">
+                        @if($membership->type->isLifetime())
+                            <span class="text-amber-600 dark:text-amber-400">Lifetime - Never</span>
+                        @elseif($membership->expires_at)
+                            {{ $membership->expires_at->format('d M Y') }}
+                            @if($status['expiring_soon'])
+                                <span class="text-amber-600 dark:text-amber-400">({{ $status['days_to_expiry'] }} days)</span>
+                            @endif
+                        @else
+                            N/A
+                        @endif
+                    </p>
+                </div>
+                {{-- Member Number --}}
+                <div>
+                    <span class="text-zinc-500 dark:text-zinc-400">Member #</span>
+                    <p class="font-mono font-medium text-zinc-900 dark:text-white mt-0.5">{{ $membership->membership_number }}</p>
+                </div>
+                {{-- Member Since --}}
+                <div>
+                    <span class="text-zinc-500 dark:text-zinc-400">Member Since</span>
+                    <p class="font-medium text-zinc-900 dark:text-white mt-0.5">{{ $membership->activated_at?->format('d M Y') ?? 'Pending' }}</p>
+                </div>
+            </div>
+        </div>
+
+        {{-- Actions Row --}}
+        <div class="px-6 py-4 border-t border-zinc-100 dark:border-zinc-700 flex flex-wrap items-center gap-3">
+            @if($this->canRenew)
+            <a href="{{ route('membership.apply') }}" wire:navigate 
+                class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-sm font-medium text-white transition-colors">
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Renew Membership
+            </a>
+            @endif
+            
+            @if($this->canChangeMembership)
+            <button wire:click="openChangeModal" 
+                class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 dark:border-zinc-600 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                </svg>
+                Change Type
+            </button>
+            @elseif($this->hasPendingChangeRequest)
+            <span class="inline-flex items-center gap-2 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 px-4 py-2 text-sm font-medium text-purple-700 dark:text-purple-300">
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Change Pending
+            </span>
+            @endif
+
+            {{-- View Details Toggle --}}
+            <button wire:click="toggleDetails" 
+                class="inline-flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 ml-auto transition-colors">
+                {{ $showDetails ? 'Hide details' : 'View details' }}
+                <svg class="size-4 transition-transform {{ $showDetails ? 'rotate-180' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
+        </div>
+
+        {{-- Collapsible Details Section --}}
+        @if($showDetails)
+        <div class="px-6 py-4 border-t border-zinc-100 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50">
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 text-sm">
+                <div>
+                    <span class="text-zinc-500 dark:text-zinc-400">Duration</span>
+                    <p class="font-medium text-zinc-900 dark:text-white mt-0.5">
+                        @if($membership->type->isLifetime())
+                            Lifetime
+                        @else
+                            {{ $membership->type->duration_months }} months
+                        @endif
+                    </p>
+                </div>
+                <div>
+                    <span class="text-zinc-500 dark:text-zinc-400">Renewal Required</span>
+                    <p class="font-medium text-zinc-900 dark:text-white mt-0.5">
+                        {{ $membership->type->requires_renewal ? 'Yes - Annual' : 'No' }}
+                    </p>
+                </div>
+                <div>
+                    <span class="text-zinc-500 dark:text-zinc-400">Dedicated Status</span>
+                    <p class="mt-0.5">
+                        @if($membership->type->allows_dedicated_status)
+                            <span class="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/50 px-2 py-0.5 text-xs font-medium text-blue-800 dark:text-blue-300">Eligible</span>
+                        @else
+                            <span class="inline-flex items-center rounded-full bg-zinc-100 dark:bg-zinc-700 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:text-zinc-400">Not Available</span>
+                        @endif
+                    </p>
+                </div>
+                <div>
+                    <span class="text-zinc-500 dark:text-zinc-400">Price</span>
+                    <p class="font-medium text-zinc-900 dark:text-white mt-0.5">R{{ number_format($membership->type->price, 2) }}</p>
+                </div>
+                <div>
+                    <span class="text-zinc-500 dark:text-zinc-400">Applied</span>
+                    <p class="font-medium text-zinc-900 dark:text-white mt-0.5">{{ $membership->applied_at->format('d M Y') }}</p>
+                </div>
+                <div>
+                    <span class="text-zinc-500 dark:text-zinc-400">Activated</span>
+                    <p class="font-medium text-zinc-900 dark:text-white mt-0.5">{{ $membership->activated_at?->format('d M Y') ?? 'Pending' }}</p>
+                </div>
+            </div>
+        </div>
+        @endif
+    </div>
+    @endif
+
     {{-- Membership History --}}
-    <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
-        <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
-            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Membership History</h2>
+    <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-zinc-100 dark:border-zinc-700">
+            <h2 class="font-semibold text-zinc-900 dark:text-white">Membership History</h2>
         </div>
 
         @if($this->memberships->count() > 0)
-        <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Type</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Member #</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Applied</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Expires</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400"></th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
-                    @foreach($this->memberships as $membership)
-                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
-                        <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-900 dark:text-white">{{ $membership->type->name }}</td>
-                        <td class="whitespace-nowrap px-6 py-4 font-mono text-sm text-zinc-900 dark:text-white">{{ $membership->membership_number }}</td>
-                        <td class="whitespace-nowrap px-6 py-4 text-sm">
-                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $this->getStatusClasses($membership->status) }}">
-                                {{ ucfirst($membership->status) }}
-                            </span>
-                        </td>
-                        <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">{{ $membership->applied_at->format('d M Y') }}</td>
-                        <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">
-                            @if($membership->expires_at)
-                                {{ $membership->expires_at->format('d M Y') }}
-                            @else
-                                <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Lifetime</span>
-                            @endif
-                        </td>
-                        <td class="whitespace-nowrap px-6 py-4 text-sm">
-                            <a href="{{ route('membership.show', $membership) }}" wire:navigate class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
-                                View
-                            </a>
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
+            @if($this->memberships->count() === 1)
+            {{-- Single membership: show as simple card --}}
+            @php $membership = $this->memberships->first(); @endphp
+            <div class="p-6">
+                <div class="flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                        <div>
+                            <p class="font-medium text-zinc-900 dark:text-white">{{ $membership->type->name }}</p>
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400">Applied {{ $membership->applied_at->format('d M Y') }}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $this->getStatusClasses($membership->status) }}">
+                            {{ ucfirst(str_replace('_', ' ', $membership->status)) }}
+                        </span>
+                        <a href="{{ route('membership.show', $membership) }}" wire:navigate 
+                            class="text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 font-medium">
+                            View
+                        </a>
+                    </div>
+                </div>
+            </div>
+            @else
+            {{-- Multiple memberships: show as table --}}
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-100 dark:border-zinc-700">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Applied</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Expires</th>
+                            <th class="px-6 py-3"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-100 dark:divide-zinc-700">
+                        @foreach($this->memberships as $membership)
+                        <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/30 transition-colors">
+                            <td class="px-6 py-3 text-zinc-900 dark:text-white">{{ $membership->type->name }}</td>
+                            <td class="px-6 py-3">
+                                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {{ $this->getStatusClasses($membership->status) }}">
+                                    {{ ucfirst(str_replace('_', ' ', $membership->status)) }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-3 text-zinc-500 dark:text-zinc-400">{{ $membership->applied_at->format('d M Y') }}</td>
+                            <td class="px-6 py-3 text-zinc-500 dark:text-zinc-400">
+                                @if($membership->expires_at)
+                                    {{ $membership->expires_at->format('d M Y') }}
+                                @else
+                                    <span class="text-amber-600 dark:text-amber-400">Lifetime</span>
+                                @endif
+                            </td>
+                            <td class="px-6 py-3 text-right">
+                                <a href="{{ route('membership.show', $membership) }}" wire:navigate 
+                                    class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 font-medium">
+                                    View
+                                </a>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            @endif
         @else
         <div class="p-8 text-center">
-            <svg class="mx-auto size-12 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm1.294 6.336a6.721 6.721 0 0 1-3.17.789 6.721 6.721 0 0 1-3.168-.789 3.376 3.376 0 0 1 6.338 0Z" />
+            <svg class="mx-auto size-12 text-zinc-300 dark:text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z"/>
             </svg>
-            <h3 class="mt-4 font-semibold text-zinc-900 dark:text-white">No Membership History</h3>
-            <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-                You haven't applied for a membership yet.
-            </p>
-            <a href="{{ route('membership.apply') }}" wire:navigate class="mt-4 inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">
+            <h3 class="mt-4 font-medium text-zinc-900 dark:text-white">No Membership History</h3>
+            <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">You haven't applied for a membership yet.</p>
+            <a href="{{ route('membership.apply') }}" wire:navigate 
+                class="mt-4 inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors">
                 Apply Now
             </a>
         </div>
@@ -283,74 +427,65 @@ new #[Title('My Membership')] class extends Component {
 
     {{-- Change Membership Modal --}}
     @if($showChangeModal)
-    <div class="fixed inset-0 z-50 overflow-y-auto">
+    <div class="fixed inset-0 z-50 overflow-y-auto" x-data x-init="document.body.classList.add('overflow-hidden')" x-on:remove="document.body.classList.remove('overflow-hidden')">
         <div class="flex min-h-screen items-center justify-center p-4">
-            <div wire:click="$set('showChangeModal', false)" class="fixed inset-0 bg-black/50"></div>
-            <div class="relative w-full max-w-lg rounded-xl bg-white p-6 shadow-xl dark:bg-zinc-800">
+            <div wire:click="$set('showChangeModal', false)" class="fixed inset-0 bg-black/50 transition-opacity"></div>
+            <div class="relative w-full max-w-lg rounded-xl bg-white dark:bg-zinc-800 p-6 shadow-xl">
                 <h2 class="text-xl font-bold text-zinc-900 dark:text-white mb-2">Change Membership Type</h2>
-                <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-6">
-                    Request to change from <strong>{{ $this->activeMembership->type->name }}</strong> to a different membership type. 
-                    Your request will be reviewed by an administrator.
+                <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+                    Request to change from <strong class="text-zinc-700 dark:text-zinc-300">{{ $this->activeMembership->type->name }}</strong> to a different type.
                 </p>
 
                 <form wire:submit="submitChangeRequest" class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Select New Membership Type *</label>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Select New Type <span class="text-red-500">*</span></label>
                         <div class="space-y-2 max-h-64 overflow-y-auto">
                             @foreach($this->availableMembershipTypes as $type)
                             <label class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors
                                 {{ $selectedNewTypeId === $type->id 
-                                    ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20' 
-                                    : 'border-zinc-200 hover:border-zinc-300 dark:border-zinc-700 dark:hover:border-zinc-600' }}">
-                                <input type="radio" wire:model="selectedNewTypeId" value="{{ $type->id }}" class="mt-1 text-blue-600 focus:ring-blue-500">
+                                    ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-400 dark:bg-emerald-900/20' 
+                                    : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600' }}">
+                                <input type="radio" wire:model="selectedNewTypeId" value="{{ $type->id }}" class="mt-1 text-emerald-600 focus:ring-emerald-500">
                                 <div class="flex-1">
                                     <div class="flex items-center gap-2">
                                         <span class="font-medium text-zinc-900 dark:text-white">{{ $type->name }}</span>
                                         @if($type->is_featured)
-                                            <span class="text-xs bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded dark:bg-amber-900 dark:text-amber-200">Recommended</span>
+                                            <span class="text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded">Popular</span>
                                         @endif
                                     </div>
                                     <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
                                         R{{ number_format($type->total_price, 0) }}
-                                        @if($type->duration_type === 'lifetime')
-                                            (Lifetime)
-                                        @else
-                                            /year
-                                        @endif
+                                        {{ $type->duration_type === 'lifetime' ? '(Lifetime)' : '/year' }}
                                     </p>
-                                    @if($type->description)
-                                        <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 line-clamp-2">{{ $type->description }}</p>
-                                    @endif
                                 </div>
                             </label>
                             @endforeach
                         </div>
-                        @error('selectedNewTypeId') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                        @error('selectedNewTypeId') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Reason for Change *</label>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Reason for Change <span class="text-red-500">*</span></label>
                         <textarea wire:model="changeReason" rows="3" 
-                            class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white"
-                            placeholder="Please explain why you'd like to change your membership type..."></textarea>
-                        @error('changeReason') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                            class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-2 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                            placeholder="Please explain why you'd like to change..."></textarea>
+                        @error('changeReason') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                     </div>
 
                     <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-                        <p class="text-sm text-amber-800 dark:text-amber-200">
-                            <strong>Note:</strong> Membership changes may require additional payment or pro-rata adjustments. 
-                            An administrator will contact you regarding any payment differences.
+                        <p class="text-sm text-amber-800 dark:text-amber-300">
+                            <strong>Note:</strong> Changes may require additional payment. An administrator will contact you.
                         </p>
                     </div>
 
                     <div class="flex justify-end gap-3 pt-2">
                         <button type="button" wire:click="$set('showChangeModal', false)" 
-                            class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700">
+                            class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                             Cancel
                         </button>
                         <button type="submit" 
-                            class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
-                            Submit Change Request
+                            class="rounded-lg bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-sm font-medium text-white transition-colors">
+                            Submit Request
                         </button>
                     </div>
                 </form>
