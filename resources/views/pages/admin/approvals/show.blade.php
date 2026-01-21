@@ -300,6 +300,65 @@ new #[Title('Review Application - Admin')] class extends Component {
         </div>
     </div>
 
+    {{-- Payment Reference Card --}}
+    @if($this->membership->payment_reference)
+    <div class="rounded-xl border-2 border-amber-300 bg-amber-50 shadow-sm dark:border-amber-700 dark:bg-amber-900/20">
+        <div class="p-6">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="flex size-10 items-center justify-center rounded-lg bg-amber-200 dark:bg-amber-800">
+                    <svg class="size-5 text-amber-700 dark:text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-lg font-semibold text-amber-800 dark:text-amber-200">Payment Reference</h2>
+                    <p class="text-sm text-amber-600 dark:text-amber-400">Match this reference on bank statement to verify payment</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-between gap-4 p-4 bg-white dark:bg-zinc-800 rounded-lg border-2 border-dashed border-amber-400 dark:border-amber-600">
+                <span class="text-2xl font-mono font-bold text-zinc-900 dark:text-white tracking-wider">{{ $this->membership->payment_reference }}</span>
+                <button 
+                    type="button"
+                    x-data="{ copied: false }"
+                    x-on:click="navigator.clipboard.writeText('{{ $this->membership->payment_reference }}'); copied = true; setTimeout(() => copied = false, 2000)"
+                    class="inline-flex items-center gap-2 rounded-lg bg-amber-600 hover:bg-amber-700 px-4 py-2 text-sm font-medium text-white transition-colors"
+                >
+                    <svg x-show="!copied" class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                    <svg x-show="copied" x-cloak class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <span x-text="copied ? 'Copied!' : 'Copy'"></span>
+                </button>
+            </div>
+
+            <div class="mt-4 flex items-center gap-4 text-sm">
+                <div>
+                    <span class="text-amber-700 dark:text-amber-300">Amount Due:</span>
+                    <span class="font-bold text-amber-800 dark:text-amber-200">R{{ number_format($this->membership->type->price, 2) }}</span>
+                </div>
+                @if($this->membership->payment_email_sent_at)
+                <div class="flex items-center gap-1 text-green-600 dark:text-green-400">
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                    <span>Payment email sent {{ $this->membership->payment_email_sent_at->diffForHumans() }}</span>
+                </div>
+                @else
+                <div class="flex items-center gap-1 text-zinc-500 dark:text-zinc-400">
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span>Payment email not sent</span>
+                </div>
+                @endif
+            </div>
+        </div>
+    </div>
+    @endif
+
     {{-- Action Buttons --}}
     @if($this->membership->status === 'applied')
     <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">

@@ -50,11 +50,18 @@
                 <td style="padding: 8px 0; color: #166534;">Amount to Pay:</td>
                 <td style="padding: 8px 0; text-align: right; font-weight: bold; font-size: 1.25em; color: #166534;">R{{ number_format($membership->type->price, 2) }}</td>
             </tr>
-            <tr>
-                <td style="padding: 8px 0; color: #166534;">Payment Reference:</td>
-                <td style="padding: 8px 0; text-align: right; font-weight: bold; font-family: monospace; color: #166534;">{{ $reference }}</td>
-            </tr>
         </table>
+    </div>
+
+    {{-- Payment Reference - Prominent Display --}}
+    <div style="background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+        <p style="margin: 0 0 10px 0; color: #92400e; font-weight: bold; font-size: 14px;">YOUR PAYMENT REFERENCE</p>
+        <p style="margin: 0; background: #ffffff; border: 2px dashed #f59e0b; border-radius: 6px; padding: 15px; font-family: 'Courier New', monospace; font-size: 24px; font-weight: bold; color: #1f2937; letter-spacing: 2px;">
+            {{ $reference }}
+        </p>
+        <p style="margin: 10px 0 0 0; color: #92400e; font-size: 12px;">
+            Use this exact reference when making your EFT payment
+        </p>
     </div>
 
     <div style="background: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px; padding: 15px; margin: 20px 0;">

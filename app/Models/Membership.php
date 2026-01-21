@@ -23,6 +23,7 @@ class Membership extends Model
         'user_id',
         'membership_type_id',
         'membership_number',
+        'payment_reference',
         'status',
         'applied_at',
         'approved_at',
@@ -37,6 +38,7 @@ class Membership extends Model
         'revocation_reason',
         'previous_membership_id',
         'notes',
+        'payment_email_sent_at',
     ];
 
     /**
@@ -53,6 +55,7 @@ class Membership extends Model
             'expires_at' => 'datetime',
             'suspended_at' => 'datetime',
             'revoked_at' => 'datetime',
+            'payment_email_sent_at' => 'datetime',
         ];
     }
 
@@ -69,6 +72,9 @@ class Membership extends Model
             }
             if (empty($membership->membership_number)) {
                 $membership->membership_number = static::generateMembershipNumber();
+            }
+            if (empty($membership->payment_reference)) {
+                $membership->payment_reference = static::generatePaymentReference($membership);
             }
             if (empty($membership->applied_at)) {
                 $membership->applied_at = now();
@@ -97,6 +103,39 @@ class Membership extends Model
         } while (static::where('membership_number', $number)->exists());
 
         return $number;
+    }
+
+    /**
+     * Generate a unique payment reference for EFT payments.
+     * Format: PREFIX-SURNAME-XXXX (where XXXX is a random 4-digit number)
+     */
+    public static function generatePaymentReference(Membership $membership): string
+    {
+        $prefix = SystemSetting::get('bank_reference_prefix', 'NRAPA');
+        
+        // Get surname from user (if relationship loaded) or fetch it
+        $user = $membership->user ?? User::find($membership->user_id);
+        $surname = $user ? strtoupper(self::extractSurname($user->name)) : 'MEMBER';
+        
+        // Clean surname (remove special characters, limit length)
+        $surname = preg_replace('/[^A-Z]/', '', $surname);
+        $surname = substr($surname, 0, 10); // Max 10 chars for surname
+        
+        do {
+            $random = str_pad((string) random_int(1, 9999), 4, '0', STR_PAD_LEFT);
+            $reference = $prefix . '-' . $surname . '-' . $random;
+        } while (static::where('payment_reference', $reference)->exists());
+
+        return $reference;
+    }
+
+    /**
+     * Extract surname from full name (assumes last word is surname).
+     */
+    protected static function extractSurname(string $fullName): string
+    {
+        $parts = explode(' ', trim($fullName));
+        return count($parts) > 1 ? end($parts) : $fullName;
     }
 
     /**

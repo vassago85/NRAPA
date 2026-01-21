@@ -1,8 +1,11 @@
 <?php
 
+use App\Mail\PaymentInstructions;
 use App\Models\Membership;
 use App\Models\MembershipType;
+use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -105,9 +108,38 @@ new #[Title('Apply for Membership')] class extends Component {
             'applied_at' => now(),
         ]);
 
-        session()->flash('success', 'Your membership application has been submitted successfully!');
+        // Send payment instructions email
+        $this->sendPaymentInstructionsEmail($membership);
+
+        session()->flash('success', 'Your membership application has been submitted! Payment instructions have been sent to your email.');
 
         $this->redirect(route('membership.show', $membership), navigate: true);
+    }
+
+    protected function sendPaymentInstructionsEmail(Membership $membership): void
+    {
+        try {
+            $bankAccount = SystemSetting::getBankAccount();
+            
+            // Only send if bank details are configured
+            if (!empty($bankAccount['bank_name']) && !empty($bankAccount['account_number'])) {
+                Mail::to($membership->user->email)
+                    ->queue(new PaymentInstructions(
+                        $membership->load('type', 'user'),
+                        $bankAccount,
+                        $membership->payment_reference
+                    ));
+
+                // Mark email as sent
+                $membership->update(['payment_email_sent_at' => now()]);
+            }
+        } catch (\Exception $e) {
+            // Log error but don't fail the application
+            \Log::error('Failed to send payment instructions email', [
+                'membership_id' => $membership->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }; ?>
 
