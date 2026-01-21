@@ -254,7 +254,15 @@ new class extends Component {
     public function with(): array
     {
         $user = auth()->user();
-        $dedicatedType = $user->activeMembership?->dedicated_type ?? null;
+        $membershipType = $user->activeMembership?->type;
+        
+        // Get dedicated_type from membership TYPE
+        // If membership allows_dedicated_status but has no specific dedicated_type,
+        // treat as 'both' so they can see all options
+        $dedicatedType = $membershipType?->dedicated_type;
+        if (!$dedicatedType && $membershipType?->allows_dedicated_status) {
+            $dedicatedType = 'both'; // Allow access to all activity types
+        }
 
         return [
             // Get all active activity types (hunting, sport shooting, etc.)
