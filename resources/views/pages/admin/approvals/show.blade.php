@@ -50,16 +50,13 @@ new #[Title('Review Application - Admin')] class extends Component {
         $this->issueCertificates();
 
         // Log the action
-        AuditLog::create([
-            'user_id' => $admin->id,
-            'action' => 'membership_approved',
-            'auditable_type' => Membership::class,
-            'auditable_id' => $this->membership->id,
-            'old_values' => ['status' => 'applied'],
-            'new_values' => ['status' => 'active'],
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-        ]);
+        AuditLog::log(
+            'membership_approved',
+            $this->membership,
+            ['status' => 'applied'],
+            ['status' => 'active'],
+            $admin
+        );
 
         session()->flash('success', 'Membership application approved successfully!');
 
@@ -90,16 +87,13 @@ new #[Title('Review Application - Admin')] class extends Component {
         ]);
 
         // Log the action
-        AuditLog::create([
-            'user_id' => $admin->id,
-            'action' => 'membership_rejected',
-            'auditable_type' => Membership::class,
-            'auditable_id' => $this->membership->id,
-            'old_values' => ['status' => 'applied'],
-            'new_values' => ['status' => 'revoked', 'reason' => $this->rejectionReason],
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-        ]);
+        AuditLog::log(
+            'membership_rejected',
+            $this->membership,
+            ['status' => 'applied'],
+            ['status' => 'revoked', 'reason' => $this->rejectionReason],
+            $admin
+        );
 
         session()->flash('success', 'Membership application rejected.');
 
