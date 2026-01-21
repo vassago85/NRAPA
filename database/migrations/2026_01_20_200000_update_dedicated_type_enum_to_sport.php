@@ -15,25 +15,37 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Update activity_types table
-        DB::statement("ALTER TABLE activity_types MODIFY COLUMN dedicated_type ENUM('hunter', 'sport', 'both') DEFAULT 'both'");
-        DB::table('activity_types')->where('dedicated_type', 'sport_shooter')->update(['dedicated_type' => 'sport']);
+        $driver = DB::getDriverName();
 
-        // Update firearm_types table
-        DB::statement("ALTER TABLE firearm_types MODIFY COLUMN dedicated_type ENUM('hunter', 'sport', 'both') DEFAULT 'both'");
-        DB::table('firearm_types')->where('dedicated_type', 'sport_shooter')->update(['dedicated_type' => 'sport']);
+        // SQLite: Has CHECK constraints that prevent value changes without table rebuild
+        // This migration is primarily for MySQL production. For SQLite (local dev), 
+        // use fresh migration with correct seeders that already use 'sport'.
+        if ($driver === 'sqlite') {
+            return;
+        }
 
-        // Update event_categories table
-        DB::statement("ALTER TABLE event_categories MODIFY COLUMN dedicated_type ENUM('hunter', 'sport', 'both') DEFAULT 'both'");
-        DB::table('event_categories')->where('dedicated_type', 'sport_shooter')->update(['dedicated_type' => 'sport']);
+        if ($driver === 'mysql') {
+            // MySQL: ALTER ENUM columns first, then update data
+            DB::statement("ALTER TABLE activity_types MODIFY COLUMN dedicated_type ENUM('hunter', 'sport', 'sport_shooter', 'both') DEFAULT 'both'");
+            DB::statement("ALTER TABLE firearm_types MODIFY COLUMN dedicated_type ENUM('hunter', 'sport', 'sport_shooter', 'both') DEFAULT 'both'");
+            DB::statement("ALTER TABLE event_categories MODIFY COLUMN dedicated_type ENUM('hunter', 'sport', 'sport_shooter', 'both') DEFAULT 'both'");
+            DB::statement("ALTER TABLE knowledge_tests MODIFY COLUMN dedicated_type ENUM('hunter', 'sport', 'sport_shooter', 'both') NULL");
+            DB::statement("ALTER TABLE dedicated_status_applications MODIFY COLUMN dedicated_type ENUM('hunter', 'sport', 'sport_shooter') NOT NULL");
 
-        // Update knowledge_tests table
-        DB::statement("ALTER TABLE knowledge_tests MODIFY COLUMN dedicated_type ENUM('hunter', 'sport', 'both') NULL");
-        DB::table('knowledge_tests')->where('dedicated_type', 'sport_shooter')->update(['dedicated_type' => 'sport']);
+            // Update data values
+            DB::table('activity_types')->where('dedicated_type', 'sport_shooter')->update(['dedicated_type' => 'sport']);
+            DB::table('firearm_types')->where('dedicated_type', 'sport_shooter')->update(['dedicated_type' => 'sport']);
+            DB::table('event_categories')->where('dedicated_type', 'sport_shooter')->update(['dedicated_type' => 'sport']);
+            DB::table('knowledge_tests')->where('dedicated_type', 'sport_shooter')->update(['dedicated_type' => 'sport']);
+            DB::table('dedicated_status_applications')->where('dedicated_type', 'sport_shooter')->update(['dedicated_type' => 'sport']);
 
-        // Update dedicated_status_applications table
-        DB::statement("ALTER TABLE dedicated_status_applications MODIFY COLUMN dedicated_type ENUM('hunter', 'sport') NOT NULL");
-        DB::table('dedicated_status_applications')->where('dedicated_type', 'sport_shooter')->update(['dedicated_type' => 'sport']);
+            // Remove sport_shooter from ENUM now that data is migrated
+            DB::statement("ALTER TABLE activity_types MODIFY COLUMN dedicated_type ENUM('hunter', 'sport', 'both') DEFAULT 'both'");
+            DB::statement("ALTER TABLE firearm_types MODIFY COLUMN dedicated_type ENUM('hunter', 'sport', 'both') DEFAULT 'both'");
+            DB::statement("ALTER TABLE event_categories MODIFY COLUMN dedicated_type ENUM('hunter', 'sport', 'both') DEFAULT 'both'");
+            DB::statement("ALTER TABLE knowledge_tests MODIFY COLUMN dedicated_type ENUM('hunter', 'sport', 'both') NULL");
+            DB::statement("ALTER TABLE dedicated_status_applications MODIFY COLUMN dedicated_type ENUM('hunter', 'sport') NOT NULL");
+        }
     }
 
     /**
@@ -41,24 +53,33 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Revert activity_types table
-        DB::table('activity_types')->where('dedicated_type', 'sport')->update(['dedicated_type' => 'sport_shooter']);
-        DB::statement("ALTER TABLE activity_types MODIFY COLUMN dedicated_type ENUM('hunter', 'sport_shooter', 'both') DEFAULT 'both'");
+        $driver = DB::getDriverName();
 
-        // Revert firearm_types table
-        DB::table('firearm_types')->where('dedicated_type', 'sport')->update(['dedicated_type' => 'sport_shooter']);
-        DB::statement("ALTER TABLE firearm_types MODIFY COLUMN dedicated_type ENUM('hunter', 'sport_shooter', 'both') DEFAULT 'both'");
+        if ($driver === 'sqlite') {
+            return;
+        }
 
-        // Revert event_categories table
-        DB::table('event_categories')->where('dedicated_type', 'sport')->update(['dedicated_type' => 'sport_shooter']);
-        DB::statement("ALTER TABLE event_categories MODIFY COLUMN dedicated_type ENUM('hunter', 'sport_shooter', 'both') DEFAULT 'both'");
+        if ($driver === 'mysql') {
+            // Add sport_shooter back to ENUM
+            DB::statement("ALTER TABLE activity_types MODIFY COLUMN dedicated_type ENUM('hunter', 'sport', 'sport_shooter', 'both') DEFAULT 'both'");
+            DB::statement("ALTER TABLE firearm_types MODIFY COLUMN dedicated_type ENUM('hunter', 'sport', 'sport_shooter', 'both') DEFAULT 'both'");
+            DB::statement("ALTER TABLE event_categories MODIFY COLUMN dedicated_type ENUM('hunter', 'sport', 'sport_shooter', 'both') DEFAULT 'both'");
+            DB::statement("ALTER TABLE knowledge_tests MODIFY COLUMN dedicated_type ENUM('hunter', 'sport', 'sport_shooter', 'both') NULL");
+            DB::statement("ALTER TABLE dedicated_status_applications MODIFY COLUMN dedicated_type ENUM('hunter', 'sport', 'sport_shooter') NOT NULL");
 
-        // Revert knowledge_tests table
-        DB::table('knowledge_tests')->where('dedicated_type', 'sport')->update(['dedicated_type' => 'sport_shooter']);
-        DB::statement("ALTER TABLE knowledge_tests MODIFY COLUMN dedicated_type ENUM('hunter', 'sport_shooter', 'both') NULL");
+            // Revert data values
+            DB::table('activity_types')->where('dedicated_type', 'sport')->update(['dedicated_type' => 'sport_shooter']);
+            DB::table('firearm_types')->where('dedicated_type', 'sport')->update(['dedicated_type' => 'sport_shooter']);
+            DB::table('event_categories')->where('dedicated_type', 'sport')->update(['dedicated_type' => 'sport_shooter']);
+            DB::table('knowledge_tests')->where('dedicated_type', 'sport')->update(['dedicated_type' => 'sport_shooter']);
+            DB::table('dedicated_status_applications')->where('dedicated_type', 'sport')->update(['dedicated_type' => 'sport_shooter']);
 
-        // Revert dedicated_status_applications table
-        DB::table('dedicated_status_applications')->where('dedicated_type', 'sport')->update(['dedicated_type' => 'sport_shooter']);
-        DB::statement("ALTER TABLE dedicated_status_applications MODIFY COLUMN dedicated_type ENUM('hunter', 'sport_shooter') NOT NULL");
+            // Remove sport from ENUM
+            DB::statement("ALTER TABLE activity_types MODIFY COLUMN dedicated_type ENUM('hunter', 'sport_shooter', 'both') DEFAULT 'both'");
+            DB::statement("ALTER TABLE firearm_types MODIFY COLUMN dedicated_type ENUM('hunter', 'sport_shooter', 'both') DEFAULT 'both'");
+            DB::statement("ALTER TABLE event_categories MODIFY COLUMN dedicated_type ENUM('hunter', 'sport_shooter', 'both') DEFAULT 'both'");
+            DB::statement("ALTER TABLE knowledge_tests MODIFY COLUMN dedicated_type ENUM('hunter', 'sport_shooter', 'both') NULL");
+            DB::statement("ALTER TABLE dedicated_status_applications MODIFY COLUMN dedicated_type ENUM('hunter', 'sport_shooter') NOT NULL");
+        }
     }
 };
