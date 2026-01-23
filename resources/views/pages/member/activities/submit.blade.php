@@ -10,6 +10,7 @@ use App\Models\LoadData;
 use App\Models\Province;
 use App\Models\ShootingActivity;
 use App\Models\UserFirearm;
+use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -251,7 +252,7 @@ new class extends Component {
         $this->redirect(route('activities.index'));
     }
 
-    public function with(): array
+    protected function getDedicatedType(): ?string
     {
         $user = auth()->user();
         $membershipType = $user->activeMembership?->type;
@@ -261,29 +262,55 @@ new class extends Component {
         // treat as 'both' so they can see all options
         $dedicatedType = $membershipType?->dedicated_type;
         if (!$dedicatedType && $membershipType?->allows_dedicated_status) {
-            $dedicatedType = 'both'; // Allow access to all activity types
+            $dedicatedType = 'both';
         }
+        
+        return $dedicatedType;
+    }
 
-        return [
-            // Get all active activity types (hunting, sport shooting, etc.)
-            'activityTypes' => ActivityType::active()
-                ->forDedicatedType($dedicatedType)
-                ->ordered()
-                ->get(),
-            // Get all active firearm types for manual entry
-            'firearmTypes' => FirearmType::active()
-                ->forDedicatedType($dedicatedType)
-                ->ordered()
-                ->get(),
-            'calibres' => Calibre::active()->ordered()->get(),
-            'countries' => Country::active()->ordered()->get(),
-            'provinces' => Province::active()->ordered()->get(),
-            // Get user's firearms from armoury
-            'userFirearms' => UserFirearm::where('user_id', auth()->id())
-                ->active()
-                ->with(['firearmType', 'calibre'])
-                ->get(),
-        ];
+    #[Computed]
+    public function activityTypes()
+    {
+        return ActivityType::active()
+            ->forDedicatedType($this->getDedicatedType())
+            ->ordered()
+            ->get();
+    }
+
+    #[Computed]
+    public function firearmTypes()
+    {
+        return FirearmType::active()
+            ->forDedicatedType($this->getDedicatedType())
+            ->ordered()
+            ->get();
+    }
+
+    #[Computed]
+    public function calibres()
+    {
+        return Calibre::active()->ordered()->get();
+    }
+
+    #[Computed]
+    public function countries()
+    {
+        return Country::active()->ordered()->get();
+    }
+
+    #[Computed]
+    public function provinces()
+    {
+        return Province::active()->ordered()->get();
+    }
+
+    #[Computed]
+    public function userFirearms()
+    {
+        return UserFirearm::where('user_id', auth()->id())
+            ->active()
+            ->with(['firearmType', 'calibre'])
+            ->get();
     }
 }; ?>
 
@@ -314,7 +341,7 @@ new class extends Component {
                     <label for="activity_type_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Related Activity <span class="text-red-500">*</span></label>
                     <select id="activity_type_id" wire:model.live="activity_type_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
                         <option value="">Select Related Activity</option>
-                        @foreach($activityTypes as $type)
+                        @foreach($this->activityTypes as $type)
                             <option value="{{ $type->id }}">{{ $type->name }}</option>
                         @endforeach
                     </select>
@@ -371,7 +398,7 @@ new class extends Component {
                     <label for="country_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Country <span class="text-red-500">*</span></label>
                     <select id="country_id" wire:model="country_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
                         <option value="">Select Country</option>
-                        @foreach($countries as $country)
+                        @foreach($this->countries as $country)
                             <option value="{{ $country->id }}">{{ $country->name }}</option>
                         @endforeach
                     </select>
@@ -383,7 +410,7 @@ new class extends Component {
                     <label for="province_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Province</label>
                     <select id="province_id" wire:model="province_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
                         <option value="">Select Province</option>
-                        @foreach($provinces as $province)
+                        @foreach($this->provinces as $province)
                             <option value="{{ $province->id }}">{{ $province->name }}</option>
                         @endforeach
                     </select>
@@ -403,7 +430,7 @@ new class extends Component {
         <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-6">Firearm / Calibre</h2>
 
-            @if($userFirearms->count() > 0)
+            @if($this->userFirearms->count() > 0)
                 <!-- Source Selection -->
                 <div class="mb-6">
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">Select Firearm From</label>
@@ -420,14 +447,14 @@ new class extends Component {
                 </div>
             @endif
 
-            @if($firearm_source === 'armoury' && $userFirearms->count() > 0)
+            @if($firearm_source === 'armoury' && $this->userFirearms->count() > 0)
                 <!-- Select from Armoury -->
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
                         <label for="user_firearm_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Select Firearm <span class="text-red-500">*</span></label>
                         <select id="user_firearm_id" wire:model.live="user_firearm_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
                             <option value="">Select a Firearm</option>
-                            @foreach($userFirearms as $firearm)
+                            @foreach($this->userFirearms as $firearm)
                                 <option value="{{ $firearm->id }}">
                                     {{ $firearm->display_name }} 
                                     @if($firearm->calibre) ({{ $firearm->calibre->name }}) @endif
@@ -455,7 +482,7 @@ new class extends Component {
                 </div>
 
                 @if($user_firearm_id)
-                    @php $selectedFirearm = $userFirearms->firstWhere('id', $user_firearm_id); @endphp
+                    @php $selectedFirearm = $this->userFirearms->firstWhere('id', $user_firearm_id); @endphp
                     @if($selectedFirearm)
                         <div class="mt-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4">
                             <p class="text-sm font-medium text-emerald-800 dark:text-emerald-200">Selected Firearm Details</p>
@@ -478,7 +505,7 @@ new class extends Component {
                         <label for="firearm_type_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Type of Firearm Used <span class="text-red-500">*</span></label>
                         <select id="firearm_type_id" wire:model="firearm_type_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
                             <option value="">Select a Firearm Type</option>
-                            @foreach($firearmTypes as $type)
+                            @foreach($this->firearmTypes as $type)
                                 <option value="{{ $type->id }}">{{ $type->name }}</option>
                             @endforeach
                         </select>
@@ -491,22 +518,22 @@ new class extends Component {
                         <select id="calibre_id" wire:model="calibre_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
                             <option value="">Search/Select a Calibre</option>
                             <optgroup label="Rifle">
-                                @foreach($calibres->where('category', 'rifle') as $calibre)
+                                @foreach($this->calibres->where('category', 'rifle') as $calibre)
                                     <option value="{{ $calibre->id }}">{{ $calibre->name }}</option>
                                 @endforeach
                             </optgroup>
                             <optgroup label="Handgun">
-                                @foreach($calibres->where('category', 'handgun') as $calibre)
+                                @foreach($this->calibres->where('category', 'handgun') as $calibre)
                                     <option value="{{ $calibre->id }}">{{ $calibre->name }}</option>
                                 @endforeach
                             </optgroup>
                             <optgroup label="Shotgun">
-                                @foreach($calibres->where('category', 'shotgun') as $calibre)
+                                @foreach($this->calibres->where('category', 'shotgun') as $calibre)
                                     <option value="{{ $calibre->id }}">{{ $calibre->name }}</option>
                                 @endforeach
                             </optgroup>
                             <optgroup label="Other">
-                                @foreach($calibres->where('category', 'other') as $calibre)
+                                @foreach($this->calibres->where('category', 'other') as $calibre)
                                     <option value="{{ $calibre->id }}">{{ $calibre->name }}</option>
                                 @endforeach
                             </optgroup>
