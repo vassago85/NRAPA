@@ -360,18 +360,6 @@ new class extends Component {
                     @error('event_category_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                 </div>
 
-                <!-- Event Type -->
-                <div>
-                    <label for="event_type_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Event Type</label>
-                    <select id="event_type_id" wire:model="event_type_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500" @disabled(empty($eventTypes))>
-                        <option value="">Select Event Type</option>
-                        @foreach($eventTypes as $eventType)
-                            <option value="{{ $eventType['id'] }}">{{ $eventType['name'] }}</option>
-                        @endforeach
-                    </select>
-                    @error('event_type_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                </div>
-
                 <!-- Activity Date -->
                 <div>
                     <label for="activity_date" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Date of Activity <span class="text-red-500">*</span></label>
