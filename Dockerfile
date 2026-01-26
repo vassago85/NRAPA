@@ -6,6 +6,7 @@ RUN apk add --no-cache \
     supervisor \
     git \
     curl \
+    netcat-openbsd \
     libpng-dev \
     libjpeg-turbo-dev \
     freetype-dev \
