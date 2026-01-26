@@ -41,6 +41,20 @@ services:
         condition: service_healthy
     networks:
       - bcsafaris-invoiceninja-network
+
+  bcsafaris-invoiceninja-nginx:
+    image: nginx:alpine
+    container_name: bcsafaris-invoiceninja-nginx
+    restart: unless-stopped
+    volumes:
+      - bcsafaris-in-public:/var/www/app/public:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "8081:80"
+    depends_on:
+      - invoiceninja
+    networks:
+      - bcsafaris-invoiceninja-network
       - npm-network
 
   bcsafaris-invoiceninja-db:
