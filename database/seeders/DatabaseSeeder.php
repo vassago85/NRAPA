@@ -65,7 +65,7 @@ class DatabaseSeeder extends Seeder
         ])->toArray();
         $admin->permissions()->sync($syncData);
 
-        // Create test member
+        // Create basic test member (minimal - for quick testing)
         User::updateOrCreate(
             ['email' => 'member@example.com'],
             [
@@ -77,5 +77,11 @@ class DatabaseSeeder extends Seeder
                 'role' => User::ROLE_MEMBER,
             ]
         );
+
+        // Create fully-qualified test member in non-production environments
+        // This member has all requirements completed for endorsement/certificate testing
+        if (app()->environment(['local', 'staging', 'development'])) {
+            $this->call(TestMemberSeeder::class);
+        }
     }
 }
