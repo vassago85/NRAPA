@@ -162,7 +162,7 @@ new class extends Component {
             <a href="{{ route('admin.membership-types.index') }}" wire:navigate class="px-3 py-1.5 text-sm font-medium bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 rounded-lg hover:bg-amber-300 dark:hover:bg-amber-700 transition">
                 Membership Types
             </a>
-            <a href="{{ route('firearms.index') }}" wire:navigate class="px-3 py-1.5 text-sm font-medium bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 rounded-lg hover:bg-amber-300 dark:hover:bg-amber-700 transition">
+            <a href="{{ route('armoury.index') }}" wire:navigate class="px-3 py-1.5 text-sm font-medium bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 rounded-lg hover:bg-amber-300 dark:hover:bg-amber-700 transition">
                 Virtual Safe
             </a>
         </div>
