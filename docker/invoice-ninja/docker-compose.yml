@@ -1,0 +1,98 @@
+# Invoice Ninja v5 - Self-hosted invoicing
+# Deploy separately from NRAPA stack
+#
+# Usage:
+#   cd /opt/invoice-ninja
+#   cp .env.example .env
+#   # Edit .env with your values
+#   docker compose up -d
+#
+# Access: https://invoice.charsley.co.za (after NPM proxy setup)
+# First run: Create admin account at setup wizard
+
+services:
+  invoiceninja:
+    image: invoiceninja/invoiceninja:5
+    container_name: invoiceninja-app
+    restart: unless-stopped
+    environment:
+      - APP_URL=${IN_APP_URL:-https://invoice.charsley.co.za}
+      - APP_KEY=${IN_APP_KEY}
+      - APP_DEBUG=${IN_APP_DEBUG:-false}
+      - REQUIRE_HTTPS=true
+      - TRUSTED_PROXIES=*
+      - DB_HOST=invoiceninja-db
+      - DB_PORT=3306
+      - DB_DATABASE=${IN_DB_DATABASE:-invoiceninja}
+      - DB_USERNAME=${IN_DB_USERNAME:-invoiceninja}
+      - DB_PASSWORD=${IN_DB_PASSWORD}
+      - MAIL_MAILER=${IN_MAIL_MAILER:-smtp}
+      - MAIL_HOST=${IN_MAIL_HOST}
+      - MAIL_PORT=${IN_MAIL_PORT:-587}
+      - MAIL_USERNAME=${IN_MAIL_USERNAME}
+      - MAIL_PASSWORD=${IN_MAIL_PASSWORD}
+      - MAIL_ENCRYPTION=${IN_MAIL_ENCRYPTION:-tls}
+      - MAIL_FROM_ADDRESS=${IN_MAIL_FROM_ADDRESS:-invoices@charsley.co.za}
+      - MAIL_FROM_NAME=${IN_MAIL_FROM_NAME:-Charsley Developers}
+    volumes:
+      - in-public:/var/www/app/public
+      - in-storage:/var/www/app/storage
+    depends_on:
+      invoiceninja-db:
+        condition: service_healthy
+    networks:
+      - invoiceninja-network
+      - npm-network
+
+  invoiceninja-db:
+    image: mariadb:11
+    container_name: invoiceninja-db
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${IN_DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${IN_DB_DATABASE:-invoiceninja}
+      - MYSQL_USER=${IN_DB_USERNAME:-invoiceninja}
+      - MYSQL_PASSWORD=${IN_DB_PASSWORD}
+    volumes:
+      - in-db-data:/var/lib/mysql
+    networks:
+      - invoiceninja-network
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Cron job for recurring invoices and reminders
+  invoiceninja-cron:
+    image: invoiceninja/invoiceninja:5
+    container_name: invoiceninja-cron
+    restart: unless-stopped
+    command: sh -c "while true; do php /var/www/app/artisan schedule:run --verbose --no-interaction; sleep 60; done"
+    environment:
+      - APP_URL=${IN_APP_URL:-https://invoice.charsley.co.za}
+      - APP_KEY=${IN_APP_KEY}
+      - DB_HOST=invoiceninja-db
+      - DB_PORT=3306
+      - DB_DATABASE=${IN_DB_DATABASE:-invoiceninja}
+      - DB_USERNAME=${IN_DB_USERNAME:-invoiceninja}
+      - DB_PASSWORD=${IN_DB_PASSWORD}
+    volumes:
+      - in-public:/var/www/app/public
+      - in-storage:/var/www/app/storage
+    depends_on:
+      - invoiceninja
+    networks:
+      - invoiceninja-network
+
+networks:
+  invoiceninja-network:
+    driver: bridge
+  npm-network:
+    external: true
+    name: nginx-proxy-manager_default
+
+volumes:
+  in-public:
+  in-storage:
+  in-db-data:

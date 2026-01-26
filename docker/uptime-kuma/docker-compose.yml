@@ -1,0 +1,29 @@
+# Uptime Kuma - Self-hosted monitoring tool
+# Deploy separately from NRAPA stack
+#
+# Usage:
+#   cd /opt/uptime-kuma
+#   docker compose up -d
+#
+# Access: https://status.charsley.co.za (after NPM proxy setup)
+# First run: Create admin account at http://server-ip:3001
+
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: uptime-kuma
+    restart: unless-stopped
+    volumes:
+      - uptime-kuma-data:/app/data
+    ports:
+      - "3001:3001"
+    networks:
+      - npm-network
+
+networks:
+  npm-network:
+    external: true
+    name: nginx-proxy-manager_default
+
+volumes:
+  uptime-kuma-data:

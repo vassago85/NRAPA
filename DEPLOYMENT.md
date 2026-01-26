@@ -164,8 +164,60 @@ base64:k2j+RehijTAMeuojTYpp7+7VHbr9BlMLlVPaDBVgDqw=
 
 | Environment | URL |
 |-------------|-----|
-| Production | `https://nrapa.charsley.co.za` |
+| Production | `https://members.nrapa.co.za` |
 | Local Dev | `http://nrapa.test` |
+| Monitoring | `https://status.charsley.co.za` |
+| Invoicing | `https://invoice.charsley.co.za` |
+
+---
+
+## 📊 Additional Services
+
+### Uptime Kuma (Monitoring)
+
+See `docker/uptime-kuma/README.md` for full setup instructions.
+
+**Quick Deploy:**
+```bash
+mkdir -p /opt/uptime-kuma
+cp docker/uptime-kuma/docker-compose.yml /opt/uptime-kuma/
+cd /opt/uptime-kuma
+docker compose up -d
+```
+
+**NPM Proxy Setup:**
+- Domain: `status.charsley.co.za`
+- Forward: `uptime-kuma:3001`
+- Enable Websockets Support
+
+---
+
+### Invoice Ninja (Billing)
+
+See `docker/invoice-ninja/README.md` for full setup instructions.
+
+**Quick Deploy:**
+```bash
+mkdir -p /opt/invoice-ninja
+cp docker/invoice-ninja/docker-compose.yml /opt/invoice-ninja/
+cp docker/invoice-ninja/env.template /opt/invoice-ninja/.env
+cd /opt/invoice-ninja
+
+# Edit .env with your passwords
+nano .env
+
+# Generate APP_KEY
+docker compose run --rm invoiceninja php artisan key:generate --show
+# Add output to .env as IN_APP_KEY
+
+# Start
+docker compose up -d
+```
+
+**NPM Proxy Setup:**
+- Domain: `invoice.charsley.co.za`
+- Forward: `invoiceninja-app:80`
+- Enable SSL
 
 ---
 
