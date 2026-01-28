@@ -268,6 +268,21 @@ Route::middleware(['auth', 'verified', 'developer'])->prefix('developer')->name(
     // Certificates (developer can view all certificates)
     Route::livewire('certificates', 'pages::member.certificates.index')->name('certificates.index');
     Route::livewire('certificates/{certificate}', 'pages::member.certificates.show')->name('certificates.show');
+    
+    // Certificate preview (renders the document template)
+    Route::get('certificates/{certificate}/preview', function (\App\Models\Certificate $certificate) {
+        $certificate->loadMissing(['user', 'membership.type', 'certificateType']);
+        
+        // Determine template based on certificate type
+        $template = $certificate->certificateType->template ?? 'documents.paid-up';
+        
+        return view($template, [
+            'certificate' => $certificate,
+            'user' => $certificate->user,
+            'membership' => $certificate->membership,
+            'certificateType' => $certificate->certificateType,
+        ]);
+    })->name('certificates.preview');
 });
 
 // Admin Routes
