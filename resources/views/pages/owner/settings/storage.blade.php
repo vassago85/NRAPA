@@ -38,50 +38,65 @@ new class extends Component {
 
     public function saveStorageSettings(): void
     {
-        // R2 is required for Docker deployments - local storage is not persistent
-        $this->storage_driver = 'r2';
-        
-        $this->validate([
-            'r2_access_key_id' => 'required|string|max:255',
-            'r2_secret_access_key' => 'required|string|max:255',
-            'r2_bucket' => 'required|string|max:255',
-            'r2_endpoint' => 'required|url|max:255',
-            'r2_url' => 'nullable|url|max:255',
-            'r2_region' => 'required|string|max:50',
-            'r2_public_bucket' => 'required|string|max:255',
-            'r2_public_url' => 'required|url|max:255',
-        ]);
+        // Validate based on selected storage driver
+        if ($this->storage_driver === 'r2') {
+            $this->validate([
+                'storage_driver' => 'required|in:local,r2',
+                'r2_access_key_id' => 'required|string|max:255',
+                'r2_secret_access_key' => 'required|string|max:255',
+                'r2_bucket' => 'required|string|max:255',
+                'r2_endpoint' => 'required|url|max:255',
+                'r2_url' => 'nullable|url|max:255',
+                'r2_region' => 'required|string|max:50',
+                'r2_public_bucket' => 'required|string|max:255',
+                'r2_public_url' => 'required|url|max:255',
+            ]);
+        } else {
+            // Local storage - no R2 fields required
+            $this->validate([
+                'storage_driver' => 'required|in:local,r2',
+            ]);
+        }
 
-        SystemSetting::set('storage_driver', 'r2', 'string', 'storage', 'Storage driver');
-        SystemSetting::set('r2_access_key_id', $this->r2_access_key_id, 'string', 'storage', 'R2 Access Key ID');
-        SystemSetting::set('r2_secret_access_key', $this->r2_secret_access_key, 'string', 'storage', 'R2 Secret Access Key');
-        SystemSetting::set('r2_bucket', $this->r2_bucket, 'string', 'storage', 'R2 Private Bucket Name');
-        SystemSetting::set('r2_endpoint', $this->r2_endpoint, 'string', 'storage', 'R2 Endpoint URL');
-        SystemSetting::set('r2_url', $this->r2_url, 'string', 'storage', 'R2 Private URL');
-        SystemSetting::set('r2_region', $this->r2_region, 'string', 'storage', 'R2 Region');
-        SystemSetting::set('r2_public_bucket', $this->r2_public_bucket, 'string', 'storage', 'R2 Public Bucket Name');
-        SystemSetting::set('r2_public_url', $this->r2_public_url, 'string', 'storage', 'R2 Public URL');
-
-        // Update runtime config for R2 private bucket
-        config([
-            'filesystems.default' => 'r2',
-            'filesystems.disks.r2.key' => $this->r2_access_key_id,
-            'filesystems.disks.r2.secret' => $this->r2_secret_access_key,
-            'filesystems.disks.r2.bucket' => $this->r2_bucket,
-            'filesystems.disks.r2.endpoint' => $this->r2_endpoint,
-            'filesystems.disks.r2.url' => $this->r2_url,
-            'filesystems.disks.r2.region' => $this->r2_region,
-        ]);
+        SystemSetting::set('storage_driver', $this->storage_driver, 'string', 'storage', 'Storage driver');
         
-        // Update runtime config for R2 public bucket
-        config([
-            'filesystems.disks.r2_public.key' => $this->r2_access_key_id,
-            'filesystems.disks.r2_public.secret' => $this->r2_secret_access_key,
-            'filesystems.disks.r2_public.bucket' => $this->r2_public_bucket,
-            'filesystems.disks.r2_public.endpoint' => $this->r2_endpoint,
-            'filesystems.disks.r2_public.url' => $this->r2_public_url,
-            'filesystems.disks.r2_public.region' => $this->r2_region,
-        ]);
+        // Only save R2 settings if R2 is selected
+        if ($this->storage_driver === 'r2') {
+            SystemSetting::set('r2_access_key_id', $this->r2_access_key_id, 'string', 'storage', 'R2 Access Key ID');
+            SystemSetting::set('r2_secret_access_key', $this->r2_secret_access_key, 'string', 'storage', 'R2 Secret Access Key');
+            SystemSetting::set('r2_bucket', $this->r2_bucket, 'string', 'storage', 'R2 Private Bucket Name');
+            SystemSetting::set('r2_endpoint', $this->r2_endpoint, 'string', 'storage', 'R2 Endpoint URL');
+            SystemSetting::set('r2_url', $this->r2_url, 'string', 'storage', 'R2 Private URL');
+            SystemSetting::set('r2_region', $this->r2_region, 'string', 'storage', 'R2 Region');
+            SystemSetting::set('r2_public_bucket', $this->r2_public_bucket, 'string', 'storage', 'R2 Public Bucket Name');
+            SystemSetting::set('r2_public_url', $this->r2_public_url, 'string', 'storage', 'R2 Public URL');
+
+            // Update runtime config for R2 private bucket
+            config([
+                'filesystems.default' => 'r2',
+                'filesystems.disks.r2.key' => $this->r2_access_key_id,
+                'filesystems.disks.r2.secret' => $this->r2_secret_access_key,
+                'filesystems.disks.r2.bucket' => $this->r2_bucket,
+                'filesystems.disks.r2.endpoint' => $this->r2_endpoint,
+                'filesystems.disks.r2.url' => $this->r2_url,
+                'filesystems.disks.r2.region' => $this->r2_region,
+            ]);
+            
+            // Update runtime config for R2 public bucket
+            config([
+                'filesystems.disks.r2_public.key' => $this->r2_access_key_id,
+                'filesystems.disks.r2_public.secret' => $this->r2_secret_access_key,
+                'filesystems.disks.r2_public.bucket' => $this->r2_public_bucket,
+                'filesystems.disks.r2_public.endpoint' => $this->r2_endpoint,
+                'filesystems.disks.r2_public.url' => $this->r2_public_url,
+                'filesystems.disks.r2_public.region' => $this->r2_region,
+            ]);
+        } else {
+            // Local storage - update default
+            config([
+                'filesystems.default' => 'local',
+            ]);
+        }
 
         session()->flash('success', 'Storage settings saved successfully.');
     }
@@ -193,13 +208,35 @@ new class extends Component {
                 </div>
 
                 <form wire:submit="saveStorageSettings" class="space-y-6">
-                    <!-- Cloud Storage Notice -->
+                    <!-- Storage Driver Selection -->
+                    <div class="space-y-4">
+                        <h3 class="text-md font-semibold text-zinc-900 dark:text-white">Storage Driver</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer transition-colors {{ $storage_driver === 'local' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-zinc-300 dark:border-zinc-600 hover:border-zinc-400 dark:hover:border-zinc-500' }}">
+                                <input type="radio" wire:model.live="storage_driver" value="local" class="mr-3 text-emerald-600 focus:ring-emerald-500">
+                                <div>
+                                    <div class="font-medium text-zinc-900 dark:text-white">Local Storage</div>
+                                    <div class="text-sm text-zinc-500 dark:text-zinc-400">Use local filesystem (for development/testing)</div>
+                                </div>
+                            </label>
+                            <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer transition-colors {{ $storage_driver === 'r2' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-zinc-300 dark:border-zinc-600 hover:border-zinc-400 dark:hover:border-zinc-500' }}">
+                                <input type="radio" wire:model.live="storage_driver" value="r2" class="mr-3 text-emerald-600 focus:ring-emerald-500">
+                                <div>
+                                    <div class="font-medium text-zinc-900 dark:text-white">Cloudflare R2</div>
+                                    <div class="text-sm text-zinc-500 dark:text-zinc-400">Use cloud storage (for production)</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    @if($storage_driver === 'r2')
+                    <!-- Cloud Storage Notice (only show for R2) -->
                     <div class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
                         <div class="flex items-start gap-3">
                             <svg class="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             <div>
-                                <p class="text-sm font-medium text-amber-800 dark:text-amber-200">Cloud Storage Required</p>
-                                <p class="text-sm text-amber-700 dark:text-amber-300 mt-1">This application runs in Docker containers where local storage is not persistent. All uploaded files (documents, images) must be stored in Cloudflare R2 to ensure they are not lost when containers restart.</p>
+                                <p class="text-sm font-medium text-amber-800 dark:text-amber-200">Cloud Storage Recommended for Production</p>
+                                <p class="text-sm text-amber-700 dark:text-amber-300 mt-1">For Docker deployments, Cloudflare R2 is recommended as local storage is not persistent. Files stored locally will be lost when containers restart.</p>
                             </div>
                         </div>
                     </div>
@@ -293,14 +330,28 @@ new class extends Component {
                             </div>
                         </div>
                     </div>
+                    @else
+                    <!-- Local Storage Notice -->
+                    <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <div>
+                                <p class="text-sm font-medium text-blue-800 dark:text-blue-200">Local Storage Active</p>
+                                <p class="text-sm text-blue-700 dark:text-blue-300 mt-1">Files will be stored in <code class="px-1 py-0.5 bg-blue-100 dark:bg-blue-800 rounded text-xs">storage/app/private</code> and <code class="px-1 py-0.5 bg-blue-100 dark:bg-blue-800 rounded text-xs">storage/app/public</code>. This is suitable for local development and testing.</p>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
 
                     <div class="pt-4 border-t border-zinc-200 dark:border-zinc-700 flex flex-wrap gap-3">
                         <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors">
                             Save Storage Settings
                         </button>
+                        @if($storage_driver === 'r2')
                         <button type="button" wire:click="testConnection" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
                             Test Connection
                         </button>
+                        @endif
                     </div>
                 </form>
 
