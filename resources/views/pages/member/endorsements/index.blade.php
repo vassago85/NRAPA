@@ -11,13 +11,43 @@ use Livewire\Component;
 
 new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends Component {
     
+    public string $statusFilter = '';
+
+    public function updatedStatusFilter(): void
+    {
+        // Reset any pagination if needed
+    }
+
     #[Computed]
     public function requests()
     {
-        return EndorsementRequest::where('user_id', auth()->id())
+        $query = EndorsementRequest::where('user_id', auth()->id())
             ->with(['firearm', 'firearm.calibre', 'documents'])
-            ->orderBy('created_at', 'desc')
-            ->get();
+            ->orderBy('created_at', 'desc');
+
+        if ($this->statusFilter) {
+            $query->where('status', $this->statusFilter);
+        }
+
+        return $query->get();
+    }
+
+    #[Computed]
+    public function stats()
+    {
+        $userId = auth()->id();
+        return [
+            'pending' => EndorsementRequest::where('user_id', $userId)
+                ->whereIn('status', ['submitted', 'under_review', 'pending_documents'])
+                ->count(),
+            'approved' => EndorsementRequest::where('user_id', $userId)
+                ->where('status', 'approved')
+                ->count(),
+            'issued' => EndorsementRequest::where('user_id', $userId)
+                ->where('status', 'issued')
+                ->count(),
+            'total' => EndorsementRequest::where('user_id', $userId)->count(),
+        ];
     }
 
     #[Computed]
@@ -451,6 +481,81 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
         </div>
     @endif
 
+    {{-- Stats Cards --}}
+    @if($this->stats['total'] > 0)
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                        <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">Pending</p>
+                        <p class="text-xl font-bold text-zinc-900 dark:text-white">{{ $this->stats['pending'] }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+                        <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">Approved</p>
+                        <p class="text-xl font-bold text-zinc-900 dark:text-white">{{ $this->stats['approved'] }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                        <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">Issued</p>
+                        <p class="text-xl font-bold text-zinc-900 dark:text-white">{{ $this->stats['issued'] }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                        <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">Total</p>
+                        <p class="text-xl font-bold text-zinc-900 dark:text-white">{{ $this->stats['total'] }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Filter --}}
+    @if($this->stats['total'] > 0)
+        <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-4 mb-6">
+            <div class="flex flex-col md:flex-row gap-4">
+                <div class="w-full md:w-64">
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Filter by Status</label>
+                    <select wire:model.live="statusFilter" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                        <option value="">All Statuses</option>
+                        @foreach(App\Models\EndorsementRequest::getStatusOptions() as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+        </div>
+    @endif
+
     {{-- Requests List --}}
     @if($this->requests->count() > 0)
         <div class="space-y-4">
@@ -523,6 +628,18 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                                         </svg>
                                         Delete
                                     </button>
+                                @elseif($request->isApproved())
+                                    <a href="{{ route('member.endorsements.show', $request) }}" wire:navigate
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-emerald-700 bg-emerald-100 hover:bg-emerald-200 dark:text-emerald-300 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 rounded-lg transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                        View Details
+                                    </a>
+                                    <span class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                                        Ready for letter generation
+                                    </span>
                                 @elseif($request->isSubmitted())
                                     <a href="{{ route('member.endorsements.show', $request) }}" wire:navigate
                                         class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-zinc-700 bg-zinc-100 hover:bg-zinc-200 dark:text-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 rounded-lg transition-colors">
