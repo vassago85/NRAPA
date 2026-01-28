@@ -728,22 +728,23 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                             <p class="text-green-600 dark:text-green-400 font-semibold">Endorsement Issued</p>
                             <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Endorsement letter has been generated</p>
                             
-                            @if($request->letter_file_path)
+                            @if($request->isIssued())
                                 <div class="flex gap-2 mt-4">
-                                    <a href="{{ route('admin.endorsements.letter', $request) }}" target="_blank"
+                                    <a href="{{ route('admin.endorsements.preview', $request) }}" target="_blank"
                                         class="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
                                         </svg>
                                         View Letter
                                     </a>
-                                    <a href="{{ route('admin.endorsements.letter', $request) }}" download
+                                    <a href="{{ route('admin.endorsements.preview', $request) }}?print=1" target="_blank"
+                                        onclick="window.open(this.href, '_blank', 'width=800,height=600'); setTimeout(() => { window.print(); }, 500); return false;"
                                         class="flex-1 px-4 py-2 border border-emerald-600 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors flex items-center justify-center gap-2">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
                                         </svg>
-                                        Download
+                                        Print
                                     </a>
                                 </div>
                                 @if($request->letter_reference)
