@@ -180,6 +180,39 @@ Route::middleware(['auth', 'verified', 'membership.required'])->group(function (
     Route::livewire('endorsements/create', 'pages::member.endorsements.create')->name('member.endorsements.create');
     Route::livewire('endorsements/{request}/edit', 'pages::member.endorsements.create')->name('member.endorsements.edit');
     Route::livewire('endorsements/{request}', 'pages::member.endorsements.show')->name('member.endorsements.show');
+    
+    // Member endorsement letter view/download
+    Route::get('endorsements/{request}/letter', function (\App\Models\EndorsementRequest $request) {
+        // Ensure user owns this request
+        if ($request->user_id !== auth()->id()) {
+            abort(403);
+        }
+        
+        if (!$request->isIssued() || !$request->letter_file_path) {
+            abort(404, 'Endorsement letter not found.');
+        }
+        
+        $disk = config('filesystems.disks.r2.key') ? 'r2' : (config('filesystems.disks.s3.key') ? 's3' : 'local');
+        $storage = \Illuminate\Support\Facades\Storage::disk($disk);
+        
+        if (!$storage->exists($request->letter_file_path)) {
+            abort(404, 'Letter file not found.');
+        }
+        
+        $mimeType = $storage->mimeType($request->letter_file_path);
+        $filename = 'endorsement-letter-' . $request->letter_reference . '.' . pathinfo($request->letter_file_path, PATHINFO_EXTENSION);
+        
+        return response()->stream(function () use ($storage, $request) {
+            $stream = $storage->readStream($request->letter_file_path);
+            fpassthru($stream);
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }, 200, [
+            'Content-Type' => $mimeType,
+            'Content-Disposition' => 'inline; filename="' . $filename . '"',
+        ]);
+    })->name('member.endorsements.letter');
 });
 
 // Owner Routes (Owners and Developers can access)

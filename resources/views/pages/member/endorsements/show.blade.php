@@ -18,16 +18,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
         $this->request = $request->load(['firearm', 'firearm.calibre', 'components', 'documents']);
     }
 
-    public function downloadLetter(): void
-    {
-        if (!$this->request->isIssued() || !$this->request->letter_file_path) {
-            session()->flash('error', 'Letter not available for download.');
-            return;
-        }
-
-        // Redirect to download route
-        $this->redirect(route('member.endorsements.download', $this->request));
-    }
 }; ?>
 
 <div>
