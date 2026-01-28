@@ -95,6 +95,12 @@ class SidebarMenu
                 'section' => 'ADMINISTRATION',
                 'items' => [
                     [
+                        'label' => 'Dashboard',
+                        'route' => 'admin.dashboard',
+                        'icon' => 'squares-2x2',
+                        'roles' => ['admin', 'owner', 'developer'],
+                    ],
+                    [
                         'label' => 'Members',
                         'route' => 'admin.members.index',
                         'icon' => 'users',

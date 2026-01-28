@@ -54,7 +54,7 @@ if (app()->environment('local', 'development', 'testing')) {
         return match($role) {
             'developer' => redirect()->route('developer.dashboard'),
             'owner' => redirect()->route('owner.dashboard'),
-            'admin' => redirect()->route('admin.members.index'),
+            'admin' => redirect()->route('admin.dashboard'),
             default => redirect()->route('dashboard'),
         };
     })->name('dev.login');
@@ -77,7 +77,7 @@ Route::middleware(['auth'])->group(function () {
         return match($user->role) {
             'developer' => redirect()->route('developer.dashboard'),
             'owner' => redirect()->route('owner.dashboard'),
-            'admin' => redirect()->route('admin.members.index'),
+            'admin' => redirect()->route('admin.dashboard'),
             default => redirect()->route('dashboard'),
         };
     })->name('dev.impersonate');
@@ -207,6 +207,7 @@ Route::middleware(['auth', 'verified', 'developer'])->prefix('developer')->name(
 
 // Admin Routes
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::livewire('dashboard', 'pages::admin.dashboard')->name('dashboard');
     Route::livewire('members', 'pages::admin.members.index')->name('members.index');
     Route::livewire('members/{user}', 'pages::admin.members.show')->name('members.show');
     
