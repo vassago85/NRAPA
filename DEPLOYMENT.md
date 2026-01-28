@@ -30,12 +30,13 @@ docker build -t nrapa-app:latest .
 - Or run: `docker compose up -d`
 
 ### 4. Configure Nginx Proxy Manager
-- **Domain**: `nrapa.charsley.co.za`
-- **Forward Hostname**: `localhost` (or `127.0.0.1`)
+- **Domain**: `members.nrapa.co.za` (or your NRAPA domain)
+- **Forward Hostname**: **Host IP** (e.g. `41.72.157.26`) — **not** `localhost`
 - **Forward Port**: `8085`
+- **Forward Scheme**: `http`
 - **SSL**: Request Let's Encrypt certificate
 
-> **Important**: Use `localhost` with the port number instead of container names to avoid IP address resolution issues with NPM.
+> **Important**: NPM runs in Docker. Inside its container, `localhost` refers to NPM itself, not the host. Use the **server's host IP** (from `hostname -I | awk '{print $1}'`) so NPM can reach the NRAPA app on port 8085.
 
 ---
 
@@ -104,15 +105,15 @@ docker exec -it nrapa-db mysql -unrapa -p'Nrp@2026$Kz9mXvL!' nrapa
 
 If you see a 502 error, check:
 
-1. **NPM Configuration**: Ensure Forward Hostname is `localhost` (not container name) and Forward Port matches the exposed port (`8085`)
-2. **Container Status**: Verify the container is running: `docker ps | grep nrapa-app`
-3. **Port Access**: Test if the port is accessible: `curl http://localhost:8085`
-4. **Container Logs**: Check for errors: `docker logs nrapa-app --tail 50`
+1. **NPM Configuration**: NPM runs in Docker — use the **host IP** (e.g. `41.72.157.26`), not `localhost`. Forward Port: `8085`, Scheme: `http`.
+2. **Test from inside NPM container**: `docker exec nginx-proxy-manager curl -v http://$(hostname -I | awk '{print $1}'):8085` — should return 200.
+3. **Container Status**: Verify the container is running: `docker ps | grep nrapa-app`
+4. **Port Access from host**: `curl http://localhost:8085` (from server SSH)
+5. **Container Logs**: `docker logs nrapa-app --tail 50`
 
-**Why use `localhost` instead of container names?**
-- NPM can have IP address resolution issues with Docker container names
-- Using direct port mappings (`localhost:8085`) avoids DNS/network confusion
-- More reliable and easier to troubleshoot
+**Why use host IP instead of localhost?**
+- NPM is in a Docker container; inside it, `localhost` is the NPM container, not the host.
+- Use the server's IP (e.g. `41.72.157.26` or output of `hostname -I | awk '{print $1}'`) so NPM can reach the app on port 8085.
 
 ### Check Container Status:
 ```bash
