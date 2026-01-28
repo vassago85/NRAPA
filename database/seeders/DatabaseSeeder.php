@@ -16,6 +16,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Seed form data (countries, provinces, document types, certificate types)
+        $this->call(FormDataSeeder::class);
+
         // Seed membership configuration first
         $this->call(MembershipConfigurationSeeder::class);
 
