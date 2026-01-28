@@ -1,58 +1,70 @@
 @extends('documents.base')
 
+@php
+    $verificationUrl = isset($certificate) && $certificate->qr_code 
+        ? route('certificates.verify', ['qr_code' => $certificate->qr_code])
+        : '#';
+    $qrCodeUrl = \App\Helpers\QrCodeHelper::generateUrl($verificationUrl, 120);
+@endphp
+
+@push('document-styles')
+<style>
+    .doc-sheet { width: 86mm; height: 54mm; min-height: 54mm; }
+    .doc-page { padding: 8mm; min-height: 54mm; }
+</style>
+@endpush
+
 @section('content')
-<div style="text-align: center; margin-bottom: 2rem;">
-    <div style="display: inline-block; padding: 2rem 4rem; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); border-radius: 12px; color: white; margin-bottom: 2rem;">
-        <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 0.5rem;">NRAPA</h2>
-        <p style="font-size: 14px; opacity: 0.9;">Membership Card</p>
-    </div>
-</div>
-
-<div style="max-width: 600px; margin: 0 auto; padding: 2rem; background: rgba(30, 64, 175, 0.05); border-radius: 8px; border: 2px solid #1e40af;">
-    <div style="margin-bottom: 2rem;">
-        <p style="font-size: 12px; color: #6b7280; margin-bottom: 0.25rem;">Member Name</p>
-        <p style="font-size: 24px; font-weight: bold; color: #1e40af;">{{ $certificate->user->name }}</p>
-    </div>
-    
-    <div style="margin-bottom: 2rem;">
-        <p style="font-size: 12px; color: #6b7280; margin-bottom: 0.25rem;">Membership Number</p>
-        <p style="font-size: 20px; font-weight: bold; font-family: monospace; color: #1e40af;">{{ $certificate->membership->membership_number ?? 'N/A' }}</p>
-    </div>
-    
-    @if($certificate->membership->type)
-    <div style="margin-bottom: 2rem;">
-        <p style="font-size: 12px; color: #6b7280; margin-bottom: 0.25rem;">Membership Type</p>
-        <p style="font-size: 16px; font-weight: bold; color: #374151;">{{ $certificate->membership->type->name }}</p>
-    </div>
-    @endif
-    
-    <div style="margin-bottom: 2rem;">
-        <p style="font-size: 12px; color: #6b7280; margin-bottom: 0.25rem;">FCA Status</p>
-        <p style="font-size: 16px; font-weight: bold; color: #374151;">Active Member</p>
-    </div>
-    
-    <div style="margin-bottom: 2rem;">
-        <p style="font-size: 12px; color: #6b7280; margin-bottom: 0.25rem;">Enrolment Date</p>
-        <p style="font-size: 16px; font-weight: bold; color: #374151;">{{ $certificate->membership->activated_at?->format('d M Y') ?? $certificate->membership->applied_at?->format('d M Y') ?? 'N/A' }}</p>
-    </div>
-    
-    <div style="margin-bottom: 2rem;">
-        <p style="font-size: 12px; color: #6b7280; margin-bottom: 0.25rem;">Expiry</p>
-        <p style="font-size: 16px; font-weight: bold; color: #374151;">
-            @if($certificate->membership->expires_at)
-                {{ $certificate->membership->expires_at->format('d M Y') }}
+<div class="doc-card-inner">
+    <div class="doc-card-top">
+        <div class="doc-card-logo">
+            @if(isset($logo_url))
+                <img src="{{ $logo_url }}" alt="NRAPA">
             @else
-                Lifetime
+                <div style="width:100%; height:100%; background:linear-gradient(135deg, #0f4c81 0%, #3b82f6 100%); display:grid; place-items:center; color:#fff; font-weight:bold; font-size:7pt;">NRAPA</div>
             @endif
-        </p>
+        </div>
+        <div>
+            <div class="doc-card-org">NRAPA</div>
+            <div class="doc-card-meta">Membership Card</div>
+        </div>
+    </div>
+    
+    <div class="doc-card-row">
+        <div>
+            <div class="doc-card-name">{{ $certificate->user->name }}</div>
+            <div class="doc-card-small" style="margin-top:2px;">
+                #{{ $certificate->membership->membership_number ?? 'N/A' }}
+            </div>
+            @if($certificate->membership->type)
+            <div class="doc-card-small" style="margin-top:4px;">
+                {{ $certificate->membership->type->name }}
+            </div>
+            @endif
+        </div>
+        @if($certificate->qr_code)
+        <div class="doc-card-qr">
+            <img src="{{ $qrCodeUrl }}" alt="QR Code">
+        </div>
+        @endif
+    </div>
+    
+    <div style="margin-top:auto; display:flex; justify-content:space-between; align-items:flex-end; font-size:7.5pt; color:rgba(255,255,255,.92);">
+        <div>
+            <div>FCA Status: <strong style="color:#fff;">Active</strong></div>
+            <div style="margin-top:2px;">
+                Enrolled: {{ $certificate->membership->activated_at?->format('M Y') ?? $certificate->membership->applied_at?->format('M Y') ?? 'N/A' }}
+            </div>
+        </div>
+        <div style="text-align:right;">
+            <div>
+                @if($certificate->membership->expires_at)
+                    Expires: {{ $certificate->membership->expires_at->format('M Y') }}
+                @else
+                    <strong style="color:#fff;">Lifetime</strong>
+                @endif
+            </div>
+        </div>
     </div>
 </div>
-
-<div style="margin-top: 2rem; text-align: center; font-size: 10px; color: #9ca3af;">
-    <p>This card is valid as long as membership remains active and in good standing.</p>
-    @if($certificate->certificate_number)
-        <p style="margin-top: 0.5rem;">Card Number: {{ $certificate->certificate_number }}</p>
-    @endif
-</div>
-
 @endsection

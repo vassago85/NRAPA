@@ -1,65 +1,141 @@
 @extends('documents.base')
 
+@php
+    // Endorsement letters may have QR codes if they're stored as certificates
+    $verificationUrl = isset($request) && $request->qr_code 
+        ? route('certificates.verify', ['qr_code' => $request->qr_code])
+        : (isset($request) && $request->letter_reference 
+            ? url('/verify/endorsement/' . $request->letter_reference)
+            : '#');
+    $qrCodeUrl = $verificationUrl !== '#' ? \App\Helpers\QrCodeHelper::generateUrl($verificationUrl, 256) : null;
+@endphp
+
 @section('content')
-<div style="text-align: center; margin-bottom: 3rem;">
-    <h2 style="font-size: 32px; font-weight: bold; color: #1e40af; margin-bottom: 1rem;">ENDORSEMENT LETTER</h2>
-    <h3 style="font-size: 24px; font-weight: normal; color: #374151; margin-bottom: 2rem;">Firearm Licence Application</h3>
+<div class="doc-header">
+    <div class="doc-logo">
+        @if(isset($logo_url))
+            <img src="{{ $logo_url }}" alt="NRAPA">
+        @else
+            <div style="width:100%; height:100%; background:linear-gradient(135deg, #0f4c81 0%, #3b82f6 100%); display:grid; place-items:center; color:#fff; font-weight:bold; font-size:10pt;">NRAPA</div>
+        @endif
+    </div>
+    <div class="doc-org">
+        <h1>National Rifle & Pistol Association</h1>
+        <div class="sub">of South Africa</div>
+        <div class="doc-badge">
+            <span class="dot"></span>
+            <span>FAR Accredited | SAPS Recognised</span>
+        </div>
+    </div>
 </div>
 
-<div style="margin-bottom: 2rem;">
-    <p style="margin-bottom: 1rem;"><strong>Reference:</strong> {{ $request->letter_reference ?? 'N/A' }}</p>
-    <p style="margin-bottom: 1rem;"><strong>Date:</strong> {{ $request->issued_at?->format('d F Y') ?? now()->format('d F Y') }}</p>
+<div class="doc-title">
+    <h2>Endorsement Letter</h2>
+    <div class="note">Firearm Licence Application</div>
 </div>
 
-<div style="margin-bottom: 2rem;">
-    <p>To Whom It May Concern,</p>
+<div class="doc-block">
+    <div class="doc-row">
+        <span class="doc-label">Reference:</span>
+        <span class="doc-value">{{ $request->letter_reference ?? 'N/A' }}</span>
+    </div>
+    <div class="doc-row" style="margin-top:6px;">
+        <span class="doc-label">Date:</span>
+        <span class="doc-value">{{ $request->issued_at?->format('d F Y') ?? now()->format('d F Y') }}</span>
+    </div>
 </div>
 
-<div style="margin-bottom: 2rem; line-height: 1.8;">
-    <p style="margin-bottom: 1rem;">
+<div class="doc-block">
+    <p class="doc-para"><strong>To Whom It May Concern,</strong></p>
+    
+    <p class="doc-para" style="margin-top:12px;">
         This letter serves to confirm that <strong>{{ $user->name }}</strong> (Membership Number: {{ $membership?->membership_number ?? 'N/A' }}) 
         is a member in good standing of the National Rifle & Pistol Association of South Africa (NRAPA).
     </p>
     
     @if($request->firearm)
-        <p style="margin-bottom: 1rem;">
-            We hereby endorse the application for a Section 16 firearm licence for the following firearm:
-        </p>
-        
-        <div style="background: #f3f4f6; padding: 1.5rem; border-radius: 8px; margin: 1.5rem 0;">
-            <p style="margin-bottom: 0.5rem;"><strong>Firearm Type:</strong> {{ $request->firearm->firearm_type_label ?? 'N/A' }}</p>
-            <p style="margin-bottom: 0.5rem;"><strong>Make:</strong> {{ $request->firearm->make ?? 'N/A' }}</p>
-            <p style="margin-bottom: 0.5rem;"><strong>Model:</strong> {{ $request->firearm->model ?? 'N/A' }}</p>
-            <p style="margin-bottom: 0.5rem;"><strong>Calibre:</strong> {{ $request->firearm->calibre?->name ?? 'N/A' }}</p>
-            @if($request->firearm->action_type)
-                <p style="margin-bottom: 0.5rem;"><strong>Action:</strong> {{ ucfirst(str_replace('_', ' ', $request->firearm->action_type)) }}</p>
-            @endif
-            @if($request->components && $request->components->isNotEmpty())
-                <p style="margin-bottom: 0.5rem;"><strong>Serial Numbers:</strong></p>
-                <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
-                    @foreach($request->components as $component)
-                        <li>{{ ucfirst($component->type) }}: {{ $component->serial ?? 'N/A' }}</li>
-                    @endforeach
-                </ul>
-            @endif
+    <p class="doc-para" style="margin-top:12px;">
+        We hereby endorse the application for a Section 16 firearm licence for the following firearm:
+    </p>
+    
+    <div class="doc-block" style="margin-top:12px; background:rgba(15,76,129,.05);">
+        <h3 style="margin-bottom:8px;">Firearm Details</h3>
+        <div class="doc-row">
+            <span class="doc-label">Firearm Type:</span>
+            <span class="doc-value">{{ $request->firearm->firearm_type_label ?? 'N/A' }}</span>
         </div>
+        <div class="doc-row" style="margin-top:6px;">
+            <span class="doc-label">Make:</span>
+            <span class="doc-value">{{ $request->firearm->make ?? 'N/A' }}</span>
+        </div>
+        <div class="doc-row" style="margin-top:6px;">
+            <span class="doc-label">Model:</span>
+            <span class="doc-value">{{ $request->firearm->model ?? 'N/A' }}</span>
+        </div>
+        <div class="doc-row" style="margin-top:6px;">
+            <span class="doc-label">Calibre:</span>
+            <span class="doc-value">{{ $request->firearm->calibre?->name ?? 'N/A' }}</span>
+        </div>
+        @if($request->firearm->action_type)
+        <div class="doc-row" style="margin-top:6px;">
+            <span class="doc-label">Action:</span>
+            <span class="doc-value">{{ ucfirst(str_replace('_', ' ', $request->firearm->action_type)) }}</span>
+        </div>
+        @endif
+        @if($request->components && $request->components->isNotEmpty())
+        <div style="margin-top:8px;">
+            <span class="doc-label">Serial Numbers:</span>
+            <ul class="doc-list" style="margin-top:4px;">
+                @foreach($request->components as $component)
+                    <li>{{ ucfirst($component->type) }}: {{ $component->serial ?? 'N/A' }}</li>
+                @endforeach
+            </ul>
+        </div>
+        @endif
+    </div>
     @endif
 
-    <p style="margin-bottom: 1rem;">
+    <p class="doc-para" style="margin-top:12px;">
         The member has demonstrated their commitment to responsible firearm ownership and participation in dedicated status activities 
         as required by NRAPA membership standards.
     </p>
 
-    <p style="margin-bottom: 1rem;">
+    <p class="doc-para" style="margin-top:12px;">
         This endorsement is valid for the purpose of supporting the member's application for a Section 16 firearm licence 
         with the South African Police Service (SAPS).
     </p>
 </div>
 
-<div style="margin-top: 3rem;">
-    <p style="margin-bottom: 2rem;">Yours sincerely,</p>
-    <p style="margin-bottom: 0.5rem;"><strong>NRAPA Administration</strong></p>
-    <p style="margin-bottom: 0.5rem;">National Rifle & Pistol Association of South Africa</p>
-    <p>www.nrapa.co.za</p>
+<div class="doc-block" style="margin-top:auto;">
+    <p class="doc-para" style="margin-bottom:12px;">Yours sincerely,</p>
+    <div class="doc-signature">
+        <div class="doc-value">NRAPA Administration</div>
+        <div class="doc-label" style="margin-top:4px;">National Rifle & Pistol Association of South Africa</div>
+    </div>
+</div>
+
+@if($qrCodeUrl)
+<div class="doc-qr">
+    <div class="doc-qr-box">
+        <img src="{{ $qrCodeUrl }}" alt="QR Code">
+    </div>
+    <div class="doc-qr-text">
+        <strong>Verify this letter:</strong><br>
+        Scan the QR code or visit:<br>
+        <span class="doc-qr-link">{{ $verificationUrl }}</span>
+    </div>
+</div>
+@endif
+
+<div class="doc-footer">
+    <div>
+        <strong>National Rifle & Pistol Association of South Africa</strong><br>
+        www.nrapa.co.za
+    </div>
+    <div style="text-align:right;">
+        @if($request->letter_reference)
+            Reference: {{ $request->letter_reference }}
+        @endif
+    </div>
 </div>
 @endsection

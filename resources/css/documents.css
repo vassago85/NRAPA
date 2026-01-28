@@ -1,0 +1,430 @@
+/* =========================
+   NRAPA Document System CSS
+   A4 print-ready + reusable
+   ========================= */
+
+/* Print setup */
+@page { size: A4; margin: 14mm; }
+@media print {
+  body { background: #fff !important; }
+  .doc-controls { display: none !important; }
+  .doc-sheet { box-shadow: none !important; margin: 0 !important; border-radius: 0 !important; }
+}
+
+/* Theme tokens */
+:root{
+  --ink:#0b1320;
+  --muted:#475569;
+  --line:#e5e7eb;
+
+  /* NRAPA brand */
+  --accent:#0f4c81;   /* NRAPA blue */
+  --accent2:#f28c28;  /* NRAPA orange */
+
+  /* panels */
+  --panel: rgba(255,255,255,.92);
+  --panel-border: rgba(255,255,255,.22);
+
+  /* sheet */
+  --sheet-radius: 14px;
+  --shadow: 0 14px 40px rgba(0,0,0,.35);
+
+  /* QR */
+  --qr-size: 32mm;
+}
+
+*{ box-sizing:border-box; }
+
+body{
+  margin:0;
+  font-family: Arial, Helvetica, sans-serif;
+  color: var(--ink);
+  background:#0b1320;
+}
+
+/* Optional preview controls (hide on print) */
+.doc-controls{
+  width:210mm;
+  margin:10px auto 0;
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+}
+.doc-btn{
+  border:1px solid rgba(255,255,255,.25);
+  background:rgba(255,255,255,.08);
+  color:#fff;
+  padding:8px 10px;
+  border-radius:12px;
+  cursor:pointer;
+  font-weight:700;
+  backdrop-filter: blur(6px);
+}
+
+/* Page sheet */
+.doc-sheet{
+  width:210mm;
+  min-height:297mm;
+  margin:18px auto;
+  position:relative;
+  overflow:hidden;
+  background:#fff;
+  box-shadow: var(--shadow);
+  border-radius: var(--sheet-radius);
+}
+
+/* Background image layer (optional)
+   - set inline style or CSS variable:
+     style="--doc-bg:url('...');"
+*/
+.doc-bg{
+  position:absolute;
+  inset:0;
+  background-image:
+    linear-gradient(120deg, rgba(11,19,32,.88), rgba(11,19,32,.55)),
+    var(--doc-bg, none);
+  background-size: cover;
+  background-position:center;
+  filter: saturate(1.05) contrast(1.05);
+  transform: scale(1.03);
+}
+
+/* Watermark logo overlay */
+.doc-watermark{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  opacity:.08;
+}
+.doc-watermark img{
+  width:140mm;
+  max-width:80%;
+  height:auto;
+  filter: grayscale(1) contrast(1.1);
+}
+
+/* Foreground content container */
+.doc-page{
+  position:relative;
+  padding:14mm;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  min-height:297mm; /* keeps bottom QR/footer stable */
+}
+
+/* Header */
+.doc-header{
+  display:grid;
+  grid-template-columns: 28mm 1fr;
+  gap:10mm;
+  align-items:center;
+  padding:10px 12px;
+  border:1px solid var(--panel-border);
+  border-radius:16px;
+  background: var(--panel);
+  backdrop-filter: blur(6px);
+}
+
+.doc-logo{
+  width:28mm;
+  height:28mm;
+  border-radius:12px;
+  display:grid;
+  place-items:center;
+  background:#fff;
+  border:1px solid var(--line);
+  overflow:hidden;
+}
+.doc-logo img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  padding:4px;
+}
+
+.doc-org h1{
+  margin:0;
+  font-size:16pt;
+  letter-spacing:.4px;
+  text-transform:uppercase;
+}
+.doc-org .sub{
+  margin-top:3px;
+  font-size:10pt;
+  color: var(--muted);
+  line-height:1.25;
+}
+
+.doc-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  margin-top:6px;
+  font-size:9.2pt;
+  color:#0b1320;
+  background: linear-gradient(90deg, rgba(15,76,129,.10), rgba(242,140,40,.10));
+  border:1px solid rgba(15,76,129,.18);
+  padding:6px 10px;
+  border-radius:999px;
+  width: fit-content;
+}
+.doc-badge .dot{
+  width:8px; height:8px; border-radius:50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(15,76,129,.12);
+}
+
+/* Title row */
+.doc-title{
+  text-align:center;
+  padding:6px 0 2px;
+  color:#fff;
+}
+.doc-title h2{
+  margin:0;
+  font-size:15pt;
+  text-transform:uppercase;
+  letter-spacing:.7px;
+}
+.doc-title .note{
+  margin-top:3px;
+  font-size:10pt;
+  opacity:.9;
+  font-style:italic;
+}
+
+/* Blocks (glass panels) */
+.doc-block{
+  border-radius:16px;
+  background: var(--panel);
+  border:1px solid var(--panel-border);
+  backdrop-filter: blur(6px);
+  padding:10px 12px;
+}
+.doc-block h3{
+  margin:0 0 7px 0;
+  font-size:10pt;
+  text-transform:uppercase;
+  letter-spacing:.65px;
+  color: var(--accent);
+}
+
+/* Key-value grids */
+.doc-grid2{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:6px 14px;
+  font-size:10.5pt;
+  line-height:1.25;
+}
+.doc-row{
+  display:grid;
+  grid-template-columns: 46mm 1fr;
+  gap:6px;
+  align-items:baseline;
+}
+.doc-label{ color: var(--muted); }
+.doc-value{ font-weight:700; color:#0b1320; }
+
+.doc-pill{
+  display:inline-block;
+  margin-left:8px;
+  padding:2px 8px;
+  border-radius:999px;
+  border:1px solid rgba(15,76,129,.22);
+  background: rgba(15,76,129,.08);
+  color:#0b1320;
+  font-size:9pt;
+  font-weight:700;
+}
+
+.doc-para{
+  margin:0;
+  font-size:10.5pt;
+  line-height:1.48;
+  color:#0b1320;
+}
+
+.doc-list{
+  margin:6px 0 0 18px;
+  padding:0;
+  font-size:10.5pt;
+  line-height:1.45;
+}
+
+/* Signature lines */
+.doc-line{
+  display:inline-block;
+  width:100%;
+  border-bottom:1px solid #0b1320;
+  height:14px;
+  transform: translateY(-2px);
+}
+.doc-signature{
+  margin-top:10px;
+  border-top:1px solid #0b1320;
+  padding-top:6px;
+  font-weight:700;
+  line-height:1.25;
+}
+
+/* Bottom two-column area (used in endorsement/certificates) */
+.doc-bottom{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:10px;
+  margin-top:auto; /* push to bottom */
+}
+
+/* QR verification block */
+.doc-qr{
+  display:grid;
+  grid-template-columns: var(--qr-size) 1fr;
+  gap:10px;
+  align-items:center;
+  margin-top:10px;
+}
+.doc-qr-box{
+  width: var(--qr-size);
+  height: var(--qr-size);
+  border:1px dashed rgba(11,19,32,.35);
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  background: rgba(255,255,255,.55);
+}
+.doc-qr-box img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+.doc-qr-text{
+  font-size:9.5pt;
+  color: rgba(11,19,32,.88);
+  line-height:1.35;
+}
+.doc-qr-link{
+  font-family: "Courier New", Courier, monospace;
+  font-size:9.5pt;
+  color:#0b1320;
+  word-break: break-all;
+}
+
+/* Footer */
+.doc-footer{
+  margin-top:10px;
+  padding-top:8px;
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  font-size:8.8pt;
+  color: rgba(255,255,255,.92);
+  opacity:.95;
+}
+.doc-footer strong{ color:#fff; }
+
+/* =========================
+   Variants
+   ========================= */
+
+/* "Certified" certificate look: slightly higher watermark, more formal */
+.doc--certificate .doc-watermark{ opacity:.10; }
+.doc--certificate .doc-title h2{ letter-spacing:.9px; }
+.doc--certificate .doc-block h3{ letter-spacing:.8px; }
+
+/* Welcome letter (not certified): less heavy title, more white readability */
+.doc--welcome .doc-title{ color:#fff; }
+.doc--welcome .doc-title h2{ font-size:14pt; }
+.doc--welcome .doc-block{ padding:12px 14px; }
+
+/* Membership card (credit-card size) */
+.doc-card{
+  width: 86mm;
+  height: 54mm;
+  border-radius: 14px;
+  position: relative;
+  overflow:hidden;
+  background:#fff;
+  box-shadow: 0 10px 26px rgba(0,0,0,.28);
+}
+@media print{
+  .doc-card{ box-shadow:none !important; }
+}
+.doc-card .doc-bg{ transform: scale(1.02); }
+.doc-card .doc-watermark{ opacity:.10; }
+.doc-card .doc-card-inner{
+  position:relative;
+  padding: 8mm 8mm 6mm 8mm;
+  height:100%;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  gap:6px;
+}
+.doc-card .doc-card-top{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.doc-card .doc-card-logo{
+  width:14mm;
+  height:14mm;
+  border-radius:9px;
+  background:#fff;
+  border:1px solid var(--line);
+  overflow:hidden;
+  flex:0 0 auto;
+}
+.doc-card .doc-card-logo img{
+  width:100%; height:100%;
+  object-fit:contain;
+  padding:2px;
+}
+.doc-card .doc-card-org{
+  font-weight:800;
+  font-size:9.8pt;
+  text-transform:uppercase;
+  color:#fff;
+  line-height:1.1;
+}
+.doc-card .doc-card-meta{
+  font-size:8.6pt;
+  color: rgba(255,255,255,.92);
+  line-height:1.25;
+}
+.doc-card .doc-card-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:10px;
+  margin-top:4px;
+}
+.doc-card .doc-card-name{
+  font-weight:800;
+  font-size:10.2pt;
+  color:#fff;
+}
+.doc-card .doc-card-small{
+  font-size:8.4pt;
+  color: rgba(255,255,255,.92);
+}
+.doc-card .doc-card-qr{
+  width:16mm;
+  height:16mm;
+  border-radius:10px;
+  overflow:hidden;
+  background: rgba(255,255,255,.85);
+  border:1px solid rgba(255,255,255,.35);
+  flex:0 0 auto;
+}
+.doc-card .doc-card-qr img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
