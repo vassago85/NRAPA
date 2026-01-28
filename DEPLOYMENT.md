@@ -31,9 +31,11 @@ docker build -t nrapa-app:latest .
 
 ### 4. Configure Nginx Proxy Manager
 - **Domain**: `nrapa.charsley.co.za`
-- **Forward Hostname**: `nrapa-app`
-- **Forward Port**: `80`
+- **Forward Hostname**: `localhost` (or `127.0.0.1`)
+- **Forward Port**: `8085`
 - **SSL**: Request Let's Encrypt certificate
+
+> **Important**: Use `localhost` with the port number instead of container names to avoid IP address resolution issues with NPM.
 
 ---
 
@@ -97,6 +99,20 @@ docker exec -it nrapa-db mysql -unrapa -p'Nrp@2026$Kz9mXvL!' nrapa
 ---
 
 ## 🔧 Troubleshooting
+
+### 502 Bad Gateway Error
+
+If you see a 502 error, check:
+
+1. **NPM Configuration**: Ensure Forward Hostname is `localhost` (not container name) and Forward Port matches the exposed port (`8085`)
+2. **Container Status**: Verify the container is running: `docker ps | grep nrapa-app`
+3. **Port Access**: Test if the port is accessible: `curl http://localhost:8085`
+4. **Container Logs**: Check for errors: `docker logs nrapa-app --tail 50`
+
+**Why use `localhost` instead of container names?**
+- NPM can have IP address resolution issues with Docker container names
+- Using direct port mappings (`localhost:8085`) avoids DNS/network confusion
+- More reliable and easier to troubleshoot
 
 ### Check Container Status:
 ```bash
@@ -187,7 +203,8 @@ docker compose up -d
 
 **NPM Proxy Setup:**
 - Domain: `status.charsley.co.za`
-- Forward: `uptime-kuma:3001`
+- Forward Hostname: `localhost`
+- Forward Port: `3001` (or the exposed port if different)
 - Enable Websockets Support
 
 ---
@@ -216,7 +233,8 @@ docker compose up -d
 
 **NPM Proxy Setup:**
 - Domain: `invoice.charsley.co.za`
-- Forward: `invoiceninja-app:80`
+- Forward Hostname: `localhost`
+- Forward Port: `8082` (check invoice-ninja docker-compose for actual port)
 - Enable SSL
 
 ---
@@ -245,12 +263,13 @@ services:
       - SESSION_DRIVER=redis
       - REDIS_HOST=redis
       - MAIL_MAILER=log
+    ports:
+      - "8085:80"
     volumes:
       - app-storage:/var/www/html/storage/app
       - app-logs:/var/www/html/storage/logs
     networks:
       - nrapa-network
-      - nginx-proxy-manager_default
     depends_on:
       db:
         condition: service_healthy
@@ -286,8 +305,6 @@ services:
 networks:
   nrapa-network:
     driver: bridge
-  nginx-proxy-manager_default:
-    external: true
 
 volumes:
   app-storage:
