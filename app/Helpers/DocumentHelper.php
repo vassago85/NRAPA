@@ -32,10 +32,41 @@ class DocumentHelper
         }
         
         // Fallback to public logo if exists (check common locations)
-        $logoFiles = ['logo.png', 'nrapa-logo.png', 'logo.svg', 'nrapa-logo.svg', 'images/logo.png', 'images/nrapa-logo.png'];
+        // Check for exact filename first (case-insensitive, handle spaces)
+        $publicDir = public_path();
+        $logoFiles = [
+            'NRAPA Logo.png',  // Exact match for existing file
+            'NRAPA Logo.svg',
+            'logo.png',
+            'nrapa-logo.png',
+            'logo.svg',
+            'nrapa-logo.svg',
+            'images/logo.png',
+            'images/nrapa-logo.png',
+            'images/NRAPA Logo.png',
+        ];
+        
         foreach ($logoFiles as $logoFile) {
-            if (file_exists(public_path($logoFile))) {
+            $fullPath = public_path($logoFile);
+            if (file_exists($fullPath)) {
                 return asset($logoFile);
+            }
+        }
+        
+        // Also check for any file starting with "logo" or "nrapa" (case-insensitive)
+        if (is_dir($publicDir)) {
+            $files = scandir($publicDir);
+            foreach ($files as $file) {
+                if ($file === '.' || $file === '..') {
+                    continue;
+                }
+                $lowerFile = strtolower($file);
+                if (
+                    (strpos($lowerFile, 'logo') !== false || strpos($lowerFile, 'nrapa') !== false) &&
+                    in_array(strtolower(pathinfo($file, PATHINFO_EXTENSION)), ['png', 'svg', 'jpg', 'jpeg', 'webp'])
+                ) {
+                    return asset($file);
+                }
             }
         }
         
