@@ -54,9 +54,21 @@ class SidebarMenu
                 'icon' => 'document-check',
                 'roles' => ['member', 'admin', 'owner', 'developer'],
             ],
+            [
+                'label' => 'Certificates',
+                'route' => $user->isDeveloper() 
+                    ? 'developer.certificates.index' 
+                    : ($user->isOwner() 
+                        ? 'owner.certificates.index' 
+                        : ($user->isAdmin() 
+                            ? 'admin.certificates.index' 
+                            : 'certificates.index')),
+                'icon' => 'badge-check',
+                'roles' => ['member', 'admin', 'owner', 'developer'],
+            ],
         ];
 
-        // Optional: Group Learning items under collapsible group
+        // Learning items under collapsible group (Certificates moved above)
         $learningItems = [
             [
                 'label' => 'Learning Center',
@@ -68,22 +80,11 @@ class SidebarMenu
                 'route' => 'knowledge-test.index',
                 'icon' => 'academic-cap',
             ],
-            [
-                'label' => 'Certificates',
-                'route' => $user->isDeveloper() 
-                    ? 'developer.certificates.index' 
-                    : ($user->isOwner() 
-                        ? 'owner.certificates.index' 
-                        : ($user->isAdmin() 
-                            ? 'admin.certificates.index' 
-                            : 'certificates.index')),
-                'icon' => 'badge-check',
-            ],
         ];
 
         $memberAreaItems = array_merge($memberAreaItems, $activeMemberItems);
         
-        // Add Learning group (collapsible)
+        // Add Learning group (collapsible) - after Certificates and Endorsements
         $memberAreaItems[] = [
             'label' => 'Learning',
             'route' => 'learning.index',
