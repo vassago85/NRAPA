@@ -2,11 +2,14 @@
 
 namespace Database\Seeders;
 
+use App\Models\Calibre;
 use App\Models\CertificateType;
 use App\Models\Country;
 use App\Models\DocumentType;
+use App\Models\FirearmType;
 use App\Models\Province;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class FormDataSeeder extends Seeder
 {
@@ -19,6 +22,8 @@ class FormDataSeeder extends Seeder
         $this->seedProvinces();
         $this->seedDocumentTypes();
         $this->seedCertificateTypes();
+        $this->seedFirearmTypes();
+        $this->seedCalibres();
     }
 
     /**
@@ -219,5 +224,23 @@ class FormDataSeeder extends Seeder
                 $type
             );
         }
+    }
+
+    /**
+     * Seed firearm types.
+     */
+    protected function seedFirearmTypes(): void
+    {
+        // Call the existing FirearmTypeSeeder
+        $this->call(FirearmTypeSeeder::class);
+    }
+
+    /**
+     * Seed calibres.
+     */
+    protected function seedCalibres(): void
+    {
+        // Call the existing CalibreSeeder
+        $this->call(CalibreSeeder::class);
     }
 }
