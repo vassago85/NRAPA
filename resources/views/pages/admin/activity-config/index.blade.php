@@ -1,10 +1,8 @@
 <?php
 
 use App\Models\ActivityType;
-use App\Models\Calibre;
 use App\Models\EventCategory;
 use App\Models\EventType;
-use App\Models\FirearmType;
 use Livewire\Component;
 
 new class extends Component {
@@ -25,16 +23,6 @@ new class extends Component {
     public ?int $editingEventTypeId = null;
     public string $eventTypeName = '';
     public ?int $eventTypeEventCategoryId = null;
-
-    // Firearm Type form
-    public ?int $editingFirearmTypeId = null;
-    public string $firearmTypeName = '';
-    public string $firearmTypeDedicatedType = 'both';
-
-    // Calibre form
-    public ?int $editingCalibreId = null;
-    public string $calibreName = '';
-    public string $calibreCategory = 'rifle';
 
     // === Activity Types ===
     public function saveActivityType(): void
@@ -163,96 +151,12 @@ new class extends Component {
         $this->eventTypeEventCategoryId = null;
     }
 
-    // === Firearm Types ===
-    public function saveFirearmType(): void
-    {
-        $this->validate([
-            'firearmTypeName' => ['required', 'string', 'max:255'],
-            'firearmTypeDedicatedType' => ['required', 'in:hunter,sport_shooter,both'],
-        ]);
-
-        FirearmType::updateOrCreate(
-            ['id' => $this->editingFirearmTypeId],
-            [
-                'name' => strtoupper($this->firearmTypeName),
-                'slug' => \Illuminate\Support\Str::slug($this->firearmTypeName),
-                'dedicated_type' => $this->firearmTypeDedicatedType,
-            ]
-        );
-
-        $this->resetFirearmTypeForm();
-        session()->flash('success', 'Firearm type saved successfully.');
-    }
-
-    public function editFirearmType(FirearmType $firearmType): void
-    {
-        $this->editingFirearmTypeId = $firearmType->id;
-        $this->firearmTypeName = $firearmType->name;
-        $this->firearmTypeDedicatedType = $firearmType->dedicated_type;
-    }
-
-    public function deleteFirearmType(FirearmType $firearmType): void
-    {
-        $firearmType->delete();
-        session()->flash('success', 'Firearm type deleted.');
-    }
-
-    public function resetFirearmTypeForm(): void
-    {
-        $this->editingFirearmTypeId = null;
-        $this->firearmTypeName = '';
-        $this->firearmTypeDedicatedType = 'both';
-    }
-
-    // === Calibres ===
-    public function saveCalibre(): void
-    {
-        $this->validate([
-            'calibreName' => ['required', 'string', 'max:255'],
-            'calibreCategory' => ['required', 'in:rifle,handgun,shotgun,other'],
-        ]);
-
-        Calibre::updateOrCreate(
-            ['id' => $this->editingCalibreId],
-            [
-                'name' => $this->calibreName,
-                'slug' => \Illuminate\Support\Str::slug($this->calibreName),
-                'category' => $this->calibreCategory,
-            ]
-        );
-
-        $this->resetCalibreForm();
-        session()->flash('success', 'Calibre saved successfully.');
-    }
-
-    public function editCalibre(Calibre $calibre): void
-    {
-        $this->editingCalibreId = $calibre->id;
-        $this->calibreName = $calibre->name;
-        $this->calibreCategory = $calibre->category;
-    }
-
-    public function deleteCalibre(Calibre $calibre): void
-    {
-        $calibre->delete();
-        session()->flash('success', 'Calibre deleted.');
-    }
-
-    public function resetCalibreForm(): void
-    {
-        $this->editingCalibreId = null;
-        $this->calibreName = '';
-        $this->calibreCategory = 'rifle';
-    }
-
     public function with(): array
     {
         return [
             'activityTypes' => ActivityType::ordered()->get(),
             'eventCategories' => EventCategory::with('activityType')->ordered()->get(),
             'eventTypes' => EventType::with('eventCategory')->ordered()->get(),
-            'firearmTypes' => FirearmType::ordered()->get(),
-            'calibres' => Calibre::ordered()->get(),
         ];
     }
 }; ?>
@@ -260,7 +164,18 @@ new class extends Component {
 <div>
     <div class="mb-8">
         <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Activity Configuration</h1>
-        <p class="mt-1 text-zinc-600 dark:text-zinc-400">Configure activity types, activity categories, firearm types, and calibres</p>
+        <p class="mt-1 text-zinc-600 dark:text-zinc-400">Configure activity types, activity categories, and activity sub-types</p>
+        <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-500">
+            <span class="inline-flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Firearm Types and Calibres are managed in 
+                <a href="{{ route('admin.firearm-settings.index') }}" wire:navigate class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 font-medium">
+                    Firearm Settings
+                </a>
+            </span>
+        </p>
     </div>
 
     @if(session('success'))
@@ -280,12 +195,6 @@ new class extends Component {
             </button>
             <button wire:click="$set('activeTab', 'event-types')" class="whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium transition-colors {{ $activeTab === 'event-types' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-700' }}">
                 Activity Sub-Types
-            </button>
-            <button wire:click="$set('activeTab', 'firearm-types')" class="whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium transition-colors {{ $activeTab === 'firearm-types' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-700' }}">
-                Firearm Types
-            </button>
-            <button wire:click="$set('activeTab', 'calibres')" class="whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium transition-colors {{ $activeTab === 'calibres' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-700' }}">
-                Calibres
             </button>
         </nav>
     </div>
@@ -467,121 +376,6 @@ new class extends Component {
                                 <td class="px-6 py-4 text-right">
                                     <button wire:click="editEventType({{ $type->id }})" class="text-emerald-600 hover:text-emerald-700 text-sm">Edit</button>
                                     <button wire:click="deleteEventType({{ $type->id }})" wire:confirm="Are you sure?" class="ml-4 text-red-600 hover:text-red-700 text-sm">Delete</button>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    @endif
-
-    <!-- Firearm Types Tab -->
-    @if($activeTab === 'firearm-types')
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
-                <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">{{ $editingFirearmTypeId ? 'Edit' : 'Add' }} Firearm Type</h3>
-                <form wire:submit="saveFirearmType" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Name</label>
-                        <input type="text" wire:model="firearmTypeName" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Dedicated Type</label>
-                        <select wire:model="firearmTypeDedicatedType" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
-                            <option value="hunter">Hunter Only</option>
-                            <option value="sport_shooter">Sport Shooter Only</option>
-                            <option value="both">Both</option>
-                        </select>
-                    </div>
-                    <div class="flex gap-2">
-                        <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Save</button>
-                        @if($editingFirearmTypeId)
-                            <button type="button" wire:click="resetFirearmTypeForm" class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">Cancel</button>
-                        @endif
-                    </div>
-                </form>
-            </div>
-
-            <div class="lg:col-span-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800">
-                <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
-                    <thead class="bg-zinc-50 dark:bg-zinc-800/50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Name</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Dedicated Type</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
-                        @foreach($firearmTypes as $type)
-                            <tr>
-                                <td class="px-6 py-4 text-sm text-zinc-900 dark:text-white">{{ $type->name }}</td>
-                                <td class="px-6 py-4">
-                                    <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $type->dedicated_type === 'hunter' ? 'bg-amber-100 text-amber-800' : ($type->dedicated_type === 'sport_shooter' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800') }}">
-                                        {{ ucfirst(str_replace('_', ' ', $type->dedicated_type)) }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 text-right">
-                                    <button wire:click="editFirearmType({{ $type->id }})" class="text-emerald-600 hover:text-emerald-700 text-sm">Edit</button>
-                                    <button wire:click="deleteFirearmType({{ $type->id }})" wire:confirm="Are you sure?" class="ml-4 text-red-600 hover:text-red-700 text-sm">Delete</button>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    @endif
-
-    <!-- Calibres Tab -->
-    @if($activeTab === 'calibres')
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
-                <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">{{ $editingCalibreId ? 'Edit' : 'Add' }} Calibre</h3>
-                <form wire:submit="saveCalibre" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Name</label>
-                        <input type="text" wire:model="calibreName" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Category</label>
-                        <select wire:model="calibreCategory" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
-                            <option value="rifle">Rifle</option>
-                            <option value="handgun">Handgun</option>
-                            <option value="shotgun">Shotgun</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-                    <div class="flex gap-2">
-                        <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Save</button>
-                        @if($editingCalibreId)
-                            <button type="button" wire:click="resetCalibreForm" class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">Cancel</button>
-                        @endif
-                    </div>
-                </form>
-            </div>
-
-            <div class="lg:col-span-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800">
-                <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
-                    <thead class="bg-zinc-50 dark:bg-zinc-800/50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Name</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Category</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
-                        @foreach($calibres as $calibre)
-                            <tr>
-                                <td class="px-6 py-4 text-sm text-zinc-900 dark:text-white">{{ $calibre->name }}</td>
-                                <td class="px-6 py-4">
-                                    <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-zinc-100 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-300">
-                                        {{ ucfirst($calibre->category) }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 text-right">
-                                    <button wire:click="editCalibre({{ $calibre->id }})" class="text-emerald-600 hover:text-emerald-700 text-sm">Edit</button>
-                                    <button wire:click="deleteCalibre({{ $calibre->id }})" wire:confirm="Are you sure?" class="ml-4 text-red-600 hover:text-red-700 text-sm">Delete</button>
                                 </td>
                             </tr>
                         @endforeach
