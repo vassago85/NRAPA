@@ -359,7 +359,7 @@ Route::middleware(['auth', 'verified', 'developer'])->prefix('developer')->name(
         }
         
         $disk = app()->environment(['local', 'development', 'testing']) ? 'local' : 'r2';
-        return Storage::disk($disk)->download($filePath, 'nrapa-membership-card.pkpass', [
+        return \Illuminate\Support\Facades\Storage::disk($disk)->download($filePath, 'nrapa-membership-card.pkpass', [
             'Content-Type' => 'application/vnd.apple.pkpass',
         ]);
     })->name('developer.certificates.wallet.apple');
@@ -446,7 +446,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         }
         
         $disk = app()->environment(['local', 'development', 'testing']) ? 'local' : 'r2';
-        return Storage::disk($disk)->download($filePath, 'nrapa-membership-card.pkpass', [
+        return \Illuminate\Support\Facades\Storage::disk($disk)->download($filePath, 'nrapa-membership-card.pkpass', [
             'Content-Type' => 'application/vnd.apple.pkpass',
         ]);
     })->name('admin.certificates.wallet.apple');
