@@ -4,6 +4,7 @@ namespace App\Contracts;
 
 use App\Models\Certificate;
 use App\Models\User;
+use App\Models\EndorsementRequest;
 
 /**
  * Interface for document rendering services.
@@ -30,4 +31,13 @@ interface DocumentRenderer
      * @return string The file path where the document was saved
      */
     public function renderWelcomeLetter(User $user, string $template): string;
+
+    /**
+     * Render an endorsement letter to a document file.
+     * 
+     * @param EndorsementRequest $request The endorsement request to render
+     * @param string $template The Blade template path to use
+     * @return string The file path where the document was saved
+     */
+    public function renderEndorsementLetter(EndorsementRequest $request, string $template): string;
 }

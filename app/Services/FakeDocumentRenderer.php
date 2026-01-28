@@ -16,8 +16,16 @@ use Illuminate\Support\Facades\View;
  */
 class FakeDocumentRenderer implements DocumentRenderer
 {
-    protected string $disk = 'local';
+    protected string $disk;
     protected string $pathPrefix = 'documents';
+
+    public function __construct()
+    {
+        // Use local storage for local/development/testing environments
+        $this->disk = app()->environment(['local', 'development', 'testing']) 
+            ? 'local' 
+            : (config('filesystems.disks.r2.key') ? 'r2' : 'local');
+    }
 
     public function renderCertificate(Certificate $certificate, string $template): string
     {
@@ -64,6 +72,31 @@ class FakeDocumentRenderer implements DocumentRenderer
         Storage::disk($this->disk)->put($filePath, $html);
 
         // TODO: Convert HTML to PDF
+        return $filePath;
+    }
+
+    public function renderEndorsementLetter(EndorsementRequest $request, string $template): string
+    {
+        // Ensure relationships are loaded
+        $request->loadMissing(['user', 'firearm', 'firearm.calibre', 'components', 'membership']);
+        
+        // Render the Blade template to HTML
+        $html = View::make($template, [
+            'request' => $request,
+            'user' => $request->user,
+            'firearm' => $request->firearm,
+            'membership' => $request->user->activeMembership,
+        ])->render();
+
+        // Generate file path
+        $filename = "endorsement-letter-{$request->uuid}.html";
+        $filePath = "{$this->pathPrefix}/{$filename}";
+
+        // Store the HTML (TODO: Convert to PDF)
+        Storage::disk($this->disk)->put($filePath, $html);
+
+        // TODO: Convert HTML to PDF using DomPDF/Snappy/etc.
+        // For now, return the HTML file path
         return $filePath;
     }
 }

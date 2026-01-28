@@ -2,6 +2,7 @@
 
 use App\Models\EndorsementRequest;
 use App\Models\AuditLog;
+use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -143,13 +144,15 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             return;
         }
 
-        // Generate letter reference
-        $letterReference = EndorsementRequest::generateLetterReference();
-        
-        // TODO: Generate PDF letter and store path
-        $letterPath = null; // Will implement PDF generation later
+        try {
+            // Generate letter reference
+            $letterReference = EndorsementRequest::generateLetterReference();
+            
+            // Generate endorsement letter using DocumentRenderer
+            $renderer = app(\App\Contracts\DocumentRenderer::class);
+            $letterPath = $renderer->renderEndorsementLetter($this->request, 'documents.endorsement-letter');
 
-        $this->request->issue(auth()->user(), $letterReference, $letterPath);
+            $this->request->issue(auth()->user(), $letterReference, $letterPath);
         
         AuditLog::create([
             'user_id' => auth()->id(),
