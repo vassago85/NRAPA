@@ -209,6 +209,59 @@ new class extends Component {
         </div>
     </div>
 
+    {{-- Test Member Generator --}}
+    <div class="mb-8">
+        <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-xl p-4 mb-4">
+            <div class="flex items-center gap-2 mb-3">
+                <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                <h3 class="font-semibold text-emerald-800 dark:text-emerald-200">Test Data Generation</h3>
+            </div>
+            <p class="text-sm text-emerald-700 dark:text-emerald-300 mb-4">
+                Generate test members in various stages to test the complete membership workflow, endorsement letters, and certificates.
+            </p>
+        </div>
+        @livewire('developer.test-member-generator')
+    </div>
+
+    {{-- Testing Tools --}}
+    <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 mb-8">
+        <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Testing Tools</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <a href="{{ route('admin.members.index') }}" wire:navigate
+                class="flex items-center gap-3 p-4 rounded-lg bg-zinc-50 dark:bg-zinc-700/50 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors border border-zinc-200 dark:border-zinc-700">
+                <svg class="w-6 h-6 text-zinc-600 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+                <div>
+                    <p class="font-medium text-zinc-900 dark:text-white">All Members</p>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400">View and manage test members</p>
+                </div>
+            </a>
+            <a href="{{ route('admin.endorsements.index') }}" wire:navigate
+                class="flex items-center gap-3 p-4 rounded-lg bg-zinc-50 dark:bg-zinc-700/50 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors border border-zinc-200 dark:border-zinc-700">
+                <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <div>
+                    <p class="font-medium text-zinc-900 dark:text-white">Endorsement Requests</p>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400">Test endorsement letter generation</p>
+                </div>
+            </a>
+            <a href="{{ route('admin.members.index') }}?filter=certificates" wire:navigate
+                class="flex items-center gap-3 p-4 rounded-lg bg-zinc-50 dark:bg-zinc-700/50 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors border border-zinc-200 dark:border-zinc-700">
+                <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                </svg>
+                <div>
+                    <p class="font-medium text-zinc-900 dark:text-white">Certificates</p>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400">Test certificate generation</p>
+                </div>
+            </a>
+        </div>
+    </div>
+
     {{-- Current Owners --}}
     <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
         <div class="flex items-center justify-between mb-4">
