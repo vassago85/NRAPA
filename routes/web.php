@@ -128,8 +128,33 @@ Route::middleware(['auth', 'verified', 'membership.required'])->group(function (
         
         $certificate->loadMissing(['user', 'membership.type', 'certificateType']);
         
-        // Determine template based on certificate type
+        // Map template based on certificate type slug or template name
         $template = $certificate->certificateType->template ?? 'documents.paid-up';
+        
+        // Map old template names to new document templates
+        $templateMap = [
+            'certificates.membership' => 'documents.membership-card',
+            'certificates.dedicated' => 'documents.dedicated-hunter', // Default to hunter, but check slug
+            'certificates.endorsement' => 'documents.endorsement-letter',
+            'certificates.confirmation' => 'documents.paid-up',
+        ];
+        
+        // Check if template needs mapping
+        if (isset($templateMap[$template])) {
+            $template = $templateMap[$template];
+        }
+        
+        // Also check by slug for more specific mapping
+        $slug = $certificate->certificateType->slug ?? '';
+        if ($slug === 'dedicated-hunter-certificate' || $slug === 'dedicated-hunter') {
+            $template = 'documents.dedicated-hunter';
+        } elseif ($slug === 'dedicated-sport-certificate' || $slug === 'dedicated-sport' || $slug === 'dedicated-sport-shooter') {
+            $template = 'documents.dedicated-sport';
+        } elseif ($slug === 'membership-card') {
+            $template = 'documents.membership-card';
+        } elseif ($slug === 'paid-up-certificate') {
+            $template = 'documents.paid-up';
+        }
         
         return view($template, [
             'certificate' => $certificate,
@@ -273,8 +298,33 @@ Route::middleware(['auth', 'verified', 'developer'])->prefix('developer')->name(
     Route::get('certificates/{certificate}/preview', function (\App\Models\Certificate $certificate) {
         $certificate->loadMissing(['user', 'membership.type', 'certificateType']);
         
-        // Determine template based on certificate type
+        // Map template based on certificate type slug or template name
         $template = $certificate->certificateType->template ?? 'documents.paid-up';
+        
+        // Map old template names to new document templates
+        $templateMap = [
+            'certificates.membership' => 'documents.membership-card',
+            'certificates.dedicated' => 'documents.dedicated-hunter',
+            'certificates.endorsement' => 'documents.endorsement-letter',
+            'certificates.confirmation' => 'documents.paid-up',
+        ];
+        
+        // Check if template needs mapping
+        if (isset($templateMap[$template])) {
+            $template = $templateMap[$template];
+        }
+        
+        // Also check by slug for more specific mapping
+        $slug = $certificate->certificateType->slug ?? '';
+        if ($slug === 'dedicated-hunter-certificate' || $slug === 'dedicated-hunter') {
+            $template = 'documents.dedicated-hunter';
+        } elseif ($slug === 'dedicated-sport-certificate' || $slug === 'dedicated-sport' || $slug === 'dedicated-sport-shooter') {
+            $template = 'documents.dedicated-sport';
+        } elseif ($slug === 'membership-card') {
+            $template = 'documents.membership-card';
+        } elseif ($slug === 'paid-up-certificate') {
+            $template = 'documents.paid-up';
+        }
         
         return view($template, [
             'certificate' => $certificate,
@@ -299,8 +349,33 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('certificates/{certificate}/preview', function (\App\Models\Certificate $certificate) {
         $certificate->loadMissing(['user', 'membership.type', 'certificateType']);
         
-        // Determine template based on certificate type
+        // Map template based on certificate type slug or template name
         $template = $certificate->certificateType->template ?? 'documents.paid-up';
+        
+        // Map old template names to new document templates
+        $templateMap = [
+            'certificates.membership' => 'documents.membership-card',
+            'certificates.dedicated' => 'documents.dedicated-hunter',
+            'certificates.endorsement' => 'documents.endorsement-letter',
+            'certificates.confirmation' => 'documents.paid-up',
+        ];
+        
+        // Check if template needs mapping
+        if (isset($templateMap[$template])) {
+            $template = $templateMap[$template];
+        }
+        
+        // Also check by slug for more specific mapping
+        $slug = $certificate->certificateType->slug ?? '';
+        if ($slug === 'dedicated-hunter-certificate' || $slug === 'dedicated-hunter') {
+            $template = 'documents.dedicated-hunter';
+        } elseif ($slug === 'dedicated-sport-certificate' || $slug === 'dedicated-sport' || $slug === 'dedicated-sport-shooter') {
+            $template = 'documents.dedicated-sport';
+        } elseif ($slug === 'membership-card') {
+            $template = 'documents.membership-card';
+        } elseif ($slug === 'paid-up-certificate') {
+            $template = 'documents.paid-up';
+        }
         
         return view($template, [
             'certificate' => $certificate,
