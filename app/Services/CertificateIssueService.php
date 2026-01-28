@@ -165,6 +165,10 @@ class CertificateIssueService
             'valid_until' => null,
         ]);
 
+        // Refresh to ensure all relationships are loaded
+        $certificate->refresh();
+        $certificate->loadMissing(['user', 'membership.type', 'certificateType']);
+
         // Generate document
         try {
             $filePath = $this->renderer->renderCertificate($certificate, $certType->template);
@@ -243,6 +247,10 @@ class CertificateIssueService
             'valid_until' => $validUntil,
         ]);
 
+        // Refresh to ensure all relationships are loaded
+        $certificate->refresh();
+        $certificate->loadMissing(['user', 'membership.type', 'certificateType']);
+
         // Generate document
         try {
             $filePath = $this->renderer->renderCertificate($certificate, $certType->template);
@@ -310,6 +318,10 @@ class CertificateIssueService
             'valid_from' => now(),
             'valid_until' => $membership->expires_at,
         ]);
+
+        // Refresh to ensure all relationships are loaded
+        $certificate->refresh();
+        $certificate->loadMissing(['user', 'membership.type', 'certificateType']);
 
         // Generate document
         try {
@@ -390,7 +402,7 @@ class CertificateIssueService
                     $checksum = hash_file('sha256', $fullPath);
                 }
             } catch (\Exception $e) {
-                \Log::warning('Failed to calculate welcome letter checksum', [
+                Log::warning('Failed to calculate welcome letter checksum', [
                     'file_path' => $filePath,
                     'error' => $e->getMessage(),
                 ]);
@@ -401,7 +413,7 @@ class CertificateIssueService
                 'checksum' => $checksum,
             ]);
         } catch (\Exception $e) {
-            \Log::error('Failed to generate welcome letter document', [
+            Log::error('Failed to generate welcome letter document', [
                 'certificate_id' => $certificate->id,
                 'user_id' => $user->id,
                 'template' => $certType->template,
