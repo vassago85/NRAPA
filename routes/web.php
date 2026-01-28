@@ -282,6 +282,24 @@ Route::middleware(['auth', 'verified', 'membership.required'])->group(function (
     Route::livewire('endorsements/{request}/edit', 'pages::member.endorsements.create')->name('member.endorsements.edit');
     Route::livewire('endorsements/{request}', 'pages::member.endorsements.show')->name('member.endorsements.show');
     
+    // Member endorsement letter preview (renders template)
+    Route::get('endorsements/{request}/preview', function (\App\Models\EndorsementRequest $request) {
+        // Ensure user can only view their own endorsements
+        if ($request->user_id !== auth()->id()) {
+            abort(403);
+        }
+        
+        $request->loadMissing(['user', 'firearm', 'firearm.calibre', 'components', 'membership']);
+        
+        return view('documents.endorsement-letter', [
+            'request' => $request,
+            'user' => $request->user,
+            'firearm' => $request->firearm,
+            'membership' => $request->user->activeMembership,
+            'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
+        ]);
+    })->name('member.endorsements.preview');
+    
     // Member endorsement letter view/download
     Route::get('endorsements/{request}/letter', function (\App\Models\EndorsementRequest $request) {
         // Ensure user owns this request
@@ -418,6 +436,7 @@ Route::middleware(['auth', 'verified', 'developer'])->prefix('developer')->name(
             'user' => $certificate->user,
             'membership' => $certificate->membership,
             'certificateType' => $certificate->certificateType,
+            'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
         ]);
     })->name('certificates.preview');
 });
