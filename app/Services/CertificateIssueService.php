@@ -390,6 +390,10 @@ class CertificateIssueService
             'valid_until' => null,
         ]);
 
+        // Refresh to ensure all relationships are loaded
+        $certificate->refresh();
+        $certificate->loadMissing(['user', 'membership.type', 'certificateType']);
+
         // Generate document
         try {
             $filePath = $this->renderer->renderWelcomeLetter($user, $certType->template);
