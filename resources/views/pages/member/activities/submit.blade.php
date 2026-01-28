@@ -18,8 +18,7 @@ new class extends Component {
 
     // Form fields
     public ?string $track = null; // 'hunting' or 'sport'
-    public ?int $activity_type_id = null;
-    public array $activity_tag_ids = []; // Optional tags
+    public ?int $activity_tag_id = null; // Single tag selection (replaces activity_type_id) - this is the activity type now
     public ?string $activity_date = null;
     
     // Firearm selection - from armoury or manual
@@ -45,9 +44,7 @@ new class extends Component {
     {
         $rules = [
             'track' => ['required', 'in:hunting,sport'],
-            'activity_type_id' => ['required', 'exists:activity_types,id'],
-            'activity_tag_ids' => ['nullable', 'array'],
-            'activity_tag_ids.*' => ['exists:activity_tags,id'],
+            'activity_tag_id' => ['required', 'exists:activity_tags,id'],
             'activity_date' => ['required', 'date', 'before_or_equal:today'],
             'firearm_source' => ['required', 'in:armoury,manual'],
             'location' => ['required', 'string', 'max:255'],
@@ -58,6 +55,13 @@ new class extends Component {
             'proof_document' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:10240'],
             'additional_document' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:10240'],
         ];
+        
+        // Only require province if country is South Africa
+        $country = Country::find($this->country_id);
+        if ($country && $country->code === 'ZA') {
+            // Province is optional even for South Africa, but we can make it required if needed
+            // For now, keeping it optional
+        }
 
         if ($this->firearm_source === 'armoury') {
             $rules['user_firearm_id'] = ['required', 'exists:user_firearms,id'];
@@ -181,7 +185,7 @@ new class extends Component {
         $activity = ShootingActivity::create([
             'user_id' => auth()->id(),
             'track' => $this->track,
-            'activity_type_id' => $this->activity_type_id,
+            'activity_type_id' => null, // No longer using activity_type_id
             'activity_date' => $this->activity_date,
             'firearm_type_id' => $firearmTypeId,
             'calibre_id' => $calibreId,
@@ -196,9 +200,9 @@ new class extends Component {
             'status' => 'pending',
         ]);
 
-        // Attach optional tags
-        if (!empty($this->activity_tag_ids)) {
-            $activity->tags()->attach($this->activity_tag_ids);
+        // Attach the selected tag (single tag)
+        if ($this->activity_tag_id) {
+            $activity->tags()->attach($this->activity_tag_id);
         }
 
         // Handle file uploads
@@ -221,9 +225,27 @@ new class extends Component {
 
     public function updatedTrack(): void
     {
-        // Reset activity type when track changes
-        $this->activity_type_id = null;
-        $this->activity_tag_ids = [];
+        // Reset activity tag when track changes
+        $this->activity_tag_id = null;
+    }
+    
+    public function updatedCountryId($value): void
+    {
+        // Reset province if country is not South Africa
+        $country = Country::find($value);
+        if (!$country || $country->code !== 'ZA') {
+            $this->province_id = null;
+        }
+    }
+    
+    #[Computed]
+    public function isSouthAfrica()
+    {
+        if (!$this->country_id) {
+            return false;
+        }
+        $country = Country::find($this->country_id);
+        return $country && $country->code === 'ZA';
     }
 
     #[Computed]
@@ -316,27 +338,27 @@ new class extends Component {
                     <label for="track" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Track <span class="text-red-500">*</span></label>
                     <select id="track" wire:model.live="track" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
                         <option value="">Select Track</option>
-                        <option value="hunting">Hunting</option>
-                        <option value="sport">Sport Shooting</option>
+                        <option value="hunting">Dedicated Hunting</option>
+                        <option value="sport">Dedicated Sport Shooting</option>
                     </select>
                     @error('track') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                 </div>
 
-                <!-- Activity Type -->
-                <div wire:key="activity-type-{{ $track }}">
-                    <label for="activity_type_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Activity Type <span class="text-red-500">*</span></label>
-                    <select id="activity_type_id" wire:model="activity_type_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500" @disabled(!$track)>
+                <!-- Activity Tag (replaces Activity Type) -->
+                <div wire:key="activity-tag-{{ $track }}">
+                    <label for="activity_tag_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Activity Type <span class="text-red-500">*</span></label>
+                    <select id="activity_tag_id" wire:model="activity_tag_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500" @disabled(!$track)>
                         <option value="">Select Activity Type</option>
                         @if($track)
-                            @foreach($this->activityTypes as $type)
-                                <option value="{{ $type->id }}">{{ $type->name }}</option>
+                            @foreach($this->activityTags as $tag)
+                                <option value="{{ $tag->id }}">{{ $tag->label }}</option>
                             @endforeach
-                            @if($this->activityTypes->isEmpty())
-                                <option value="" disabled>No activity types available for {{ $track === 'hunting' ? 'Hunting' : 'Sport Shooting' }} track</option>
+                            @if($this->activityTags->isEmpty())
+                                <option value="" disabled>No activity types available for {{ $track === 'hunting' ? 'Dedicated Hunting' : 'Dedicated Sport Shooting' }} track</option>
                             @endif
                         @endif
                     </select>
-                    @error('activity_type_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    @error('activity_tag_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                 </div>
 
                 <!-- Activity Date -->
@@ -345,20 +367,6 @@ new class extends Component {
                     <input type="date" id="activity_date" wire:model="activity_date" max="{{ date('Y-m-d') }}" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
                     @error('activity_date') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                 </div>
-
-                <!-- Activity Tags (Optional) -->
-                @if($track && $this->activityTags->count() > 0)
-                <div>
-                    <label for="activity_tag_ids" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Tags (Optional)</label>
-                    <select id="activity_tag_ids" wire:model="activity_tag_ids" multiple class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500 min-h-[100px]">
-                        @foreach($this->activityTags as $tag)
-                            <option value="{{ $tag->id }}">{{ $tag->label }}</option>
-                        @endforeach
-                    </select>
-                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Hold Ctrl/Cmd to select multiple tags (e.g., PRS, IPSC, IDPA)</p>
-                    @error('activity_tag_ids') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                </div>
-                @endif
             </div>
         </div>
 
@@ -386,7 +394,8 @@ new class extends Component {
                     @error('country_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                 </div>
 
-                <!-- Province -->
+                <!-- Province (only show for South Africa) -->
+                @if($this->isSouthAfrica)
                 <div>
                     <label for="province_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Province</label>
                     <select id="province_id" wire:model="province_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
@@ -397,6 +406,7 @@ new class extends Component {
                     </select>
                     @error('province_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                 </div>
+                @endif
 
                 <!-- Closest Town/City -->
                 <div>
