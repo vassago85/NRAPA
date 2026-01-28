@@ -152,7 +152,10 @@ Route::middleware(['auth', 'verified', 'membership.required'])->group(function (
             abort(403);
         }
         
-        $disk = config('filesystems.disks.r2.key') ? 'r2' : 's3';
+        // Use local storage for local/development/testing environments
+        $disk = app()->environment(['local', 'development', 'testing']) 
+            ? 'local' 
+            : (config('filesystems.disks.r2.key') ? 'r2' : 's3');
         
         if (!\Illuminate\Support\Facades\Storage::disk($disk)->exists($document->file_path)) {
             abort(404);
@@ -192,7 +195,10 @@ Route::middleware(['auth', 'verified', 'membership.required'])->group(function (
             abort(404, 'Endorsement letter not found.');
         }
         
-        $disk = config('filesystems.disks.r2.key') ? 'r2' : (config('filesystems.disks.s3.key') ? 's3' : 'local');
+        // Use local storage for local/development/testing environments
+        $disk = app()->environment(['local', 'development', 'testing']) 
+            ? 'local' 
+            : (config('filesystems.disks.r2.key') ? 'r2' : (config('filesystems.disks.s3.key') ? 's3' : 'local'));
         $storage = \Illuminate\Support\Facades\Storage::disk($disk);
         
         if (!$storage->exists($request->letter_file_path)) {
@@ -290,7 +296,10 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     
     // Admin document preview proxy (streams file through Laravel)
     Route::get('documents/{document}/preview', function (\App\Models\MemberDocument $document) {
-        $disk = config('filesystems.disks.r2.key') ? 'r2' : 's3';
+        // Use local storage for local/development/testing environments
+        $disk = app()->environment(['local', 'development', 'testing']) 
+            ? 'local' 
+            : (config('filesystems.disks.r2.key') ? 'r2' : 's3');
         
         if (!\Illuminate\Support\Facades\Storage::disk($disk)->exists($document->file_path)) {
             abort(404);
