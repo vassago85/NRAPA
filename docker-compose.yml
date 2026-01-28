@@ -64,7 +64,7 @@ services:
         condition: service_healthy
 
   db:
-    image: mariadb:11
+    image: mysql:8.0
     container_name: nrapa-db
     restart: unless-stopped
     environment:
@@ -77,7 +77,7 @@ services:
     networks:
       - nrapa-network
     healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 5
