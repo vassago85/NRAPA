@@ -154,22 +154,30 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
 
             $this->request->issue(auth()->user(), $letterReference, $letterPath);
         
-        AuditLog::create([
-            'user_id' => auth()->id(),
-            'event' => 'endorsement_issued',
-            'auditable_type' => EndorsementRequest::class,
-            'auditable_id' => $this->request->id,
-            'old_values' => ['status' => 'approved'],
-            'new_values' => [
-                'status' => 'issued', 
-                'letter_reference' => $letterReference,
-            ],
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-        ]);
+            AuditLog::create([
+                'user_id' => auth()->id(),
+                'event' => 'endorsement_issued',
+                'auditable_type' => EndorsementRequest::class,
+                'auditable_id' => $this->request->id,
+                'old_values' => ['status' => 'approved'],
+                'new_values' => [
+                    'status' => 'issued', 
+                    'letter_reference' => $letterReference,
+                ],
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
 
-        session()->flash('success', 'Endorsement letter issued successfully! Reference: ' . $letterReference);
-        $this->request->refresh();
+            session()->flash('success', 'Endorsement letter issued successfully! Reference: ' . $letterReference);
+            $this->request->refresh();
+        } catch (\Exception $e) {
+            Log::error('Failed to generate endorsement letter', [
+                'request_id' => $this->request->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            session()->flash('error', 'Failed to generate endorsement letter: ' . $e->getMessage());
+        }
     }
 
     public function rejectRequest(): void
