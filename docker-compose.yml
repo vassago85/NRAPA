@@ -1,8 +1,6 @@
 # NRAPA Docker Stack for Portainer
 # Deploy via Portainer > Stacks > Add Stack
 
-version: '3.8'
-
 services:
   app:
     build:
@@ -52,9 +50,10 @@ services:
       - LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK=public
     volumes:
       - app-logs:/var/www/html/storage/logs
+    ports:
+      - "8080:80"
     networks:
       - nrapa-network
-      - npm-network
     depends_on:
       db:
         condition: service_healthy
@@ -216,9 +215,6 @@ services:
 networks:
   nrapa-network:
     driver: bridge
-  npm-network:
-    external: true
-    name: nginx-proxy-manager_default
 
 volumes:
   app-logs:
