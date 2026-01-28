@@ -418,56 +418,78 @@ new class extends Component {
         <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-6">Firearm / Calibre</h2>
 
-            @if($this->userFirearms->count() > 0)
-                <!-- Source Selection -->
-                <div class="mb-6">
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">Select Firearm From</label>
-                    <div class="flex gap-4">
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="radio" wire:model.live="firearm_source" value="armoury" class="text-emerald-600 focus:ring-emerald-500">
-                            <span class="text-sm text-zinc-700 dark:text-zinc-300">My Armoury</span>
-                        </label>
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="radio" wire:model.live="firearm_source" value="manual" class="text-emerald-600 focus:ring-emerald-500">
-                            <span class="text-sm text-zinc-700 dark:text-zinc-300">Enter Manually</span>
-                        </label>
-                    </div>
+            <!-- Source Selection - Always show -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">Select Firearm From</label>
+                <div class="flex flex-wrap gap-4">
+                    <label class="flex items-center gap-2 cursor-pointer p-3 rounded-lg border-2 transition-colors {{ $firearm_source === 'armoury' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-zinc-300 dark:border-zinc-600 hover:border-emerald-400' }}">
+                        <input type="radio" wire:model.live="firearm_source" value="armoury" class="text-emerald-600 focus:ring-emerald-500">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                            </svg>
+                            <div>
+                                <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Virtual Safe</span>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">Select from your registered firearms</p>
+                            </div>
+                        </div>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer p-3 rounded-lg border-2 transition-colors {{ $firearm_source === 'manual' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-zinc-300 dark:border-zinc-600 hover:border-emerald-400' }}">
+                        <input type="radio" wire:model.live="firearm_source" value="manual" class="text-emerald-600 focus:ring-emerald-500">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-zinc-600 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            <div>
+                                <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Enter Manually</span>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">Type firearm details manually</p>
+                            </div>
+                        </div>
+                    </label>
                 </div>
-            @endif
+            </div>
 
-            @if($firearm_source === 'armoury' && $this->userFirearms->count() > 0)
-                <!-- Select from Armoury -->
-                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    <div>
-                        <label for="user_firearm_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Select Firearm <span class="text-red-500">*</span></label>
-                        <select id="user_firearm_id" wire:model.live="user_firearm_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
-                            <option value="">Select a Firearm</option>
-                            @foreach($this->userFirearms as $firearm)
-                                <option value="{{ $firearm->id }}">
-                                    {{ $firearm->display_name }} 
-                                    @if($firearm->calibre) ({{ $firearm->calibre->name }}) @endif
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('user_firearm_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                        <a href="{{ route('armoury.create') }}" wire:navigate class="mt-1 inline-block text-sm text-emerald-600 hover:text-emerald-700">
-                            + Add new firearm to armoury
-                        </a>
-                    </div>
-
-                    @if(count($loadDataOptions) > 0)
+            @if($firearm_source === 'armoury')
+                @if($this->userFirearms->count() > 0)
+                    <!-- Select from Virtual Safe -->
+                    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                         <div>
-                            <label for="load_data_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Load Data (Optional)</label>
-                            <select id="load_data_id" wire:model="load_data_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
-                                <option value="">No specific load</option>
-                                @foreach($loadDataOptions as $load)
-                                    <option value="{{ $load['id'] }}">{{ $load['name'] }} - {{ $load['description'] }}</option>
+                            <label for="user_firearm_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Select Firearm from Virtual Safe <span class="text-red-500">*</span></label>
+                            <select id="user_firearm_id" wire:model.live="user_firearm_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
+                                <option value="">Select a Firearm from Your Virtual Safe</option>
+                                @foreach($this->userFirearms as $firearm)
+                                    <option value="{{ $firearm->id }}">
+                                        {{ $firearm->display_name }} 
+                                        @if($firearm->calibre) ({{ $firearm->calibre->name }}) @endif
+                                        @if($firearm->nickname) - {{ $firearm->nickname }} @endif
+                                    </option>
                                 @endforeach
                             </select>
-                            @error('load_data_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                            @error('user_firearm_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                            <div class="mt-2 flex items-center gap-2">
+                                <a href="{{ route('armoury.index') }}" wire:navigate class="text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+                                    View Virtual Safe
+                                </a>
+                                <span class="text-zinc-400">•</span>
+                                <a href="{{ route('armoury.create') }}" wire:navigate class="text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+                                    + Add New Firearm
+                                </a>
+                            </div>
                         </div>
-                    @endif
-                </div>
+
+                        @if(count($loadDataOptions) > 0)
+                            <div>
+                                <label for="load_data_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Load Data (Optional)</label>
+                                <select id="load_data_id" wire:model="load_data_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
+                                    <option value="">No specific load</option>
+                                    @foreach($loadDataOptions as $load)
+                                        <option value="{{ $load['id'] }}">{{ $load['name'] }} - {{ $load['description'] }}</option>
+                                    @endforeach
+                                </select>
+                                @error('load_data_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                            </div>
+                        @endif
+                    </div>
 
                 @if($user_firearm_id)
                     @php $selectedFirearm = $this->userFirearms->firstWhere('id', $user_firearm_id); @endphp
@@ -484,6 +506,35 @@ new class extends Component {
                             </div>
                         </div>
                     @endif
+                @endif
+                @else
+                    <!-- No Firearms in Virtual Safe -->
+                    <div class="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-6">
+                        <div class="flex items-start gap-4">
+                            <div class="flex-shrink-0">
+                                <svg class="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="text-sm font-medium text-amber-800 dark:text-amber-200 mb-1">No Firearms in Your Virtual Safe</h3>
+                                <p class="text-sm text-amber-700 dark:text-amber-300 mb-4">
+                                    Add firearms to your Virtual Safe to quickly select them when submitting activities. This helps track which firearms you use for each activity.
+                                </p>
+                                <div class="flex gap-3">
+                                    <a href="{{ route('armoury.create') }}" wire:navigate class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                        </svg>
+                                        Add Firearm to Virtual Safe
+                                    </a>
+                                    <button type="button" wire:click="$set('firearm_source', 'manual')" class="inline-flex items-center gap-2 px-4 py-2 border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-sm font-medium rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
+                                        Enter Manually Instead
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 @endif
             @else
                 <!-- Manual Entry -->
