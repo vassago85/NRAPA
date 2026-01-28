@@ -24,6 +24,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             'components', 
             'components.calibre',
             'documents',
+            'comments',
             'reviewer',
             'issuer',
         ]);
@@ -53,7 +54,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
         
         AuditLog::create([
             'user_id' => auth()->id(),
-            'action' => 'endorsement_under_review',
+            'event' => 'endorsement_under_review',
             'auditable_type' => EndorsementRequest::class,
             'auditable_id' => $this->request->id,
             'old_values' => ['status' => 'submitted'],
@@ -79,7 +80,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
         
         AuditLog::create([
             'user_id' => auth()->id(),
-            'action' => 'endorsement_pending_documents',
+            'event' => 'endorsement_pending_documents',
             'auditable_type' => EndorsementRequest::class,
             'auditable_id' => $this->request->id,
             'old_values' => ['status' => $this->request->status],
@@ -117,7 +118,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
         
         AuditLog::create([
             'user_id' => auth()->id(),
-            'action' => 'endorsement_approved',
+            'event' => 'endorsement_approved',
             'auditable_type' => EndorsementRequest::class,
             'auditable_id' => $this->request->id,
             'old_values' => ['status' => $this->request->getOriginal('status')],
@@ -152,7 +153,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
         
         AuditLog::create([
             'user_id' => auth()->id(),
-            'action' => 'endorsement_issued',
+            'event' => 'endorsement_issued',
             'auditable_type' => EndorsementRequest::class,
             'auditable_id' => $this->request->id,
             'old_values' => ['status' => 'approved'],
@@ -181,7 +182,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
         
         AuditLog::create([
             'user_id' => auth()->id(),
-            'action' => 'endorsement_rejected',
+            'event' => 'endorsement_rejected',
             'auditable_type' => EndorsementRequest::class,
             'auditable_id' => $this->request->id,
             'old_values' => ['status' => $this->request->status],

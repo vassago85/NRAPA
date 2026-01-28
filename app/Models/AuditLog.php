@@ -11,20 +11,18 @@ class AuditLog extends Model
 {
     /**
      * The attributes that are mass assignable.
+     * Matches the existing audit_logs table structure.
      */
     protected $fillable = [
         'uuid',
-        'actor_id',
-        'actor_role',
-        'actor_email',
-        'action',
-        'description',
-        'subject_type',
-        'subject_id',
-        'metadata',
+        'user_id',
+        'auditable_type',
+        'auditable_id',
+        'event',
+        'old_values',
+        'new_values',
         'ip_address',
         'user_agent',
-        'created_at',
     ];
 
     /**
@@ -33,15 +31,11 @@ class AuditLog extends Model
     protected function casts(): array
     {
         return [
-            'metadata' => 'array',
+            'old_values' => 'array',
+            'new_values' => 'array',
             'created_at' => 'datetime',
         ];
     }
-
-    /**
-     * Indicates if the model should be timestamped.
-     */
-    public $timestamps = false;
 
     /**
      * Boot the model.
@@ -54,25 +48,67 @@ class AuditLog extends Model
             if (empty($log->uuid)) {
                 $log->uuid = (string) Str::uuid();
             }
-            if (empty($log->created_at)) {
-                $log->created_at = now();
-            }
         });
     }
 
     /**
-     * Get the actor (user who performed the action).
+     * Get the user who performed the action.
      */
-    public function actor(): BelongsTo
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'actor_id');
+        return $this->belongsTo(User::class);
     }
 
     /**
-     * Get the subject (what was acted upon).
+     * Get the auditable model (what was acted upon).
+     */
+    public function auditable(): MorphTo
+    {
+        return $this->morphTo();
+    }
+
+    /**
+     * Alias for auditable() for backward compatibility.
      */
     public function subject(): MorphTo
     {
-        return $this->morphTo();
+        return $this->auditable();
+    }
+
+    /**
+     * Alias for user() for backward compatibility.
+     */
+    public function actor(): BelongsTo
+    {
+        return $this->user();
+    }
+
+    /**
+     * Static helper to create an audit log entry.
+     * 
+     * @param string $event The event name (e.g., 'membership_approved')
+     * @param Model $auditable The model being audited
+     * @param array|null $oldValues Old values (optional)
+     * @param array|null $newValues New values (optional)
+     * @param User|null $user The user performing the action (defaults to auth user)
+     * @return static
+     */
+    public static function log(
+        string $event,
+        Model $auditable,
+        ?array $oldValues = null,
+        ?array $newValues = null,
+        ?User $user = null
+    ): static {
+        return static::create([
+            'user_id' => $user?->id ?? auth()->id(),
+            'event' => $event,
+            'auditable_type' => get_class($auditable),
+            'auditable_id' => $auditable->id,
+            'old_values' => $oldValues,
+            'new_values' => $newValues,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
     }
 }

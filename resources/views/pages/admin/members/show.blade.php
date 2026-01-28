@@ -273,16 +273,16 @@ new #[Title('Member Details - Admin')] class extends Component {
             
             // Log the action
             \App\Models\AuditLog::create([
-                'actor_id' => $issuer->id,
-                'actor_role' => $issuer->role,
-                'action' => 'issued_certificate',
-                'description' => "Issued {$documentType} certificate for {$this->user->name}",
-                'subject_type' => get_class($certificate),
-                'subject_id' => $certificate->id,
-                'metadata' => [
+                'user_id' => $issuer->id,
+                'event' => 'issued_certificate',
+                'auditable_type' => get_class($certificate),
+                'auditable_id' => $certificate->id,
+                'old_values' => null,
+                'new_values' => [
                     'document_type' => $documentType,
                     'user_id' => $this->user->id,
                     'certificate_id' => $certificate->id,
+                    'description' => "Issued {$documentType} certificate for {$this->user->name}",
                 ],
                 'ip_address' => request()->ip(),
                 'user_agent' => request()->userAgent(),
