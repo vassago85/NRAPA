@@ -29,6 +29,21 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     {
         return route('certificates.verify', ['qr_code' => $this->certificate->qr_code]);
     }
+
+    #[Computed]
+    public function previewUrl()
+    {
+        $user = auth()->user();
+        if ($user->isDeveloper()) {
+            return route('developer.certificates.preview', $this->certificate);
+        } elseif ($user->isOwner()) {
+            // Owner uses admin routes for certificates
+            return route('admin.certificates.preview', $this->certificate);
+        } elseif ($user->isAdmin()) {
+            return route('admin.certificates.preview', $this->certificate);
+        }
+        return route('certificates.preview', $this->certificate);
+    }
 }; ?>
 
 <div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
@@ -85,85 +100,29 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                     </div>
 
                     <div class="p-6">
-                        {{-- Certificate Preview Card --}}
-                        <div class="relative overflow-hidden rounded-xl border-4 border-emerald-600 bg-gradient-to-br from-emerald-50 to-white p-8 dark:from-emerald-950 dark:to-zinc-900">
-                            {{-- Header --}}
-                            <div class="mb-8 text-center">
-                                <div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-emerald-600 text-white">
-                                    <x-app-logo-icon class="size-8" />
-                                </div>
-                                <h2 class="text-xl font-bold text-emerald-800 dark:text-emerald-200">
-                                    NATIONAL RIFLE AND PISTOL ASSOCIATION
-                                </h2>
-                                <p class="text-lg text-emerald-600 dark:text-emerald-400">
-                                    {{ $this->certificate->certificateType->name }}
-                                </p>
-                            </div>
-
-                            {{-- Certificate Body --}}
-                            <div class="mb-8 text-center">
-                                <p class="text-zinc-600 dark:text-zinc-400">This is to certify that</p>
-                                <h3 class="text-2xl font-bold my-3 text-zinc-900 dark:text-white">{{ $this->certificate->user->name }}</h3>
-                                <p class="text-zinc-600 dark:text-zinc-400">
-                                    is a registered member of NRAPA
-                                    @if($this->certificate->membership)
-                                        holding a {{ $this->certificate->membership->type->name }}
-                                    @endif
-                                </p>
-                            </div>
-
-                            {{-- Details --}}
-                            <div class="mb-8 flex justify-center gap-12">
-                                <div class="text-center">
-                                    <p class="text-sm text-zinc-500">Member Number</p>
-                                    <p class="font-mono font-semibold text-zinc-900 dark:text-white">
-                                        {{ $this->certificate->membership?->membership_number ?? 'N/A' }}
-                                    </p>
-                                </div>
-                                <div class="text-center">
-                                    <p class="text-sm text-zinc-500">Certificate Number</p>
-                                    <p class="font-mono font-semibold text-zinc-900 dark:text-white">{{ $this->certificate->certificate_number }}</p>
-                                </div>
-                            </div>
-
-                            {{-- Validity --}}
-                            <div class="flex justify-center gap-12 border-t border-emerald-200 pt-6 dark:border-emerald-800">
-                                <div class="text-center">
-                                    <p class="text-sm text-zinc-500">Issued</p>
-                                    <p class="font-semibold text-zinc-900 dark:text-white">{{ $this->certificate->issued_at->format('d F Y') }}</p>
-                                </div>
-                                <div class="text-center">
-                                    <p class="text-sm text-zinc-500">Valid Until</p>
-                                    <p class="font-semibold text-zinc-900 dark:text-white">
-                                        @if($this->certificate->valid_until)
-                                            {{ $this->certificate->valid_until->format('d F Y') }}
-                                        @else
-                                            Indefinite
-                                        @endif
-                                    </p>
-                                </div>
-                            </div>
-
-                            {{-- QR Code Placeholder --}}
-                            <div class="absolute bottom-4 right-4">
-                                <div class="flex size-20 items-center justify-center rounded-lg border-2 border-dashed border-emerald-300 bg-white dark:border-emerald-700 dark:bg-zinc-800">
-                                    <svg class="w-12 h-12 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
-                                </div>
-                            </div>
+                        {{-- Certificate Preview iframe --}}
+                        <div class="bg-zinc-100 dark:bg-zinc-900 rounded-lg overflow-hidden" style="min-height: 600px;">
+                            <iframe 
+                                src="{{ $this->previewUrl }}?print=0"
+                                class="w-full h-full border-0"
+                                style="min-height: 600px;"
+                                title="Certificate Preview">
+                            </iframe>
                         </div>
                     </div>
 
                     <div class="px-6 py-4 border-t border-zinc-200 dark:border-zinc-700 flex gap-3">
-                        @if($this->certificate->file_path)
-                        <button type="button" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                            Download PDF
-                        </button>
-                        @endif
-                        <button type="button" class="inline-flex items-center gap-2 px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                        <a href="{{ $this->previewUrl }}" target="_blank" 
+                            class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/></svg>
+                            View Full Screen
+                        </a>
+                        <a href="{{ $this->previewUrl }}?print=1" target="_blank" 
+                            onclick="window.open(this.href, '_blank', 'width=800,height=600'); setTimeout(() => { window.print(); }, 500); return false;"
+                            class="inline-flex items-center gap-2 px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                             Print
-                        </button>
+                        </a>
                     </div>
                 </div>
             </div>

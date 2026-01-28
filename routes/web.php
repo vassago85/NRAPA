@@ -116,6 +116,28 @@ Route::middleware(['auth', 'verified', 'membership.required'])->group(function (
     // Certificates (members only - requires active membership)
     Route::livewire('certificates', 'pages::member.certificates.index')->name('certificates.index');
     Route::livewire('certificates/{certificate}', 'pages::member.certificates.show')->name('certificates.show');
+    
+    // Certificate preview (renders the document template)
+    Route::get('certificates/{certificate}/preview', function (\App\Models\Certificate $certificate) {
+        $user = auth()->user();
+        
+        // Members can only view their own certificates
+        if ($certificate->user_id !== $user->id) {
+            abort(403);
+        }
+        
+        $certificate->loadMissing(['user', 'membership.type', 'certificateType']);
+        
+        // Determine template based on certificate type
+        $template = $certificate->certificateType->template ?? 'documents.paid-up';
+        
+        return view($template, [
+            'certificate' => $certificate,
+            'user' => $certificate->user,
+            'membership' => $certificate->membership,
+            'certificateType' => $certificate->certificateType,
+        ]);
+    })->name('certificates.preview');
 
     // Knowledge Test
     Route::livewire('knowledge-test', 'pages::member.knowledge-test.index')->name('knowledge-test.index');
@@ -258,6 +280,21 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::livewire('certificates', 'pages::member.certificates.index')->name('certificates.index');
     Route::livewire('certificates/{certificate}', 'pages::member.certificates.show')->name('certificates.show');
     
+    // Certificate preview (renders the document template)
+    Route::get('certificates/{certificate}/preview', function (\App\Models\Certificate $certificate) {
+        $certificate->loadMissing(['user', 'membership.type', 'certificateType']);
+        
+        // Determine template based on certificate type
+        $template = $certificate->certificateType->template ?? 'documents.paid-up';
+        
+        return view($template, [
+            'certificate' => $certificate,
+            'user' => $certificate->user,
+            'membership' => $certificate->membership,
+            'certificateType' => $certificate->certificateType,
+        ]);
+    })->name('admin.certificates.preview');
+    
     // Membership Types Management
     Route::livewire('membership-types', 'pages::admin.membership-types.index')->name('membership-types.index');
 
@@ -324,6 +361,18 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     // Endorsement Requests Management
     Route::livewire('endorsements', 'pages::admin.endorsements.index')->name('endorsements.index');
     Route::livewire('endorsements/{request}', 'pages::admin.endorsements.show')->name('endorsements.show');
+    
+    // Admin endorsement letter preview (renders template)
+    Route::get('endorsements/{request}/preview', function (\App\Models\EndorsementRequest $request) {
+        $request->loadMissing(['user', 'firearm', 'firearm.calibre', 'components', 'membership']);
+        
+        return view('documents.endorsement-letter', [
+            'request' => $request,
+            'user' => $request->user,
+            'firearm' => $request->firearm,
+            'membership' => $request->user->activeMembership,
+        ]);
+    })->name('admin.endorsements.preview');
 });
 
 // Public Certificate Verification
