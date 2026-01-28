@@ -117,6 +117,56 @@ Route::middleware(['auth', 'verified', 'membership.required'])->group(function (
     Route::livewire('certificates', 'pages::member.certificates.index')->name('certificates.index');
     Route::livewire('certificates/{certificate}', 'pages::member.certificates.show')->name('certificates.show');
     
+    // Certificate wallet pass downloads (member)
+    Route::get('certificates/{certificate}/wallet/apple', function (\App\Models\Certificate $certificate) {
+        $user = auth()->user();
+        
+        // Members can only download their own certificates
+        if ($certificate->user_id !== $user->id) {
+            abort(403);
+        }
+        
+        // Only membership cards support wallet passes
+        if ($certificate->certificateType->slug !== 'membership-card') {
+            abort(404, 'Wallet passes are only available for membership cards.');
+        }
+        
+        $walletService = app(\App\Services\WalletPassService::class);
+        $filePath = $walletService->generateAppleWalletPass($certificate);
+        
+        if (!$filePath) {
+            abort(503, 'Apple Wallet pass generation is not yet configured. Please contact support.');
+        }
+        
+        $disk = app()->environment(['local', 'development', 'testing']) ? 'local' : 'r2';
+        return Storage::disk($disk)->download($filePath, 'nrapa-membership-card.pkpass', [
+            'Content-Type' => 'application/vnd.apple.pkpass',
+        ]);
+    })->name('certificates.wallet.apple');
+    
+    Route::get('certificates/{certificate}/wallet/google', function (\App\Models\Certificate $certificate) {
+        $user = auth()->user();
+        
+        // Members can only download their own certificates
+        if ($certificate->user_id !== $user->id) {
+            abort(403);
+        }
+        
+        // Only membership cards support wallet passes
+        if ($certificate->certificateType->slug !== 'membership-card') {
+            abort(404, 'Wallet passes are only available for membership cards.');
+        }
+        
+        $walletService = app(\App\Services\WalletPassService::class);
+        $saveUrl = $walletService->generateGoogleWalletPass($certificate);
+        
+        if (!$saveUrl) {
+            abort(503, 'Google Wallet pass generation is not yet configured. Please contact support.');
+        }
+        
+        return redirect($saveUrl);
+    })->name('certificates.wallet.google');
+    
     // Certificate preview (renders the document template)
     Route::get('certificates/{certificate}/preview', function (\App\Models\Certificate $certificate) {
         $user = auth()->user();
@@ -293,6 +343,42 @@ Route::middleware(['auth', 'verified', 'developer'])->prefix('developer')->name(
     // Certificates (developer can view all certificates)
     Route::livewire('certificates', 'pages::member.certificates.index')->name('certificates.index');
     Route::livewire('certificates/{certificate}', 'pages::member.certificates.show')->name('certificates.show');
+    
+    // Certificate wallet pass downloads (developer)
+    Route::get('certificates/{certificate}/wallet/apple', function (\App\Models\Certificate $certificate) {
+        // Only membership cards support wallet passes
+        if ($certificate->certificateType->slug !== 'membership-card') {
+            abort(404, 'Wallet passes are only available for membership cards.');
+        }
+        
+        $walletService = app(\App\Services\WalletPassService::class);
+        $filePath = $walletService->generateAppleWalletPass($certificate);
+        
+        if (!$filePath) {
+            abort(503, 'Apple Wallet pass generation is not yet configured. Please contact support.');
+        }
+        
+        $disk = app()->environment(['local', 'development', 'testing']) ? 'local' : 'r2';
+        return Storage::disk($disk)->download($filePath, 'nrapa-membership-card.pkpass', [
+            'Content-Type' => 'application/vnd.apple.pkpass',
+        ]);
+    })->name('developer.certificates.wallet.apple');
+    
+    Route::get('certificates/{certificate}/wallet/google', function (\App\Models\Certificate $certificate) {
+        // Only membership cards support wallet passes
+        if ($certificate->certificateType->slug !== 'membership-card') {
+            abort(404, 'Wallet passes are only available for membership cards.');
+        }
+        
+        $walletService = app(\App\Services\WalletPassService::class);
+        $saveUrl = $walletService->generateGoogleWalletPass($certificate);
+        
+        if (!$saveUrl) {
+            abort(503, 'Google Wallet pass generation is not yet configured. Please contact support.');
+        }
+        
+        return redirect($saveUrl);
+    })->name('developer.certificates.wallet.google');
     
     // Certificate preview (renders the document template)
     Route::get('certificates/{certificate}/preview', function (\App\Models\Certificate $certificate) {
