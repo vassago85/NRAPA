@@ -3,10 +3,11 @@
 use App\Models\Certificate;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-new #[Title('Certificates & Endorsements')] class extends Component {
+new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] class extends Component {
     #[Computed]
     public function user()
     {

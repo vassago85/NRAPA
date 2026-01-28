@@ -3,9 +3,10 @@
 use App\Models\Certificate;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Layout;
 use Livewire\Component;
 
-new class extends Component {
+new #[Layout('layouts.app.sidebar')] class extends Component {
     public Certificate $certificate;
 
     public function mount(Certificate $certificate): void
@@ -30,8 +31,7 @@ new class extends Component {
     }
 }; ?>
 
-<x-layouts::app :title="__('Certificate Details')">
-    <div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
+<div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
         {{-- Header --}}
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex items-center gap-4">
@@ -265,4 +265,4 @@ new class extends Component {
             </div>
         </div>
     </div>
-</x-layouts::app>
+</div>
