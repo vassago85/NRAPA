@@ -38,6 +38,7 @@ class FakeDocumentRenderer implements DocumentRenderer
             'user' => $certificate->user,
             'membership' => $certificate->membership,
             'certificateType' => $certificate->certificateType,
+            'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
         ])->render();
 
         // Generate file path
@@ -62,6 +63,7 @@ class FakeDocumentRenderer implements DocumentRenderer
         $html = View::make($template, [
             'user' => $user,
             'membership' => $membership,
+            'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
         ])->render();
 
         // Generate file path
@@ -86,6 +88,7 @@ class FakeDocumentRenderer implements DocumentRenderer
             'user' => $request->user,
             'firearm' => $request->firearm,
             'membership' => $request->user->activeMembership,
+            'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
         ])->render();
 
         // Generate file path

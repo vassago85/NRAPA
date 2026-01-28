@@ -211,6 +211,7 @@ Route::middleware(['auth', 'verified', 'membership.required'])->group(function (
             'user' => $certificate->user,
             'membership' => $certificate->membership,
             'certificateType' => $certificate->certificateType,
+            'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
         ]);
     })->name('certificates.preview');
 
@@ -504,6 +505,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
             'user' => $certificate->user,
             'membership' => $certificate->membership,
             'certificateType' => $certificate->certificateType,
+            'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
         ]);
     })->name('admin.certificates.preview');
     
@@ -583,6 +585,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
             'user' => $request->user,
             'firearm' => $request->firearm,
             'membership' => $request->user->activeMembership,
+            'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
         ]);
     })->name('admin.endorsements.preview');
 });
