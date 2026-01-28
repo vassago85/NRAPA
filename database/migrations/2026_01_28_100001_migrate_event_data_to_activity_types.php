@@ -98,22 +98,38 @@ return new class extends Migration
         }
         
         // Update existing shooting_activities to set track based on activity_type
-        DB::statement("
-            UPDATE shooting_activities sa
-            INNER JOIN activity_types at ON sa.activity_type_id = at.id
-            SET sa.track = at.track
-            WHERE sa.track IS NULL AND at.track IS NOT NULL
-        ");
+        // SQLite-compatible syntax
+        $activities = DB::table('shooting_activities')
+            ->join('activity_types', 'shooting_activities.activity_type_id', '=', 'activity_types.id')
+            ->whereNull('shooting_activities.track')
+            ->whereNotNull('activity_types.track')
+            ->select('shooting_activities.id', 'activity_types.track')
+            ->get();
+        
+        foreach ($activities as $activity) {
+            DB::table('shooting_activities')
+                ->where('id', $activity->id)
+                ->update(['track' => $activity->track]);
+        }
         
         // For shooting_activities with event_category_id but no activity_type_id,
         // try to infer track from event_category
-        DB::statement("
-            UPDATE shooting_activities sa
-            INNER JOIN event_categories ec ON sa.event_category_id = ec.id
-            INNER JOIN activity_types at ON ec.activity_type_id = at.id
-            SET sa.track = at.track, sa.activity_type_id = at.id
-            WHERE sa.activity_type_id IS NULL AND at.track IS NOT NULL
-        ");
+        $activitiesWithEventCategory = DB::table('shooting_activities')
+            ->join('event_categories', 'shooting_activities.event_category_id', '=', 'event_categories.id')
+            ->join('activity_types', 'event_categories.activity_type_id', '=', 'activity_types.id')
+            ->whereNull('shooting_activities.activity_type_id')
+            ->whereNotNull('activity_types.track')
+            ->select('shooting_activities.id', 'activity_types.id as activity_type_id', 'activity_types.track')
+            ->get();
+        
+        foreach ($activitiesWithEventCategory as $activity) {
+            DB::table('shooting_activities')
+                ->where('id', $activity->id)
+                ->update([
+                    'track' => $activity->track,
+                    'activity_type_id' => $activity->activity_type_id,
+                ]);
+        }
     }
 
     /**
