@@ -224,12 +224,9 @@ new class extends Component {
         // Reset activity type when track changes
         $this->activity_type_id = null;
         $this->activity_tag_ids = [];
-        
-        // Force refresh of computed properties
-        $this->dispatch('$refresh');
     }
 
-    #[Computed(persist: false)]
+    #[Computed]
     public function activityTypes()
     {
         if (!$this->track) {
@@ -326,7 +323,7 @@ new class extends Component {
                 </div>
 
                 <!-- Activity Type -->
-                <div>
+                <div wire:key="activity-type-{{ $track }}">
                     <label for="activity_type_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Activity Type <span class="text-red-500">*</span></label>
                     <select id="activity_type_id" wire:model="activity_type_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500" @disabled(!$track)>
                         <option value="">Select Activity Type</option>
