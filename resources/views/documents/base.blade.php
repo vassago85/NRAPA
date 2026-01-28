@@ -11,11 +11,9 @@
 </head>
 <body>
     {{-- Optional preview controls (hide on print) --}}
-    @if(!request()->has('print'))
     <div class="doc-controls">
         <button class="doc-btn" onclick="window.print()">Print</button>
     </div>
-    @endif
 
     <div class="doc-sheet {{ $variant ?? '' }}">
         {{-- Background layer (optional) --}}
