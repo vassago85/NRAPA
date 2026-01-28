@@ -13,6 +13,11 @@ class StorageHelper
      */
     public static function getPrivateDisk(): string
     {
+        // Always use local storage for local/development/testing environments
+        if (app()->environment(['local', 'development', 'testing'])) {
+            return 'local';
+        }
+        
         if (config('filesystems.disks.r2.key')) {
             return 'r2';
         }
@@ -30,6 +35,11 @@ class StorageHelper
      */
     public static function getPublicDisk(): string
     {
+        // Always use public/local storage for local/development/testing environments
+        if (app()->environment(['local', 'development', 'testing'])) {
+            return 'public';
+        }
+        
         if (config('filesystems.disks.r2_public.key')) {
             return 'r2_public';
         }
