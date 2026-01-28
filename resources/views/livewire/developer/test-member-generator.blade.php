@@ -28,9 +28,9 @@
                 @elseif($stage === 'active')
                     Active membership with verified ID and proof of address.
                 @elseif($stage === 'dedicated')
-                    Active membership with dedicated status, knowledge test passed, activities approved.
+                    Active membership with dedicated status, knowledge test passed, activities approved. Includes both Membership and Dedicated Status certificates.
                 @elseif($stage === 'full')
-                    Fully qualified member with all requirements met. Can generate certificates and endorsements.
+                    Fully qualified member with all requirements met. Includes both Membership and Dedicated Status certificates. Can add firearms and endorsement requests.
                 @endif
             </p>
         </div>
@@ -53,12 +53,11 @@
         <div class="space-y-3 p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-700">
             <p class="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">Additional Options:</p>
             
-            <label class="flex items-center gap-3 cursor-pointer">
-                <input type="checkbox" 
-                       wire:model="withCertificates"
-                       class="w-4 h-4 text-emerald-600 border-zinc-300 rounded focus:ring-emerald-500">
-                <span class="text-sm text-zinc-700 dark:text-zinc-300">Generate Certificates</span>
-            </label>
+            <div class="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded border border-emerald-200 dark:border-emerald-800">
+                <p class="text-xs text-emerald-700 dark:text-emerald-300">
+                    <strong>Note:</strong> Certificates are automatically generated for "Dedicated" and "Full" stage members (both Membership and Dedicated Status certificates).
+                </p>
+            </div>
             
             <label class="flex items-center gap-3 cursor-pointer">
                 <input type="checkbox" 

@@ -3,8 +3,10 @@
 use App\Models\Calibre;
 use App\Models\CalibreRequest;
 use App\Models\EndorsementComponent;
+use App\Models\EndorsementDocument;
 use App\Models\EndorsementFirearm;
 use App\Models\EndorsementRequest;
+use App\Models\MemberDocument;
 use App\Models\ShootingActivity;
 use App\Models\UserFirearm;
 use Livewire\Attributes\Computed;
@@ -181,7 +183,13 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     // Step navigation
     public function nextStep(): void
     {
-        $this->validateCurrentStep();
+        // Validate before proceeding
+        try {
+            $this->validateCurrentStep();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Validation errors will be displayed automatically by Livewire
+            return;
+        }
         
         if ($this->currentStep < $this->totalSteps) {
             // Skip component step for new requests
@@ -226,6 +234,9 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             1 => ['requestType' => 'required|in:new,renewal'],
             2 => [
                 'firearmCategory' => 'required|in:handgun,rifle_manual,rifle_self_loading,shotgun',
+                'actionType' => 'required',
+                'make' => 'required|string|max:255',
+                'model' => 'required|string|max:255',
             ],
             3 => [], // Components optional
             4 => [
@@ -236,7 +247,46 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             default => [],
         };
 
-        $this->validate($rules);
+        // Additional validation for step 2: calibre and serial
+        if ($this->currentStep === 2) {
+            $rules['calibre'] = 'required'; // Custom validation
+            $this->validate($rules);
+            
+            // Validate calibre (either ID or manual)
+            if (empty($this->calibreId) && empty($this->calibreManual)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'calibre' => 'Calibre/Gauge is required (select from list or enter manually).',
+                ]);
+            }
+            
+            // Validate at least one serial number
+            if (!$this->hasAtLeastOneSerial) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'serial' => 'At least one serial number is required (barrel, frame, or receiver).',
+                ]);
+            }
+        } else {
+            $this->validate($rules);
+        }
+    }
+
+    #[Computed]
+    public function canProceedToNextStep(): bool
+    {
+        return match($this->currentStep) {
+            1 => !empty($this->requestType) && in_array($this->requestType, ['new', 'renewal']),
+            2 => !empty($this->firearmCategory) 
+                && !empty($this->actionType)
+                && (!empty($this->calibreId) || !empty($this->calibreManual))
+                && !empty($this->make)
+                && !empty($this->model)
+                && $this->hasAtLeastOneSerial,
+            3 => true, // Components are optional
+            4 => !empty($this->purpose) 
+                && ($this->purpose !== 'other' || !empty($this->purposeOtherText)),
+            5 => $this->declarationAccepted, // For submit button
+            default => false,
+        };
     }
 
     // Request type changed
@@ -504,10 +554,15 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
 
         $request = $this->saveRequest(true);
         
+        // Request is already refreshed and relationships loaded in saveRequest()
+        
         if ($request->submit()) {
             session()->flash('success', 'Endorsement request submitted successfully!');
         } else {
-            session()->flash('error', 'Failed to submit request. Please check all requirements.');
+            // Get specific error messages from the model
+            $errors = $request->getSubmissionErrors();
+            $errorMessage = 'Failed to submit request. ' . implode(' ', $errors);
+            session()->flash('error', $errorMessage);
         }
         
         $this->redirect(route('member.endorsements.index'), navigate: true);
@@ -557,6 +612,9 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             'user_firearm_id' => $this->existingFirearmId,
         ]);
         $firearm->save();
+        
+        // Refresh the request to ensure relationships are loaded
+        $request->refresh();
 
         // Save components (renewal only)
         if ($this->requestType === 'renewal' && $this->requestComponent) {
@@ -586,7 +644,126 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             $request->components()->delete();
         }
 
+        // Auto-create system-verified documents from existing member documents
+        $this->autoVerifyDocumentsFromMemberDocs($request, $user);
+        
+        // Refresh to ensure documents are loaded
+        $request->refresh();
+        $request->load(['firearm', 'documents']);
+
         return $request;
+    }
+
+    protected function autoVerifyDocumentsFromMemberDocs(EndorsementRequest $request, User $user): void
+    {
+        $requiredDocTypes = EndorsementRequest::getRequiredDocumentTypes($request->request_type);
+        
+        foreach ($requiredDocTypes as $docType) {
+            // Check if document already exists for this request
+            $existing = $request->documents()->where('document_type', $docType)->first();
+            if ($existing) {
+                continue;
+            }
+
+            // Map endorsement document types to member document type slugs
+            $memberDocSlug = match($docType) {
+                'sa_id' => 'id-document',
+                'proof_of_address' => 'proof-of-address',
+                'dedicated_status_certificate' => null, // Check certificates instead
+                'membership_proof' => null, // System verified from membership
+                'activity_proof' => null, // System verified from activities
+                'competency_certificate' => 'competency-certificate',
+                default => null,
+            };
+
+            $memberDoc = null;
+            if ($memberDocSlug) {
+                $docTypeModel = \App\Models\DocumentType::where('slug', $memberDocSlug)->first();
+                if ($docTypeModel) {
+                    $memberDoc = \App\Models\MemberDocument::where('user_id', $user->id)
+                        ->where('document_type_id', $docTypeModel->id)
+                        ->where('status', 'verified')
+                        ->where(function ($q) {
+                            $q->whereNull('expires_at')
+                                ->orWhere('expires_at', '>', now());
+                        })
+                        ->latest('verified_at')
+                        ->first();
+                }
+            }
+
+            // For dedicated status certificate, check certificates
+            if ($docType === 'dedicated_status_certificate') {
+                $certType = \App\Models\CertificateType::where('slug', 'dedicated-status-certificate')->first();
+                if ($certType) {
+                    $cert = \App\Models\Certificate::where('user_id', $user->id)
+                        ->where('certificate_type_id', $certType->id)
+                        ->whereNull('revoked_at')
+                        ->where(function ($q) {
+                            $q->whereNull('valid_until')
+                                ->orWhere('valid_until', '>', now());
+                        })
+                        ->latest('issued_at')
+                        ->first();
+                    
+                    if ($cert) {
+                        // Create system-verified document
+                        EndorsementDocument::create([
+                            'uuid' => \Illuminate\Support\Str::uuid()->toString(),
+                            'endorsement_request_id' => $request->id,
+                            'document_type' => $docType,
+                            'status' => 'system_verified',
+                            'metadata' => ['certificate_id' => $cert->id],
+                        ]);
+                        continue;
+                    }
+                }
+            }
+
+            // For membership proof, auto-verify if active membership exists
+            if ($docType === 'membership_proof') {
+                if ($user->activeMembership) {
+                    EndorsementDocument::create([
+                        'uuid' => \Illuminate\Support\Str::uuid()->toString(),
+                        'endorsement_request_id' => $request->id,
+                        'document_type' => $docType,
+                        'status' => 'system_verified',
+                        'metadata' => ['membership_id' => $user->activeMembership->id],
+                    ]);
+                    continue;
+                }
+            }
+
+            // For activity proof, auto-verify if user has approved activities
+            if ($docType === 'activity_proof') {
+                $activityCheck = EndorsementRequest::checkActivityRequirements($user);
+                if ($activityCheck['met']) {
+                    EndorsementDocument::create([
+                        'uuid' => \Illuminate\Support\Str::uuid()->toString(),
+                        'endorsement_request_id' => $request->id,
+                        'document_type' => $docType,
+                        'status' => 'system_verified',
+                        'metadata' => [
+                            'approved_count' => $activityCheck['approved_count'],
+                            'required' => $activityCheck['required'],
+                        ],
+                    ]);
+                    continue;
+                }
+            }
+
+            // If member document exists, create system-verified endorsement document
+            if ($memberDoc) {
+                EndorsementDocument::create([
+                    'uuid' => \Illuminate\Support\Str::uuid()->toString(),
+                    'endorsement_request_id' => $request->id,
+                    'document_type' => $docType,
+                    'status' => 'system_verified',
+                    'member_document_id' => $memberDoc->id,
+                    'metadata' => ['auto_verified' => true],
+                ]);
+            }
+        }
     }
 
     protected function getDeclarationText(): string
@@ -797,6 +974,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                         <option value="{{ $value }}">{{ $label }}</option>
                                     @endforeach
                                 </select>
+                                @error('actionType') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
                             @if($actionType === 'other')
                                 <div>
@@ -854,6 +1032,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                     </button>
                                 </div>
                                 <p class="mt-1 text-xs text-zinc-500">Can't find your calibre? Request it to be added.</p>
+                                @error('calibre') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
@@ -875,6 +1054,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                 </label>
                                 <input type="text" wire:model="make" placeholder="e.g., Glock, CZ, Howa" 
                                     class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                                @error('make') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
@@ -883,6 +1063,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                 </label>
                                 <input type="text" wire:model="model" placeholder="e.g., 17, Shadow 2, 1500" 
                                     class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                                @error('model') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
                         </div>
 
@@ -958,6 +1139,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                     Please provide at least one serial number (barrel, frame, or receiver).
                                 </p>
                             @endif
+                            @error('serial') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
                         </div>
 
                         {{-- Licence Information --}}
@@ -1272,7 +1454,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                 @if($currentStep < $totalSteps)
                     @if(!($currentStep === 3 && $requestType === 'new'))
                         <button wire:click="nextStep" type="button"
-                            class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors">
+                            @disabled(!$this->canProceedToNextStep)
+                            class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                             Next
                         </button>
                     @endif

@@ -28,15 +28,14 @@ class TestMemberGenerator extends Component
     public int $count = 1;
     public bool $withFirearms = false;
     public bool $withEndorsements = false;
-    public bool $withCertificates = false;
     
     public array $stages = [
         'new' => 'New Member (Just Registered)',
         'applied' => 'Applied (Membership Application Submitted)',
         'approved' => 'Approved (Membership Approved, No Documents)',
         'active' => 'Active (Membership Active, Basic Documents)',
-        'dedicated' => 'With Dedicated Status',
-        'full' => 'Fully Qualified (All Requirements Met)',
+        'dedicated' => 'With Dedicated Status (Includes Certificates)',
+        'full' => 'Fully Qualified (Includes Certificates)',
     ];
 
     public function generate()
@@ -79,7 +78,9 @@ class TestMemberGenerator extends Component
                     $this->createBasicDocuments($user, $developer);
                     $this->createPassedKnowledgeTest($user);
                     $this->createApprovedActivities($user, $developer);
-                    $this->createDedicatedStatus($user, $membership, $developer);
+                    $dedicatedStatus = $this->createDedicatedStatus($user, $membership, $developer);
+                    // Always create certificates for dedicated status members
+                    $this->createCertificates($user, $membership, $developer);
                     break;
                     
                 case 'full':
@@ -88,9 +89,8 @@ class TestMemberGenerator extends Component
                     $this->createPassedKnowledgeTest($user);
                     $this->createApprovedActivities($user, $developer);
                     $dedicatedStatus = $this->createDedicatedStatus($user, $membership, $developer);
-                    if ($this->withCertificates) {
-                        $this->createCertificates($user, $membership, $developer);
-                    }
+                    // Always create certificates for full members
+                    $this->createCertificates($user, $membership, $developer);
                     if ($this->withFirearms) {
                         $this->createTestFirearms($user);
                     }
@@ -330,19 +330,47 @@ class TestMemberGenerator extends Component
             'dedicated-status-certificate',
         ])->get();
 
-        foreach ($certificateTypes as $certificateType) {
-            Certificate::create([
-                'uuid' => Str::uuid()->toString(),
+        if ($certificateTypes->isEmpty()) {
+            // If certificate types don't exist, log warning and skip
+            \Log::warning('Certificate types not found for test member generation', [
                 'user_id' => $user->id,
-                'membership_id' => $membership->id,
-                'certificate_type_id' => $certificateType->id,
-                'issued_at' => now()->subDays(10),
-                'issued_by' => $developer->id,
-                'valid_from' => now()->subDays(10),
-                'valid_until' => $certificateType->validity_months
-                    ? now()->addMonths($certificateType->validity_months)
-                    : $membership->expires_at,
+                'slugs' => ['membership-certificate', 'dedicated-status-certificate'],
             ]);
+            return;
+        }
+
+        foreach ($certificateTypes as $certificateType) {
+            try {
+                // Calculate valid_until - let the model boot method handle it if not set
+                $validUntil = null;
+                if ($certificateType->validity_months) {
+                    $issueDate = now()->subDays(10);
+                    $validUntil = $issueDate->copy()->addMonths($certificateType->validity_months)->toDateString();
+                } elseif ($membership->expires_at) {
+                    $validUntil = $membership->expires_at->toDateString();
+                }
+
+                Certificate::create([
+                    'uuid' => Str::uuid()->toString(),
+                    'user_id' => $user->id,
+                    'membership_id' => $membership->id,
+                    'certificate_type_id' => $certificateType->id,
+                    'issued_at' => now()->subDays(10),
+                    'issued_by' => $developer->id,
+                    'valid_from' => now()->subDays(10)->toDateString(),
+                    'valid_until' => $validUntil,
+                ]);
+            } catch (\Exception $e) {
+                // Log error but continue with other certificates
+                \Log::error('Failed to create certificate for test member', [
+                    'user_id' => $user->id,
+                    'certificate_type_id' => $certificateType->id,
+                    'certificate_type_slug' => $certificateType->slug,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+                // Don't throw - continue with other certificates
+            }
         }
     }
 

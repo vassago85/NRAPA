@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -96,7 +97,12 @@ class CertificateType extends Model
             return null;
         }
 
-        return $issueDate->copy()->addMonths($this->validity_months);
+        // Ensure we have a Carbon instance for date manipulation
+        $date = $issueDate instanceof Carbon 
+            ? $issueDate->copy() 
+            : Carbon::instance($issueDate);
+        
+        return $date->addMonths($this->validity_months);
     }
 
     /**

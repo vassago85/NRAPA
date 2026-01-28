@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class Certificate extends Model
 {
@@ -71,10 +72,32 @@ class Certificate extends Model
                 $certificate->valid_from = now()->toDateString();
             }
 
-            // Calculate valid_until based on certificate type
-            if (empty($certificate->valid_until) && $certificate->certificateType) {
-                $certificate->valid_until = $certificate->certificateType
-                    ->calculateValidUntilDate($certificate->valid_from);
+            // Calculate valid_until based on certificate type (only if not already set)
+            if (empty($certificate->valid_until) && $certificate->certificate_type_id) {
+                try {
+                    $certificateType = CertificateType::find($certificate->certificate_type_id);
+                    if ($certificateType) {
+                        // Ensure we have a Carbon instance for date calculations
+                        $validFrom = $certificate->valid_from 
+                            ? Carbon::parse($certificate->valid_from)
+                            : Carbon::now();
+                        
+                        $calculated = $certificateType->calculateValidUntilDate($validFrom);
+                        if ($calculated) {
+                            // Convert to date string for storage
+                            $certificate->valid_until = $calculated instanceof Carbon 
+                                ? $calculated->format('Y-m-d') 
+                                : (is_string($calculated) ? $calculated : $calculated->format('Y-m-d'));
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // If calculation fails, leave valid_until as null (indefinite)
+                    // This prevents errors during test member generation
+                    \Log::warning('Failed to calculate certificate valid_until', [
+                        'certificate_type_id' => $certificate->certificate_type_id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
         });
     }
