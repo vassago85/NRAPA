@@ -9,6 +9,7 @@ use App\Models\Membership;
 use App\Contracts\DocumentRenderer;
 use App\Services\MembershipStandingService;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -71,21 +72,43 @@ class CertificateIssueService
             'valid_until' => null, // Valid as long as membership is active
         ]);
 
-        // Generate document
-        $filePath = $this->renderer->renderCertificate($certificate, $certType->template);
-        
-        // Calculate checksum (if file exists)
-        $checksum = null;
-        $fullPath = Storage::disk('local')->path($filePath);
-        if (file_exists($fullPath)) {
-            $checksum = hash_file('sha256', $fullPath);
-        }
+        // Refresh to ensure all relationships are loaded
+        $certificate->refresh();
+        $certificate->loadMissing(['user', 'membership.type', 'certificateType']);
 
-        // Update certificate with file path and checksum
-        $certificate->update([
-            'file_path' => $filePath,
-            'checksum' => $checksum,
-        ]);
+        // Generate document
+        try {
+            $filePath = $this->renderer->renderCertificate($certificate, $certType->template);
+            
+            // Calculate checksum (if file exists)
+            $checksum = null;
+            try {
+                $fullPath = Storage::disk('local')->path($filePath);
+                if (file_exists($fullPath)) {
+                    $checksum = hash_file('sha256', $fullPath);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Failed to calculate certificate checksum', [
+                    'file_path' => $filePath,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            // Update certificate with file path and checksum
+            $certificate->update([
+                'file_path' => $filePath,
+                'checksum' => $checksum,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to generate certificate document', [
+                'certificate_id' => $certificate->id,
+                'template' => $certType->template,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            // Still return certificate even if document generation fails
+            // The certificate record is created, document can be regenerated later
+        }
 
         return $certificate;
     }
@@ -143,13 +166,36 @@ class CertificateIssueService
         ]);
 
         // Generate document
-        $filePath = $this->renderer->renderCertificate($certificate, $certType->template);
-        $checksum = hash_file('sha256', storage_path("app/{$filePath}"));
+        try {
+            $filePath = $this->renderer->renderCertificate($certificate, $certType->template);
+            
+            // Calculate checksum (if file exists)
+            $checksum = null;
+            try {
+                $fullPath = Storage::disk('local')->path($filePath);
+                if (file_exists($fullPath)) {
+                    $checksum = hash_file('sha256', $fullPath);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Failed to calculate certificate checksum', [
+                    'file_path' => $filePath,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
-        $certificate->update([
-            'file_path' => $filePath,
-            'checksum' => $checksum,
-        ]);
+            // Update certificate with file path and checksum
+            $certificate->update([
+                'file_path' => $filePath,
+                'checksum' => $checksum,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to generate certificate document', [
+                'certificate_id' => $certificate->id,
+                'template' => $certType->template,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
 
         return $certificate;
     }
@@ -198,13 +244,36 @@ class CertificateIssueService
         ]);
 
         // Generate document
-        $filePath = $this->renderer->renderCertificate($certificate, $certType->template);
-        $checksum = hash_file('sha256', storage_path("app/{$filePath}"));
+        try {
+            $filePath = $this->renderer->renderCertificate($certificate, $certType->template);
+            
+            // Calculate checksum (if file exists)
+            $checksum = null;
+            try {
+                $fullPath = Storage::disk('local')->path($filePath);
+                if (file_exists($fullPath)) {
+                    $checksum = hash_file('sha256', $fullPath);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Failed to calculate certificate checksum', [
+                    'file_path' => $filePath,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
-        $certificate->update([
-            'file_path' => $filePath,
-            'checksum' => $checksum,
-        ]);
+            // Update certificate with file path and checksum
+            $certificate->update([
+                'file_path' => $filePath,
+                'checksum' => $checksum,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to generate certificate document', [
+                'certificate_id' => $certificate->id,
+                'template' => $certType->template,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
 
         return $certificate;
     }
@@ -243,13 +312,35 @@ class CertificateIssueService
         ]);
 
         // Generate document
-        $filePath = $this->renderer->renderCertificate($certificate, $certType->template);
-        $checksum = hash_file('sha256', storage_path("app/{$filePath}"));
+        try {
+            $filePath = $this->renderer->renderCertificate($certificate, $certType->template);
+            
+            // Calculate checksum (if file exists)
+            $checksum = null;
+            try {
+                $fullPath = Storage::disk('local')->path($filePath);
+                if (file_exists($fullPath)) {
+                    $checksum = hash_file('sha256', $fullPath);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Failed to calculate certificate checksum', [
+                    'file_path' => $filePath,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
-        $certificate->update([
-            'file_path' => $filePath,
-            'checksum' => $checksum,
-        ]);
+            $certificate->update([
+                'file_path' => $filePath,
+                'checksum' => $checksum,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to generate certificate document', [
+                'certificate_id' => $certificate->id,
+                'template' => $certType->template,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
 
         return $certificate;
     }
@@ -288,19 +379,37 @@ class CertificateIssueService
         ]);
 
         // Generate document
-        $filePath = $this->renderer->renderWelcomeLetter($user, $certType->template);
-        
-        // Calculate checksum (if file exists)
-        $checksum = null;
-        $fullPath = Storage::disk('local')->path($filePath);
-        if (file_exists($fullPath)) {
-            $checksum = hash_file('sha256', $fullPath);
-        }
+        try {
+            $filePath = $this->renderer->renderWelcomeLetter($user, $certType->template);
+            
+            // Calculate checksum (if file exists)
+            $checksum = null;
+            try {
+                $fullPath = Storage::disk('local')->path($filePath);
+                if (file_exists($fullPath)) {
+                    $checksum = hash_file('sha256', $fullPath);
+                }
+            } catch (\Exception $e) {
+                \Log::warning('Failed to calculate welcome letter checksum', [
+                    'file_path' => $filePath,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
-        $certificate->update([
-            'file_path' => $filePath,
-            'checksum' => $checksum,
-        ]);
+            $certificate->update([
+                'file_path' => $filePath,
+                'checksum' => $checksum,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to generate welcome letter document', [
+                'certificate_id' => $certificate->id,
+                'user_id' => $user->id,
+                'template' => $certType->template,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            // Still return certificate even if document generation fails
+        }
 
         return $certificate;
     }

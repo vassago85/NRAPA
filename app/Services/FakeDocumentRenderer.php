@@ -21,6 +21,9 @@ class FakeDocumentRenderer implements DocumentRenderer
 
     public function renderCertificate(Certificate $certificate, string $template): string
     {
+        // Ensure relationships are loaded
+        $certificate->loadMissing(['user', 'membership.type', 'certificateType']);
+        
         // Render the Blade template to HTML
         $html = View::make($template, [
             'certificate' => $certificate,
@@ -44,10 +47,13 @@ class FakeDocumentRenderer implements DocumentRenderer
 
     public function renderWelcomeLetter(User $user, string $template): string
     {
+        // Ensure membership is loaded
+        $membership = $user->activeMembership;
+        
         // Render the Blade template to HTML
         $html = View::make($template, [
             'user' => $user,
-            'membership' => $user->activeMembership,
+            'membership' => $membership,
         ])->render();
 
         // Generate file path
