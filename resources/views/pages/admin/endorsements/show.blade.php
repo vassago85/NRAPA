@@ -715,8 +715,31 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                                 </svg>
                             </div>
                             <p class="text-green-600 dark:text-green-400 font-semibold">Endorsement Issued</p>
-                            @if($request->letter_reference)
-                                <p class="text-sm font-mono text-zinc-500 mt-1">{{ $request->letter_reference }}</p>
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Endorsement letter has been generated</p>
+                            
+                            @if($request->letter_file_path)
+                                <div class="flex gap-2 mt-4">
+                                    <a href="{{ route('admin.endorsements.letter', $request) }}" target="_blank"
+                                        class="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                        View Letter
+                                    </a>
+                                    <a href="{{ route('admin.endorsements.letter', $request) }}" download
+                                        class="flex-1 px-4 py-2 border border-emerald-600 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                        </svg>
+                                        Download
+                                    </a>
+                                </div>
+                                @if($request->letter_reference)
+                                    <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
+                                        Reference: {{ $request->letter_reference }}
+                                    </p>
+                                @endif
                             @endif
                         </div>
                     @endif
