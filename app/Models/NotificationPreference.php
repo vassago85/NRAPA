@@ -45,6 +45,14 @@ class NotificationPreference extends Model
         ];
     }
 
+    /**
+     * Get working_days with default value if null.
+     */
+    public function getWorkingDaysAttribute($value): array
+    {
+        return $value ?? [1, 2, 3, 4, 5]; // Mon-Fri default
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

@@ -19,7 +19,7 @@ return new class extends Migration
             // Working Hours
             $table->time('working_hours_start')->default('08:00');
             $table->time('working_hours_end')->default('17:00');
-            $table->json('working_days')->default('[1,2,3,4,5]'); // Mon-Fri by default
+            $table->json('working_days')->nullable(); // Mon-Fri by default (set in model/seeder, MySQL doesn't allow JSON defaults)
             $table->boolean('respect_working_hours')->default(true);
             
             // Notification Types (what to receive)
