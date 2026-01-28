@@ -266,6 +266,7 @@ class MembershipConfigurationSeeder extends Seeder
     protected function seedCertificateTypes(): void
     {
         $certificateTypes = [
+            // Existing types
             [
                 'slug' => 'membership-certificate',
                 'name' => 'Membership Certificate',
@@ -297,6 +298,47 @@ class MembershipConfigurationSeeder extends Seeder
                 'template' => 'certificates.confirmation',
                 'validity_months' => 3,
                 'sort_order' => 4,
+            ],
+            // New official document types
+            [
+                'slug' => 'dedicated-hunter-certificate',
+                'name' => 'Dedicated Hunter Certificate',
+                'description' => 'Official certificate confirming Dedicated Hunter Status (Life Member)',
+                'template' => 'documents.dedicated-hunter',
+                'validity_months' => null, // Valid as long as membership is active
+                'sort_order' => 10,
+            ],
+            [
+                'slug' => 'dedicated-sport-certificate',
+                'name' => 'Dedicated Sport Shooter Certificate',
+                'description' => 'Official certificate confirming Dedicated Sport Shooter Status (Life Member)',
+                'template' => 'documents.dedicated-sport',
+                'validity_months' => null,
+                'sort_order' => 11,
+            ],
+            [
+                'slug' => 'paid-up-certificate',
+                'name' => 'Proof of Paid-Up Membership Certificate',
+                'description' => 'Certificate confirming member is in good standing and paid-up',
+                'template' => 'documents.paid-up',
+                'validity_months' => 12,
+                'sort_order' => 12,
+            ],
+            [
+                'slug' => 'membership-card',
+                'name' => 'Membership Card',
+                'description' => 'NRAPA membership identification card',
+                'template' => 'documents.membership-card',
+                'validity_months' => null, // Valid as long as membership is active
+                'sort_order' => 13,
+            ],
+            [
+                'slug' => 'welcome-letter',
+                'name' => 'Welcome Letter',
+                'description' => 'Welcome letter for new members',
+                'template' => 'documents.welcome-letter',
+                'validity_months' => null, // Informational, no expiry
+                'sort_order' => 14,
             ],
         ];
 

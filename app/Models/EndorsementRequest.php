@@ -136,6 +136,14 @@ class EndorsementRequest extends Model
     }
 
     /**
+     * Get all comments for this request.
+     */
+    public function comments(): \Illuminate\Database\Eloquent\Relations\MorphMany
+    {
+        return $this->morphMany(\App\Models\Comment::class, 'commentable');
+    }
+
+    /**
      * Get the reviewer.
      */
     public function reviewer(): BelongsTo

@@ -287,6 +287,22 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get all payments for the user.
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(\App\Models\Payment::class);
+    }
+
+    /**
+     * Get status history for the user.
+     */
+    public function statusHistory(): HasMany
+    {
+        return $this->hasMany(\App\Models\MemberStatusHistory::class);
+    }
+
+    /**
      * Get the roles for the user.
      */
     public function roles(): BelongsToMany

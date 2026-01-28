@@ -286,7 +286,9 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 
 // Public Certificate Verification
 Route::get('verify/{qr_code}', function ($qr_code) {
-    return view('pages.verify', ['qr_code' => $qr_code]);
+    $verificationService = app(\App\Services\VerificationService::class);
+    $result = $verificationService->verifyByQrCode($qr_code);
+    return view('pages.verify', ['result' => $result, 'qr_code' => $qr_code]);
 })->name('certificates.verify');
 
 require __DIR__.'/settings.php';

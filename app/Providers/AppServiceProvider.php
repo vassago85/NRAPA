@@ -20,7 +20,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Register DocumentRenderer implementation
+        $this->app->singleton(
+            \App\Contracts\DocumentRenderer::class,
+            \App\Services\FakeDocumentRenderer::class
+        );
     }
 
     /**

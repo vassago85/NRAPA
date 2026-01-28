@@ -256,6 +256,48 @@ new #[Title('Member Details - Admin')] class extends Component {
         session()->flash('success', 'Deletion request submitted. An owner will review your request.');
     }
 
+    public function issueDocument(string $documentType): void
+    {
+        try {
+            $issuer = Auth::user();
+            $issueService = app(\App\Services\CertificateIssueService::class);
+            
+            $certificate = match($documentType) {
+                'dedicated-hunter' => $issueService->issueDedicatedHunterCertificate($this->user, $issuer),
+                'dedicated-sport' => $issueService->issueDedicatedSportCertificate($this->user, $issuer),
+                'paid-up' => $issueService->issuePaidUpCertificate($this->user, $issuer),
+                'membership-card' => $issueService->issueMembershipCard($this->user, $issuer),
+                'welcome-letter' => $issueService->issueWelcomeLetter($this->user, $issuer),
+                default => throw new \Exception('Unknown document type'),
+            };
+            
+            // Log the action
+            \App\Models\AuditLog::create([
+                'actor_id' => $issuer->id,
+                'actor_role' => $issuer->role,
+                'action' => 'issued_certificate',
+                'description' => "Issued {$documentType} certificate for {$this->user->name}",
+                'subject_type' => get_class($certificate),
+                'subject_id' => $certificate->id,
+                'metadata' => [
+                    'document_type' => $documentType,
+                    'user_id' => $this->user->id,
+                    'certificate_id' => $certificate->id,
+                ],
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
+            
+            // Refresh user to show new certificate
+            $this->user->refresh();
+            $this->user->load(['certificates.certificateType']);
+            
+            session()->flash('success', ucfirst(str_replace('-', ' ', $documentType)) . ' issued successfully!');
+        } catch (\Exception $e) {
+            session()->flash('error', 'Failed to issue document: ' . $e->getMessage());
+        }
+    }
+
     public function getStatusClasses(string $status): string
     {
         return match($status) {
@@ -533,11 +575,131 @@ new #[Title('Member Details - Admin')] class extends Component {
         @endif
     </div>
 
+    {{-- Document Issuance --}}
+    @if($this->activeMembership)
+    <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
+            <div class="flex items-center justify-between">
+                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Document Issuance</h2>
+            </div>
+            <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Issue official certificates and documents for this member</p>
+        </div>
+        
+        <div class="p-6">
+            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {{-- Dedicated Hunter Certificate --}}
+                @php
+                    $hasHunterStatus = $this->user->dedicatedStatusApplications()
+                        ->where('dedicated_type', 'hunter')
+                        ->where('status', 'approved')
+                        ->where(function ($q) {
+                            $q->whereNull('valid_until')->orWhere('valid_until', '>=', now());
+                        })
+                        ->exists();
+                    $hasHunterCert = $this->user->certificates()
+                        ->whereHas('certificateType', fn($q) => $q->where('slug', 'dedicated-hunter-certificate'))
+                        ->whereNull('revoked_at')
+                        ->exists();
+                @endphp
+                <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/50">
+                    <h3 class="text-sm font-semibold text-zinc-900 dark:text-white mb-2">Dedicated Hunter Certificate</h3>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Official certificate confirming Dedicated Hunter Status</p>
+                    @if(!$hasHunterStatus)
+                        <p class="text-xs text-amber-600 dark:text-amber-400 mb-3">Member does not have approved dedicated hunter status</p>
+                    @endif
+                    <button wire:click="issueDocument('dedicated-hunter')" 
+                            @disabled(!$hasHunterStatus || $hasHunterCert)
+                            class="w-full px-3 py-2 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        @if($hasHunterCert) Already Issued @else Issue Certificate @endif
+                    </button>
+                </div>
+
+                {{-- Dedicated Sport Certificate --}}
+                @php
+                    $hasSportStatus = $this->user->dedicatedStatusApplications()
+                        ->where('dedicated_type', 'sport_shooter')
+                        ->where('status', 'approved')
+                        ->where(function ($q) {
+                            $q->whereNull('valid_until')->orWhere('valid_until', '>=', now());
+                        })
+                        ->exists();
+                    $hasSportCert = $this->user->certificates()
+                        ->whereHas('certificateType', fn($q) => $q->where('slug', 'dedicated-sport-certificate'))
+                        ->whereNull('revoked_at')
+                        ->exists();
+                @endphp
+                <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/50">
+                    <h3 class="text-sm font-semibold text-zinc-900 dark:text-white mb-2">Dedicated Sport Shooter Certificate</h3>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Official certificate confirming Dedicated Sport Shooter Status</p>
+                    @if(!$hasSportStatus)
+                        <p class="text-xs text-amber-600 dark:text-amber-400 mb-3">Member does not have approved dedicated sport shooter status</p>
+                    @endif
+                    <button wire:click="issueDocument('dedicated-sport')" 
+                            @disabled(!$hasSportStatus || $hasSportCert)
+                            class="w-full px-3 py-2 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        @if($hasSportCert) Already Issued @else Issue Certificate @endif
+                    </button>
+                </div>
+
+                {{-- Paid-Up Certificate --}}
+                @php
+                    $hasPaidUpCert = $this->user->certificates()
+                        ->whereHas('certificateType', fn($q) => $q->where('slug', 'paid-up-certificate'))
+                        ->whereNull('revoked_at')
+                        ->where(function ($q) {
+                            $q->whereNull('valid_until')->orWhere('valid_until', '>=', now());
+                        })
+                        ->exists();
+                @endphp
+                <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/50">
+                    <h3 class="text-sm font-semibold text-zinc-900 dark:text-white mb-2">Proof of Paid-Up Membership</h3>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Certificate confirming member is in good standing</p>
+                    <button wire:click="issueDocument('paid-up')" 
+                            class="w-full px-3 py-2 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">
+                        Issue Certificate
+                    </button>
+                </div>
+
+                {{-- Membership Card --}}
+                @php
+                    $hasMembershipCard = $this->user->certificates()
+                        ->whereHas('certificateType', fn($q) => $q->where('slug', 'membership-card'))
+                        ->whereNull('revoked_at')
+                        ->exists();
+                @endphp
+                <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/50">
+                    <h3 class="text-sm font-semibold text-zinc-900 dark:text-white mb-2">Membership Card</h3>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">NRAPA membership identification card</p>
+                    <button wire:click="issueDocument('membership-card')" 
+                            class="w-full px-3 py-2 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">
+                        Issue Card
+                    </button>
+                </div>
+
+                {{-- Welcome Letter --}}
+                @php
+                    $hasWelcomeLetter = $this->user->certificates()
+                        ->whereHas('certificateType', fn($q) => $q->where('slug', 'welcome-letter'))
+                        ->exists();
+                @endphp
+                <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/50">
+                    <h3 class="text-sm font-semibold text-zinc-900 dark:text-white mb-2">Welcome Letter</h3>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Informational welcome letter for new members</p>
+                    <button wire:click="issueDocument('welcome-letter')" 
+                            class="w-full px-3 py-2 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">
+                        Generate Letter
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     {{-- Certificates --}}
     @if($this->user->certificates->count() > 0)
     <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
         <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
-            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Certificates</h2>
+            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Issued Certificates & Documents</h2>
         </div>
 
         <div class="overflow-x-auto">

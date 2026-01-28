@@ -102,13 +102,17 @@ class CalibreSelector extends Component
 
     public function getFilteredCalibresProperty()
     {
+        // Show ALL calibres from database (86 centerfire + 110 total)
+        // Only filter if specific category/ignition filters are provided
+        // Search is always available to find any calibre
         return Calibre::query()
             ->active()
+            ->notObsolete()
             ->when($this->categoryFilter, fn($q) => $q->forCategory($this->categoryFilter))
             ->when($this->ignitionFilter, fn($q) => $q->forIgnitionType($this->ignitionFilter))
             ->when($this->search, fn($q) => $q->search($this->search))
             ->ordered()
-            ->limit(20)
+            ->when($this->search, fn($q) => $q->limit(50), fn($q) => $q->limit(100)) // Show more when searching
             ->get();
     }
 

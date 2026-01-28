@@ -158,20 +158,35 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     #[Computed]
     public function calibres()
     {
-        $query = Calibre::active()->notObsolete()->ordered();
+        // Show ALL active calibres from database (86 centerfire + 110 total)
+        // Grouped by category and ignition type in the UI
+        return Calibre::active()->notObsolete()->ordered()->get();
+    }
 
-        if ($this->firearmCategory) {
-            $categoryFilter = EndorsementFirearm::getCalibreCategoryFilter($this->firearmCategory);
-            if ($categoryFilter) {
-                $query->forCategory($categoryFilter);
-            }
-        }
-
-        if ($this->ignitionType) {
-            $query->forIgnitionType($this->ignitionType);
-        }
-
-        return $query->get();
+    #[Computed]
+    public function calibresByCategory()
+    {
+        // Group calibres by category for better UI organization
+        $calibres = $this->calibres;
+        
+        return [
+            'rifle' => [
+                'centerfire' => $calibres->where('category', 'rifle')->where('ignition_type', 'centerfire'),
+                'rimfire' => $calibres->where('category', 'rifle')->where('ignition_type', 'rimfire'),
+            ],
+            'handgun' => [
+                'centerfire' => $calibres->where('category', 'handgun')->where('ignition_type', 'centerfire'),
+                'rimfire' => $calibres->where('category', 'handgun')->where('ignition_type', 'rimfire'),
+            ],
+            'shotgun' => [
+                'centerfire' => $calibres->where('category', 'shotgun')->where('ignition_type', 'centerfire'),
+                'rimfire' => $calibres->where('category', 'shotgun')->where('ignition_type', 'rimfire'),
+            ],
+            'other' => [
+                'centerfire' => $calibres->where('category', 'other')->where('ignition_type', 'centerfire'),
+                'rimfire' => $calibres->where('category', 'other')->where('ignition_type', 'rimfire'),
+            ],
+        ];
     }
 
     #[Computed]
@@ -1015,13 +1030,79 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                                     Calibre / Gauge <span class="text-red-500">*</span>
-                                    <span class="text-xs text-zinc-500">(1.3)</span>
+                                    <span class="text-xs text-zinc-500">(1.3 - All {{ count($this->calibres) }} calibres available)</span>
                                 </label>
                                 <select wire:model.live="calibreId" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
                                     <option value="">Select calibre...</option>
-                                    @foreach($this->calibres as $cal)
-                                        <option value="{{ $cal->id }}">{{ $cal->name }}@if($cal->saps_code) ({{ $cal->saps_code }})@endif</option>
-                                    @endforeach
+                                    @php
+                                        $grouped = $this->calibresByCategory;
+                                    @endphp
+                                    
+                                    {{-- Rifle Centerfire (86 centerfire options include these) --}}
+                                    @if($grouped['rifle']['centerfire']->count() > 0)
+                                        <optgroup label="Rifle - Centerfire ({{ $grouped['rifle']['centerfire']->count() }} options)">
+                                            @foreach($grouped['rifle']['centerfire'] as $cal)
+                                                <option value="{{ $cal->id }}">{{ $cal->name }}@if($cal->saps_code) ({{ $cal->saps_code }})@endif</option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endif
+                                    
+                                    {{-- Rifle Rimfire --}}
+                                    @if($grouped['rifle']['rimfire']->count() > 0)
+                                        <optgroup label="Rifle - Rimfire ({{ $grouped['rifle']['rimfire']->count() }} options)">
+                                            @foreach($grouped['rifle']['rimfire'] as $cal)
+                                                <option value="{{ $cal->id }}">{{ $cal->name }}@if($cal->saps_code) ({{ $cal->saps_code }})@endif</option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endif
+                                    
+                                    {{-- Handgun Centerfire (86 centerfire options include these) --}}
+                                    @if($grouped['handgun']['centerfire']->count() > 0)
+                                        <optgroup label="Handgun - Centerfire ({{ $grouped['handgun']['centerfire']->count() }} options)">
+                                            @foreach($grouped['handgun']['centerfire'] as $cal)
+                                                <option value="{{ $cal->id }}">{{ $cal->name }}@if($cal->saps_code) ({{ $cal->saps_code }})@endif</option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endif
+                                    
+                                    {{-- Handgun Rimfire --}}
+                                    @if($grouped['handgun']['rimfire']->count() > 0)
+                                        <optgroup label="Handgun - Rimfire ({{ $grouped['handgun']['rimfire']->count() }} options)">
+                                            @foreach($grouped['handgun']['rimfire'] as $cal)
+                                                <option value="{{ $cal->id }}">{{ $cal->name }}@if($cal->saps_code) ({{ $cal->saps_code }})@endif</option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endif
+                                    
+                                    {{-- Shotgun Centerfire (86 centerfire options include these) --}}
+                                    @if($grouped['shotgun']['centerfire']->count() > 0)
+                                        <optgroup label="Shotgun - Centerfire ({{ $grouped['shotgun']['centerfire']->count() }} options)">
+                                            @foreach($grouped['shotgun']['centerfire'] as $cal)
+                                                <option value="{{ $cal->id }}">{{ $cal->name }}@if($cal->saps_code) ({{ $cal->saps_code }})@endif</option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endif
+                                    
+                                    {{-- Shotgun Rimfire --}}
+                                    @if($grouped['shotgun']['rimfire']->count() > 0)
+                                        <optgroup label="Shotgun - Rimfire ({{ $grouped['shotgun']['rimfire']->count() }} options)">
+                                            @foreach($grouped['shotgun']['rimfire'] as $cal)
+                                                <option value="{{ $cal->id }}">{{ $cal->name }}@if($cal->saps_code) ({{ $cal->saps_code }})@endif</option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endif
+                                    
+                                    {{-- Other --}}
+                                    @if($grouped['other']['centerfire']->count() > 0 || $grouped['other']['rimfire']->count() > 0)
+                                        <optgroup label="Other">
+                                            @foreach($grouped['other']['centerfire'] as $cal)
+                                                <option value="{{ $cal->id }}">{{ $cal->name }}@if($cal->saps_code) ({{ $cal->saps_code }})@endif</option>
+                                            @endforeach
+                                            @foreach($grouped['other']['rimfire'] as $cal)
+                                                <option value="{{ $cal->id }}">{{ $cal->name }}@if($cal->saps_code) ({{ $cal->saps_code }})@endif</option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endif
                                 </select>
                                 <div class="mt-2 flex gap-2">
                                     <input type="text" wire:model="calibreManual" placeholder="Or enter manually if not listed" 

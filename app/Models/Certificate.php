@@ -29,6 +29,7 @@ class Certificate extends Model
         'revocation_reason',
         'file_path',
         'qr_code',
+        'checksum',
         'metadata',
     ];
 
