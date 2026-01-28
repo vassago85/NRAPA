@@ -101,8 +101,8 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         $user = auth()->user();
         
         // Get all document types for the upload modal
-        $documentTypes = DocumentType::where('is_active', true)
-            ->orderBy('sort_order')
+        $documentTypes = DocumentType::active()
+            ->ordered()
             ->get();
         
         // Get user's documents that are pending or verified only

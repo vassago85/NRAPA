@@ -25,7 +25,7 @@ new class extends Component {
         $activityPeriod = ShootingActivity::getActivityPeriod($user);
 
         $activities = ShootingActivity::where('user_id', $user->id)
-            ->with(['activityType', 'eventCategory', 'eventType', 'firearmType', 'calibre', 'country', 'province'])
+            ->with(['activityType', 'tags', 'firearmType', 'calibre', 'country', 'province'])
             ->when($this->statusFilter, fn($q) => $q->where('status', $this->statusFilter))
             ->when($this->search, fn($q) => $q->where(function($query) {
                 $query->where('location', 'like', '%' . $this->search . '%')
@@ -154,8 +154,8 @@ new class extends Component {
                     <thead class="bg-zinc-50 dark:bg-zinc-800/50">
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Track</th>
                             <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Activity Type</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Event</th>
                             <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Location</th>
                             <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Status</th>
                             <th class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Actions</th>
@@ -167,13 +167,25 @@ new class extends Component {
                                 <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-900 dark:text-white">
                                     {{ $activity->activity_date->format('d M Y') }}
                                 </td>
-                                <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-600 dark:text-zinc-300">
-                                    {{ $activity->activityType?->name ?? 'N/A' }}
+                                <td class="whitespace-nowrap px-6 py-4">
+                                    @if($activity->track)
+                                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $activity->track === 'hunting' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300' }}">
+                                            {{ ucfirst($activity->track) }}
+                                        </span>
+                                    @else
+                                        <span class="text-sm text-zinc-500 dark:text-zinc-400">N/A</span>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-300">
-                                    <div>{{ $activity->eventCategory?->name ?? 'N/A' }}</div>
-                                    @if($activity->eventType)
-                                        <div class="text-xs text-zinc-500">{{ $activity->eventType->name }}</div>
+                                    <div class="font-medium">{{ $activity->activityType?->name ?? 'N/A' }}</div>
+                                    @if($activity->tags->count() > 0)
+                                        <div class="mt-1 flex flex-wrap gap-1">
+                                            @foreach($activity->tags as $tag)
+                                                <span class="inline-flex items-center rounded-full bg-zinc-100 dark:bg-zinc-700 px-2 py-0.5 text-xs text-zinc-600 dark:text-zinc-400">
+                                                    {{ $tag->label }}
+                                                </span>
+                                            @endforeach
+                                        </div>
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-300">

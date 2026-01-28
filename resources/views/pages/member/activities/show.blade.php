@@ -15,8 +15,7 @@ new class extends Component {
 
         $this->activity = $activity->load([
             'activityType',
-            'eventCategory',
-            'eventType',
+            'tags',
             'firearmType',
             'calibre',
             'country',
@@ -77,19 +76,31 @@ new class extends Component {
                 </div>
 
                 <div>
-                    <dt class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Related Activity</dt>
+                    <dt class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Track</dt>
+                    <dd class="mt-1">
+                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $activity->track === 'hunting' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300' }}">
+                            {{ $activity->track ? ucfirst($activity->track) : 'N/A' }}
+                        </span>
+                    </dd>
+                </div>
+
+                <div>
+                    <dt class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Activity Type</dt>
                     <dd class="mt-1 text-sm text-zinc-900 dark:text-white">{{ $activity->activityType?->name ?? 'N/A' }}</dd>
                 </div>
 
-                <div>
-                    <dt class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Type of Activity</dt>
-                    <dd class="mt-1 text-sm text-zinc-900 dark:text-white">{{ $activity->eventCategory?->name ?? 'N/A' }}</dd>
+                @if($activity->tags->count() > 0)
+                <div class="sm:col-span-2">
+                    <dt class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Tags</dt>
+                    <dd class="mt-1 flex flex-wrap gap-2">
+                        @foreach($activity->tags as $tag)
+                            <span class="inline-flex items-center rounded-full bg-zinc-100 dark:bg-zinc-700 px-2.5 py-0.5 text-xs font-medium text-zinc-800 dark:text-zinc-300">
+                                {{ $tag->label }}
+                            </span>
+                        @endforeach
+                    </dd>
                 </div>
-
-                <div>
-                    <dt class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Event Type</dt>
-                    <dd class="mt-1 text-sm text-zinc-900 dark:text-white">{{ $activity->eventType?->name ?? 'N/A' }}</dd>
-                </div>
+                @endif
             </dl>
         </div>
 

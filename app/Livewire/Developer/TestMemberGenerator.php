@@ -9,7 +9,6 @@ use App\Models\CertificateType;
 use App\Models\Country;
 use App\Models\DedicatedStatusApplication;
 use App\Models\DocumentType;
-use App\Models\EventCategory;
 use App\Models\FirearmType;
 use App\Models\KnowledgeTest;
 use App\Models\KnowledgeTestAttempt;
@@ -248,19 +247,22 @@ class TestMemberGenerator extends Component
 
     protected function createApprovedActivities(User $user, User $developer): void
     {
-        $activityType = ActivityType::where('slug', 'dedicated-sport-shooting')->first();
-        $eventCategory = EventCategory::where('dedicated_type', 'sport')->first();
-        $firearmType = FirearmType::where('dedicated_type', 'sport')->first();
+        // Get sport shooting activity type
+        $activityType = ActivityType::where('track', 'sport')->first() 
+            ?? ActivityType::where('slug', 'dedicated-sport-shooting')->first()
+            ?? ActivityType::active()->first();
+        
+        $firearmType = FirearmType::active()->first();
         $calibre = Calibre::where('category', 'rifle')->first();
         $country = Country::where('code', 'ZA')->first();
         $province = Province::where('code', 'GP')->first();
 
         for ($i = 0; $i < 3; $i++) {
-            ShootingActivity::create([
+            $activity = ShootingActivity::create([
                 'uuid' => Str::uuid()->toString(),
                 'user_id' => $user->id,
+                'track' => $activityType?->track ?? 'sport',
                 'activity_type_id' => $activityType?->id,
-                'event_category_id' => $eventCategory?->id,
                 'activity_date' => now()->subMonths(2 + ($i * 3)),
                 'description' => 'Test shooting activity ' . ($i + 1),
                 'firearm_type_id' => $firearmType?->id,

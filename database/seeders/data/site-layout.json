@@ -1,0 +1,758 @@
+{
+  "site_name": "NRAPA Members Portal",
+  "description": "National Rifle & Pistol Association of South Africa - Member Portal",
+  "authentication": {
+    "public_routes": [
+      {
+        "route": "home",
+        "path": "/",
+        "view": "welcome",
+        "description": "Public landing page"
+      },
+      {
+        "route": "certificates.verify",
+        "path": "/verify/{qr_code}",
+        "view": "pages.verify",
+        "description": "Public certificate verification via QR code"
+      }
+    ],
+    "dev_routes": {
+      "environment": ["local", "development", "testing"],
+      "routes": [
+        {
+          "route": "dev.login",
+          "path": "/dev/login/{role}",
+          "description": "Quick login for testing (developer, owner, admin, member)",
+          "redirects": {
+            "developer": "developer.dashboard",
+            "owner": "owner.dashboard",
+            "admin": "admin.dashboard",
+            "member": "dashboard"
+          }
+        }
+      ]
+    },
+    "impersonation_routes": {
+      "middleware": ["auth"],
+      "routes": [
+        {
+          "route": "dev.impersonate",
+          "path": "/dev/impersonate/{user}",
+          "description": "Developer-only: Login as any user",
+          "requires_role": "developer"
+        },
+        {
+          "route": "dev.stop-impersonating",
+          "path": "/dev/stop-impersonating",
+          "description": "Return to original developer account"
+        }
+      ]
+    }
+  },
+  "member_area": {
+    "section": "MEMBER AREA",
+    "description": "Available to all authenticated users (including free members)",
+    "middleware": ["auth", "verified"],
+    "sidebar_items": [
+      {
+        "label": "Dashboard",
+        "route": "dashboard",
+        "path": "/dashboard",
+        "icon": "home",
+        "view": "pages::member.dashboard",
+        "roles": ["member", "admin", "owner", "developer"],
+        "description": "Member dashboard with overview"
+      },
+      {
+        "label": "My Membership",
+        "route": "membership.index",
+        "path": "/membership",
+        "icon": "badge",
+        "view": "pages::member.membership.index",
+        "roles": ["member", "admin", "owner", "developer"],
+        "description": "View membership status and details",
+        "sub_routes": [
+          {
+            "route": "membership.select-package",
+            "path": "/membership/select-package",
+            "view": "pages::member.membership.select-package",
+            "description": "Select membership package (for free members)"
+          },
+          {
+            "route": "membership.apply",
+            "path": "/membership/apply",
+            "view": "pages::member.membership.apply",
+            "description": "Apply for membership"
+          },
+          {
+            "route": "membership.payment",
+            "path": "/membership/payment/{membership}",
+            "view": "pages::member.membership.payment",
+            "description": "Payment page for membership"
+          },
+          {
+            "route": "membership.show",
+            "path": "/membership/{membership}",
+            "view": "pages::member.membership.show",
+            "description": "View specific membership details"
+          }
+        ]
+      },
+      {
+        "label": "Documents",
+        "route": "documents.index",
+        "path": "/documents",
+        "icon": "document",
+        "view": "pages::member.documents.index",
+        "roles": ["member", "admin", "owner", "developer"],
+        "description": "Upload and manage documents",
+        "requires_active_membership": true,
+        "sub_routes": [
+          {
+            "route": "documents.upload",
+            "path": "/documents/upload",
+            "view": "pages::member.documents.upload",
+            "description": "Upload new document"
+          },
+          {
+            "route": "documents.show",
+            "path": "/documents/{document}",
+            "view": "pages::member.documents.show",
+            "description": "View document details"
+          },
+          {
+            "route": "documents.preview",
+            "path": "/documents/{document}/preview",
+            "description": "Preview document file (streams from storage)"
+          }
+        ]
+      },
+      {
+        "label": "Activities",
+        "route": "activities.index",
+        "path": "/activities",
+        "icon": "clipboard",
+        "view": "pages::member.activities.index",
+        "roles": ["member", "admin", "owner", "developer"],
+        "description": "Submit and track shooting activities",
+        "requires_active_membership": true,
+        "sub_routes": [
+          {
+            "route": "activities.submit",
+            "path": "/activities/submit",
+            "view": "pages::member.activities.submit",
+            "description": "Submit new activity"
+          },
+          {
+            "route": "activities.show",
+            "path": "/activities/{activity}",
+            "view": "pages::member.activities.show",
+            "description": "View activity details"
+          },
+          {
+            "route": "activities.edit",
+            "path": "/activities/{activity}/edit",
+            "view": "pages::member.activities.edit",
+            "description": "Edit pending activity"
+          }
+        ]
+      }
+    ],
+    "additional_member_routes": {
+      "requires_active_membership": true,
+      "routes": [
+        {
+          "route": "certificates.index",
+          "path": "/certificates",
+          "view": "pages::member.certificates.index",
+          "description": "View membership certificates"
+        },
+        {
+          "route": "certificates.show",
+          "path": "/certificates/{certificate}",
+          "view": "pages::member.certificates.show",
+          "description": "View specific certificate"
+        },
+        {
+          "route": "knowledge-test.index",
+          "path": "/knowledge-test",
+          "view": "pages::member.knowledge-test.index",
+          "description": "List available knowledge tests"
+        },
+        {
+          "route": "knowledge-test.take",
+          "path": "/knowledge-test/{test}/take",
+          "view": "pages::member.knowledge-test.take",
+          "description": "Take a knowledge test"
+        },
+        {
+          "route": "knowledge-test.results",
+          "path": "/knowledge-test/{attempt}/results",
+          "view": "pages::member.knowledge-test.results",
+          "description": "View test results"
+        },
+        {
+          "route": "armoury.index",
+          "path": "/armoury",
+          "view": "pages::member.armoury.index",
+          "description": "Virtual Safe - List all firearms"
+        },
+        {
+          "route": "armoury.create",
+          "path": "/armoury/add",
+          "view": "pages::member.armoury.create",
+          "description": "Add firearm to Virtual Safe"
+        },
+        {
+          "route": "armoury.show",
+          "path": "/armoury/{firearm}",
+          "view": "pages::member.armoury.show",
+          "description": "View firearm details"
+        },
+        {
+          "route": "armoury.edit",
+          "path": "/armoury/{firearm}/edit",
+          "view": "pages::member.armoury.edit",
+          "description": "Edit firearm details"
+        },
+        {
+          "route": "load-data.index",
+          "path": "/load-data",
+          "view": "pages::member.load-data.index",
+          "description": "Virtual Loading Bench - List reloading data"
+        },
+        {
+          "route": "load-data.create",
+          "path": "/load-data/create",
+          "view": "pages::member.load-data.create",
+          "description": "Create new load data entry"
+        },
+        {
+          "route": "load-data.show",
+          "path": "/load-data/{load}",
+          "view": "pages::member.load-data.show",
+          "description": "View load data details"
+        },
+        {
+          "route": "load-data.edit",
+          "path": "/load-data/{load}/edit",
+          "view": "pages::member.load-data.edit",
+          "description": "Edit load data"
+        },
+        {
+          "route": "learning.index",
+          "path": "/learning",
+          "view": "pages::member.learning.index",
+          "description": "Learning Center - Browse articles"
+        },
+        {
+          "route": "learning.category",
+          "path": "/learning/category/{category}",
+          "view": "pages::member.learning.category",
+          "description": "View articles by category"
+        },
+        {
+          "route": "learning.show",
+          "path": "/learning/{article}",
+          "view": "pages::member.learning.show",
+          "description": "Read learning article"
+        },
+        {
+          "route": "member.endorsements.index",
+          "path": "/endorsements",
+          "view": "pages::member.endorsements.index",
+          "description": "List endorsement requests"
+        },
+        {
+          "route": "member.endorsements.create",
+          "path": "/endorsements/create",
+          "view": "pages::member.endorsements.create",
+          "description": "Create new endorsement request"
+        },
+        {
+          "route": "member.endorsements.edit",
+          "path": "/endorsements/{request}/edit",
+          "view": "pages::member.endorsements.create",
+          "description": "Edit endorsement request"
+        },
+        {
+          "route": "member.endorsements.show",
+          "path": "/endorsements/{request}",
+          "view": "pages::member.endorsements.show",
+          "description": "View endorsement request details"
+        }
+      ]
+    }
+  },
+  "admin_area": {
+    "section": "ADMINISTRATION",
+    "description": "Admin dashboard and management tools",
+    "middleware": ["auth", "verified", "admin"],
+    "prefix": "/admin",
+    "route_prefix": "admin.",
+    "sidebar_items": [
+      {
+        "label": "Dashboard",
+        "route": "admin.dashboard",
+        "path": "/admin/dashboard",
+        "icon": "squares-2x2",
+        "view": "pages::admin.dashboard",
+        "roles": ["admin", "owner", "developer"],
+        "description": "Admin dashboard with statistics and quick actions"
+      },
+      {
+        "label": "Members",
+        "route": "admin.members.index",
+        "path": "/admin/members",
+        "icon": "users",
+        "view": "pages::admin.members.index",
+        "roles": ["admin", "owner", "developer"],
+        "description": "Manage all members",
+        "sub_routes": [
+          {
+            "route": "admin.members.show",
+            "path": "/admin/members/{user}",
+            "view": "pages::admin.members.show",
+            "description": "View member details"
+          }
+        ]
+      },
+      {
+        "label": "Approvals",
+        "route": "admin.approvals.index",
+        "path": "/admin/approvals",
+        "icon": "check-circle",
+        "view": "pages::admin.approvals.index",
+        "roles": ["admin", "owner", "developer"],
+        "description": "Review and approve pending items",
+        "collapsible": true,
+        "children": [
+          {
+            "label": "All Approvals",
+            "route": "admin.approvals.index",
+            "path": "/admin/approvals",
+            "icon": "check-circle",
+            "description": "View all pending approvals"
+          },
+          {
+            "label": "Documents",
+            "route": "admin.documents.index",
+            "path": "/admin/documents",
+            "icon": "document-text",
+            "view": "pages::admin.documents.index",
+            "description": "Review and verify member documents",
+            "pending_count_field": "member_documents.status = 'pending'",
+            "sub_routes": [
+              {
+                "route": "admin.documents.show",
+                "path": "/admin/documents/{document}",
+                "view": "pages::admin.documents.show",
+                "description": "Review specific document"
+              },
+              {
+                "route": "admin.documents.preview",
+                "path": "/admin/documents/{document}/preview",
+                "description": "Preview document file"
+              }
+            ]
+          },
+          {
+            "label": "Memberships",
+            "route": "admin.approvals.index",
+            "path": "/admin/approvals?type=memberships",
+            "icon": "badge",
+            "description": "Approve membership applications",
+            "pending_count_field": "memberships.status = 'applied'"
+          },
+          {
+            "label": "Activities",
+            "route": "admin.approvals.index",
+            "path": "/admin/approvals?type=activities",
+            "icon": "clipboard",
+            "description": "Approve shooting activities",
+            "pending_count_field": "shooting_activities.status = 'pending'",
+            "sub_routes": [
+              {
+                "route": "admin.activities.index",
+                "path": "/admin/activities",
+                "view": "pages::admin.activities.index",
+                "description": "List all activities"
+              },
+              {
+                "route": "admin.activities.show",
+                "path": "/admin/activities/{activity}",
+                "view": "pages::admin.activities.show",
+                "description": "Review specific activity"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "configuration_section": {
+      "section": "CONFIGURATION",
+      "description": "System configuration and settings",
+      "sidebar_items": [
+        {
+          "label": "Membership Types",
+          "route": "admin.membership-types.index",
+          "path": "/admin/membership-types",
+          "icon": "badge",
+          "view": "pages::admin.membership-types.index",
+          "roles": ["admin", "owner", "developer"],
+          "description": "Manage membership packages and pricing"
+        },
+        {
+          "label": "Activities",
+          "route": "admin.activity-config.index",
+          "path": "/admin/activity-config",
+          "icon": "clipboard",
+          "view": "pages::admin.activity-config.index",
+          "roles": ["admin", "owner", "developer"],
+          "description": "Configure activity types, categories, and event types"
+        },
+        {
+          "label": "Calibres",
+          "route": "admin.calibre-requests.index",
+          "path": "/admin/calibre-requests",
+          "icon": "cube",
+          "view": "pages::admin.calibre-requests.index",
+          "roles": ["admin", "owner", "developer"],
+          "description": "Review and approve calibre requests from members"
+        },
+        {
+          "label": "Firearm Settings",
+          "route": "admin.firearm-settings.index",
+          "path": "/admin/firearm-settings",
+          "icon": "cog",
+          "view": "pages::admin.firearm-settings.index",
+          "roles": ["admin", "owner", "developer"],
+          "description": "Manage firearm types and calibres (centralized)"
+        }
+      ]
+    },
+    "learning_compliance_section": {
+      "section": "LEARNING & COMPLIANCE",
+      "description": "Learning center and knowledge tests",
+      "sidebar_items": [
+        {
+          "label": "Learning Center",
+          "route": "admin.learning.index",
+          "path": "/admin/learning",
+          "icon": "book-open",
+          "view": "pages::admin.learning.index",
+          "roles": ["admin", "owner", "developer"],
+          "description": "Manage learning articles and content",
+          "sub_routes": [
+            {
+              "route": "admin.learning.pages",
+              "path": "/admin/learning/{article}/pages",
+              "view": "pages::admin.learning.pages",
+              "description": "Manage article pages"
+            }
+          ]
+        },
+        {
+          "label": "Knowledge Tests",
+          "route": "admin.knowledge-tests.index",
+          "path": "/admin/knowledge-tests",
+          "icon": "academic-cap",
+          "view": "pages::admin.knowledge-tests.index",
+          "roles": ["admin", "owner", "developer"],
+          "description": "Create and manage knowledge tests",
+          "sub_routes": [
+            {
+              "route": "admin.knowledge-tests.create",
+              "path": "/admin/knowledge-tests/create",
+              "view": "pages::admin.knowledge-tests.create",
+              "description": "Create new knowledge test"
+            },
+            {
+              "route": "admin.knowledge-tests.edit",
+              "path": "/admin/knowledge-tests/{test}/edit",
+              "view": "pages::admin.knowledge-tests.edit",
+              "description": "Edit knowledge test"
+            },
+            {
+              "route": "admin.knowledge-tests.questions",
+              "path": "/admin/knowledge-tests/{test}/questions",
+              "view": "pages::admin.knowledge-tests.questions",
+              "description": "Manage test questions"
+            },
+            {
+              "route": "admin.knowledge-tests.marking",
+              "path": "/admin/knowledge-tests/marking",
+              "view": "pages::admin.knowledge-tests.marking",
+              "description": "Mark test attempts"
+            },
+            {
+              "route": "admin.knowledge-tests.mark-attempt",
+              "path": "/admin/knowledge-tests/marking/{attempt}",
+              "view": "pages::admin.knowledge-tests.mark-attempt",
+              "description": "Mark specific test attempt"
+            }
+          ]
+        }
+      ]
+    },
+    "system_section": {
+      "section": "SYSTEM",
+      "description": "System administration and logs",
+      "sidebar_items": [
+        {
+          "label": "Email Logs",
+          "route": "admin.email-logs.index",
+          "path": "/admin/email-logs",
+          "icon": "envelope",
+          "view": "pages::admin.email-logs.index",
+          "roles": ["admin", "owner", "developer"],
+          "description": "View email sending logs"
+        },
+        {
+          "label": "General Settings",
+          "route": "admin.settings.index",
+          "path": "/admin/settings",
+          "icon": "cog-6-tooth",
+          "view": "pages::admin.settings.index",
+          "roles": ["admin", "owner", "developer"],
+          "description": "General system settings"
+        }
+      ]
+    },
+    "additional_admin_routes": [
+      {
+        "route": "admin.endorsements.index",
+        "path": "/admin/endorsements",
+        "view": "pages::admin.endorsements.index",
+        "description": "Manage endorsement requests"
+      },
+      {
+        "route": "admin.endorsements.show",
+        "path": "/admin/endorsements/{request}",
+        "view": "pages::admin.endorsements.show",
+        "description": "Review specific endorsement request"
+      }
+    ]
+  },
+  "owner_area": {
+    "section": "OWNER",
+    "description": "Owner-only features (separated by divider in sidebar)",
+    "middleware": ["auth", "verified", "owner"],
+    "prefix": "/owner",
+    "route_prefix": "owner.",
+    "sidebar_items": [
+      {
+        "label": "Owner Dashboard",
+        "route": "owner.dashboard",
+        "path": "/owner/dashboard",
+        "icon": "squares-2x2",
+        "view": "pages::owner.dashboard",
+        "roles": ["owner", "developer"],
+        "description": "Owner dashboard with system overview"
+      }
+    ],
+    "routes": [
+      {
+        "route": "owner.admins.index",
+        "path": "/owner/admins",
+        "view": "pages::owner.admins.index",
+        "description": "Manage admin users"
+      },
+      {
+        "route": "owner.admins.create",
+        "path": "/owner/admins/create",
+        "view": "pages::owner.admins.create",
+        "description": "Create new admin user"
+      },
+      {
+        "route": "owner.deletion-requests.index",
+        "path": "/owner/deletion-requests",
+        "view": "pages::owner.deletion-requests.index",
+        "description": "Review user deletion requests (POPIA compliance)"
+      },
+      {
+        "route": "owner.settings.index",
+        "path": "/owner/settings",
+        "view": "pages::owner.settings.index",
+        "description": "Owner settings (bank, email, storage, etc.)"
+      },
+      {
+        "route": "owner.settings.email",
+        "path": "/owner/settings/email",
+        "view": "pages::owner.settings.email",
+        "description": "Email configuration"
+      },
+      {
+        "route": "owner.settings.storage",
+        "path": "/owner/settings/storage",
+        "view": "pages::owner.settings.storage",
+        "description": "Storage configuration (R2/S3)"
+      },
+      {
+        "route": "owner.settings.approvals",
+        "path": "/owner/settings/approvals",
+        "view": "pages::owner.settings.approvals",
+        "description": "Approval workflow settings"
+      }
+    ]
+  },
+  "developer_area": {
+    "section": "DEVELOPER",
+    "description": "Developer-only features",
+    "middleware": ["auth", "verified", "developer"],
+    "prefix": "/developer",
+    "route_prefix": "developer.",
+    "routes": [
+      {
+        "route": "developer.dashboard",
+        "path": "/developer/dashboard",
+        "view": "pages::developer.dashboard",
+        "description": "Developer dashboard with test member generator"
+      },
+      {
+        "route": "developer.owners.index",
+        "path": "/developer/owners",
+        "view": "pages::developer.owners.index",
+        "description": "List all owners"
+      },
+      {
+        "route": "developer.owners.create",
+        "path": "/developer/owners/nominate",
+        "view": "pages::developer.owners.create",
+        "description": "Nominate new owner"
+      }
+    ]
+  },
+  "role_hierarchy": {
+    "developer": {
+      "level": 4,
+      "description": "Full system access, can impersonate users, manage owners",
+      "can_access": ["developer", "owner", "admin", "member"]
+    },
+    "owner": {
+      "level": 3,
+      "description": "Can manage admins, system settings, bank details, storage",
+      "can_access": ["owner", "admin", "member"]
+    },
+    "admin": {
+      "level": 2,
+      "description": "Can manage members, approve requests, configure system",
+      "can_access": ["admin", "member"]
+    },
+    "member": {
+      "level": 1,
+      "description": "Standard member access",
+      "can_access": ["member"]
+    }
+  },
+  "membership_requirements": {
+    "free_member": {
+      "description": "Authenticated but no active membership",
+      "can_access": [
+        "dashboard",
+        "membership.index",
+        "membership.select-package",
+        "membership.apply",
+        "membership.payment"
+      ]
+    },
+    "active_member": {
+      "description": "Has active paid membership",
+      "can_access": [
+        "All member routes",
+        "certificates",
+        "knowledge-test",
+        "activities",
+        "armoury",
+        "load-data",
+        "documents",
+        "learning",
+        "endorsements"
+      ],
+      "middleware": "membership.required"
+    }
+  },
+  "navigation_structure": {
+    "sidebar_sections": [
+      "MEMBER AREA",
+      "ADMINISTRATION",
+      "CONFIGURATION",
+      "LEARNING & COMPLIANCE",
+      "SYSTEM",
+      "OWNER"
+    ],
+    "collapsible_groups": [
+      {
+        "label": "Approvals",
+        "route": "admin.approvals.index",
+        "children": [
+          "All Approvals",
+          "Documents",
+          "Memberships",
+          "Activities"
+        ]
+      }
+    ],
+    "pending_count_badges": [
+      {
+        "item": "Approvals",
+        "counts": [
+          "Documents (pending status)",
+          "Memberships (applied status)",
+          "Activities (pending status)"
+        ]
+      }
+    ]
+  },
+  "file_structure": {
+    "views_location": "resources/views/pages",
+    "view_namespace": "pages::",
+    "layouts": {
+      "main": "layouts.app",
+      "sidebar": "layouts.app.sidebar",
+      "public": "layouts.public"
+    },
+    "components": {
+      "livewire": "app/Livewire",
+      "blade_components": "resources/views/components",
+      "partials": "resources/views/partials"
+    }
+  },
+  "key_features": {
+    "member_features": [
+      "Virtual Safe (Firearm Registry)",
+      "Virtual Loading Bench (Reloading Data)",
+      "Activity Submission & Tracking",
+      "Document Upload & Management",
+      "Membership Certificates (QR-verified)",
+      "Knowledge Tests",
+      "Endorsement Letter Requests",
+      "Learning Center"
+    ],
+    "admin_features": [
+      "Member Management",
+      "Approval Workflows (Documents, Memberships, Activities)",
+      "Activity Configuration",
+      "Firearm Settings (Types & Calibres)",
+      "Calibre Request Management",
+      "Knowledge Test Creation & Marking",
+      "Learning Center Management",
+      "Email Logs",
+      "System Settings"
+    ],
+    "owner_features": [
+      "Admin User Management",
+      "User Deletion Requests (POPIA)",
+      "Bank Details Configuration",
+      "Email Configuration",
+      "Storage Configuration (R2/S3)",
+      "Approval Workflow Settings"
+    ],
+    "developer_features": [
+      "Test Member Generator",
+      "User Impersonation",
+      "Owner Management",
+      "Full System Access"
+    ]
+  }
+}

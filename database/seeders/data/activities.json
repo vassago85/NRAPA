@@ -1,0 +1,302 @@
+{
+  "activity_types": [
+    {
+      "name": "Dedicated Hunting",
+      "slug": "dedicated-hunting",
+      "dedicated_type": "hunter",
+      "is_active": true,
+      "sort_order": 0
+    },
+    {
+      "name": "Dedicated Sport-Shooting",
+      "slug": "dedicated-sport-shooting",
+      "dedicated_type": "sport",
+      "is_active": true,
+      "sort_order": 1
+    }
+  ],
+  "event_categories": {
+    "hunting": [
+      {
+        "name": "Hunting Safari/Outing",
+        "slug": "hunting-safari-outing",
+        "activity_type_slug": "dedicated-hunting",
+        "dedicated_type": "hunter",
+        "is_active": true,
+        "sort_order": 0
+      },
+      {
+        "name": "Hunting Expo/Show",
+        "slug": "hunting-expo-show",
+        "activity_type_slug": "dedicated-hunting",
+        "dedicated_type": "hunter",
+        "is_active": true,
+        "sort_order": 1
+      },
+      {
+        "name": "Hunting Meeting",
+        "slug": "hunting-meeting",
+        "activity_type_slug": "dedicated-hunting",
+        "dedicated_type": "hunter",
+        "is_active": true,
+        "sort_order": 2
+      },
+      {
+        "name": "Hunting Related Course",
+        "slug": "hunting-related-course",
+        "activity_type_slug": "dedicated-hunting",
+        "dedicated_type": "hunter",
+        "is_active": true,
+        "sort_order": 3
+      },
+      {
+        "name": "Hunting Related Activity",
+        "slug": "hunting-related-activity",
+        "activity_type_slug": "dedicated-hunting",
+        "dedicated_type": "hunter",
+        "is_active": true,
+        "sort_order": 4
+      }
+    ],
+    "sport": [
+      {
+        "name": "Sport-Shooting Meeting",
+        "slug": "sport-shooting-meeting",
+        "activity_type_slug": "dedicated-sport-shooting",
+        "dedicated_type": "sport",
+        "is_active": true,
+        "sort_order": 0
+      },
+      {
+        "name": "Sport-Shooting Related Activity",
+        "slug": "sport-shooting-related-activity",
+        "activity_type_slug": "dedicated-sport-shooting",
+        "dedicated_type": "sport",
+        "is_active": true,
+        "sort_order": 1
+      }
+    ],
+    "both": [
+      {
+        "name": "Hunt & Sport-Shooting Expo/Show",
+        "slug": "hunt-sport-shooting-expo-show",
+        "activity_type_slug": null,
+        "dedicated_type": "both",
+        "is_active": true,
+        "sort_order": 100
+      },
+      {
+        "name": "Load Development and/or Reloading Course",
+        "slug": "load-development-and-or-reloading-course",
+        "activity_type_slug": null,
+        "dedicated_type": "both",
+        "is_active": true,
+        "sort_order": 101
+      },
+      {
+        "name": "Firearm Training Course",
+        "slug": "firearm-training-course",
+        "activity_type_slug": null,
+        "dedicated_type": "both",
+        "is_active": true,
+        "sort_order": 102
+      },
+      {
+        "name": "Range Officer Duties",
+        "slug": "range-officer-duties",
+        "activity_type_slug": null,
+        "dedicated_type": "both",
+        "is_active": true,
+        "sort_order": 103
+      }
+    ]
+  },
+  "event_types": {
+    "sport": [
+      {
+        "name": "Long Distance Shooting Course",
+        "slug": "long-distance-shooting-course",
+        "event_category_slug": "sport-shooting-related-activity",
+        "is_active": true,
+        "sort_order": 0
+      },
+      {
+        "name": "Organised Shooting Competition/Event",
+        "slug": "organised-shooting-competition-event",
+        "event_category_slug": "sport-shooting-related-activity",
+        "is_active": true,
+        "sort_order": 1
+      },
+      {
+        "name": "Range Officer Duties",
+        "slug": "range-officer-duties",
+        "event_category_slug": "sport-shooting-related-activity",
+        "is_active": true,
+        "sort_order": 2
+      },
+      {
+        "name": "Sport Shooting Target Practice",
+        "slug": "sport-shooting-target-practice",
+        "event_category_slug": "sport-shooting-related-activity",
+        "is_active": true,
+        "sort_order": 3
+      },
+      {
+        "name": "Sport Shooting Training Course",
+        "slug": "sport-shooting-training-course",
+        "event_category_slug": "sport-shooting-related-activity",
+        "is_active": true,
+        "sort_order": 4
+      },
+      {
+        "name": "Long Range",
+        "slug": "long-range",
+        "event_category_slug": "sport-shooting-related-activity",
+        "is_active": true,
+        "sort_order": 5
+      },
+      {
+        "name": "Silhouette",
+        "slug": "silhouette",
+        "event_category_slug": "sport-shooting-related-activity",
+        "is_active": true,
+        "sort_order": 6
+      },
+      {
+        "name": "Veldskiet",
+        "slug": "veldskiet",
+        "event_category_slug": "sport-shooting-related-activity",
+        "is_active": true,
+        "sort_order": 7
+      },
+      {
+        "name": "Practical",
+        "slug": "practical",
+        "event_category_slug": "sport-shooting-related-activity",
+        "is_active": true,
+        "sort_order": 8
+      },
+      {
+        "name": "Precision",
+        "slug": "precision",
+        "event_category_slug": "sport-shooting-related-activity",
+        "is_active": true,
+        "sort_order": 9
+      },
+      {
+        "name": "IPSC",
+        "slug": "ipsc",
+        "event_category_slug": "sport-shooting-related-activity",
+        "is_active": true,
+        "sort_order": 10
+      },
+      {
+        "name": "IDPA",
+        "slug": "idpa",
+        "event_category_slug": "sport-shooting-related-activity",
+        "is_active": true,
+        "sort_order": 11
+      },
+      {
+        "name": "3-Gun",
+        "slug": "3-gun",
+        "event_category_slug": "sport-shooting-related-activity",
+        "is_active": true,
+        "sort_order": 12
+      },
+      {
+        "name": "Cowboy Action",
+        "slug": "cowboy-action",
+        "event_category_slug": "sport-shooting-related-activity",
+        "is_active": true,
+        "sort_order": 13
+      },
+      {
+        "name": "Benchrest",
+        "slug": "benchrest",
+        "event_category_slug": "sport-shooting-related-activity",
+        "is_active": true,
+        "sort_order": 14
+      },
+      {
+        "name": "F-Class",
+        "slug": "f-class",
+        "event_category_slug": "sport-shooting-related-activity",
+        "is_active": true,
+        "sort_order": 15
+      },
+      {
+        "name": "PRS",
+        "slug": "prs",
+        "event_category_slug": "sport-shooting-related-activity",
+        "is_active": true,
+        "sort_order": 16
+      },
+      {
+        "name": "NRL",
+        "slug": "nrl",
+        "event_category_slug": "sport-shooting-related-activity",
+        "is_active": true,
+        "sort_order": 17
+      }
+    ],
+    "hunting": [
+      {
+        "name": "Big Game Hunt",
+        "slug": "big-game-hunt",
+        "event_category_slug": "hunting-related-activity",
+        "is_active": true,
+        "sort_order": 0
+      },
+      {
+        "name": "Plains Game Hunt",
+        "slug": "plains-game-hunt",
+        "event_category_slug": "hunting-related-activity",
+        "is_active": true,
+        "sort_order": 1
+      },
+      {
+        "name": "Small Game Hunt",
+        "slug": "small-game-hunt",
+        "event_category_slug": "hunting-related-activity",
+        "is_active": true,
+        "sort_order": 2
+      },
+      {
+        "name": "Bird Hunting",
+        "slug": "bird-hunting",
+        "event_category_slug": "hunting-related-activity",
+        "is_active": true,
+        "sort_order": 3
+      },
+      {
+        "name": "Bow Hunting",
+        "slug": "bow-hunting",
+        "event_category_slug": "hunting-related-activity",
+        "is_active": true,
+        "sort_order": 4
+      },
+      {
+        "name": "Hunting Training Course",
+        "slug": "hunting-training-course",
+        "event_category_slug": "hunting-related-activity",
+        "is_active": true,
+        "sort_order": 5
+      },
+      {
+        "name": "Game Management Course",
+        "slug": "game-management-course",
+        "event_category_slug": "hunting-related-activity",
+        "is_active": true,
+        "sort_order": 6
+      },
+      {
+        "name": "Hunting Guide Duties",
+        "slug": "hunting-guide-duties",
+        "event_category_slug": "hunting-related-activity",
+        "is_active": true,
+        "sort_order": 7
+      }
+    ]
+  }
+}

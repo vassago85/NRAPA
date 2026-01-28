@@ -16,7 +16,8 @@ class ActivityType extends Model
         'slug',
         'name',
         'description',
-        'dedicated_type',
+        'track',
+        'group',
         'is_active',
         'sort_order',
     ];
@@ -31,14 +32,6 @@ class ActivityType extends Model
         return [
             'is_active' => 'boolean',
         ];
-    }
-
-    /**
-     * Get the event categories for this activity type.
-     */
-    public function eventCategories(): HasMany
-    {
-        return $this->hasMany(EventCategory::class);
     }
 
     /**
@@ -60,27 +53,27 @@ class ActivityType extends Model
     }
 
     /**
-     * Scope to activity types for a specific dedicated type.
-     * Includes: null (general), matching type, and 'both'
+     * Scope to activity types for a specific track.
      */
-    public function scopeForDedicatedType($query, ?string $dedicatedType)
+    public function scopeForTrack($query, ?string $track)
     {
-        if (!$dedicatedType) {
-            // No dedicated type - only show general activities
-            return $query->whereNull('dedicated_type');
-        }
-
-        if ($dedicatedType === 'both') {
-            // User has both - show all activity types
+        if (!$track) {
             return $query;
         }
 
-        // User has specific type - show general + their type + both
-        return $query->where(function ($q) use ($dedicatedType) {
-            $q->whereNull('dedicated_type')
-              ->orWhere('dedicated_type', $dedicatedType)
-              ->orWhere('dedicated_type', 'both');
-        });
+        return $query->where('track', $track);
+    }
+
+    /**
+     * Scope to activity types in a specific group.
+     */
+    public function scopeForGroup($query, ?string $group)
+    {
+        if (!$group) {
+            return $query;
+        }
+
+        return $query->where('group', $group);
     }
 
     /**
@@ -89,5 +82,20 @@ class ActivityType extends Model
     public function scopeOrdered($query)
     {
         return $query->orderBy('sort_order')->orderBy('name');
+    }
+
+    /**
+     * Get available groups for UI grouping.
+     */
+    public static function getGroups(): array
+    {
+        return [
+            'Training' => 'Training',
+            'Competitions' => 'Competitions',
+            'Hunting' => 'Hunting',
+            'Meetings' => 'Meetings',
+            'Expos' => 'Expos',
+            'Other' => 'Other',
+        ];
     }
 }

@@ -1,0 +1,40 @@
+Refactor: Simplify Activities model and implement SAPS 271 canonical firearm identity
+
+Major Changes:
+- Remove Event terminology, replace with Activities throughout UI
+- Simplify Activity model: Track → Activity Type (2-step flow)
+- Add Activity Tags for optional categorization
+- Implement SAPS 271 canonical firearm identity fields
+- Add firearm_components table (barrel/frame/receiver serials)
+- Update Virtual Safe forms to use SAPS 271 fields
+- Update Endorsement forms to load from Virtual Safe
+- Update sidebar navigation structure (Member + Admin areas)
+- Add global validation rule for serial number requirement
+- Preserve historical data with migration strategy
+
+New Files:
+- app/Models/ActivityTag.php
+- app/Models/FirearmComponent.php
+- app/Rules/AtLeastOneSerialNumber.php
+- database/migrations/2026_01_28_100000_simplify_activity_model.php
+- database/migrations/2026_01_28_100001_migrate_event_data_to_activity_types.php
+- database/migrations/2026_01_28_100002_remove_dedicated_type_from_activity_types.php
+- database/migrations/2026_01_28_200000_add_saps271_canonical_fields_to_user_firearms.php
+- database/migrations/2026_01_28_200001_create_firearm_components_table.php
+- database/migrations/2026_01_28_200002_migrate_existing_serial_to_receiver_component.php
+
+Modified Files:
+- app/Helpers/SidebarMenu.php (navigation structure)
+- app/Models/ActivityType.php (track/group fields)
+- app/Models/ShootingActivity.php (track field, tags relationship)
+- app/Models/EndorsementFirearm.php (canonical identity accessor)
+- app/Models/UserFirearm.php (SAPS 271 fields)
+- All activity-related views (simplified flow)
+- Virtual Safe forms (SAPS 271 canonical fields)
+- Endorsement forms (load from Virtual Safe)
+
+Documentation:
+- REFACTORING_SUMMARY.md
+- TESTING_CHECKLIST.md
+- DEPLOYMENT_STEPS.md
+- QUICK_TEST.md

@@ -149,7 +149,7 @@ new class extends Component {
     {
         return [
             'firearms' => UserFirearm::forUser(auth()->id())->active()->with('calibre')->get(),
-            'calibres' => Calibre::where('is_active', true)->orderBy('name')->get(),
+            'calibres' => Calibre::active()->ordered()->get(),
             'bulletTypes' => LoadData::bulletTypes(),
             'statuses' => LoadData::statuses(),
         ];

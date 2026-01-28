@@ -1,0 +1,489 @@
+{
+  "firearm_types": [
+    {
+      "name": "Revolver",
+      "slug": "revolver",
+      "category": "handgun",
+      "ignition_type": "both",
+      "action_type": "revolver",
+      "description": "Manual action handgun with a rotating cylinder",
+      "dedicated_type": "both",
+      "is_active": true,
+      "sort_order": 1
+    },
+    {
+      "name": "Semi-Auto Pistol",
+      "slug": "semi-auto-pistol",
+      "category": "handgun",
+      "ignition_type": "centerfire",
+      "action_type": "semi_auto",
+      "description": "Self-loading handgun that fires one round per trigger pull",
+      "dedicated_type": "both",
+      "is_active": true,
+      "sort_order": 2
+    },
+    {
+      "name": "Single Shot Pistol",
+      "slug": "single-shot-pistol",
+      "category": "handgun",
+      "ignition_type": "both",
+      "action_type": "single_shot",
+      "description": "Manual action handgun requiring reload after each shot",
+      "dedicated_type": "both",
+      "is_active": true,
+      "sort_order": 3
+    },
+    {
+      "name": "Bolt-Action Rifle",
+      "slug": "bolt-action-rifle",
+      "category": "rifle",
+      "ignition_type": "both",
+      "action_type": "bolt_action",
+      "description": "Manual action rifle with a bolt mechanism",
+      "dedicated_type": "both",
+      "is_active": true,
+      "sort_order": 4
+    },
+    {
+      "name": "Semi-Auto Rifle",
+      "slug": "semi-auto-rifle",
+      "category": "rifle",
+      "ignition_type": "both",
+      "action_type": "semi_auto",
+      "description": "Self-loading rifle that fires one round per trigger pull",
+      "dedicated_type": "both",
+      "is_active": true,
+      "sort_order": 5
+    },
+    {
+      "name": "Lever-Action Rifle",
+      "slug": "lever-action-rifle",
+      "category": "rifle",
+      "ignition_type": "both",
+      "action_type": "lever_action",
+      "description": "Manual action rifle operated by a lever mechanism",
+      "dedicated_type": "both",
+      "is_active": true,
+      "sort_order": 6
+    },
+    {
+      "name": "Single Shot Rifle",
+      "slug": "single-shot-rifle",
+      "category": "rifle",
+      "ignition_type": "both",
+      "action_type": "single_shot",
+      "description": "Manual action rifle requiring reload after each shot",
+      "dedicated_type": "both",
+      "is_active": true,
+      "sort_order": 7
+    },
+    {
+      "name": "Pump-Action Rifle",
+      "slug": "pump-action-rifle",
+      "category": "rifle",
+      "ignition_type": "both",
+      "action_type": "pump_action",
+      "description": "Manual action rifle operated by a pump/slide mechanism",
+      "dedicated_type": "both",
+      "is_active": true,
+      "sort_order": 8
+    },
+    {
+      "name": "Break-Action Shotgun",
+      "slug": "break-action-shotgun",
+      "category": "shotgun",
+      "ignition_type": "centerfire",
+      "action_type": "break_action",
+      "description": "Manual action shotgun that breaks open to load/unload (single, double barrel, over/under)",
+      "dedicated_type": "both",
+      "is_active": true,
+      "sort_order": 9
+    },
+    {
+      "name": "Pump-Action Shotgun",
+      "slug": "pump-action-shotgun",
+      "category": "shotgun",
+      "ignition_type": "centerfire",
+      "action_type": "pump_action",
+      "description": "Manual action shotgun operated by a pump/slide mechanism",
+      "dedicated_type": "both",
+      "is_active": true,
+      "sort_order": 10
+    },
+    {
+      "name": "Semi-Auto Shotgun",
+      "slug": "semi-auto-shotgun",
+      "category": "shotgun",
+      "ignition_type": "centerfire",
+      "action_type": "semi_auto",
+      "description": "Self-loading shotgun that fires one round per trigger pull",
+      "dedicated_type": "both",
+      "is_active": true,
+      "sort_order": 11
+    },
+    {
+      "name": "Bolt-Action Shotgun",
+      "slug": "bolt-action-shotgun",
+      "category": "shotgun",
+      "ignition_type": "centerfire",
+      "action_type": "bolt_action",
+      "description": "Manual action shotgun with a bolt mechanism",
+      "dedicated_type": "both",
+      "is_active": true,
+      "sort_order": 12
+    },
+    {
+      "name": "Lever-Action Shotgun",
+      "slug": "lever-action-shotgun",
+      "category": "shotgun",
+      "ignition_type": "centerfire",
+      "action_type": "lever_action",
+      "description": "Manual action shotgun operated by a lever mechanism",
+      "dedicated_type": "both",
+      "is_active": true,
+      "sort_order": 13
+    }
+  ],
+  "calibres": {
+    "handgun": {
+      "centerfire_manual": [
+        {
+          "name": ".32 S&W",
+          "slug": "32-sw",
+          "category": "handgun",
+          "ignition_type": "centerfire",
+          "is_common": false,
+          "is_obsolete": false,
+          "aliases": null
+        },
+        {
+          "name": ".32 S&W Long",
+          "slug": "32-sw-long",
+          "category": "handgun",
+          "ignition_type": "centerfire",
+          "is_common": false,
+          "is_obsolete": false,
+          "aliases": null
+        },
+        {
+          "name": ".38 Special",
+          "slug": "38-special",
+          "category": "handgun",
+          "ignition_type": "centerfire",
+          "is_common": true,
+          "is_obsolete": false,
+          "aliases": [".38 Spl", ".38 Spc"]
+        },
+        {
+          "name": ".357 Magnum",
+          "slug": "357-magnum",
+          "category": "handgun",
+          "ignition_type": "centerfire",
+          "is_common": true,
+          "is_obsolete": false,
+          "aliases": [".357 Mag"]
+        },
+        {
+          "name": ".44 Special",
+          "slug": "44-special",
+          "category": "handgun",
+          "ignition_type": "centerfire",
+          "is_common": false,
+          "is_obsolete": false,
+          "aliases": [".44 Spl"]
+        },
+        {
+          "name": ".44 Magnum",
+          "slug": "44-magnum",
+          "category": "handgun",
+          "ignition_type": "centerfire",
+          "is_common": true,
+          "is_obsolete": false,
+          "aliases": [".44 Mag", ".44 Rem Mag"]
+        },
+        {
+          "name": ".45 Colt",
+          "slug": "45-colt",
+          "category": "handgun",
+          "ignition_type": "centerfire",
+          "is_common": true,
+          "is_obsolete": false,
+          "aliases": [".45 Long Colt", ".45 LC"]
+        }
+      ],
+      "centerfire_semi_auto": [
+        {
+          "name": ".32 ACP",
+          "slug": "32-acp",
+          "category": "handgun",
+          "ignition_type": "centerfire",
+          "is_common": false,
+          "is_obsolete": false,
+          "aliases": ["7.65mm Browning", ".32 Auto"]
+        },
+        {
+          "name": ".380 ACP",
+          "slug": "380-acp",
+          "category": "handgun",
+          "ignition_type": "centerfire",
+          "is_common": true,
+          "is_obsolete": false,
+          "aliases": ["9mm Short", "9mm Kurz", "9×17mm"]
+        },
+        {
+          "name": "9×19 Parabellum",
+          "slug": "9x19-parabellum",
+          "category": "handgun",
+          "ignition_type": "centerfire",
+          "is_common": true,
+          "is_obsolete": false,
+          "aliases": ["9mm", "9mm Luger", "9x19mm"]
+        },
+        {
+          "name": ".40 S&W",
+          "slug": "40-sw",
+          "category": "handgun",
+          "ignition_type": "centerfire",
+          "is_common": true,
+          "is_obsolete": false,
+          "aliases": ["10×22mm"]
+        },
+        {
+          "name": ".45 ACP",
+          "slug": "45-acp",
+          "category": "handgun",
+          "ignition_type": "centerfire",
+          "is_common": true,
+          "is_obsolete": false,
+          "aliases": [".45 Auto", "11.43×23mm"]
+        }
+      ],
+      "rimfire": [
+        {
+          "name": ".22 LR",
+          "slug": "22-lr",
+          "category": "handgun",
+          "ignition_type": "rimfire",
+          "is_common": true,
+          "is_obsolete": false,
+          "aliases": [".22 Long Rifle", ".22"]
+        },
+        {
+          "name": ".22 WMR",
+          "slug": "22-wmr",
+          "category": "handgun",
+          "ignition_type": "rimfire",
+          "is_common": false,
+          "is_obsolete": false,
+          "aliases": [".22 Magnum", ".22 Winchester Magnum Rimfire"]
+        }
+      ]
+    },
+    "rifle": {
+      "rimfire": [
+        {
+          "name": ".22 LR",
+          "slug": "22-lr",
+          "category": "rifle",
+          "ignition_type": "rimfire",
+          "is_common": true,
+          "is_obsolete": false,
+          "aliases": [".22 Long Rifle", ".22"]
+        },
+        {
+          "name": ".22 WMR",
+          "slug": "22-wmr",
+          "category": "rifle",
+          "ignition_type": "rimfire",
+          "is_common": false,
+          "is_obsolete": false,
+          "aliases": [".22 Magnum", ".22 Winchester Magnum Rimfire"]
+        }
+      ],
+      "centerfire": [
+        {
+          "name": ".223 Remington",
+          "slug": "223-remington",
+          "category": "rifle",
+          "ignition_type": "centerfire",
+          "is_common": true,
+          "is_obsolete": false,
+          "aliases": [".223 Rem", ".223"]
+        },
+        {
+          "name": "5.56×45 NATO",
+          "slug": "556x45-nato",
+          "category": "rifle",
+          "ignition_type": "centerfire",
+          "is_common": true,
+          "is_obsolete": false,
+          "aliases": ["5.56x45mm", "5.56 NATO"]
+        },
+        {
+          "name": ".22-250 Remington",
+          "slug": "22-250-remington",
+          "category": "rifle",
+          "ignition_type": "centerfire",
+          "is_common": true,
+          "is_obsolete": false,
+          "aliases": [".22-250", ".22-250 Rem"]
+        },
+        {
+          "name": ".243 Winchester",
+          "slug": "243-winchester",
+          "category": "rifle",
+          "ignition_type": "centerfire",
+          "is_common": true,
+          "is_obsolete": false,
+          "aliases": [".243 Win", ".243"]
+        },
+        {
+          "name": "6.5 Creedmoor",
+          "slug": "65-creedmoor",
+          "category": "rifle",
+          "ignition_type": "centerfire",
+          "is_common": true,
+          "is_obsolete": false,
+          "aliases": ["6.5 CM"]
+        },
+        {
+          "name": ".270 Winchester",
+          "slug": "270-winchester",
+          "category": "rifle",
+          "ignition_type": "centerfire",
+          "is_common": true,
+          "is_obsolete": false,
+          "aliases": [".270 Win", ".270"]
+        },
+        {
+          "name": ".308 Winchester",
+          "slug": "308-winchester",
+          "category": "rifle",
+          "ignition_type": "centerfire",
+          "is_common": true,
+          "is_obsolete": false,
+          "aliases": [".308 Win", ".308"]
+        },
+        {
+          "name": "7.62×51 NATO",
+          "slug": "762x51-nato",
+          "category": "rifle",
+          "ignition_type": "centerfire",
+          "is_common": true,
+          "is_obsolete": false,
+          "aliases": ["7.62x51mm", "7.62 NATO"]
+        },
+        {
+          "name": "7.62×39",
+          "slug": "762x39",
+          "category": "rifle",
+          "ignition_type": "centerfire",
+          "is_common": true,
+          "is_obsolete": false,
+          "aliases": ["7.62x39mm", "7.62 Soviet"]
+        },
+        {
+          "name": ".30-06 Springfield",
+          "slug": "30-06-springfield",
+          "category": "rifle",
+          "ignition_type": "centerfire",
+          "is_common": true,
+          "is_obsolete": false,
+          "aliases": [".30-06", ".30-06 Sprg"]
+        },
+        {
+          "name": "7mm Remington Magnum",
+          "slug": "7mm-remington-magnum",
+          "category": "rifle",
+          "ignition_type": "centerfire",
+          "is_common": true,
+          "is_obsolete": false,
+          "aliases": ["7mm Rem Mag"]
+        },
+        {
+          "name": ".338 Lapua Magnum",
+          "slug": "338-lapua-magnum",
+          "category": "rifle",
+          "ignition_type": "centerfire",
+          "is_common": false,
+          "is_obsolete": false,
+          "aliases": [".338 Lapua", "8.6×70mm"]
+        },
+        {
+          "name": ".375 Holland & Holland Magnum",
+          "slug": "375-holland-holland-magnum",
+          "category": "rifle",
+          "ignition_type": "centerfire",
+          "is_common": false,
+          "is_obsolete": false,
+          "aliases": [".375 H&H", ".375 H&H Mag"]
+        },
+        {
+          "name": ".416 Rigby",
+          "slug": "416-rigby",
+          "category": "rifle",
+          "ignition_type": "centerfire",
+          "is_common": false,
+          "is_obsolete": false,
+          "aliases": null
+        },
+        {
+          "name": ".458 Winchester Magnum",
+          "slug": "458-winchester-magnum",
+          "category": "rifle",
+          "ignition_type": "centerfire",
+          "is_common": false,
+          "is_obsolete": false,
+          "aliases": [".458 Win Mag"]
+        }
+      ]
+    },
+    "shotgun": [
+      {
+        "name": ".410 Bore",
+        "slug": "410-bore",
+        "category": "shotgun",
+        "ignition_type": "centerfire",
+        "is_common": true,
+        "is_obsolete": false,
+        "aliases": [".410", "410 Gauge"]
+      },
+      {
+        "name": "28 Gauge",
+        "slug": "28-gauge",
+        "category": "shotgun",
+        "ignition_type": "centerfire",
+        "is_common": false,
+        "is_obsolete": false,
+        "aliases": null
+      },
+      {
+        "name": "20 Gauge",
+        "slug": "20-gauge",
+        "category": "shotgun",
+        "ignition_type": "centerfire",
+        "is_common": true,
+        "is_obsolete": false,
+        "aliases": null
+      },
+      {
+        "name": "16 Gauge",
+        "slug": "16-gauge",
+        "category": "shotgun",
+        "ignition_type": "centerfire",
+        "is_common": false,
+        "is_obsolete": false,
+        "aliases": null
+      },
+      {
+        "name": "12 Gauge",
+        "slug": "12-gauge",
+        "category": "shotgun",
+        "ignition_type": "centerfire",
+        "is_common": true,
+        "is_obsolete": false,
+        "aliases": null
+      }
+    ]
+  }
+}

@@ -18,8 +18,9 @@ class ShootingActivity extends Model
         'uuid',
         'user_id',
         'activity_type_id',
-        'event_category_id',
-        'event_type_id',
+        'track',
+        'event_category_id', // Kept for historical data
+        'event_type_id', // Kept for historical data
         'activity_date',
         'activity_year_month_start',
         'description',
@@ -63,6 +64,24 @@ class ShootingActivity extends Model
             if (empty($activity->uuid)) {
                 $activity->uuid = (string) Str::uuid();
             }
+            
+            // Auto-set track from activity type if not set
+            if (!$activity->track && $activity->activity_type_id) {
+                $activityType = ActivityType::find($activity->activity_type_id);
+                if ($activityType && $activityType->track) {
+                    $activity->track = $activityType->track;
+                }
+            }
+        });
+        
+        static::updating(function (ShootingActivity $activity) {
+            // Auto-update track from activity type if activity type changed
+            if ($activity->isDirty('activity_type_id') && !$activity->track) {
+                $activityType = ActivityType::find($activity->activity_type_id);
+                if ($activityType && $activityType->track) {
+                    $activity->track = $activityType->track;
+                }
+            }
         });
     }
 
@@ -93,7 +112,17 @@ class ShootingActivity extends Model
     }
 
     /**
-     * Get the event category.
+     * Get the activity tags for this activity.
+     */
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(ActivityTag::class, 'activity_tag_shooting_activity')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get the event category (legacy - kept for historical data).
+     * @deprecated Use activityType() instead
      */
     public function eventCategory(): BelongsTo
     {
@@ -101,7 +130,8 @@ class ShootingActivity extends Model
     }
 
     /**
-     * Get the event type.
+     * Get the event type (legacy - kept for historical data).
+     * @deprecated Use tags() instead
      */
     public function eventType(): BelongsTo
     {

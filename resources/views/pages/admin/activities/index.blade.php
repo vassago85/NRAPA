@@ -18,7 +18,7 @@ new class extends Component {
 
     public function with(): array
     {
-        $activities = ShootingActivity::with(['user', 'activityType', 'eventCategory', 'eventType', 'country', 'province'])
+        $activities = ShootingActivity::with(['user', 'activityType', 'tags', 'country', 'province'])
             ->when($this->statusFilter, fn($q) => $q->where('status', $this->statusFilter))
             ->when($this->search, fn($q) => $q->whereHas('user', function($query) {
                 $query->where('name', 'like', '%' . $this->search . '%')
@@ -130,8 +130,21 @@ new class extends Component {
                                     {{ $activity->activity_date->format('d M Y') }}
                                 </td>
                                 <td class="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-300">
-                                    <div>{{ $activity->activityType?->name ?? 'N/A' }}</div>
-                                    <div class="text-xs text-zinc-500">{{ $activity->eventCategory?->name ?? 'N/A' }}</div>
+                                    <div class="font-medium">{{ $activity->activityType?->name ?? 'N/A' }}</div>
+                                    @if($activity->track)
+                                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium mt-1 {{ $activity->track === 'hunting' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300' }}">
+                                            {{ ucfirst($activity->track) }}
+                                        </span>
+                                    @endif
+                                    @if($activity->tags->count() > 0)
+                                        <div class="mt-1 flex flex-wrap gap-1">
+                                            @foreach($activity->tags as $tag)
+                                                <span class="inline-flex items-center rounded-full bg-zinc-100 dark:bg-zinc-700 px-2 py-0.5 text-xs text-zinc-600 dark:text-zinc-400">
+                                                    {{ $tag->label }}
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-300">
                                     {{ $activity->full_location ?: 'N/A' }}

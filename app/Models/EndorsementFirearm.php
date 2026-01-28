@@ -362,4 +362,68 @@ class EndorsementFirearm extends Model
 
         return implode(' ', $parts);
     }
+
+    /**
+     * Get SAPS 271 canonical firearm identity.
+     * If linked to UserFirearm, pulls from canonical source; otherwise uses stored fields.
+     */
+    public function getSaps271IdentityAttribute(): string
+    {
+        // If linked to canonical firearm, use that
+        if ($this->user_firearm_id && $this->userFirearm) {
+            return $this->userFirearm->saps_271_identity;
+        }
+        
+        // Otherwise build from stored fields
+        $parts = [];
+        
+        // Type
+        if ($this->firearm_category) {
+            $parts[] = $this->category_label;
+        }
+        
+        // Action
+        if ($this->action_type) {
+            $parts[] = $this->action_type_label;
+        }
+        
+        // Calibre
+        if ($this->calibre_display) {
+            $parts[] = $this->calibre_display;
+            if ($this->calibre_code) {
+                $parts[] = "({$this->calibre_code})";
+            }
+        } elseif ($this->calibre_code) {
+            $parts[] = $this->calibre_code;
+        }
+        
+        // Make/Model
+        if ($this->make) {
+            $parts[] = $this->make;
+        }
+        if ($this->model) {
+            $parts[] = $this->model;
+        }
+        
+        // Serial numbers
+        $serials = [];
+        if ($this->barrel_serial_number) {
+            $serials[] = "Barrel: {$this->barrel_serial_number}";
+        }
+        if ($this->frame_serial_number) {
+            $serials[] = "Frame: {$this->frame_serial_number}";
+        }
+        if ($this->receiver_serial_number) {
+            $serials[] = "Receiver: {$this->receiver_serial_number}";
+        }
+        if (empty($serials) && $this->serial_number) {
+            $serials[] = "Serial: {$this->serial_number}";
+        }
+        
+        if (!empty($serials)) {
+            $parts[] = implode(', ', $serials);
+        }
+        
+        return implode(' - ', $parts);
+    }
 }

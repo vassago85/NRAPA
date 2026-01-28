@@ -9,13 +9,27 @@ use Livewire\WithFileUploads;
 new class extends Component {
     use WithFileUploads;
 
-    // Basic info
-    public ?int $firearm_type_id = null;
+    // Basic info - SAPS 271 canonical
+    public string $firearm_type = ''; // rifle|shotgun|handgun|hand_machine_carbine|combination
+    public string $action = ''; // semi_automatic|automatic|manual|other
+    public string $other_action_text = '';
     public ?int $calibre_id = null;
+    public string $calibre_code = '';
     public string $make = '';
     public string $model = '';
-    public string $serial_number = '';
     public string $nickname = '';
+
+    // SAPS 271 component serials (at least one required)
+    public string $barrel_serial = '';
+    public string $barrel_make = '';
+    public string $frame_serial = '';
+    public string $frame_make = '';
+    public string $receiver_serial = '';
+    public string $receiver_make = '';
+
+    // Legacy support (kept for backwards compatibility)
+    public ?int $firearm_type_id = null;
+    public string $serial_number = ''; // Legacy, will be migrated to receiver
 
     // Category filters for calibre selector
     public ?string $selectedCategory = null;
@@ -48,15 +62,18 @@ new class extends Component {
     public $firearm_image = null;
     public $license_document = null;
 
-    public function updatedFirearmTypeId($value): void
+    public function updatedFirearmType($value): void
     {
-        // Auto-set category filter based on firearm type
+        // Auto-set category filter based on SAPS 271 firearm type
         if ($value) {
-            $firearmType = FirearmType::find($value);
-            if ($firearmType) {
-                $this->selectedCategory = $firearmType->category;
-                $this->selectedIgnition = $firearmType->ignition_type !== 'both' ? $firearmType->ignition_type : null;
-            }
+            $categoryMap = [
+                'rifle' => 'rifle',
+                'shotgun' => 'shotgun',
+                'handgun' => 'handgun',
+                'hand_machine_carbine' => 'handgun',
+                'combination' => null,
+            ];
+            $this->selectedCategory = $categoryMap[$value] ?? null;
         } else {
             $this->selectedCategory = null;
             $this->selectedIgnition = null;
@@ -66,12 +83,29 @@ new class extends Component {
     public function rules(): array
     {
         return [
-            'firearm_type_id' => ['nullable', 'exists:firearm_types,id'],
+            // SAPS 271 canonical fields
+            'firearm_type' => ['required', 'in:rifle,shotgun,handgun,hand_machine_carbine,combination'],
+            'action' => ['required', 'in:semi_automatic,automatic,manual,other'],
+            'other_action_text' => ['required_if:action,other', 'nullable', 'string', 'max:255'],
             'calibre_id' => ['nullable', 'exists:calibres,id'],
+            'calibre_code' => ['nullable', 'string', 'max:50'],
             'make' => ['nullable', 'string', 'max:255'],
             'model' => ['nullable', 'string', 'max:255'],
-            'serial_number' => ['nullable', 'string', 'max:255'],
             'nickname' => ['nullable', 'string', 'max:255'],
+            
+            // Component serials (at least one required - validated in custom rule)
+            'barrel_serial' => ['nullable', 'string', 'max:255'],
+            'barrel_make' => ['nullable', 'string', 'max:255'],
+            'frame_serial' => ['nullable', 'string', 'max:255'],
+            'frame_make' => ['nullable', 'string', 'max:255'],
+            'receiver_serial' => ['nullable', 'string', 'max:255'],
+            'receiver_make' => ['nullable', 'string', 'max:255'],
+            
+            // Legacy fields (kept for backwards compatibility)
+            'firearm_type_id' => ['nullable', 'exists:firearm_types,id'],
+            'serial_number' => ['nullable', 'string', 'max:255'],
+            
+            // Other fields
             'barrel_length' => ['nullable', 'string', 'max:50'],
             'barrel_twist' => ['nullable', 'string', 'max:50'],
             'barrel_profile' => ['nullable', 'string', 'max:100'],
@@ -90,18 +124,36 @@ new class extends Component {
         ];
     }
 
+    /**
+     * Validate that at least one serial number is provided (SAPS 271 requirement).
+     */
+    public function validateSerialRequirement(): void
+    {
+        if (empty($this->barrel_serial) && empty($this->frame_serial) && empty($this->receiver_serial) && empty($this->serial_number)) {
+            $this->addError('barrel_serial', 'Provide at least one serial number (Barrel, Frame, or Receiver) as per SAPS 271.');
+        }
+    }
+
     public function save(): void
     {
         $this->validate();
+        $this->validateSerialRequirement();
 
         $data = [
             'user_id' => auth()->id(),
-            'firearm_type_id' => $this->firearm_type_id,
+            // SAPS 271 canonical fields
+            'firearm_type' => $this->firearm_type,
+            'action' => $this->action,
+            'other_action_text' => $this->action === 'other' ? $this->other_action_text : null,
             'calibre_id' => $this->calibre_id,
+            'calibre_code' => $this->calibre_code ?: null,
             'make' => $this->make ?: null,
             'model' => $this->model ?: null,
-            'serial_number' => $this->serial_number ?: null,
             'nickname' => $this->nickname ?: null,
+            // Legacy fields (kept for backwards compatibility)
+            'firearm_type_id' => $this->firearm_type_id,
+            'serial_number' => $this->serial_number ?: null, // Will be migrated to receiver if provided
+            // Other fields
             'barrel_length' => $this->barrel_length ?: null,
             'barrel_twist' => $this->barrel_twist ?: null,
             'barrel_profile' => $this->barrel_profile ?: null,
@@ -127,6 +179,57 @@ new class extends Component {
 
         $firearm = UserFirearm::create($data);
 
+        // Create firearm components (SAPS 271 canonical)
+        $components = [];
+        
+        if (!empty($this->barrel_serial)) {
+            $components[] = [
+                'firearm_id' => $firearm->id,
+                'type' => 'barrel',
+                'serial' => $this->barrel_serial,
+                'make' => $this->barrel_make ?: null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+        
+        if (!empty($this->frame_serial)) {
+            $components[] = [
+                'firearm_id' => $firearm->id,
+                'type' => 'frame',
+                'serial' => $this->frame_serial,
+                'make' => $this->frame_make ?: null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+        
+        if (!empty($this->receiver_serial)) {
+            $components[] = [
+                'firearm_id' => $firearm->id,
+                'type' => 'receiver',
+                'serial' => $this->receiver_serial,
+                'make' => $this->receiver_make ?: null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        } elseif (!empty($this->serial_number)) {
+            // Migrate legacy serial_number to receiver component
+            $components[] = [
+                'firearm_id' => $firearm->id,
+                'type' => 'receiver',
+                'serial' => $this->serial_number,
+                'make' => null,
+                'notes' => 'Migrated from legacy serial_number field',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+        
+        if (!empty($components)) {
+            \App\Models\FirearmComponent::insert($components);
+        }
+
         session()->flash('success', 'Firearm added to your Virtual Safe successfully.');
         $this->redirect(route('armoury.show', $firearm), navigate: true);
     }
@@ -134,7 +237,7 @@ new class extends Component {
     public function with(): array
     {
         // Get firearm types grouped by category
-        $firearmTypes = FirearmType::where('is_active', true)
+        $firearmTypes = FirearmType::active()
             ->ordered()
             ->get()
             ->groupBy('category');
@@ -175,20 +278,41 @@ new class extends Component {
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Firearm Type</label>
-                    <select wire:model.live="firearm_type_id"
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Firearm Type <span class="text-red-500">*</span></label>
+                    <select wire:model.live="firearm_type"
                             class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
                         <option value="">Select type...</option>
-                        @foreach($firearmTypesByCategory as $category => $types)
-                            <optgroup label="{{ $categoryLabels[$category] ?? ucfirst($category) }}">
-                                @foreach($types as $type)
-                                    <option value="{{ $type->id }}">{{ $type->name }}</option>
-                                @endforeach
-                            </optgroup>
-                        @endforeach
+                        <option value="rifle">Rifle</option>
+                        <option value="shotgun">Shotgun</option>
+                        <option value="handgun">Handgun</option>
+                        <option value="hand_machine_carbine">Hand Machine Carbine</option>
+                        <option value="combination">Combination</option>
                     </select>
-                    @error('firearm_type_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                    @error('firearm_type') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">SAPS 271 classification</p>
                 </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Action <span class="text-red-500">*</span></label>
+                    <select wire:model.live="action"
+                            class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                        <option value="">Select action...</option>
+                        <option value="semi_automatic">Semi-Automatic</option>
+                        <option value="automatic">Automatic</option>
+                        <option value="manual">Manual</option>
+                        <option value="other">Other</option>
+                    </select>
+                    @error('action') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                </div>
+
+                @if($action === 'other')
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Specify Other Action <span class="text-red-500">*</span></label>
+                    <input type="text" wire:model="other_action_text" placeholder="e.g., Lever action, Pump action"
+                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                    @error('other_action_text') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                </div>
+                @endif
 
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Calibre</label>
@@ -197,7 +321,15 @@ new class extends Component {
                         :category-filter="$selectedCategory"
                         :ignition-filter="$selectedIgnition"
                     />
-                    @error('calibre_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                    @error('calibre_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Calibre Code (SAPS)</label>
+                    <input type="text" wire:model="calibre_code" placeholder="e.g., 308, 9MM"
+                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                    @error('calibre_code') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Official SAPS calibre code</p>
                 </div>
 
                 <div>
@@ -214,13 +346,69 @@ new class extends Component {
                     @error('model') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Serial Number</label>
-                    <input type="text" wire:model="serial_number"
-                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
-                    @error('serial_number') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+            </div>
+        </div>
+
+        <!-- SAPS 271 Component Serial Numbers -->
+        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Component Serial Numbers (SAPS 271)</h2>
+            <p class="mb-4 text-sm text-zinc-600 dark:text-zinc-400">
+                Provide at least one serial number (Barrel, Frame, or Receiver) as per SAPS 271 requirements.
+            </p>
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
+                <!-- Barrel -->
+                <div class="space-y-4">
+                    <h3 class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Barrel</h3>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Serial Number</label>
+                        <input type="text" wire:model="barrel_serial"
+                               class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                        @error('barrel_serial') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Make (optional)</label>
+                        <input type="text" wire:model="barrel_make"
+                               class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                    </div>
+                </div>
+
+                <!-- Frame -->
+                <div class="space-y-4">
+                    <h3 class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Frame</h3>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Serial Number</label>
+                        <input type="text" wire:model="frame_serial"
+                               class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                        @error('frame_serial') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Make (optional)</label>
+                        <input type="text" wire:model="frame_make"
+                               class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                    </div>
+                </div>
+
+                <!-- Receiver -->
+                <div class="space-y-4">
+                    <h3 class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Receiver</h3>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Serial Number</label>
+                        <input type="text" wire:model="receiver_serial"
+                               class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                        @error('receiver_serial') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Make (optional)</label>
+                        <input type="text" wire:model="receiver_make"
+                               class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                    </div>
                 </div>
             </div>
+            @if(empty($barrel_serial) && empty($frame_serial) && empty($receiver_serial) && empty($serial_number))
+                <p class="mt-4 text-sm text-red-600 dark:text-red-400">
+                    ⚠️ Provide at least one serial number (Barrel, Frame, or Receiver) as per SAPS 271.
+                </p>
+            @endif
         </div>
 
         <!-- Barrel & Stock Details -->

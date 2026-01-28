@@ -13,34 +13,83 @@ class SidebarMenu
         $menu = [];
 
         // 1. MEMBER AREA (visible to all authenticated users)
+        $memberAreaItems = [
+            [
+                'label' => 'Dashboard',
+                'route' => 'dashboard',
+                'icon' => 'home',
+                'roles' => ['member', 'admin', 'owner', 'developer'],
+            ],
+            [
+                'label' => 'My Membership',
+                'route' => 'membership.index',
+                'icon' => 'badge',
+                'roles' => ['member', 'admin', 'owner', 'developer'],
+            ],
+        ];
+
+        // Add active member-only items (require membership.required middleware)
+        $activeMemberItems = [
+            [
+                'label' => 'Documents',
+                'route' => 'documents.index',
+                'icon' => 'document',
+                'roles' => ['member', 'admin', 'owner', 'developer'],
+            ],
+            [
+                'label' => 'Activities',
+                'route' => 'activities.index',
+                'icon' => 'clipboard',
+                'roles' => ['member', 'admin', 'owner', 'developer'],
+            ],
+            [
+                'label' => 'Virtual Safe',
+                'route' => 'armoury.index',
+                'icon' => 'shield-check',
+                'roles' => ['member', 'admin', 'owner', 'developer'],
+            ],
+            [
+                'label' => 'Endorsements',
+                'route' => 'member.endorsements.index',
+                'icon' => 'document-check',
+                'roles' => ['member', 'admin', 'owner', 'developer'],
+            ],
+        ];
+
+        // Optional: Group Learning items under collapsible group
+        $learningItems = [
+            [
+                'label' => 'Learning Center',
+                'route' => 'learning.index',
+                'icon' => 'book-open',
+            ],
+            [
+                'label' => 'Knowledge Tests',
+                'route' => 'knowledge-test.index',
+                'icon' => 'academic-cap',
+            ],
+            [
+                'label' => 'Certificates',
+                'route' => 'certificates.index',
+                'icon' => 'badge-check',
+            ],
+        ];
+
+        $memberAreaItems = array_merge($memberAreaItems, $activeMemberItems);
+        
+        // Add Learning group (collapsible)
+        $memberAreaItems[] = [
+            'label' => 'Learning',
+            'route' => 'learning.index',
+            'icon' => 'book-open',
+            'roles' => ['member', 'admin', 'owner', 'developer'],
+            'collapsible' => true,
+            'children' => $learningItems,
+        ];
+
         $menu[] = [
             'section' => 'MEMBER AREA',
-            'items' => [
-                [
-                    'label' => 'Dashboard',
-                    'route' => 'dashboard',
-                    'icon' => 'home',
-                    'roles' => ['member', 'admin', 'owner', 'developer'],
-                ],
-                [
-                    'label' => 'My Membership',
-                    'route' => 'membership.index',
-                    'icon' => 'badge',
-                    'roles' => ['member', 'admin', 'owner', 'developer'],
-                ],
-                [
-                    'label' => 'Documents',
-                    'route' => 'documents.index',
-                    'icon' => 'document',
-                    'roles' => ['member', 'admin', 'owner', 'developer'],
-                ],
-                [
-                    'label' => 'Activities',
-                    'route' => 'activities.index',
-                    'icon' => 'clipboard',
-                    'roles' => ['member', 'admin', 'owner', 'developer'],
-                ],
-            ],
+            'items' => $memberAreaItems,
         ];
 
         // 2. ADMINISTRATION (admin + owner)
@@ -115,6 +164,12 @@ class SidebarMenu
                         'pending_count' => $totalPending,
                         'children' => $approvalsItems,
                     ],
+                    [
+                        'label' => 'Endorsements',
+                        'route' => 'admin.endorsements.index',
+                        'icon' => 'document-check',
+                        'roles' => ['admin', 'owner', 'developer'],
+                    ],
                 ],
             ];
         }
@@ -131,7 +186,7 @@ class SidebarMenu
                         'roles' => ['admin', 'owner', 'developer'],
                     ],
                     [
-                        'label' => 'Activities',
+                        'label' => 'Activity Types',
                         'route' => 'admin.activity-config.index',
                         'icon' => 'clipboard',
                         'roles' => ['admin', 'owner', 'developer'],
@@ -205,6 +260,12 @@ class SidebarMenu
                         'icon' => 'squares-2x2',
                         'roles' => ['owner', 'developer'],
                     ],
+                    [
+                        'label' => 'Owner Site Settings',
+                        'route' => 'owner.settings.index',
+                        'icon' => 'cog-6-tooth',
+                        'roles' => ['owner', 'developer'],
+                    ],
                 ],
             ];
         }
@@ -232,6 +293,9 @@ class SidebarMenu
             'academic-cap' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14v7"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l-6.16-3.422a12.083 12.083 0 00-.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 016.824-2.998 12.078 12.078 0 00-.665-6.479L12 14z"/>',
             'envelope' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>',
             'squares-2x2' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>',
+            'shield-check' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>',
+            'document-check' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4"/>',
+            'badge-check' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>',
         ];
 
         return $icons[$iconName] ?? '';

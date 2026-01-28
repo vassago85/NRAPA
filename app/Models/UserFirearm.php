@@ -16,11 +16,15 @@ class UserFirearm extends Model
     protected $fillable = [
         'uuid',
         'user_id',
-        'firearm_type_id',
+        'firearm_type_id', // Legacy FK, kept for backwards compatibility
+        'firearm_type',    // SAPS 271 canonical: rifle|shotgun|handgun|hand_machine_carbine|combination
+        'action',          // SAPS 271: semi_automatic|automatic|manual|other
+        'other_action_text', // When action = 'other'
         'calibre_id',
+        'calibre_code',    // SAPS calibre code
         'make',
         'model',
-        'serial_number',
+        'serial_number',  // Legacy, kept for backwards compatibility
         'nickname',
         'barrel_length',
         'barrel_twist',
@@ -97,6 +101,38 @@ class UserFirearm extends Model
         return $this->belongsTo(Calibre::class);
     }
 
+    /**
+     * Get the firearm components (barrel, frame, receiver) - SAPS 271 canonical.
+     */
+    public function components(): HasMany
+    {
+        return $this->hasMany(FirearmComponent::class, 'firearm_id');
+    }
+
+    /**
+     * Get barrel component.
+     */
+    public function barrelComponent()
+    {
+        return $this->components()->where('type', 'barrel')->first();
+    }
+
+    /**
+     * Get frame component.
+     */
+    public function frameComponent()
+    {
+        return $this->components()->where('type', 'frame')->first();
+    }
+
+    /**
+     * Get receiver component.
+     */
+    public function receiverComponent()
+    {
+        return $this->components()->where('type', 'receiver')->first();
+    }
+
     public function loadData(): HasMany
     {
         return $this->hasMany(LoadData::class);
@@ -108,6 +144,68 @@ class UserFirearm extends Model
     }
 
     // Accessors
+
+    /**
+     * Get SAPS 271 canonical firearm type label.
+     */
+    public function getFirearmTypeLabelAttribute(): ?string
+    {
+        return match($this->firearm_type) {
+            'rifle' => 'Rifle',
+            'shotgun' => 'Shotgun',
+            'handgun' => 'Handgun',
+            'hand_machine_carbine' => 'Hand Machine Carbine',
+            'combination' => 'Combination',
+            default => null,
+        };
+    }
+
+    /**
+     * Get SAPS 271 action label.
+     */
+    public function getActionLabelAttribute(): ?string
+    {
+        return match($this->action) {
+            'semi_automatic' => 'Semi-Automatic',
+            'automatic' => 'Automatic',
+            'manual' => 'Manual',
+            'other' => $this->other_action_text ?? 'Other',
+            default => null,
+        };
+    }
+
+    /**
+     * Get primary serial number (from components, prioritizing receiver > frame > barrel).
+     */
+    public function getPrimarySerialAttribute(): ?string
+    {
+        // Priority: receiver > frame > barrel
+        $receiver = $this->receiverComponent();
+        if ($receiver && $receiver->serial) {
+            return $receiver->serial;
+        }
+        
+        $frame = $this->frameComponent();
+        if ($frame && $frame->serial) {
+            return $frame->serial;
+        }
+        
+        $barrel = $this->barrelComponent();
+        if ($barrel && $barrel->serial) {
+            return $barrel->serial;
+        }
+        
+        // Fallback to legacy serial_number for backwards compatibility
+        return $this->serial_number;
+    }
+
+    /**
+     * Check if firearm has at least one serial number (SAPS 271 requirement).
+     */
+    public function hasSerialNumber(): bool
+    {
+        return $this->components()->withSerial()->exists() || !empty($this->serial_number);
+    }
 
     public function getDisplayNameAttribute(): string
     {
@@ -130,10 +228,62 @@ class UserFirearm extends Model
             $this->make,
             $this->model,
             $this->calibre?->name,
-            $this->serial_number ? "S/N: {$this->serial_number}" : null,
+            $this->primary_serial ? "S/N: {$this->primary_serial}" : null,
         ]);
 
         return implode(' - ', $parts) ?: 'No details';
+    }
+
+    /**
+     * Get SAPS 271 canonical firearm identity string.
+     * Used in endorsement letters and official documents.
+     */
+    public function getSaps271IdentityAttribute(): string
+    {
+        $parts = [];
+        
+        // Type
+        if ($this->firearm_type) {
+            $parts[] = $this->firearm_type_label;
+        }
+        
+        // Action
+        if ($this->action) {
+            $parts[] = $this->action_label;
+        }
+        
+        // Calibre
+        if ($this->calibre) {
+            $parts[] = $this->calibre->name;
+            if ($this->calibre_code) {
+                $parts[] = "({$this->calibre_code})";
+            }
+        } elseif ($this->calibre_code) {
+            $parts[] = $this->calibre_code;
+        }
+        
+        // Make/Model
+        if ($this->make) {
+            $parts[] = $this->make;
+        }
+        if ($this->model) {
+            $parts[] = $this->model;
+        }
+        
+        // Serial numbers
+        $serials = [];
+        foreach (['receiver', 'frame', 'barrel'] as $type) {
+            $component = $this->components()->where('type', $type)->first();
+            if ($component && $component->serial) {
+                $serials[] = ucfirst($type) . ": {$component->serial}";
+            }
+        }
+        
+        if (!empty($serials)) {
+            $parts[] = implode(', ', $serials);
+        }
+        
+        return implode(' - ', $parts);
     }
 
     public function getDaysUntilExpiryAttribute(): ?int

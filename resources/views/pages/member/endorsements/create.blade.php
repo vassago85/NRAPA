@@ -332,29 +332,67 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         session()->flash('calibre_request_success', 'Calibre request submitted for admin approval. You can continue with your endorsement using the manual calibre entry.');
     }
 
-    // Load from existing firearm
+    // Load from existing firearm (canonical SAPS 271 identity)
     public function loadExistingFirearm(): void
     {
         if (!$this->existingFirearmId) return;
 
         $firearm = UserFirearm::where('id', $this->existingFirearmId)
             ->where('user_id', auth()->id())
+            ->with('components', 'calibre')
             ->first();
 
         if ($firearm) {
+            // SAPS 271 canonical fields
             $this->make = $firearm->make ?? '';
             $this->model = $firearm->model ?? '';
-            $this->serialNumber = $firearm->serial_number ?? '';
             $this->calibreId = $firearm->calibre_id;
-            if ($firearm->firearmType) {
-                $cat = $firearm->firearmType->category;
-                if ($cat === 'handgun') $this->firearmCategory = 'handgun';
-                elseif ($cat === 'rifle') {
-                    $this->firearmCategory = $firearm->firearmType->action_type === 'semi_auto' 
+            $this->calibreCode = $firearm->calibre_code ?? '';
+            
+            // Map SAPS 271 firearm_type to endorsement firearm_category
+            if ($firearm->firearm_type) {
+                $categoryMap = [
+                    'handgun' => 'handgun',
+                    'rifle' => $firearm->action === 'semi_automatic' || $firearm->action === 'automatic' 
                         ? 'rifle_self_loading' 
-                        : 'rifle_manual';
+                        : 'rifle_manual',
+                    'shotgun' => 'shotgun',
+                    'hand_machine_carbine' => 'handgun',
+                    'combination' => 'rifle_manual', // Default fallback
+                ];
+                $this->firearmCategory = $categoryMap[$firearm->firearm_type] ?? '';
+            }
+            
+            // Map SAPS 271 action to endorsement action_type
+            if ($firearm->action) {
+                $actionMap = [
+                    'semi_automatic' => 'semi_auto',
+                    'automatic' => 'semi_auto', // Endorsement form doesn't have separate automatic
+                    'manual' => 'bolt_action', // Default manual action
+                    'other' => 'other',
+                ];
+                $this->actionType = $actionMap[$firearm->action] ?? '';
+                if ($firearm->action === 'other') {
+                    $this->actionOtherSpecify = $firearm->other_action_text ?? '';
                 }
-                elseif ($cat === 'shotgun') $this->firearmCategory = 'shotgun';
+            }
+            
+            // Load component serials from canonical firearm_components
+            $barrel = $firearm->barrelComponent();
+            $this->barrelSerialNumber = $barrel?->serial ?? '';
+            $this->barrelMake = $barrel?->make ?? '';
+            
+            $frame = $firearm->frameComponent();
+            $this->frameSerialNumber = $frame?->serial ?? '';
+            $this->frameMake = $frame?->make ?? '';
+            
+            $receiver = $firearm->receiverComponent();
+            $this->receiverSerialNumber = $receiver?->serial ?? '';
+            $this->receiverMake = $receiver?->make ?? '';
+            
+            // Legacy fallback
+            if (empty($this->receiverSerialNumber) && empty($this->frameSerialNumber) && empty($this->barrelSerialNumber)) {
+                $this->serialNumber = $firearm->serial_number ?? '';
             }
         }
     }

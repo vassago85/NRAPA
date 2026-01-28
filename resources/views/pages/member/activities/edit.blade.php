@@ -1,10 +1,9 @@
 <?php
 
 use App\Models\ActivityType;
+use App\Models\ActivityTag;
 use App\Models\Calibre;
 use App\Models\Country;
-use App\Models\EventCategory;
-use App\Models\EventType;
 use App\Models\FirearmType;
 use App\Models\Province;
 use App\Models\ShootingActivity;
@@ -17,9 +16,9 @@ new class extends Component {
     public ShootingActivity $activity;
 
     // Form fields
+    public ?string $track = null;
     public ?int $activity_type_id = null;
-    public ?int $event_category_id = null;
-    public ?int $event_type_id = null;
+    public array $activity_tag_ids = [];
     public ?string $activity_date = null;
     public ?int $firearm_type_id = null;
     public ?int $calibre_id = null;
@@ -31,16 +30,14 @@ new class extends Component {
     public $proof_document = null;
     public $additional_document = null;
 
-    // Dynamic options
-    public array $eventCategories = [];
-    public array $eventTypes = [];
 
     protected function rules(): array
     {
         return [
+            'track' => ['required', 'in:hunting,sport'],
             'activity_type_id' => ['required', 'exists:activity_types,id'],
-            'event_category_id' => ['required', 'exists:event_categories,id'],
-            'event_type_id' => ['nullable', 'exists:event_types,id'],
+            'activity_tag_ids' => ['nullable', 'array'],
+            'activity_tag_ids.*' => ['exists:activity_tags,id'],
             'activity_date' => ['required', 'date', 'before_or_equal:today'],
             'firearm_type_id' => ['required', 'exists:firearm_types,id'],
             'calibre_id' => ['required', 'exists:calibres,id'],
@@ -70,9 +67,9 @@ new class extends Component {
         $this->activity = $activity;
 
         // Populate form fields
+        $this->track = $activity->track ?? $activity->activityType?->track;
         $this->activity_type_id = $activity->activity_type_id;
-        $this->event_category_id = $activity->event_category_id;
-        $this->event_type_id = $activity->event_type_id;
+        $this->activity_tag_ids = $activity->tags->pluck('id')->toArray();
         $this->activity_date = $activity->activity_date?->format('Y-m-d');
         $this->firearm_type_id = $activity->firearm_type_id;
         $this->calibre_id = $activity->calibre_id;
@@ -81,65 +78,23 @@ new class extends Component {
         $this->province_id = $activity->province_id;
         $this->closest_town_city = $activity->closest_town_city;
         $this->description = $activity->description;
-
-        // Load dependent dropdowns
-        if ($this->activity_type_id) {
-            $this->eventCategories = EventCategory::active()
-                ->where('activity_type_id', $this->activity_type_id)
-                ->ordered()
-                ->get()
-                ->toArray();
-        }
-
-        if ($this->event_category_id) {
-            $this->eventTypes = EventType::active()
-                ->where('event_category_id', $this->event_category_id)
-                ->ordered()
-                ->get()
-                ->toArray();
-        }
     }
 
-    public function updatedActivityTypeId($value): void
+    public function updatedTrack(): void
     {
-        $this->event_category_id = null;
-        $this->event_type_id = null;
-        $this->eventTypes = [];
-
-        if ($value) {
-            $this->eventCategories = EventCategory::active()
-                ->where('activity_type_id', $value)
-                ->ordered()
-                ->get()
-                ->toArray();
-        } else {
-            $this->eventCategories = [];
-        }
+        // Reset activity type when track changes
+        $this->activity_type_id = null;
+        $this->activity_tag_ids = [];
     }
 
-    public function updatedEventCategoryId($value): void
-    {
-        $this->event_type_id = null;
-
-        if ($value) {
-            $this->eventTypes = EventType::active()
-                ->where('event_category_id', $value)
-                ->ordered()
-                ->get()
-                ->toArray();
-        } else {
-            $this->eventTypes = [];
-        }
-    }
 
     public function update(): void
     {
         $this->validate();
 
         $this->activity->update([
+            'track' => $this->track,
             'activity_type_id' => $this->activity_type_id,
-            'event_category_id' => $this->event_category_id,
-            'event_type_id' => $this->event_type_id,
             'activity_date' => $this->activity_date,
             'firearm_type_id' => $this->firearm_type_id,
             'calibre_id' => $this->calibre_id,
@@ -154,6 +109,9 @@ new class extends Component {
         if ($this->proof_document) {
             $proofPath = $this->proof_document->store('activities/' . auth()->id() . '/proof', 'private');
         }
+
+        // Sync activity tags
+        $this->activity->tags()->sync($this->activity_tag_ids);
 
         if ($this->additional_document) {
             $additionalPath = $this->additional_document->store('activities/' . auth()->id() . '/additional', 'private');
@@ -176,20 +134,36 @@ new class extends Component {
         $this->redirect(route('activities.index'));
     }
 
+    #[Computed]
+    public function activityTypes()
+    {
+        if (!$this->track) {
+            return collect();
+        }
+
+        return ActivityType::active()
+            ->forTrack($this->track)
+            ->ordered()
+            ->get();
+    }
+
+    #[Computed]
+    public function activityTags()
+    {
+        if (!$this->track) {
+            return collect();
+        }
+
+        return ActivityTag::active()
+            ->forTrack($this->track)
+            ->ordered()
+            ->get();
+    }
+
     public function with(): array
     {
-        $user = auth()->user();
-        $dedicatedType = $user->activeMembership?->dedicated_type ?? null;
-
         return [
-            'activityTypes' => ActivityType::active()
-                ->when($dedicatedType, fn($q) => $q->forDedicatedType($dedicatedType))
-                ->ordered()
-                ->get(),
-            'firearmTypes' => FirearmType::active()
-                ->when($dedicatedType, fn($q) => $q->forDedicatedType($dedicatedType))
-                ->ordered()
-                ->get(),
+            'firearmTypes' => FirearmType::active()->ordered()->get(),
             'calibres' => Calibre::active()->ordered()->get(),
             'countries' => Country::active()->ordered()->get(),
             'provinces' => Province::active()->ordered()->get(),
@@ -219,40 +193,27 @@ new class extends Component {
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-6">Activity Information</h2>
 
             <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <!-- Related Activity -->
+                <!-- Track -->
                 <div>
-                    <label for="activity_type_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Related Activity <span class="text-red-500">*</span></label>
-                    <select id="activity_type_id" wire:model.live="activity_type_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
-                        <option value="">Select Related Activity</option>
-                        @foreach($activityTypes as $type)
+                    <label for="track" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Track <span class="text-red-500">*</span></label>
+                    <select id="track" wire:model.live="track" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
+                        <option value="">Select Track</option>
+                        <option value="hunting">Hunting</option>
+                        <option value="sport">Sport Shooting</option>
+                    </select>
+                    @error('track') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                </div>
+
+                <!-- Activity Type -->
+                <div>
+                    <label for="activity_type_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Activity Type <span class="text-red-500">*</span></label>
+                    <select id="activity_type_id" wire:model="activity_type_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500" @disabled(!$track)>
+                        <option value="">Select Activity Type</option>
+                        @foreach($this->activityTypes as $type)
                             <option value="{{ $type->id }}">{{ $type->name }}</option>
                         @endforeach
                     </select>
                     @error('activity_type_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                </div>
-
-                <!-- Event Category -->
-                <div>
-                    <label for="event_category_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Type of Activity <span class="text-red-500">*</span></label>
-                    <select id="event_category_id" wire:model.live="event_category_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500" @disabled(empty($eventCategories))>
-                        <option value="">Select Event Category</option>
-                        @foreach($eventCategories as $category)
-                            <option value="{{ $category['id'] }}">{{ $category['name'] }}</option>
-                        @endforeach
-                    </select>
-                    @error('event_category_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                </div>
-
-                <!-- Event Type -->
-                <div>
-                    <label for="event_type_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Event Type</label>
-                    <select id="event_type_id" wire:model="event_type_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500" @disabled(empty($eventTypes))>
-                        <option value="">Select Event Type</option>
-                        @foreach($eventTypes as $eventType)
-                            <option value="{{ $eventType['id'] }}">{{ $eventType['name'] }}</option>
-                        @endforeach
-                    </select>
-                    @error('event_type_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                 </div>
 
                 <!-- Activity Date -->
@@ -261,6 +222,20 @@ new class extends Component {
                     <input type="date" id="activity_date" wire:model="activity_date" max="{{ date('Y-m-d') }}" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
                     @error('activity_date') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                 </div>
+
+                <!-- Activity Tags (Optional) -->
+                @if($track && $this->activityTags->count() > 0)
+                <div>
+                    <label for="activity_tag_ids" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Tags (Optional)</label>
+                    <select id="activity_tag_ids" wire:model="activity_tag_ids" multiple class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500 min-h-[100px]">
+                        @foreach($this->activityTags as $tag)
+                            <option value="{{ $tag->id }}">{{ $tag->label }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Hold Ctrl/Cmd to select multiple tags (e.g., PRS, IPSC, IDPA)</p>
+                    @error('activity_tag_ids') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                </div>
+                @endif
             </div>
         </div>
 

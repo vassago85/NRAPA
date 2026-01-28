@@ -165,6 +165,26 @@ new class extends Component {
         </div>
     </div>
 
+    {{-- Site Settings Quick Access --}}
+    <div class="mb-8 bg-gradient-to-r from-emerald-50 to-blue-50 dark:from-emerald-900/20 dark:to-blue-900/20 rounded-xl shadow-sm border border-emerald-200 dark:border-emerald-800 p-6">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="p-3 bg-emerald-100 dark:bg-emerald-900/50 rounded-lg">
+                    <svg class="w-8 h-8 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655-5.653a2.548 2.548 0 010-3.586L11.42 15.17z"/></svg>
+                </div>
+                <div>
+                    <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Site Settings</h2>
+                    <p class="text-sm text-zinc-600 dark:text-zinc-400">Configure bank accounts, email, storage, and approval workflows</p>
+                </div>
+            </div>
+            <a href="{{ route('owner.settings.index') }}" wire:navigate
+                class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655-5.653a2.548 2.548 0 010-3.586L11.42 15.17z"/></svg>
+                Manage Settings
+            </a>
+        </div>
+    </div>
+
     {{-- Quick Actions --}}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">

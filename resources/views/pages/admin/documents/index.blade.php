@@ -47,7 +47,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             ->orderBy('created_at', 'desc');
 
         $pendingCount = MemberDocument::where('status', 'pending')->count();
-        $documentTypes = DocumentType::where('is_active', true)->orderBy('sort_order')->get();
+        $documentTypes = DocumentType::active()->ordered()->get();
 
         return [
             'documents' => $query->paginate(15),
