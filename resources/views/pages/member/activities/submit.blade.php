@@ -201,15 +201,18 @@ new class extends Component {
             $activity->tags()->attach($this->activity_tag_ids);
         }
 
-        // Handle file uploads (store paths temporarily - document management to be implemented)
+        // Handle file uploads
+        // Use R2 if configured, otherwise use local disk (storage/app/private)
+        $disk = config('filesystems.disks.r2.key') ? 'r2' : 'local';
+        
         if ($this->proof_document) {
-            $proofPath = $this->proof_document->store('activities/' . auth()->id() . '/proof', 'private');
-            // For now, store directly in the description or add to notes
-            // Full document management will be implemented later
+            $proofPath = $this->proof_document->store('activities/' . auth()->id() . '/proof', $disk);
+            // TODO: Link to activity via evidence_document_id when document management is implemented
         }
 
         if ($this->additional_document) {
-            $additionalPath = $this->additional_document->store('activities/' . auth()->id() . '/additional', 'private');
+            $additionalPath = $this->additional_document->store('activities/' . auth()->id() . '/additional', $disk);
+            // TODO: Link to activity via additional_document_id when document management is implemented
         }
 
         session()->flash('success', 'Activity submitted successfully and is pending review.');
@@ -586,22 +589,51 @@ new class extends Component {
                 <!-- Proof of Activity -->
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Upload Proof of Activity <span class="text-red-500">*</span></label>
-                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-zinc-300 dark:border-zinc-600 border-dashed rounded-lg hover:border-emerald-400 transition-colors">
+                    <div 
+                        x-data="{ 
+                            dragging: false,
+                            handleDrop(e) {
+                                this.dragging = false;
+                                const files = e.dataTransfer.files;
+                                if (files.length > 0) {
+                                    const input = this.$refs.proofDocumentInput;
+                                    const dataTransfer = new DataTransfer();
+                                    dataTransfer.items.add(files[0]);
+                                    input.files = dataTransfer.files;
+                                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                                }
+                            }
+                        }"
+                        x-on:dragover.prevent="dragging = true"
+                        x-on:dragleave.prevent="dragging = false"
+                        x-on:drop.prevent="handleDrop($event)"
+                        :class="{ 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20': dragging }"
+                        class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-zinc-300 dark:border-zinc-600 border-dashed rounded-lg hover:border-emerald-400 transition-colors cursor-pointer"
+                        x-on:click="$refs.proofDocumentInput.click()"
+                    >
                         <div class="space-y-1 text-center">
                             <svg class="mx-auto size-12 text-zinc-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
                                 <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                             </svg>
                             <div class="flex text-sm text-zinc-600 dark:text-zinc-400 justify-center">
-                                <label for="proof_document" class="relative cursor-pointer rounded-md font-medium text-emerald-600 hover:text-emerald-500 focus-within:outline-none">
-                                    <span>Click to Upload or Drag n Drop</span>
-                                    <input id="proof_document" wire:model="proof_document" type="file" class="sr-only" accept=".jpg,.jpeg,.png,.pdf">
-                                </label>
+                                <span class="font-medium text-emerald-600 hover:text-emerald-500 dark:text-emerald-400">Click to Upload</span>
+                                <span class="pl-1">or drag and drop</span>
                             </div>
-                            <p class="text-xs text-zinc-500 dark:text-zinc-400">Allowed formats: png, jpg, jpeg and PDF</p>
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400">Allowed formats: PNG, JPG, JPEG and PDF (max 10MB)</p>
                             @if($proof_document)
-                                <p class="text-sm text-emerald-600">{{ $proof_document->getClientOriginalName() }}</p>
+                                <p class="text-sm text-emerald-600 dark:text-emerald-400 mt-2">{{ $proof_document->getClientOriginalName() }}</p>
                             @endif
+                            <div wire:loading wire:target="proof_document" class="mt-2">
+                                <div class="flex items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400">
+                                    <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span class="text-sm">Uploading...</span>
+                                </div>
+                            </div>
                         </div>
+                        <input x-ref="proofDocumentInput" id="proof_document" wire:model="proof_document" type="file" class="sr-only" accept=".jpg,.jpeg,.png,.pdf">
                     </div>
                     @error('proof_document') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                 </div>
@@ -609,22 +641,51 @@ new class extends Component {
                 <!-- Additional Document -->
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Upload Additional Supporting Document (Optional)</label>
-                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-zinc-300 dark:border-zinc-600 border-dashed rounded-lg hover:border-emerald-400 transition-colors">
+                    <div 
+                        x-data="{ 
+                            dragging: false,
+                            handleDrop(e) {
+                                this.dragging = false;
+                                const files = e.dataTransfer.files;
+                                if (files.length > 0) {
+                                    const input = this.$refs.additionalDocumentInput;
+                                    const dataTransfer = new DataTransfer();
+                                    dataTransfer.items.add(files[0]);
+                                    input.files = dataTransfer.files;
+                                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                                }
+                            }
+                        }"
+                        x-on:dragover.prevent="dragging = true"
+                        x-on:dragleave.prevent="dragging = false"
+                        x-on:drop.prevent="handleDrop($event)"
+                        :class="{ 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20': dragging }"
+                        class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-zinc-300 dark:border-zinc-600 border-dashed rounded-lg hover:border-emerald-400 transition-colors cursor-pointer"
+                        x-on:click="$refs.additionalDocumentInput.click()"
+                    >
                         <div class="space-y-1 text-center">
                             <svg class="mx-auto size-12 text-zinc-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
                                 <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                             </svg>
                             <div class="flex text-sm text-zinc-600 dark:text-zinc-400 justify-center">
-                                <label for="additional_document" class="relative cursor-pointer rounded-md font-medium text-emerald-600 hover:text-emerald-500 focus-within:outline-none">
-                                    <span>Click to Upload or Drag n Drop</span>
-                                    <input id="additional_document" wire:model="additional_document" type="file" class="sr-only" accept=".jpg,.jpeg,.png,.pdf">
-                                </label>
+                                <span class="font-medium text-emerald-600 hover:text-emerald-500 dark:text-emerald-400">Click to Upload</span>
+                                <span class="pl-1">or drag and drop</span>
                             </div>
-                            <p class="text-xs text-zinc-500 dark:text-zinc-400">Allowed formats: png, jpg, jpeg and PDF</p>
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400">Allowed formats: PNG, JPG, JPEG and PDF (max 10MB)</p>
                             @if($additional_document)
-                                <p class="text-sm text-emerald-600">{{ $additional_document->getClientOriginalName() }}</p>
+                                <p class="text-sm text-emerald-600 dark:text-emerald-400 mt-2">{{ $additional_document->getClientOriginalName() }}</p>
                             @endif
+                            <div wire:loading wire:target="additional_document" class="mt-2">
+                                <div class="flex items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400">
+                                    <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span class="text-sm">Uploading...</span>
+                                </div>
+                            </div>
                         </div>
+                        <input x-ref="additionalDocumentInput" id="additional_document" wire:model="additional_document" type="file" class="sr-only" accept=".jpg,.jpeg,.png,.pdf">
                     </div>
                     @error('additional_document') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                 </div>

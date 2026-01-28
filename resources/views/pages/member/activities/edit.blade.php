@@ -106,15 +106,20 @@ new class extends Component {
         ]);
 
         // Handle file uploads if new files provided
+        // Use R2 if configured, otherwise use local disk (storage/app/private)
+        $disk = config('filesystems.disks.r2.key') ? 'r2' : 'local';
+        
         if ($this->proof_document) {
-            $proofPath = $this->proof_document->store('activities/' . auth()->id() . '/proof', 'private');
+            $proofPath = $this->proof_document->store('activities/' . auth()->id() . '/proof', $disk);
+            // TODO: Link to activity via evidence_document_id when document management is implemented
         }
 
         // Sync activity tags
         $this->activity->tags()->sync($this->activity_tag_ids);
 
         if ($this->additional_document) {
-            $additionalPath = $this->additional_document->store('activities/' . auth()->id() . '/additional', 'private');
+            $additionalPath = $this->additional_document->store('activities/' . auth()->id() . '/additional', $disk);
+            // TODO: Link to activity via additional_document_id when document management is implemented
         }
 
         session()->flash('success', 'Activity updated successfully.');
