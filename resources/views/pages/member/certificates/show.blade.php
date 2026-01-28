@@ -10,12 +10,17 @@ new class extends Component {
 
     public function mount(Certificate $certificate): void
     {
-        // Ensure user can only view their own certificates
-        if ($certificate->user_id !== Auth::id()) {
-            abort(403);
+        $user = Auth::user();
+        
+        // Allow dev, owner, and admin to view any certificate
+        // Members can only view their own certificates
+        if (!$user->isDeveloper() && !$user->isOwner() && !$user->isAdmin()) {
+            if ($certificate->user_id !== $user->id) {
+                abort(403);
+            }
         }
 
-        $this->certificate = $certificate->load(['certificateType', 'membership.type', 'issuer']);
+        $this->certificate = $certificate->load(['certificateType', 'membership.type', 'issuer', 'user']);
     }
 
     #[Computed]
@@ -30,7 +35,17 @@ new class extends Component {
         {{-- Header --}}
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex items-center gap-4">
-                <a href="{{ route('certificates.index') }}" wire:navigate
+                @php
+                    $backRoute = 'certificates.index';
+                    if (auth()->user()->isDeveloper()) {
+                        $backRoute = 'developer.certificates.index';
+                    } elseif (auth()->user()->isOwner()) {
+                        $backRoute = 'owner.certificates.index';
+                    } elseif (auth()->user()->isAdmin()) {
+                        $backRoute = 'admin.certificates.index';
+                    }
+                @endphp
+                <a href="{{ route($backRoute) }}" wire:navigate
                    class="inline-flex items-center gap-1 text-sm text-zinc-600 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                     Back
@@ -38,6 +53,9 @@ new class extends Component {
                 <div>
                     <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">{{ $this->certificate->certificateType->name }}</h1>
                     <p class="font-mono text-zinc-500">{{ $this->certificate->certificate_number }}</p>
+                    @if((auth()->user()->isDeveloper() || auth()->user()->isOwner() || auth()->user()->isAdmin()) && $this->certificate->user)
+                        <p class="text-sm text-zinc-600 dark:text-zinc-400 mt-1">Member: {{ $this->certificate->user->name }}</p>
+                    @endif
                 </div>
             </div>
             @if($this->certificate->isValid())
@@ -85,7 +103,7 @@ new class extends Component {
                             {{-- Certificate Body --}}
                             <div class="mb-8 text-center">
                                 <p class="text-zinc-600 dark:text-zinc-400">This is to certify that</p>
-                                <h3 class="text-2xl font-bold my-3 text-zinc-900 dark:text-white">{{ Auth::user()->name }}</h3>
+                                <h3 class="text-2xl font-bold my-3 text-zinc-900 dark:text-white">{{ $this->certificate->user->name }}</h3>
                                 <p class="text-zinc-600 dark:text-zinc-400">
                                     is a registered member of NRAPA
                                     @if($this->certificate->membership)

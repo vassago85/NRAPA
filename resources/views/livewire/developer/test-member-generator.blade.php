@@ -99,4 +99,62 @@
             </div>
         </div>
     </div>
+
+    {{-- Recently Generated Members --}}
+    @if($this->recentMembers->count() > 0)
+    <div class="mt-6 border-t border-zinc-200 dark:border-zinc-700 pt-6">
+        <div class="flex items-center justify-between mb-4">
+            <h4 class="text-sm font-semibold text-zinc-900 dark:text-white">Recently Generated Members</h4>
+            <button wire:click="clearRecentMembers" 
+                    class="text-xs text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200">
+                Clear List
+            </button>
+        </div>
+        <div class="space-y-2 max-h-64 overflow-y-auto">
+            @foreach($this->recentMembers as $member)
+                <div class="flex items-center justify-between gap-3 p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-zinc-900 dark:text-white truncate">{{ $member['name'] }}</p>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400 truncate">{{ $member['email'] }}</p>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium 
+                                @if($member['stage'] === 'new') bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300
+                                @elseif($member['stage'] === 'applied') bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300
+                                @elseif($member['stage'] === 'approved') bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300
+                                @elseif($member['stage'] === 'active') bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300
+                                @elseif($member['stage'] === 'dedicated') bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300
+                                @else bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300
+                                @endif">
+                                {{ $member['stage_label'] }}
+                            </span>
+                            <span class="text-xs text-zinc-400 dark:text-zinc-500">
+                                {{ \Carbon\Carbon::parse($member['created_at'])->diffForHumans() }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        @php
+                            $user = \App\Models\User::find($member['id']);
+                        @endphp
+                        @if($user)
+                            <a href="{{ route('dev.impersonate', $user) }}" 
+                               class="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+                                </svg>
+                                Login
+                            </a>
+                            <a href="{{ route('admin.members.show', $user) }}" wire:navigate
+                               class="px-3 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600 rounded-lg transition-colors">
+                                View
+                            </a>
+                        @else
+                            <span class="text-xs text-zinc-400">User deleted</span>
+                        @endif
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
 </div>

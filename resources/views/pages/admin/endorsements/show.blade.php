@@ -92,7 +92,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
         $this->request->refresh();
     }
 
-    public function issueEndorsement(): void
+    public function approveEndorsement(): void
     {
         // If member is NOT fully compliant, require a reason/comment
         if (!$this->isFullyCompliant) {
@@ -104,6 +104,44 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             ]);
         }
 
+        // Approve the request (allows letter generation)
+        $this->request->approve(auth()->user(), $this->adminNotes);
+
+        // Build admin notes with compliance info if non-compliant
+        $notes = $this->adminNotes;
+        if (!$this->isFullyCompliant && $this->approvalReason) {
+            $complianceNote = "[APPROVED DESPITE NON-COMPLIANCE] Reason: " . $this->approvalReason;
+            $notes = $notes ? $notes . "\n\n" . $complianceNote : $complianceNote;
+            $this->request->update(['admin_notes' => $notes]);
+        }
+        
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'endorsement_approved',
+            'auditable_type' => EndorsementRequest::class,
+            'auditable_id' => $this->request->id,
+            'old_values' => ['status' => $this->request->getOriginal('status')],
+            'new_values' => [
+                'status' => 'approved',
+                'fully_compliant' => $this->isFullyCompliant,
+                'approval_reason' => $this->approvalReason ?: null,
+            ],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+
+        session()->flash('success', 'Endorsement request approved. You can now generate the letter.');
+        $this->request->refresh();
+    }
+
+    public function issueEndorsement(): void
+    {
+        // Can only issue if request is approved
+        if (!$this->request->isApproved()) {
+            session()->flash('error', 'Request must be approved before letter can be issued.');
+            return;
+        }
+
         // Generate letter reference
         $letterReference = EndorsementRequest::generateLetterReference();
         
@@ -111,29 +149,16 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
         $letterPath = null; // Will implement PDF generation later
 
         $this->request->issue(auth()->user(), $letterReference, $letterPath);
-
-        // Build admin notes with compliance info if non-compliant
-        $notes = $this->adminNotes;
-        if (!$this->isFullyCompliant && $this->approvalReason) {
-            $complianceNote = "[APPROVED DESPITE NON-COMPLIANCE] Reason: " . $this->approvalReason;
-            $notes = $notes ? $notes . "\n\n" . $complianceNote : $complianceNote;
-        }
-
-        if ($notes) {
-            $this->request->update(['admin_notes' => $notes]);
-        }
         
         AuditLog::create([
             'user_id' => auth()->id(),
             'action' => 'endorsement_issued',
             'auditable_type' => EndorsementRequest::class,
             'auditable_id' => $this->request->id,
-            'old_values' => ['status' => 'under_review'],
+            'old_values' => ['status' => 'approved'],
             'new_values' => [
                 'status' => 'issued', 
                 'letter_reference' => $letterReference,
-                'fully_compliant' => $this->isFullyCompliant,
-                'approval_reason' => $this->approvalReason ?: null,
             ],
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
@@ -594,7 +619,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                         </button>
                     @endif
 
-                    @if(in_array($request->status, ['submitted', 'under_review']))
+                    @if(in_array($request->status, ['submitted', 'under_review', 'pending_documents']))
                         <div>
                             <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Admin Notes</label>
                             <textarea wire:model="adminNotes" rows="3"
@@ -630,24 +655,55 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                             </div>
                         @endif
 
-                        <button wire:click="issueEndorsement"
-                            wire:confirm="Are you sure you want to issue this endorsement letter?{{ !$this->isFullyCompliant ? ' The member is NOT fully compliant.' : '' }}"
-                            class="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            Issue Endorsement
-                        </button>
+                        {{-- Show Approve button if under review or pending documents --}}
+                        @if(in_array($request->status, ['under_review', 'pending_documents']))
+                            <button wire:click="approveEndorsement"
+                                wire:confirm="Are you sure you want to approve this endorsement request?{{ !$this->isFullyCompliant ? ' The member is NOT fully compliant.' : '' }}"
+                                class="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 mb-3">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Approve Request
+                            </button>
+                        @endif
 
-                        <button wire:click="requestMoreDocuments"
-                            class="w-full px-4 py-2 border border-amber-500 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors">
-                            Request More Documents
-                        </button>
+                        {{-- Show Issue button only if approved --}}
+                        @if($request->isApproved())
+                            <button wire:click="issueEndorsement"
+                                wire:confirm="Are you sure you want to generate and issue this endorsement letter?"
+                                class="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 mb-3">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                Generate & Issue Letter
+                            </button>
+                        @endif
 
-                        <button wire:click="$set('showRejectModal', true)"
-                            class="w-full px-4 py-2 border border-red-500 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
-                            Reject Request
-                        </button>
+                        {{-- Show other action buttons only if not approved/issued --}}
+                        @if(!$request->isApproved() && !$request->isIssued())
+                            <button wire:click="requestMoreDocuments"
+                                class="w-full px-4 py-2 border border-amber-500 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors mb-2">
+                                Request More Documents
+                            </button>
+
+                            <button wire:click="$set('showRejectModal', true)"
+                                class="w-full px-4 py-2 border border-red-500 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+                                Reject Request
+                            </button>
+                        @endif
+                    @endif
+
+                    {{-- Show approved status --}}
+                    @if($request->isApproved() && !$request->isIssued())
+                        <div class="text-center py-4 border-t border-zinc-200 dark:border-zinc-700 mt-4">
+                            <div class="w-16 h-16 mx-auto bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-4">
+                                <svg class="w-8 h-8 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <p class="text-emerald-600 dark:text-emerald-400 font-semibold">Request Approved</p>
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Ready for letter generation</p>
+                        </div>
                     @endif
 
                     @if($request->isIssued())

@@ -113,7 +113,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 // Member Portal Routes - Requires ACTIVE membership (paid members only)
 Route::middleware(['auth', 'verified', 'membership.required'])->group(function () {
-    // Certificates
+    // Certificates (members only - requires active membership)
     Route::livewire('certificates', 'pages::member.certificates.index')->name('certificates.index');
     Route::livewire('certificates/{certificate}', 'pages::member.certificates.show')->name('certificates.show');
 
@@ -203,6 +203,10 @@ Route::middleware(['auth', 'verified', 'developer'])->prefix('developer')->name(
     Route::livewire('dashboard', 'pages::developer.dashboard')->name('dashboard');
     Route::livewire('owners', 'pages::developer.owners.index')->name('owners.index');
     Route::livewire('owners/nominate', 'pages::developer.owners.create')->name('owners.create');
+    
+    // Certificates (developer can view all certificates)
+    Route::livewire('certificates', 'pages::member.certificates.index')->name('certificates.index');
+    Route::livewire('certificates/{certificate}', 'pages::member.certificates.show')->name('certificates.show');
 });
 
 // Admin Routes
@@ -210,6 +214,10 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::livewire('dashboard', 'pages::admin.dashboard')->name('dashboard');
     Route::livewire('members', 'pages::admin.members.index')->name('members.index');
     Route::livewire('members/{user}', 'pages::admin.members.show')->name('members.show');
+    
+    // Certificates (admin can view all certificates)
+    Route::livewire('certificates', 'pages::member.certificates.index')->name('certificates.index');
+    Route::livewire('certificates/{certificate}', 'pages::member.certificates.show')->name('certificates.show');
     
     // Membership Types Management
     Route::livewire('membership-types', 'pages::admin.membership-types.index')->name('membership-types.index');

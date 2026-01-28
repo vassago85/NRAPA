@@ -16,6 +16,14 @@ new #[Title('Certificates & Endorsements')] class extends Component {
     #[Computed]
     public function certificates()
     {
+        // Dev, owner, and admin can view all certificates
+        // Members can only view their own
+        if ($this->user->isDeveloper() || $this->user->isOwner() || $this->user->isAdmin()) {
+            return \App\Models\Certificate::with(['certificateType', 'membership.type', 'user'])
+                ->latest('issued_at')
+                ->get();
+        }
+        
         return $this->user->certificates()
             ->with(['certificateType', 'membership.type'])
             ->latest('issued_at')
@@ -39,7 +47,11 @@ new #[Title('Certificates & Endorsements')] class extends Component {
     <div class="flex flex-col gap-2">
         <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Certificates & Endorsements</h1>
         <p class="text-zinc-600 dark:text-zinc-400">
-            View and download your NRAPA membership certificates and endorsement letters.
+            @if($this->user->isDeveloper() || $this->user->isOwner() || $this->user->isAdmin())
+                View and manage all NRAPA membership certificates and endorsement letters.
+            @else
+                View and download your NRAPA membership certificates and endorsement letters.
+            @endif
         </p>
     </div>
 
@@ -84,7 +96,17 @@ new #[Title('Certificates & Endorsements')] class extends Component {
                         </p>
                     </div>
                     <div class="flex gap-2">
-                        <a href="{{ route('certificates.show', $certificate) }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
+                        @php
+                            $showRoute = 'certificates.show';
+                            if ($this->user->isDeveloper()) {
+                                $showRoute = 'developer.certificates.show';
+                            } elseif ($this->user->isOwner()) {
+                                $showRoute = 'owner.certificates.show';
+                            } elseif ($this->user->isAdmin()) {
+                                $showRoute = 'admin.certificates.show';
+                            }
+                        @endphp
+                        <a href="{{ route($showRoute, $certificate) }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
                             <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
@@ -138,6 +160,9 @@ new #[Title('Certificates & Endorsements')] class extends Component {
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Certificate</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Certificate #</th>
+                        @if($this->user->isDeveloper() || $this->user->isOwner() || $this->user->isAdmin())
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Member</th>
+                        @endif
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Issued</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Expired/Revoked</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Status</th>
@@ -149,7 +174,21 @@ new #[Title('Certificates & Endorsements')] class extends Component {
                     <tr class="opacity-60 hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
                         <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-900 dark:text-white">{{ $certificate->certificateType->name }}</td>
                         <td class="whitespace-nowrap px-6 py-4 font-mono text-sm text-zinc-900 dark:text-white">{{ $certificate->certificate_number }}</td>
+                        @if($this->user->isDeveloper() || $this->user->isOwner() || $this->user->isAdmin())
+                        <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-900 dark:text-white">
+                            {{ $certificate->user->name ?? 'N/A' }}
+                        </td>
+                        @endif
                         <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">{{ $certificate->issued_at->format('d M Y') }}</td>
+                        <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">
+                            @if($certificate->revoked_at)
+                                {{ $certificate->revoked_at->format('d M Y') }}
+                            @elseif($certificate->valid_until)
+                                {{ $certificate->valid_until->format('d M Y') }}
+                            @else
+                                -
+                            @endif
+                        </td>
                         <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">
                             @if($certificate->revoked_at)
                                 {{ $certificate->revoked_at->format('d M Y') }}
@@ -167,7 +206,17 @@ new #[Title('Certificates & Endorsements')] class extends Component {
                             @endif
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-sm">
-                            <a href="{{ route('certificates.show', $certificate) }}" wire:navigate class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+                            @php
+                                $showRoute = 'certificates.show';
+                                if ($this->user->isDeveloper()) {
+                                    $showRoute = 'developer.certificates.show';
+                                } elseif ($this->user->isOwner()) {
+                                    $showRoute = 'owner.certificates.show';
+                                } elseif ($this->user->isAdmin()) {
+                                    $showRoute = 'admin.certificates.show';
+                                }
+                            @endphp
+                            <a href="{{ route($showRoute, $certificate) }}" wire:navigate class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
                                 View
                             </a>
                         </td>

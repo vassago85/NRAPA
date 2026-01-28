@@ -26,7 +26,8 @@ class EndorsementRequest extends Model
     public const STATUS_SUBMITTED = 'submitted';
     public const STATUS_UNDER_REVIEW = 'under_review';
     public const STATUS_PENDING_DOCUMENTS = 'pending_documents';
-    public const STATUS_ISSUED = 'issued';
+    public const STATUS_APPROVED = 'approved'; // Approved but letter not yet generated
+    public const STATUS_ISSUED = 'issued'; // Letter generated/issued
     public const STATUS_REJECTED = 'rejected';
     public const STATUS_CANCELLED = 'cancelled';
 
@@ -345,6 +346,7 @@ class EndorsementRequest extends Model
             self::STATUS_SUBMITTED => 'Submitted',
             self::STATUS_UNDER_REVIEW => 'Under Review',
             self::STATUS_PENDING_DOCUMENTS => 'Pending Documents',
+            self::STATUS_APPROVED => 'Approved',
             self::STATUS_ISSUED => 'Issued',
             self::STATUS_REJECTED => 'Rejected',
             self::STATUS_CANCELLED => 'Cancelled',
@@ -427,6 +429,14 @@ class EndorsementRequest extends Model
             self::STATUS_UNDER_REVIEW,
             self::STATUS_PENDING_DOCUMENTS,
         ]);
+    }
+
+    /**
+     * Check if request is approved (ready for letter generation).
+     */
+    public function isApproved(): bool
+    {
+        return $this->status === self::STATUS_APPROVED;
     }
 
     /**
@@ -641,10 +651,31 @@ class EndorsementRequest extends Model
     }
 
     /**
-     * Issue the endorsement letter.
+     * Approve the endorsement request (allows letter generation).
+     */
+    public function approve(User $admin, ?string $notes = null): void
+    {
+        $this->update([
+            'status' => self::STATUS_APPROVED,
+            'reviewed_at' => now(),
+            'reviewer_id' => $admin->id,
+        ]);
+
+        if ($notes) {
+            $this->update(['admin_notes' => $notes]);
+        }
+    }
+
+    /**
+     * Issue the endorsement letter (can only be called on approved requests).
      */
     public function issue(User $admin, string $letterReference, ?string $letterPath = null): void
     {
+        // Ensure request is approved before issuing letter
+        if ($this->status !== self::STATUS_APPROVED) {
+            throw new \Exception('Endorsement request must be approved before letter can be issued.');
+        }
+
         $this->update([
             'status' => self::STATUS_ISSUED,
             'issued_at' => now(),
@@ -794,6 +825,7 @@ class EndorsementRequest extends Model
             self::STATUS_SUBMITTED => 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
             self::STATUS_UNDER_REVIEW => 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
             self::STATUS_PENDING_DOCUMENTS => 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+            self::STATUS_APPROVED => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300',
             self::STATUS_ISSUED => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
             self::STATUS_REJECTED => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
             self::STATUS_CANCELLED => 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400',

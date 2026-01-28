@@ -92,10 +92,10 @@ class TestMemberGenerator extends Component
                         $this->createCertificates($user, $membership, $developer);
                     }
                     if ($this->withFirearms) {
-                        // TODO: Add firearm creation
+                        $this->createTestFirearms($user);
                     }
                     if ($this->withEndorsements) {
-                        // TODO: Add endorsement request creation
+                        $this->createEndorsementRequests($user);
                     }
                     break;
             }
@@ -103,11 +103,38 @@ class TestMemberGenerator extends Component
 
         session()->flash('success', "Generated {$this->count} test member(s) in '{$this->stages[$this->stage]}' stage.");
         
+        // Store generated members in session for display
+        $recentMembers = session('recent_test_members', []);
+        foreach ($generated as $user) {
+            array_unshift($recentMembers, [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'stage' => $this->stage,
+                'stage_label' => $this->stages[$this->stage],
+                'created_at' => now()->toDateTimeString(),
+            ]);
+        }
+        // Keep only last 20
+        $recentMembers = array_slice($recentMembers, 0, 20);
+        session(['recent_test_members' => $recentMembers]);
+        
         if (count($generated) === 1) {
             return $this->redirect(route('admin.members.show', $generated[0]), navigate: true);
         }
         
         $this->dispatch('members-generated', count: count($generated));
+    }
+    
+    public function getRecentMembersProperty()
+    {
+        return collect(session('recent_test_members', []));
+    }
+    
+    public function clearRecentMembers()
+    {
+        session()->forget('recent_test_members');
+        session()->flash('success', 'Recent test members list cleared.');
     }
 
     protected function createTestUser(int $index): User
@@ -315,6 +342,62 @@ class TestMemberGenerator extends Component
                 'valid_until' => $certificateType->validity_months
                     ? now()->addMonths($certificateType->validity_months)
                     : $membership->expires_at,
+            ]);
+        }
+    }
+
+    protected function createTestFirearms(User $user): void
+    {
+        // Create a test firearm in the virtual safe
+        $calibre = \App\Models\Calibre::where('category', 'rifle')->first();
+        
+        if (!$calibre) {
+            return;
+        }
+
+        $firearm = \App\Models\UserFirearm::create([
+            'uuid' => Str::uuid()->toString(),
+            'user_id' => $user->id,
+            'firearm_type' => 'rifle',
+            'action' => 'manual',
+            'calibre_id' => $calibre->id,
+            'calibre_code' => $calibre->code ?? null,
+            'make' => 'Test Make',
+            'model' => 'Test Model ' . rand(1000, 9999),
+        ]);
+
+        // Add receiver component with serial
+        \App\Models\FirearmComponent::create([
+            'user_firearm_id' => $firearm->id,
+            'type' => 'receiver',
+            'serial' => 'TEST-' . strtoupper(Str::random(8)),
+        ]);
+    }
+
+    protected function createEndorsementRequests(User $user): void
+    {
+        // Create a test endorsement request
+        $endorsementRequest = \App\Models\EndorsementRequest::create([
+            'uuid' => Str::uuid()->toString(),
+            'user_id' => $user->id,
+            'request_type' => 'new',
+            'status' => 'submitted',
+            'purpose' => 'section_16_application',
+            'declaration_accepted_at' => now()->subDays(2),
+            'submitted_at' => now()->subDays(2),
+        ]);
+
+        // Add firearm details to the endorsement
+        $firearm = $user->firearms()->first();
+        if ($firearm) {
+            \App\Models\EndorsementFirearm::create([
+                'endorsement_request_id' => $endorsementRequest->id,
+                'user_firearm_id' => $firearm->id,
+                'firearm_type' => $firearm->firearm_type,
+                'action' => $firearm->action,
+                'calibre_id' => $firearm->calibre_id,
+                'make' => $firearm->make,
+                'model' => $firearm->model,
             ]);
         }
     }

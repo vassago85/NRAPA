@@ -219,7 +219,8 @@ new class extends Component {
                 <h3 class="font-semibold text-emerald-800 dark:text-emerald-200">Test Data Generation</h3>
             </div>
             <p class="text-sm text-emerald-700 dark:text-emerald-300 mb-4">
-                Generate test members in various stages to test the complete membership workflow, endorsement letters, and certificates.
+                Generate test members in various stages to test the complete membership workflow, endorsement letters, and certificates. 
+                After generation, you can quickly login as any test member to test their experience.
             </p>
         </div>
         @livewire('developer.test-member-generator')

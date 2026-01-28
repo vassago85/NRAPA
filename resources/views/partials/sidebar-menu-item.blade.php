@@ -5,6 +5,10 @@
     $hasAccess = \App\Helpers\SidebarMenu::userCanAccess($item);
     
     $route = $item['route'] ?? null;
+    // Handle callable routes (for dynamic route selection)
+    if (is_callable($route)) {
+        $route = $route();
+    }
     $routeParams = $item['route_params'] ?? null;
     $isActive = $hasAccess && $route ? \App\Helpers\SidebarMenu::isRouteActive($route, $routeParams) : false;
     $hasChildren = !empty($item['children'] ?? []);
@@ -80,6 +84,10 @@
             @foreach($item['children'] as $child)
                 @php
                     $childRoute = $child['route'] ?? null;
+                    // Handle callable routes (for dynamic route selection)
+                    if (is_callable($childRoute)) {
+                        $childRoute = $childRoute();
+                    }
                     $childParams = $child['route_params'] ?? null;
                     $childActive = $childRoute ? \App\Helpers\SidebarMenu::isRouteActive($childRoute, $childParams) : false;
                     $childIcon = $child['icon'] ?? null;

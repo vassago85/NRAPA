@@ -70,7 +70,13 @@ class SidebarMenu
             ],
             [
                 'label' => 'Certificates',
-                'route' => 'certificates.index',
+                'route' => $user->isDeveloper() 
+                    ? 'developer.certificates.index' 
+                    : ($user->isOwner() 
+                        ? 'owner.certificates.index' 
+                        : ($user->isAdmin() 
+                            ? 'admin.certificates.index' 
+                            : 'certificates.index')),
                 'icon' => 'badge-check',
             ],
         ];
@@ -336,6 +342,27 @@ class SidebarMenu
      */
     public static function isRouteActive(string $route, ?array $params = null): bool
     {
+        // Check if any of the certificate routes match (for cross-route highlighting)
+        $certificateRoutes = [
+            'certificates.index',
+            'certificates.show',
+            'admin.certificates.index',
+            'admin.certificates.show',
+            'owner.certificates.index',
+            'owner.certificates.show',
+            'developer.certificates.index',
+            'developer.certificates.show',
+        ];
+        
+        // If checking a certificate route, also check if current route is any certificate route
+        if (in_array($route, $certificateRoutes)) {
+            foreach ($certificateRoutes as $certRoute) {
+                if (request()->routeIs($certRoute)) {
+                    return true;
+                }
+            }
+        }
+        
         if (!request()->routeIs($route)) {
             return false;
         }
