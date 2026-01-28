@@ -224,9 +224,12 @@ new class extends Component {
         // Reset activity type when track changes
         $this->activity_type_id = null;
         $this->activity_tag_ids = [];
+        
+        // Force refresh of computed properties
+        $this->dispatch('$refresh');
     }
 
-    #[Computed]
+    #[Computed(persist: false)]
     public function activityTypes()
     {
         if (!$this->track) {
@@ -234,8 +237,9 @@ new class extends Component {
         }
 
         return ActivityType::active()
-            ->forTrack($this->track)
-            ->ordered()
+            ->where('track', $this->track)
+            ->orderBy('sort_order')
+            ->orderBy('name')
             ->get();
     }
 
@@ -326,9 +330,14 @@ new class extends Component {
                     <label for="activity_type_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Activity Type <span class="text-red-500">*</span></label>
                     <select id="activity_type_id" wire:model="activity_type_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500" @disabled(!$track)>
                         <option value="">Select Activity Type</option>
-                        @foreach($this->activityTypes as $type)
-                            <option value="{{ $type->id }}">{{ $type->name }}</option>
-                        @endforeach
+                        @if($track)
+                            @foreach($this->activityTypes as $type)
+                                <option value="{{ $type->id }}">{{ $type->name }}</option>
+                            @endforeach
+                            @if($this->activityTypes->isEmpty())
+                                <option value="" disabled>No activity types available for {{ $track === 'hunting' ? 'Hunting' : 'Sport Shooting' }} track</option>
+                            @endif
+                        @endif
                     </select>
                     @error('activity_type_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                 </div>
