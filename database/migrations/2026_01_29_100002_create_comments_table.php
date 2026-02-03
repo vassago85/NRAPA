@@ -11,12 +11,23 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('comments')) {
+            // Check if table has the required columns (indicates it was already migrated)
+            if (Schema::hasColumn('comments', 'commentable_type') && 
+                Schema::hasColumn('comments', 'commentable_id')) {
+                // Table exists with correct structure, skip migration
+                return;
+            }
+            // Table exists but missing columns, drop and recreate
+            Schema::dropIfExists('comments');
+        }
+
         Schema::create('comments', function (Blueprint $table) {
             $table->id();
             $table->uuid('uuid')->unique();
             
             // Polymorphic relationship
-            $table->morphs('commentable'); // commentable_type, commentable_id
+            $table->morphs('commentable'); // commentable_type, commentable_id (morphs() creates index automatically)
             
             // Author
             $table->foreignId('author_id')->constrained('users');
@@ -38,7 +49,7 @@ return new class extends Migration
             $table->softDeletes();
             
             // Indexes
-            $table->index(['commentable_type', 'commentable_id']);
+            // Note: morphs() already creates an index on commentable_type and commentable_id
             $table->index('author_id');
             $table->index('visibility');
         });
