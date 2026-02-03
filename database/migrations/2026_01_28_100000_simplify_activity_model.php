@@ -20,53 +20,71 @@ return new class extends Migration
     public function up(): void
     {
         // Update activity_types table
-        Schema::table('activity_types', function (Blueprint $table) {
-            // Add new fields
-            $table->enum('track', ['hunting', 'sport'])->nullable()->after('description');
-            $table->string('group')->nullable()->after('track'); // UI-only grouping (e.g., "Training", "Competitions", "Hunting")
+        if (Schema::hasTable('activity_types')) {
+            // Check columns before modifying table
+            $hasTrack = Schema::hasColumn('activity_types', 'track');
+            $hasGroup = Schema::hasColumn('activity_types', 'group');
             
-            // Keep dedicated_type for now (we'll migrate data then drop it)
-        });
+            if (!$hasTrack || !$hasGroup) {
+                Schema::table('activity_types', function (Blueprint $table) use ($hasTrack, $hasGroup) {
+                    // Add new fields only if they don't exist
+                    if (!$hasTrack) {
+                        $table->enum('track', ['hunting', 'sport'])->nullable()->after('description');
+                    }
+                    if (!$hasGroup) {
+                        $table->string('group')->nullable()->after('track'); // UI-only grouping (e.g., "Training", "Competitions", "Hunting")
+                    }
+                });
+            }
 
-        // Migrate existing dedicated_type to track
-        DB::statement("
-            UPDATE activity_types 
-            SET track = CASE 
-                WHEN dedicated_type = 'hunter' THEN 'hunting'
-                WHEN dedicated_type = 'sport_shooter' THEN 'sport'
-                WHEN dedicated_type = 'both' THEN NULL  -- These will need manual review
-                ELSE NULL
-            END
-        ");
+            // Migrate existing dedicated_type to track (only if track column exists and has NULL values)
+            if (Schema::hasColumn('activity_types', 'dedicated_type') && Schema::hasColumn('activity_types', 'track')) {
+                DB::statement("
+                    UPDATE activity_types 
+                    SET track = CASE 
+                        WHEN dedicated_type = 'hunter' AND track IS NULL THEN 'hunting'
+                        WHEN dedicated_type = 'sport_shooter' AND track IS NULL THEN 'sport'
+                        WHEN dedicated_type = 'both' AND track IS NULL THEN NULL  -- These will need manual review
+                        ELSE track
+                    END
+                ");
+            }
+        }
 
         // Create activity_tags table (optional tags like PRS, IPSC, IDPA)
-        Schema::create('activity_tags', function (Blueprint $table) {
-            $table->id();
-            $table->string('key')->unique(); // e.g., 'prs', 'ipsc', 'idpa'
-            $table->string('label'); // e.g., 'PRS', 'IPSC', 'IDPA'
-            $table->enum('track', ['hunting', 'sport'])->nullable(); // If set, only shown for that track
-            $table->boolean('is_active')->default(true);
-            $table->integer('sort_order')->default(0);
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('activity_tags')) {
+            Schema::create('activity_tags', function (Blueprint $table) {
+                $table->id();
+                $table->string('key')->unique(); // e.g., 'prs', 'ipsc', 'idpa'
+                $table->string('label'); // e.g., 'PRS', 'IPSC', 'IDPA'
+                $table->enum('track', ['hunting', 'sport'])->nullable(); // If set, only shown for that track
+                $table->boolean('is_active')->default(true);
+                $table->integer('sort_order')->default(0);
+                $table->timestamps();
+            });
+        }
 
         // Add track field to shooting_activities (for new records)
-        Schema::table('shooting_activities', function (Blueprint $table) {
-            $table->enum('track', ['hunting', 'sport'])->nullable()->after('activity_type_id');
-            
-            // Keep event_category_id and event_type_id for historical data
-            // They will be nullable and used for data migration/mapping
-        });
+        if (Schema::hasTable('shooting_activities')) {
+            Schema::table('shooting_activities', function (Blueprint $table) {
+                if (!Schema::hasColumn('shooting_activities', 'track')) {
+                    $table->enum('track', ['hunting', 'sport'])->nullable()->after('activity_type_id');
+                }
+            });
+        }
 
         // Create pivot table for activity_tags (many-to-many with shooting_activities)
-        Schema::create('activity_tag_shooting_activity', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('shooting_activity_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('activity_tag_id')->constrained()->cascadeOnDelete();
-            $table->timestamps();
-            
-            $table->unique(['shooting_activity_id', 'activity_tag_id']);
-        });
+        if (!Schema::hasTable('activity_tag_shooting_activity')) {
+            Schema::create('activity_tag_shooting_activity', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('shooting_activity_id')->constrained()->cascadeOnDelete();
+                $table->foreignId('activity_tag_id')->constrained()->cascadeOnDelete();
+                $table->timestamps();
+                
+                // Use shorter name to comply with MySQL's 64-character identifier limit
+                $table->unique(['shooting_activity_id', 'activity_tag_id'], 'at_sa_unique');
+            });
+        }
     }
 
     /**
