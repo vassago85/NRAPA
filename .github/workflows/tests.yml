@@ -51,12 +51,9 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          composer config --global prefer-dist true
-          composer config --global discard-changes true
           composer install --no-interaction --prefer-dist --optimize-autoloader || {
             echo "Composer install failed, checking for errors..."
             composer diagnose
-            composer show --installed 2>&1 | head -20
             exit 1
           }
 
