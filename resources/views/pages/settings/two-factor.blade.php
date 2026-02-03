@@ -35,7 +35,7 @@ new class extends Component {
     public array $securityAnswers = [];
     public bool $isEditingQuestions = false;
 
-    public function mount(DisableTwoFactorAuthentication $disableTwoFactorAuthentication): void
+    public function mount(DisableTwoFactorAuthentication $disableTwoFactorAuthentication, EnableTwoFactorAuthentication $enableTwoFactorAuthentication): void
     {
         abort_unless(Features::enabled(Features::twoFactorAuthentication()), Response::HTTP_FORBIDDEN);
 
@@ -48,6 +48,14 @@ new class extends Component {
         
         // Load security questions
         $this->loadSecurityQuestions();
+
+        // Auto-enable 2FA setup if user has exceeded login limit and can enable 2FA
+        // This ensures users redirected here can immediately see the QR code
+        if (!$this->twoFactorEnabled 
+            && auth()->user()->hasExceeded2FALoginLimit() 
+            && auth()->user()->canEnable2FA()) {
+            $this->enable($enableTwoFactorAuthentication);
+        }
     }
 
     private function loadSecurityQuestions(): void
@@ -188,6 +196,11 @@ new class extends Component {
 
     public function closeModal(): void
     {
+        // Don't allow closing modal if user has exceeded login limit and hasn't enabled 2FA yet
+        if (auth()->user()->hasExceeded2FALoginLimit() && !auth()->user()->hasEnabledTwoFactorAuthentication()) {
+            return;
+        }
+
         $this->reset('code', 'manualSetupKey', 'qrCodeSvg', 'showModal', 'showVerificationStep');
         $this->resetErrorBag();
 
@@ -470,11 +483,11 @@ new class extends Component {
 
                 {{-- Recommended Authenticator Apps --}}
                 <div class="p-4 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-lg">
-                    <h4 class="font-medium text-zinc-900 dark:text-white mb-3">Recommended Authenticator Apps</h4>
+                    <h4 class="font-medium text-zinc-900 dark:text-white mb-3">📱 Recommended Authenticator Apps</h4>
                     <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
-                        You'll need an authenticator app to generate 2FA codes. We recommend these free, secure options:
+                        You'll need an authenticator app to generate 2FA codes. Download one of these free, secure options before enabling 2FA:
                     </p>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                         <div class="flex items-center gap-3 p-3 bg-white dark:bg-zinc-700 rounded-lg border border-zinc-200 dark:border-zinc-600">
                             <div class="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
                                 <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -520,6 +533,12 @@ new class extends Component {
                             </div>
                         </div>
                     </div>
+                    <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <p class="text-xs text-blue-700 dark:text-blue-300">
+                            <strong>How it works:</strong> After enabling 2FA, you'll scan a QR code with your authenticator app. 
+                            On your next login and every login after that, you'll be required to enter the 6-digit code from your app to access your account.
+                        </p>
+                    </div>
                 </div>
 
                 @if(auth()->user()->canEnable2FA())
@@ -540,9 +559,16 @@ new class extends Component {
 
     {{-- 2FA Setup Modal --}}
     @if($showModal)
+        @php
+            $isForced = auth()->user()->hasExceeded2FALoginLimit() && !auth()->user()->hasEnabledTwoFactorAuthentication();
+        @endphp
         <div class="fixed inset-0 z-50 overflow-y-auto" x-data x-init="document.body.classList.add('overflow-hidden')" x-on:remove="document.body.classList.remove('overflow-hidden')">
             <div class="flex min-h-screen items-center justify-center p-4">
-                <div wire:click="closeModal" class="fixed inset-0 bg-black/50"></div>
+                @if(!$isForced)
+                    <div wire:click="closeModal" class="fixed inset-0 bg-black/50 cursor-pointer"></div>
+                @else
+                    <div class="fixed inset-0 bg-black/50"></div>
+                @endif
                 <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6">
                     <div class="space-y-6">
                         <div class="text-center">
@@ -552,9 +578,22 @@ new class extends Component {
 
                         @if ($showVerificationStep)
                             <div class="space-y-4">
+                                <div class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                    <p class="text-xs text-blue-700 dark:text-blue-300 text-center">
+                                        Open your authenticator app and enter the 6-digit code shown there. This code refreshes every 30 seconds.
+                                    </p>
+                                </div>
+                                
                                 <input type="text" wire:model="code" maxlength="6" placeholder="000000"
-                                       class="w-full text-center text-2xl tracking-widest px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500">
+                                       class="w-full text-center text-2xl tracking-widest px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
+                                       autofocus>
                                 @error('code') <p class="text-sm text-red-600 text-center">{{ $message }}</p> @enderror
+
+                                <div class="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                                    <p class="text-xs font-medium text-amber-800 dark:text-amber-200 text-center">
+                                        ⚠️ Remember: On your next login, you will be required to enter a code from your authenticator app to access your account.
+                                    </p>
+                                </div>
 
                                 <div class="flex gap-3">
                                     <button type="button" wire:click="resetVerification"
@@ -568,6 +607,41 @@ new class extends Component {
                                 </div>
                             </div>
                         @else
+                            {{-- Instructions Section --}}
+                            <div class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-4">
+                                <div class="space-y-3">
+                                    <div>
+                                        <p class="text-sm font-medium text-blue-900 dark:text-blue-200 mb-2">📱 Step 1: Install an Authenticator App</p>
+                                        <p class="text-xs text-blue-700 dark:text-blue-300 mb-2">
+                                            You'll need an authenticator app to scan the QR code. We recommend:
+                                        </p>
+                                        <ul class="text-xs text-blue-700 dark:text-blue-300 space-y-1 ml-4 list-disc">
+                                            <li><strong>Google Authenticator</strong> (iOS & Android)</li>
+                                            <li><strong>Microsoft Authenticator</strong> (iOS & Android)</li>
+                                            <li><strong>Authy</strong> (iOS, Android & Desktop)</li>
+                                            <li><strong>1Password</strong> (All platforms)</li>
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-blue-900 dark:text-blue-200 mb-2">🔐 Step 2: Scan the QR Code</p>
+                                        <p class="text-xs text-blue-700 dark:text-blue-300">
+                                            Open your authenticator app and scan the QR code below, or enter the manual setup key.
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-blue-900 dark:text-blue-200 mb-2">✅ Step 3: Verify Setup</p>
+                                        <p class="text-xs text-blue-700 dark:text-blue-300">
+                                            After scanning, click "Continue" and enter the 6-digit code from your app to verify.
+                                        </p>
+                                    </div>
+                                    <div class="pt-2 border-t border-blue-200 dark:border-blue-700">
+                                        <p class="text-xs font-semibold text-blue-900 dark:text-blue-200">
+                                            ⚠️ Important: On your next login, you will be required to enter the 6-digit code from your authenticator app.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="flex justify-center">
                                 <div class="w-48 h-48 bg-white p-2 rounded-lg">
                                     {!! $qrCodeSvg !!}

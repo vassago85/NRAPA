@@ -30,6 +30,11 @@ class Enforce2FAForAdmins
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // Skip 2FA enforcement in local/development environments
+        if (app()->environment(['local', 'development', 'testing'])) {
+            return $next($request);
+        }
+
         $user = $request->user();
 
         if (!$user) {
