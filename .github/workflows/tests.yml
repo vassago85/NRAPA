@@ -67,11 +67,9 @@ jobs:
           composer --version
           echo "=== Git Version ==="
           git --version
-          echo "=== Configuring composer to prefer dist ==="
-          composer config --global prefer-dist true || true
           echo "=== Checking composer.json ==="
           cat composer.json | head -30
-          echo "=== Starting composer install (dist-only) ==="
+          echo "=== Starting composer install (dist-only, using --prefer-dist flag and COMPOSER_PREFER_DIST env) ==="
           composer install --no-interaction --prefer-dist --optimize-autoloader --no-scripts -vvv 2>&1 | tee composer-install.log || {
             echo "=== Composer install failed ==="
             echo "=== Last 50 lines of output ==="
