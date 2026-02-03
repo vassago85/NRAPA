@@ -34,6 +34,12 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Configure Git
+        run: |
+          git config --global --add safe.directory '*'
+          git config --global user.email "ci@github.com"
+          git config --global user.name "GitHub Actions"
+
       - name: Add Flux Credentials Loaded From ENV
         continue-on-error: true
         run: |
@@ -44,7 +50,15 @@ jobs:
           fi
 
       - name: Install Dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+        run: |
+          composer config --global prefer-dist true
+          composer config --global discard-changes true
+          composer install --no-interaction --prefer-dist --optimize-autoloader || {
+            echo "Composer install failed, checking for errors..."
+            composer diagnose
+            composer show --installed 2>&1 | head -20
+            exit 1
+          }
 
       - name: Install Node Dependencies
         run: npm i
