@@ -59,11 +59,24 @@ jobs:
           GIT_ASKPASS: echo
           COMPOSER_DISABLE_XDEBUG_WARN: 1
         run: |
-          composer install --no-interaction --prefer-dist --optimize-autoloader || {
-            echo "Composer install failed, checking for errors..."
-            composer diagnose
+          echo "=== Composer Version ==="
+          composer --version
+          echo "=== Git Version ==="
+          git --version
+          echo "=== Checking composer.json ==="
+          cat composer.json | head -30
+          echo "=== Starting composer install ==="
+          composer install --no-interaction --prefer-dist --optimize-autoloader -vvv 2>&1 | tee composer-install.log || {
+            echo "=== Composer install failed ==="
+            echo "=== Last 50 lines of output ==="
+            tail -50 composer-install.log || true
+            echo "=== Composer diagnose ==="
+            composer diagnose || true
+            echo "=== Checking for git-related packages ==="
+            composer show --installed 2>&1 | grep -i git || echo "No git packages found"
             exit 1
           }
+          echo "=== Composer install succeeded ==="
 
       - name: Install Node Dependencies
         run: npm i
@@ -75,7 +88,15 @@ jobs:
         run: php artisan key:generate
 
       - name: Build Assets
-        run: npm run build
+        run: |
+          echo "=== Node Version ==="
+          node --version
+          echo "=== NPM Version ==="
+          npm --version
+          echo "=== Checking if vendor directory exists ==="
+          ls -la vendor/livewire 2>&1 || echo "vendor/livewire directory not found"
+          echo "=== Starting build ==="
+          npm run build
 
       - name: Run Tests
         run: ./vendor/bin/pest
