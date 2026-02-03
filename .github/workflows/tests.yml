@@ -53,20 +53,26 @@ jobs:
             echo "Flux credentials not set, skipping..."
           fi
 
+      - name: Clear Composer Cache
+        run: composer clear-cache || true
+
       - name: Install Dependencies
         env:
           GIT_TERMINAL_PROMPT: 0
           GIT_ASKPASS: echo
           COMPOSER_DISABLE_XDEBUG_WARN: 1
+          COMPOSER_PREFER_DIST: 1
         run: |
           echo "=== Composer Version ==="
           composer --version
           echo "=== Git Version ==="
           git --version
+          echo "=== Configuring composer to prefer dist ==="
+          composer config --global prefer-dist true || true
           echo "=== Checking composer.json ==="
           cat composer.json | head -30
-          echo "=== Starting composer install ==="
-          composer install --no-interaction --prefer-dist --optimize-autoloader -vvv 2>&1 | tee composer-install.log || {
+          echo "=== Starting composer install (dist-only) ==="
+          composer install --no-interaction --prefer-dist --optimize-autoloader --no-scripts -vvv 2>&1 | tee composer-install.log || {
             echo "=== Composer install failed ==="
             echo "=== Last 50 lines of output ==="
             tail -50 composer-install.log || true
@@ -76,6 +82,8 @@ jobs:
             composer show --installed 2>&1 | grep -i git || echo "No git packages found"
             exit 1
           }
+          echo "=== Running composer scripts ==="
+          composer run-script post-autoload-dump || true
           echo "=== Composer install succeeded ==="
 
       - name: Install Node Dependencies
