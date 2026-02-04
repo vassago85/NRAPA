@@ -50,10 +50,10 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Assets are pre-built and included in the repo - no need to run npm build
 
-# Set permissions
+# Set permissions (775 for storage to allow write access)
 RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html/storage \
-    && chmod -R 755 /var/www/html/bootstrap/cache
+    && chmod -R 775 /var/www/html/storage \
+    && chmod -R 775 /var/www/html/bootstrap/cache
 
 # Copy configuration files
 COPY docker/nginx.conf /etc/nginx/nginx.conf
