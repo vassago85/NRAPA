@@ -53,7 +53,7 @@ class CalibreRequest extends Model
      */
     public function calibre(): BelongsTo
     {
-        return $this->belongsTo(Calibre::class);
+        return $this->belongsTo(FirearmCalibre::class, 'calibre_id');
     }
 
     // ===== Scopes =====
@@ -87,11 +87,23 @@ class CalibreRequest extends Model
 
     public function getCategoryLabelAttribute(): string
     {
-        return Calibre::getCategoryOptions()[$this->category] ?? ucfirst($this->category);
+        return match($this->category) {
+            'handgun' => 'Handgun',
+            'rifle' => 'Rifle',
+            'shotgun' => 'Shotgun',
+            'muzzleloader' => 'Muzzleloader',
+            'historic' => 'Historic',
+            'other' => 'Other',
+            default => ucfirst($this->category ?? 'Unknown'),
+        };
     }
 
     public function getIgnitionTypeLabelAttribute(): string
     {
-        return Calibre::getIgnitionTypeOptions()[$this->ignition_type] ?? ucfirst($this->ignition_type);
+        return match($this->ignition_type) {
+            'rimfire' => 'Rimfire',
+            'centerfire' => 'Centerfire',
+            default => ucfirst($this->ignition_type ?? 'Unknown'),
+        };
     }
 }

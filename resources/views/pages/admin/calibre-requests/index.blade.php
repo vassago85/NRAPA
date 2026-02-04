@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\Calibre;
 use App\Models\CalibreRequest;
+use App\Models\FirearmCalibre;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -65,27 +65,28 @@ new #[Layout('layouts.app.sidebar')] #[Title('Calibre Requests')] class extends 
 
         $this->validate([
             'editName' => 'required|string|min:2|max:100',
-            'editCategory' => 'required|in:handgun,rifle,shotgun,other',
+            'editCategory' => 'required|in:handgun,rifle,shotgun,muzzleloader,historic',
             'editIgnition' => 'required|in:rimfire,centerfire',
         ]);
 
-        // Create the calibre
-        $calibre = Calibre::create([
-            'slug' => \Str::slug($this->editName),
+        // Map 'other' category to 'rifle' if somehow it gets through
+        $category = $this->editCategory === 'other' ? 'rifle' : $this->editCategory;
+
+        // Create the FirearmCalibre entry
+        $calibre = FirearmCalibre::create([
             'name' => $this->editName,
-            'saps_code' => $this->editSapsCode ?: null,
-            'category' => $this->editCategory,
-            'ignition_type' => $this->editIgnition,
+            'normalized_name' => FirearmCalibre::normalize($this->editName),
+            'category' => $category,
+            'ignition' => $this->editIgnition,
             'is_active' => true,
-            'is_common' => false,
             'is_obsolete' => false,
-            'sort_order' => Calibre::max('sort_order') + 1,
+            'is_wildcat' => false,
         ]);
 
         // Update the request
         $this->editingRequest->update([
             'name' => $this->editName,
-            'category' => $this->editCategory,
+            'category' => $category,
             'ignition_type' => $this->editIgnition,
             'saps_code' => $this->editSapsCode ?: null,
             'status' => CalibreRequest::STATUS_APPROVED,
@@ -282,7 +283,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Calibre Requests')] class extends 
                                     <option value="handgun">Handgun</option>
                                     <option value="rifle">Rifle</option>
                                     <option value="shotgun">Shotgun</option>
-                                    <option value="other">Other</option>
+                                    <option value="muzzleloader">Muzzleloader</option>
+                                    <option value="historic">Historic</option>
                                 </select>
                             </div>
                             <div>

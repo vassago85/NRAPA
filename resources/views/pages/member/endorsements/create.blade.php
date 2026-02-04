@@ -1,13 +1,13 @@
 <?php
 
-use App\Models\Calibre;
-use App\Models\CalibreRequest;
 use App\Models\EndorsementComponent;
 use App\Models\EndorsementDocument;
 use App\Models\EndorsementFirearm;
 use App\Models\EndorsementRequest;
+use App\Models\FirearmCalibre;
 use App\Models\MemberDocument;
 use App\Models\ShootingActivity;
+use App\Models\User;
 use App\Models\UserFirearm;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -24,16 +24,24 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     public string $requestType = '';
 
     // Step 2: Firearm details (SAPS 271 Form Section E)
-    public string $firearmCategory = '';       // 1. Type of Firearm
+    // New reference system fields
+    public ?int $firearmCalibreId = null;
+    public ?string $calibreTextOverride = null;
+    public ?int $firearmMakeId = null;
+    public ?string $makeTextOverride = null;
+    public ?int $firearmModelId = null;
+    public ?string $modelTextOverride = null;
+    
+    // Legacy fields (kept for backward compatibility during migration)
+    public string $firearmCategory = '';       // 1. Type of Firearm (SAPS 271 compliant)
+    public string $firearmTypeOther = '';      // Specification when firearmCategory = 'other'
     public string $ignitionType = '';
     public string $actionType = '';            // 1.1 Action
     public string $actionOtherSpecify = '';    // 1.1 Other action (specify)
     public string $metalEngraving = '';        // 1.2 Names and addresses engraved
-    public ?int $calibreId = null;             // 1.3 Calibre
-    public string $calibreManual = '';         // 1.3 Calibre (manual)
     public string $calibreCode = '';           // 1.4 Calibre code
-    public string $make = '';                  // 1.5 Make
-    public string $model = '';                 // 1.6 Model
+    public string $make = '';                  // 1.5 Make (legacy)
+    public string $model = '';                 // 1.6 Model (legacy)
     public string $barrelSerialNumber = '';    // 1.7 Barrel serial number
     public string $barrelMake = '';            // 1.8 Barrel Make
     public string $frameSerialNumber = '';     // 1.9 Frame serial number
@@ -41,11 +49,14 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     public string $receiverSerialNumber = '';  // 1.11 Receiver serial number
     public string $receiverMake = '';          // 1.12 Receiver Make
     public string $serialNumber = '';          // Legacy serial (backward compat)
-    public string $licenceSection = 'section_16'; // Always Section 16 for dedicated endorsements
+    public string $licenceSection = '16'; // Always Section 16 for dedicated endorsements
     public string $sapsReference = '';
     public ?int $existingFirearmId = null;
+    
+    // FirearmSearchPanel data
+    public ?array $firearmPanelData = null;
 
-    // Step 3: Components (renewal only)
+    // Step 3: Components (barrels, actions, etc. - available for both new and renewal)
     public bool $requestComponent = false;
     public array $components = [];
 
@@ -70,9 +81,16 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     public string $newCalibreIgnition = 'centerfire';
     public string $newCalibreSapsCode = '';
     public string $newCalibreReason = '';
+    public string $calibreSearchQuery = '';
 
     public function mount(?EndorsementRequest $request = null): void
     {
+        // Prevent editing if request is not in draft status
+        if ($request && !$request->canEdit()) {
+            session()->flash('error', 'This endorsement request cannot be edited as it has already been submitted or approved.');
+            $this->redirect(route('member.endorsements.show', $request), navigate: true);
+            return;
+        }
         $user = auth()->user();
         // Get eligibility summary for display (not for blocking)
         $this->eligibility = EndorsementRequest::getEligibilitySummary($user);
@@ -80,6 +98,9 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         if ($request && $request->exists && $request->user_id === $user->id) {
             $this->editingRequest = $request->load(['firearm', 'components']);
             $this->loadFromRequest($request);
+        } else {
+            // Initialize empty firearm panel data for new requests
+            $this->firearmPanelData = [];
         }
     }
 
@@ -93,27 +114,141 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
 
         // Load firearm (SAPS 271 fields)
         if ($request->firearm) {
-            $this->firearmCategory = $request->firearm->firearm_category;
-            $this->ignitionType = $request->firearm->ignition_type ?? '';
-            $this->actionType = $request->firearm->action_type ?? '';
-            $this->actionOtherSpecify = $request->firearm->action_other_specify ?? '';
-            $this->metalEngraving = $request->firearm->metal_engraving ?? '';
-            $this->calibreId = $request->firearm->calibre_id;
-            $this->calibreManual = $request->firearm->calibre_manual ?? '';
-            $this->calibreCode = $request->firearm->calibre_code ?? '';
-            $this->make = $request->firearm->make ?? '';
-            $this->model = $request->firearm->model ?? '';
-            $this->serialNumber = $request->firearm->serial_number ?? '';
-            $this->barrelSerialNumber = $request->firearm->barrel_serial_number ?? '';
-            $this->barrelMake = $request->firearm->barrel_make ?? '';
-            $this->frameSerialNumber = $request->firearm->frame_serial_number ?? '';
-            $this->frameMake = $request->firearm->frame_make ?? '';
-            $this->receiverSerialNumber = $request->firearm->receiver_serial_number ?? '';
-            $this->receiverMake = $request->firearm->receiver_make ?? '';
-            $this->licenceSection = 'section_16'; // Always Section 16 for dedicated endorsements
-            $this->sapsReference = $request->firearm->saps_reference ?? '';
-            $this->existingFirearmId = $request->firearm->user_firearm_id;
+            $firearm = $request->firearm;
+            
+            // New reference system fields
+            $this->firearmCalibreId = $firearm->firearm_calibre_id;
+            $this->calibreTextOverride = $firearm->calibre_text_override;
+            $this->firearmMakeId = $firearm->firearm_make_id;
+            $this->makeTextOverride = $firearm->make_text_override;
+            $this->firearmModelId = $firearm->firearm_model_id;
+            $this->modelTextOverride = $firearm->model_text_override;
+            
+            // Legacy fields (for backward compatibility)
+            $this->firearmCategory = $firearm->firearm_category;
+            $this->firearmTypeOther = $firearm->firearm_type_other ?? '';
+            $this->ignitionType = $firearm->ignition_type ?? '';
+            $this->actionType = $firearm->action_type ?? '';
+            $this->actionOtherSpecify = $firearm->action_other_specify ?? '';
+            $this->metalEngraving = $firearm->metal_engraving ?? '';
+            $this->calibreCode = $firearm->calibre_code ?? '';
+            $this->make = $firearm->make ?? '';
+            $this->model = $firearm->model ?? '';
+            $this->serialNumber = $firearm->serial_number ?? '';
+            $this->barrelSerialNumber = $firearm->barrel_serial_number ?? '';
+            $this->barrelMake = $firearm->barrel_make ?? '';
+            $this->frameSerialNumber = $firearm->frame_serial_number ?? '';
+            $this->frameMake = $firearm->frame_make ?? '';
+            $this->receiverSerialNumber = $firearm->receiver_serial_number ?? '';
+            $this->receiverMake = $firearm->receiver_make ?? '';
+            $this->licenceSection = $firearm->licence_section ?? '16';
+            $this->sapsReference = $firearm->saps_reference ?? '';
+            $this->existingFirearmId = $firearm->user_firearm_id;
+            
+            // Prepare FirearmSearchPanel data
+            $this->firearmPanelData = $this->getFirearmPanelInitialData();
         }
+    }
+    
+    /**
+     * Get initial data for FirearmSearchPanel component.
+     */
+    protected function getFirearmPanelInitialData(): array
+    {
+        // Map firearm category to firearm type
+        // Map SAPS 271 compliant categories to FirearmSearchPanel firearm_type
+        $firearmType = match($this->firearmCategory) {
+            'rifle' => 'rifle',
+            'shotgun' => 'shotgun',
+            'handgun' => 'handgun',
+            'combination' => 'combination',
+            'other' => 'other',
+            default => '',
+        };
+        
+        // Map action type
+        $actionType = match($this->actionType) {
+            'semi_auto' => 'semi_automatic',
+            'bolt_action', 'lever_action', 'pump_action', 'break_action', 'single_shot', 'revolver' => 'manual',
+            default => $this->actionType,
+        };
+        
+        return [
+            'firearm_calibre_id' => $this->firearmCalibreId,
+            'calibre_text_override' => $this->calibreTextOverride,
+            'firearm_make_id' => $this->firearmMakeId,
+            'make_text_override' => $this->makeTextOverride ?: ($this->make ?: null),
+            'firearm_model_id' => $this->firearmModelId,
+            'model_text_override' => $this->modelTextOverride ?: ($this->model ?: null),
+            'firearm_type' => $firearmType,
+            'firearm_type_other' => ($this->firearmCategory === 'other' && !empty($this->firearmTypeOther)) ? $this->firearmTypeOther : '',
+            'action_type' => $actionType,
+            'action_type_other' => $this->actionOtherSpecify,
+            'engraved_text' => $this->metalEngraving,
+            'calibre_code' => $this->calibreCode,
+            'barrel_serial_number' => $this->barrelSerialNumber,
+            'barrel_make_text' => $this->barrelMake,
+            'frame_serial_number' => $this->frameSerialNumber,
+            'frame_make_text' => $this->frameMake,
+            'receiver_serial_number' => $this->receiverSerialNumber,
+            'receiver_make_text' => $this->receiverMake,
+        ];
+    }
+    
+    /**
+     * Sync FirearmSearchPanel data back to component properties.
+     */
+    public function syncFirearmPanelData(array $data): void
+    {
+        $this->firearmCalibreId = $data['firearm_calibre_id'] ?? null;
+        $this->calibreTextOverride = $data['calibre_text_override'] ?? null;
+        $this->firearmMakeId = $data['firearm_make_id'] ?? null;
+        $this->makeTextOverride = $data['make_text_override'] ?? null;
+        $this->firearmModelId = $data['firearm_model_id'] ?? null;
+        $this->modelTextOverride = $data['model_text_override'] ?? null;
+        
+        // Map FirearmSearchPanel firearm_type to SAPS 271 compliant category
+        $this->firearmCategory = match($data['firearm_type'] ?? '') {
+            'rifle' => 'rifle',
+            'shotgun' => 'shotgun',
+            'handgun' => 'handgun',
+            'combination' => 'combination',
+            'other' => 'other',
+            default => '',
+        };
+        
+        // Set firearm_type_other if provided
+        if (isset($data['firearm_type_other']) && $data['firearm_type'] === 'other') {
+            $this->firearmTypeOther = $data['firearm_type_other'];
+        }
+        
+        // Map action type back
+        $this->actionType = match($data['action_type'] ?? '') {
+            'semi_automatic' => 'semi_auto',
+            'automatic' => 'automatic',
+            'manual' => 'bolt_action', // Default
+            'other' => 'other',
+            default => '',
+        };
+        
+        $this->actionOtherSpecify = $data['action_type_other'] ?? '';
+        $this->metalEngraving = $data['engraved_text'] ?? '';
+        $this->calibreCode = $data['calibre_code'] ?? '';
+        $this->barrelSerialNumber = $data['barrel_serial_number'] ?? '';
+        $this->barrelMake = $data['barrel_make_text'] ?? '';
+        $this->frameSerialNumber = $data['frame_serial_number'] ?? '';
+        $this->frameMake = $data['frame_make_text'] ?? '';
+        $this->receiverSerialNumber = $data['receiver_serial_number'] ?? '';
+        $this->receiverMake = $data['receiver_make_text'] ?? '';
+        
+        // Set legacy fields for backward compatibility
+        if ($this->makeTextOverride) {
+            $this->make = $this->makeTextOverride;
+        }
+        if ($this->modelTextOverride) {
+            $this->model = $this->modelTextOverride;
+        }
+    }
 
         // Load components
         if ($request->components->count() > 0) {
@@ -126,8 +261,9 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                     'component_serial' => $comp->component_serial ?? '',
                     'component_make' => $comp->component_make ?? '',
                     'component_model' => $comp->component_model ?? '',
-                    'calibre_id' => $comp->calibre_id,
+                    'calibre_id' => $comp->calibre_id ?? null,
                     'calibre_manual' => $comp->calibre_manual ?? '',
+                    'diameter' => $comp->diameter ?? '',
                 ];
             }
         }
@@ -137,7 +273,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     public function userFirearms()
     {
         return UserFirearm::where('user_id', auth()->id())
-            ->with('calibre')
             ->orderBy('make')
             ->orderBy('model')
             ->get();
@@ -155,44 +290,46 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             ->get();
     }
 
-    #[Computed]
-    public function calibres()
-    {
-        // Show ALL active calibres from database (86 centerfire + 110 total)
-        // Grouped by category and ignition type in the UI
-        return Calibre::active()->notObsolete()->ordered()->get();
-    }
-
-    #[Computed]
-    public function calibresByCategory()
-    {
-        // Group calibres by category for better UI organization
-        $calibres = $this->calibres;
-        
-        return [
-            'rifle' => [
-                'centerfire' => $calibres->where('category', 'rifle')->where('ignition_type', 'centerfire'),
-                'rimfire' => $calibres->where('category', 'rifle')->where('ignition_type', 'rimfire'),
-            ],
-            'handgun' => [
-                'centerfire' => $calibres->where('category', 'handgun')->where('ignition_type', 'centerfire'),
-                'rimfire' => $calibres->where('category', 'handgun')->where('ignition_type', 'rimfire'),
-            ],
-            'shotgun' => [
-                'centerfire' => $calibres->where('category', 'shotgun')->where('ignition_type', 'centerfire'),
-                'rimfire' => $calibres->where('category', 'shotgun')->where('ignition_type', 'rimfire'),
-            ],
-            'other' => [
-                'centerfire' => $calibres->where('category', 'other')->where('ignition_type', 'centerfire'),
-                'rimfire' => $calibres->where('category', 'other')->where('ignition_type', 'rimfire'),
-            ],
-        ];
-    }
 
     #[Computed]
     public function actionTypeOptions()
     {
         return EndorsementFirearm::getActionTypeOptions($this->firearmCategory ?: null);
+    }
+
+    #[Computed]
+    public function existingCalibres()
+    {
+        $query = FirearmCalibre::active()
+            ->notObsolete()
+            ->orderBy('name');
+
+        // Filter by category if selected
+        if ($this->newCalibreCategory && $this->newCalibreCategory !== 'other') {
+            // Map calibre request category to FirearmCalibre category
+            $category = match($this->newCalibreCategory) {
+                'handgun' => 'handgun',
+                'rifle' => 'rifle',
+                'shotgun' => 'shotgun',
+                default => null,
+            };
+            if ($category) {
+                $query->where('category', $category);
+            }
+        }
+        // If 'other' is selected, show all categories (no filter)
+
+        // Filter by ignition type if selected
+        if ($this->newCalibreIgnition) {
+            $query->where('ignition', $this->newCalibreIgnition);
+        }
+
+        // Search filter if query provided
+        if ($this->calibreSearchQuery) {
+            $query->search($this->calibreSearchQuery);
+        }
+
+        return $query->limit(50)->get();
     }
 
     // Step navigation
@@ -213,6 +350,9 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             } else {
                 $this->currentStep++;
             }
+            
+            // Scroll to top of form after step change
+            $this->js('window.scrollTo({ top: 0, behavior: "smooth" })');
         }
     }
 
@@ -248,7 +388,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         $rules = match($this->currentStep) {
             1 => ['requestType' => 'required|in:new,renewal'],
             2 => [
-                'firearmCategory' => 'required|in:handgun,rifle_manual,rifle_self_loading,shotgun',
+                'firearmCategory' => 'required|in:rifle,shotgun,handgun,combination,other',
                 'actionType' => 'required',
                 'make' => 'required|string|max:255',
                 'model' => 'required|string|max:255',
@@ -264,10 +404,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
 
         // Additional validation for step 2: calibre and serial
         if ($this->currentStep === 2) {
-            $rules['calibre'] = 'required'; // Custom validation
+            // First validate the basic rules
             $this->validate($rules);
             
-            // Validate calibre (either ID or manual)
+            // Then validate calibre (either ID or manual) - custom validation
             if (empty($this->calibreId) && empty($this->calibreManual)) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
                     'calibre' => 'Calibre/Gauge is required (select from list or enter manually).',
@@ -315,9 +455,13 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     public function updatedFirearmCategory(): void
     {
         $this->actionType = '';
-        $this->calibreId = null;
         $this->ignitionType = '';
         $this->calibreCode = '';
+        
+        // Clear firearm_type_other if not "other"
+        if ($this->firearmCategory !== 'other') {
+            $this->firearmTypeOther = '';
+        }
     }
 
     // Calibre selected - auto-fill SAPS code if available
@@ -326,12 +470,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         // Always clear the calibre code first to avoid stale data
         $this->calibreCode = '';
         
-        if ($this->calibreId) {
-            $calibre = Calibre::find($this->calibreId);
-            if ($calibre && $calibre->saps_code) {
-                $this->calibreCode = $calibre->saps_code;
-            }
-        }
+        // Calibre code is now handled by FirearmSearchPanel component
     }
 
     // Open calibre request modal
@@ -339,11 +478,13 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     {
         $this->showCalibreRequestModal = true;
         $this->newCalibreName = $this->calibreManual; // Pre-fill from manual entry
+        // Map SAPS 271 category to FirearmCalibre category for CalibreRequest
         $this->newCalibreCategory = match($this->firearmCategory) {
-            'handgun' => 'handgun',
-            'rifle_manual', 'rifle_self_loading' => 'rifle',
+            'rifle', 'combination' => 'rifle', // Combination can use rifle calibres
             'shotgun' => 'shotgun',
-            default => '',
+            'handgun' => 'handgun',
+            'other' => 'rifle', // Default fallback to rifle
+            default => 'rifle',
         };
         $this->newCalibreIgnition = $this->ignitionType ?: 'centerfire';
         $this->newCalibreSapsCode = '';
@@ -365,6 +506,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         $this->newCalibreIgnition = 'centerfire';
         $this->newCalibreSapsCode = '';
         $this->newCalibreReason = '';
+        $this->calibreSearchQuery = '';
     }
 
     // Submit calibre request
@@ -372,7 +514,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     {
         $this->validate([
             'newCalibreName' => 'required|string|min:2|max:100',
-            'newCalibreCategory' => 'required|in:handgun,rifle,shotgun,other',
+            'newCalibreCategory' => 'required|in:handgun,rifle,shotgun,muzzleloader,historic',
             'newCalibreIgnition' => 'required|in:rimfire,centerfire',
         ], [
             'newCalibreName.required' => 'Please enter the calibre name.',
@@ -404,7 +546,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
 
         $firearm = UserFirearm::where('id', $this->existingFirearmId)
             ->where('user_id', auth()->id())
-            ->with('components', 'calibre')
+            ->with(['components', 'firearmCalibre', 'firearmMake', 'firearmModel'])
             ->first();
 
         if ($firearm) {
@@ -414,18 +556,21 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             $this->calibreId = $firearm->calibre_id;
             $this->calibreCode = $firearm->calibre_code ?? '';
             
-            // Map SAPS 271 firearm_type to endorsement firearm_category
+            // Map SAPS 271 firearm_type to endorsement firearm_category (SAPS 271 compliant)
             if ($firearm->firearm_type) {
                 $categoryMap = [
-                    'handgun' => 'handgun',
-                    'rifle' => $firearm->action === 'semi_automatic' || $firearm->action === 'automatic' 
-                        ? 'rifle_self_loading' 
-                        : 'rifle_manual',
+                    'rifle' => 'rifle',
                     'shotgun' => 'shotgun',
-                    'hand_machine_carbine' => 'handgun',
-                    'combination' => 'rifle_manual', // Default fallback
+                    'handgun' => 'handgun',
+                    'combination' => 'combination',
+                    'other' => 'other',
                 ];
                 $this->firearmCategory = $categoryMap[$firearm->firearm_type] ?? '';
+                
+                // Set firearm_type_other if firearm is "other" type
+                if ($firearm->firearm_type === 'other' && $firearm->firearm_type_other) {
+                    $this->firearmTypeOther = $firearm->firearm_type_other;
+                }
             }
             
             // Map SAPS 271 action to endorsement action_type
@@ -465,8 +610,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     // Component management
     public function addComponent(): void
     {
-        if ($this->requestType !== 'renewal') return;
-
+        // Allow components for both new and renewal requests
         $this->components[] = [
             'component_type' => '',
             'component_description' => '',
@@ -475,6 +619,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             'component_model' => '',
             'calibre_id' => null,
             'calibre_manual' => '',
+            'diameter' => '', // Barrel diameter (required before chambering)
         ];
     }
 
@@ -567,20 +712,66 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             return;
         }
 
+        // Check terms acceptance
+        $user = auth()->user();
+        $activeTerms = \App\Models\TermsVersion::active();
+        if ($activeTerms && !$user->hasAcceptedActiveTerms()) {
+            session()->flash('error', 'You must accept the Terms & Conditions before submitting endorsement requests.');
+            $this->redirect(route('terms.accept'), navigate: true);
+            return;
+        }
+
         $request = $this->saveRequest(true);
         
-        // Request is already refreshed and relationships loaded in saveRequest()
+        // Refresh to ensure all relationships and documents are loaded
+        $request->refresh();
+        $request->load(['documents', 'firearm']);
         
-        if ($request->submit()) {
-            session()->flash('success', 'Endorsement request submitted successfully!');
-        } else {
-            // Get specific error messages from the model
+        // Double-check documents were created
+        $request->refresh();
+        $request->load(['documents']);
+        
+        // Check if submission is possible before attempting
+        if (!$request->canSubmit()) {
             $errors = $request->getSubmissionErrors();
-            $errorMessage = 'Failed to submit request. ' . implode(' ', $errors);
+            $missingDocs = $request->getMissingRequestDocuments();
+            
+            if (count($missingDocs) > 0) {
+                $docLabels = array_map(fn($doc) => EndorsementRequest::getDocumentTypeLabel($doc), $missingDocs);
+                $errors[] = 'Missing required documents: ' . implode(', ', $docLabels);
+            }
+            
+            if (empty($errors)) {
+                $errors[] = 'Unable to submit request. Please ensure all required fields are completed and required documents are uploaded.';
+            }
+            
+            $errorMessage = 'Failed to submit request: ' . implode('. ', $errors);
             session()->flash('error', $errorMessage);
+            // Don't redirect - stay on the page so user can see the error and fix issues
+            return;
         }
         
-        $this->redirect(route('member.endorsements.index'), navigate: true);
+        // Attempt to submit
+        $submitResult = $request->submit();
+        
+        if ($submitResult) {
+            // Refresh again after submission to get updated status
+            $request->refresh();
+            session()->flash('success', 'Endorsement request submitted successfully!');
+            $this->redirect(route('member.endorsements.index'), navigate: true);
+        } else {
+            // This shouldn't happen if canSubmit() passed, but handle it anyway
+            $errors = $request->getSubmissionErrors();
+            $missingDocs = $request->getMissingRequestDocuments();
+            
+            if (count($missingDocs) > 0) {
+                $docLabels = array_map(fn($doc) => EndorsementRequest::getDocumentTypeLabel($doc), $missingDocs);
+                $errors[] = 'Missing required documents: ' . implode(', ', $docLabels);
+            }
+            
+            $errorMessage = 'Failed to submit request: ' . implode('. ', $errors);
+            session()->flash('error', $errorMessage);
+        }
     }
 
     protected function saveRequest(bool $isSubmitting): EndorsementRequest
@@ -589,6 +780,13 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
 
         // Create or update request
         $request = $this->editingRequest ?? new EndorsementRequest();
+        
+        // Prevent saving if request is not in draft status
+        if ($request->exists && !$request->canEdit()) {
+            session()->flash('error', 'This endorsement request cannot be edited as it has already been submitted or approved.');
+            $this->redirect(route('member.endorsements.show', $request), navigate: true);
+            return $request;
+        }
         $request->fill([
             'user_id' => $user->id,
             'request_type' => $this->requestType,
@@ -603,25 +801,59 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
 
         // Save firearm (SAPS 271 Form Section E fields)
         $firearm = $request->firearm ?? new EndorsementFirearm();
+        
+        // Get data from FirearmSearchPanel if available, otherwise use legacy fields
+        $firearmData = $this->firearmPanelData ?? $this->getFirearmPanelInitialData();
+        
+        // Map FirearmSearchPanel firearm_type to SAPS 271 compliant category
+        $firearmCategory = match($firearmData['firearm_type'] ?? '') {
+            'rifle' => 'rifle',
+            'shotgun' => 'shotgun',
+            'handgun' => 'handgun',
+            'combination' => 'combination',
+            'other' => 'other',
+            default => $this->firearmCategory,
+        };
+        
+        // Map action type
+        $actionType = match($firearmData['action_type'] ?? '') {
+            'semi_automatic' => 'semi_auto',
+            'automatic' => 'automatic',
+            'manual' => 'bolt_action',
+            'other' => 'other',
+            default => $this->actionType,
+        };
+        
         $firearm->fill([
             'endorsement_request_id' => $request->id,
-            'firearm_category' => $this->firearmCategory,          // 1. Type
+            'firearm_category' => $firearmCategory,          // 1. Type (SAPS 271 compliant)
+            'firearm_type_other' => ($firearmCategory === 'other' && !empty($firearmData['firearm_type_other'])) 
+                ? $firearmData['firearm_type_other'] 
+                : null,
             'ignition_type' => $this->ignitionType ?: null,
-            'action_type' => $this->actionType ?: null,            // 1.1 Action
-            'action_other_specify' => $this->actionOtherSpecify ?: null,
-            'metal_engraving' => $this->metalEngraving ?: null,    // 1.2 Engraving
+            'action_type' => $actionType,                     // 1.1 Action
+            'action_other_specify' => $firearmData['action_type_other'] ?? $this->actionOtherSpecify ?: null,
+            'metal_engraving' => $firearmData['engraved_text'] ?? $this->metalEngraving ?: null,    // 1.2 Engraving
+            // New reference system
+            'firearm_calibre_id' => $firearmData['firearm_calibre_id'] ?? $this->firearmCalibreId,
+            'calibre_text_override' => $firearmData['calibre_text_override'] ?? $this->calibreTextOverride,
+            'firearm_make_id' => $firearmData['firearm_make_id'] ?? $this->firearmMakeId,
+            'make_text_override' => $firearmData['make_text_override'] ?? $this->makeTextOverride,
+            'firearm_model_id' => $firearmData['firearm_model_id'] ?? $this->firearmModelId,
+            'model_text_override' => $firearmData['model_text_override'] ?? $this->modelTextOverride,
+            // Legacy fields (for backward compatibility)
             'calibre_id' => $this->calibreId,                      // 1.3 Calibre
-            'calibre_manual' => $this->calibreManual ?: null,
-            'calibre_code' => $this->calibreCode ?: null,          // 1.4 Calibre code
-            'make' => $this->make ?: null,                         // 1.5 Make
-            'model' => $this->model ?: null,                       // 1.6 Model
+            'calibre_manual' => $firearmData['calibre_text_override'] ?? $this->calibreManual ?: null,
+            'calibre_code' => $firearmData['calibre_code'] ?? $this->calibreCode ?: null,          // 1.4 Calibre code
+            'make' => $firearmData['make_text_override'] ?? $this->make ?: null,                         // 1.5 Make
+            'model' => $firearmData['model_text_override'] ?? $this->model ?: null,                       // 1.6 Model
             'serial_number' => $this->serialNumber ?: null,        // Legacy
-            'barrel_serial_number' => $this->barrelSerialNumber ?: null,    // 1.7
-            'barrel_make' => $this->barrelMake ?: null,            // 1.8
-            'frame_serial_number' => $this->frameSerialNumber ?: null,      // 1.9
-            'frame_make' => $this->frameMake ?: null,              // 1.10
-            'receiver_serial_number' => $this->receiverSerialNumber ?: null, // 1.11
-            'receiver_make' => $this->receiverMake ?: null,        // 1.12
+            'barrel_serial_number' => $firearmData['barrel_serial_number'] ?? $this->barrelSerialNumber ?: null,    // 1.7
+            'barrel_make' => $firearmData['barrel_make_text'] ?? $this->barrelMake ?: null,            // 1.8
+            'frame_serial_number' => $firearmData['frame_serial_number'] ?? $this->frameSerialNumber ?: null,      // 1.9
+            'frame_make' => $firearmData['frame_make_text'] ?? $this->frameMake ?: null,              // 1.10
+            'receiver_serial_number' => $firearmData['receiver_serial_number'] ?? $this->receiverSerialNumber ?: null, // 1.11
+            'receiver_make' => $firearmData['receiver_make_text'] ?? $this->receiverMake ?: null,        // 1.12
             'licence_section' => $this->licenceSection ?: null,
             'saps_reference' => $this->sapsReference ?: null,
             'user_firearm_id' => $this->existingFirearmId,
@@ -631,8 +863,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         // Refresh the request to ensure relationships are loaded
         $request->refresh();
 
-        // Save components (renewal only)
-        if ($this->requestType === 'renewal' && $this->requestComponent) {
+        // Save components for both new and renewal requests
+        if ($this->requestComponent && !empty($this->components)) {
             $existingIds = collect($this->components)->pluck('id')->filter()->toArray();
             $request->components()->whereNotIn('id', $existingIds)->delete();
 
@@ -652,6 +884,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                     'component_model' => $compData['component_model'] ?: null,
                     'calibre_id' => $compData['calibre_id'] ?? null,
                     'calibre_manual' => $compData['calibre_manual'] ?? null,
+                    'diameter' => $compData['diameter'] ?? null,
                 ]);
                 $component->save();
             }
@@ -877,11 +1110,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                 
                 <div class="grid gap-4 md:grid-cols-2">
                     {{-- New Endorsement --}}
-                    <label class="relative cursor-pointer">
+                    <label class="relative cursor-pointer h-full">
                         <input type="radio" wire:model.live="requestType" value="new" class="peer sr-only">
-                        <div class="p-6 border-2 rounded-xl transition-all peer-checked:border-emerald-500 peer-checked:bg-emerald-50 dark:peer-checked:bg-emerald-900/20 border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600">
-                            <div class="flex items-start gap-4">
-                                <div class="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                        <div class="h-full p-6 border-2 rounded-xl transition-all peer-checked:border-emerald-600 peer-checked:bg-emerald-100 peer-checked:shadow-lg peer-checked:shadow-emerald-200/50 dark:peer-checked:bg-emerald-900/30 dark:peer-checked:shadow-emerald-900/50 border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600">
+                            <div class="flex items-start gap-4 h-full">
+                                <div class="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex-shrink-0">
                                     <svg class="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                     </svg>
@@ -889,7 +1122,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                 <div class="flex-1">
                                     <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">New Endorsement</h3>
                                     <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                                        First-time endorsement letter for a Section 16 firearm application.
+                                        First-time endorsement letter for a Section 16 firearm application. Can include component requests (barrels, actions).
                                     </p>
                                 </div>
                             </div>
@@ -897,11 +1130,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                     </label>
 
                     {{-- Renewal Endorsement --}}
-                    <label class="relative cursor-pointer">
+                    <label class="relative cursor-pointer h-full">
                         <input type="radio" wire:model.live="requestType" value="renewal" class="peer sr-only">
-                        <div class="p-6 border-2 rounded-xl transition-all peer-checked:border-emerald-500 peer-checked:bg-emerald-50 dark:peer-checked:bg-emerald-900/20 border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600">
-                            <div class="flex items-start gap-4">
-                                <div class="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                        <div class="h-full p-6 border-2 rounded-xl transition-all peer-checked:border-emerald-600 peer-checked:bg-emerald-100 peer-checked:shadow-lg peer-checked:shadow-emerald-200/50 dark:peer-checked:bg-emerald-900/30 dark:peer-checked:shadow-emerald-900/50 border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600">
+                            <div class="flex items-start gap-4 h-full">
+                                <div class="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex-shrink-0">
                                     <svg class="w-8 h-8 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                                     </svg>
@@ -909,7 +1142,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                 <div class="flex-1">
                                     <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Renewal Endorsement</h3>
                                     <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                                        Endorsement renewal for existing firearms. Can include component requests (barrels, actions).
+                                        Endorsement renewal for existing firearms.
                                     </p>
                                 </div>
                             </div>
@@ -925,8 +1158,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
 
         {{-- Step 2: Firearm Details --}}
         @if($currentStep === 2)
-            <div class="p-6">
-                <h2 class="text-xl font-semibold text-zinc-900 dark:text-white mb-6">Firearm Details</h2>
+            <div class="p-6" 
+                 x-data="{ panelData: @entangle('firearmPanelData') }"
+                 @firearm-data-updated.window="panelData = $event.detail.data; $wire.syncFirearmPanelData(panelData)">
+                <h2 class="text-xl font-semibold text-zinc-900 dark:text-white mb-6">Firearm Details (SAPS 271 Form Section E)</h2>
 
                 @if($this->userFirearms->count() > 0)
                     <div class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
@@ -937,7 +1172,51 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                 @foreach($this->userFirearms as $uf)
                                     <option value="{{ $uf->id }}">
                                         {{ $uf->make }} {{ $uf->model }} 
-                                        @if($uf->calibre) ({{ $uf->calibre->name }}) @endif
+                                        @if($uf->calibre_display) ({{ $uf->calibre_display }}) @endif
+                                    </option>
+                                @endforeach
+                            </select>
+                            <button wire:click="loadExistingFirearm" type="button"
+                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                                Load
+                            </button>
+                        </div>
+                    </div>
+                @endif
+                
+                {{-- Use new FirearmSearchPanel component --}}
+                @php
+                    // Ensure firearmPanelData is initialized
+                    if (!isset($firearmPanelData) || $firearmPanelData === null) {
+                        $firearmPanelData = [];
+                    }
+                @endphp
+                @try
+                    <livewire:firearm-search-panel 
+                        wire:key="endorsement-firearm-panel-{{ $editingRequest?->id ?? 'new' }}"
+                        :initial-data="$firearmPanelData"
+                    />
+                @catch(\Exception $e)
+                    <div class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                        <p class="text-sm text-red-800 dark:text-red-200">
+                            Error loading firearm form: {{ $e->getMessage() }}
+                        </p>
+                        <p class="text-xs text-red-600 dark:text-red-400 mt-2">
+                            Please refresh the page or contact support if the issue persists.
+                        </p>
+                    </div>
+                @endtry
+
+                @if($this->userFirearms->count() > 0)
+                    <div class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <label class="block text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">Load from your Virtual Safe</label>
+                        <div class="flex gap-3">
+                            <select wire:model="existingFirearmId" class="flex-1 px-4 py-2 border border-blue-300 dark:border-blue-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white">
+                                <option value="">Select a firearm...</option>
+                                @foreach($this->userFirearms as $uf)
+                                    <option value="{{ $uf->id }}">
+                                        {{ $uf->make }} {{ $uf->model }} 
+                                        @if($uf->calibre_display) ({{ $uf->calibre_display }}) @endif
                                     </option>
                                 @endforeach
                             </select>
@@ -958,8 +1237,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                             @foreach($categoryOptions as $value => $label)
                                 <label class="relative cursor-pointer">
                                     <input type="radio" wire:model.live="firearmCategory" value="{{ $value }}" class="peer sr-only">
-                                    <div class="p-4 text-center border-2 rounded-lg transition-all peer-checked:border-emerald-500 peer-checked:bg-emerald-50 dark:peer-checked:bg-emerald-900/20 border-zinc-200 dark:border-zinc-700 hover:border-zinc-300">
-                                        <span class="text-sm font-medium text-zinc-900 dark:text-white">{{ $label }}</span>
+                                    <div class="p-4 text-center border-2 rounded-lg transition-all peer-checked:border-emerald-600 peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:shadow-lg peer-checked:shadow-emerald-200/50 dark:peer-checked:bg-emerald-600 dark:peer-checked:text-white dark:peer-checked:shadow-emerald-900/50 border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 bg-white dark:bg-zinc-800">
+                                        <span class="text-sm font-medium text-zinc-900 dark:text-white peer-checked:text-white">{{ $label }}</span>
                                     </div>
                                 </label>
                             @endforeach
@@ -1020,120 +1299,16 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                 class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
                         </div>
 
-                        {{-- 1.3 & 1.4 Calibre --}}
-                        @if(session('calibre_request_success'))
-                            <div class="p-3 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg text-sm text-green-700 dark:text-green-300">
-                                {{ session('calibre_request_success') }}
-                            </div>
-                        @endif
-                        <div class="grid gap-6 md:grid-cols-2">
-                            <div>
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                    Calibre / Gauge <span class="text-red-500">*</span>
-                                    <span class="text-xs text-zinc-500">(1.3 - All {{ count($this->calibres) }} calibres available)</span>
-                                </label>
-                                <select wire:model.live="calibreId" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                    <option value="">Select calibre...</option>
-                                    @php
-                                        $grouped = $this->calibresByCategory;
-                                    @endphp
-                                    
-                                    {{-- Rifle Centerfire (86 centerfire options include these) --}}
-                                    @if($grouped['rifle']['centerfire']->count() > 0)
-                                        <optgroup label="Rifle - Centerfire ({{ $grouped['rifle']['centerfire']->count() }} options)">
-                                            @foreach($grouped['rifle']['centerfire'] as $cal)
-                                                <option value="{{ $cal->id }}">{{ $cal->name }}@if($cal->saps_code) ({{ $cal->saps_code }})@endif</option>
-                                            @endforeach
-                                        </optgroup>
-                                    @endif
-                                    
-                                    {{-- Rifle Rimfire --}}
-                                    @if($grouped['rifle']['rimfire']->count() > 0)
-                                        <optgroup label="Rifle - Rimfire ({{ $grouped['rifle']['rimfire']->count() }} options)">
-                                            @foreach($grouped['rifle']['rimfire'] as $cal)
-                                                <option value="{{ $cal->id }}">{{ $cal->name }}@if($cal->saps_code) ({{ $cal->saps_code }})@endif</option>
-                                            @endforeach
-                                        </optgroup>
-                                    @endif
-                                    
-                                    {{-- Handgun Centerfire (86 centerfire options include these) --}}
-                                    @if($grouped['handgun']['centerfire']->count() > 0)
-                                        <optgroup label="Handgun - Centerfire ({{ $grouped['handgun']['centerfire']->count() }} options)">
-                                            @foreach($grouped['handgun']['centerfire'] as $cal)
-                                                <option value="{{ $cal->id }}">{{ $cal->name }}@if($cal->saps_code) ({{ $cal->saps_code }})@endif</option>
-                                            @endforeach
-                                        </optgroup>
-                                    @endif
-                                    
-                                    {{-- Handgun Rimfire --}}
-                                    @if($grouped['handgun']['rimfire']->count() > 0)
-                                        <optgroup label="Handgun - Rimfire ({{ $grouped['handgun']['rimfire']->count() }} options)">
-                                            @foreach($grouped['handgun']['rimfire'] as $cal)
-                                                <option value="{{ $cal->id }}">{{ $cal->name }}@if($cal->saps_code) ({{ $cal->saps_code }})@endif</option>
-                                            @endforeach
-                                        </optgroup>
-                                    @endif
-                                    
-                                    {{-- Shotgun Centerfire (86 centerfire options include these) --}}
-                                    @if($grouped['shotgun']['centerfire']->count() > 0)
-                                        <optgroup label="Shotgun - Centerfire ({{ $grouped['shotgun']['centerfire']->count() }} options)">
-                                            @foreach($grouped['shotgun']['centerfire'] as $cal)
-                                                <option value="{{ $cal->id }}">{{ $cal->name }}@if($cal->saps_code) ({{ $cal->saps_code }})@endif</option>
-                                            @endforeach
-                                        </optgroup>
-                                    @endif
-                                    
-                                    {{-- Shotgun Rimfire --}}
-                                    @if($grouped['shotgun']['rimfire']->count() > 0)
-                                        <optgroup label="Shotgun - Rimfire ({{ $grouped['shotgun']['rimfire']->count() }} options)">
-                                            @foreach($grouped['shotgun']['rimfire'] as $cal)
-                                                <option value="{{ $cal->id }}">{{ $cal->name }}@if($cal->saps_code) ({{ $cal->saps_code }})@endif</option>
-                                            @endforeach
-                                        </optgroup>
-                                    @endif
-                                    
-                                    {{-- Other --}}
-                                    @if($grouped['other']['centerfire']->count() > 0 || $grouped['other']['rimfire']->count() > 0)
-                                        <optgroup label="Other">
-                                            @foreach($grouped['other']['centerfire'] as $cal)
-                                                <option value="{{ $cal->id }}">{{ $cal->name }}@if($cal->saps_code) ({{ $cal->saps_code }})@endif</option>
-                                            @endforeach
-                                            @foreach($grouped['other']['rimfire'] as $cal)
-                                                <option value="{{ $cal->id }}">{{ $cal->name }}@if($cal->saps_code) ({{ $cal->saps_code }})@endif</option>
-                                            @endforeach
-                                        </optgroup>
-                                    @endif
-                                </select>
-                                <div class="mt-2 flex gap-2">
-                                    <input type="text" wire:model="calibreManual" placeholder="Or enter manually if not listed" 
-                                        class="flex-1 px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                    <button type="button" wire:click="openCalibreRequestModal"
-                                        class="px-3 py-2 text-sm font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 dark:text-blue-300 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 rounded-lg transition-colors whitespace-nowrap">
-                                        Request New
-                                    </button>
-                                </div>
-                                <p class="mt-1 text-xs text-zinc-500">Can't find your calibre? Request it to be added.</p>
-                                @error('calibre') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                    SAPS Calibre Code
-                                    <span class="text-xs text-zinc-500">(1.4 - Optional)</span>
-                                </label>
-                                <input type="text" wire:model="calibreCode" placeholder="e.g., 9PAR, 223REM" 
-                                    class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono uppercase">
-                                <p class="mt-1 text-xs text-zinc-500">Auto-fills when calibre selected. Leave blank if unknown.</p>
-                            </div>
-                        </div>
+                        {{-- Note: Calibre, Make, and Model are handled by FirearmSearchPanel component above --}}
 
-                        {{-- 1.5 & 1.6 Make and Model --}}
+                        {{-- 1.5 & 1.6 Make and Model (Legacy - handled by FirearmSearchPanel) --}}
                         <div class="grid gap-6 md:grid-cols-2">
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                                     Make <span class="text-red-500">*</span>
                                     <span class="text-xs text-zinc-500">(1.5)</span>
                                 </label>
-                                <input type="text" wire:model="make" placeholder="e.g., Glock, CZ, Howa" 
+                                <input type="text" wire:model.live="make" placeholder="e.g., Glock, CZ, Howa" 
                                     class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
                                 @error('make') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
@@ -1142,7 +1317,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                     Model <span class="text-red-500">*</span>
                                     <span class="text-xs text-zinc-500">(1.6)</span>
                                 </label>
-                                <input type="text" wire:model="model" placeholder="e.g., 17, Shadow 2, 1500" 
+                                <input type="text" wire:model.live="model" placeholder="e.g., 17, Shadow 2, 1500" 
                                     class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
                                 @error('model') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
@@ -1162,7 +1337,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                         Barrel Serial Number
                                         <span class="text-xs text-zinc-500">(1.7)</span>
                                     </label>
-                                    <input type="text" wire:model="barrelSerialNumber" placeholder="Barrel serial" 
+                                    <input type="text" wire:model.live="barrelSerialNumber" placeholder="Barrel serial" 
                                         class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono">
                                 </div>
                                 <div>
@@ -1182,7 +1357,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                         Frame Serial Number
                                         <span class="text-xs text-zinc-500">(1.9)</span>
                                     </label>
-                                    <input type="text" wire:model="frameSerialNumber" placeholder="Frame serial" 
+                                    <input type="text" wire:model.live="frameSerialNumber" placeholder="Frame serial" 
                                         class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono">
                                 </div>
                                 <div>
@@ -1202,7 +1377,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                         Receiver Serial Number
                                         <span class="text-xs text-zinc-500">(1.11)</span>
                                     </label>
-                                    <input type="text" wire:model="receiverSerialNumber" placeholder="Receiver serial" 
+                                    <input type="text" wire:model.live="receiverSerialNumber" placeholder="Receiver serial" 
                                         class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono">
                                 </div>
                                 <div>
@@ -1242,8 +1417,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             </div>
         @endif
 
-        {{-- Step 3: Components (Renewal Only) --}}
-        @if($currentStep === 3 && $requestType === 'renewal')
+        {{-- Step 3: Components (Barrels, Actions, etc.) --}}
+        @if($currentStep === 3)
             <div class="p-6">
                 <h2 class="text-xl font-semibold text-zinc-900 dark:text-white mb-6">Component Endorsement</h2>
 
@@ -1302,14 +1477,35 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
 
                                 @if($component['component_type'] === 'barrel')
                                     <div class="mt-4">
-                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Calibre (for barrel)</label>
-                                        <select wire:model="components.{{ $index }}.calibre_id" 
-                                            class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                            <option value="">Select calibre...</option>
-                                            @foreach($this->calibres as $cal)
-                                                <option value="{{ $cal->id }}">{{ $cal->name }}</option>
-                                            @endforeach
-                                        </select>
+                                        <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
+                                            Specify either <strong>calibre</strong> or <strong>diameter</strong> for the barrel (diameter is used when barrel is licensed before chambering).
+                                        </p>
+                                        <div class="grid gap-4 md:grid-cols-2">
+                                            <div>
+                                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                                    Diameter
+                                                    <span class="text-xs text-zinc-500">(For barrels before chambering)</span>
+                                                </label>
+                                                <input type="text" wire:model="components.{{ $index }}.diameter" 
+                                                    placeholder="e.g., 6.5mm, .308, 7.62mm"
+                                                    class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Calibre</label>
+                                                <select wire:model="components.{{ $index }}.calibre_id" 
+                                                    class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                                                    <option value="">Select calibre...</option>
+                                                    @foreach($this->calibres as $cal)
+                                                        <option value="{{ $cal->id }}">{{ $cal->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                                @if(empty($components[$index]['calibre_id']))
+                                                    <input type="text" wire:model="components.{{ $index }}.calibre_manual" 
+                                                        placeholder="Or enter calibre manually"
+                                                        class="w-full mt-2 px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                                                @endif
+                                            </div>
+                                        </div>
                                     </div>
                                 @endif
 
@@ -1385,28 +1581,76 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
 
                 <div class="space-y-6">
                     {{-- Verified Prerequisites --}}
-                    <div class="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                        <h3 class="text-sm font-semibold text-green-800 dark:text-green-200 mb-3">Verified Prerequisites</h3>
-                        <ul class="space-y-2 text-sm text-green-700 dark:text-green-300">
-                            <li class="flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
-                                Knowledge Test Passed
-                            </li>
-                            <li class="flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
-                                Required Documents Verified
-                            </li>
-                            <li class="flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
-                                {{ $eligibility['activity_details']['approved_count'] }} Approved Activities ({{ $eligibility['activity_details']['required'] }} required)
-                            </li>
-                        </ul>
+                    <div>
+                        <h3 class="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-3">Prerequisites Status</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {{-- Knowledge Test --}}
+                            <div class="p-4 rounded-lg border-2 transition-all {{ $eligibility['knowledge_test_passed'] ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-red-500 bg-red-50 dark:bg-red-900/20' }}">
+                                <div class="flex items-center gap-2 mb-2">
+                                    @if($eligibility['knowledge_test_passed'])
+                                        <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                        </svg>
+                                    @else
+                                        <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                        </svg>
+                                    @endif
+                                    <span class="font-semibold text-sm {{ $eligibility['knowledge_test_passed'] ? 'text-emerald-800 dark:text-emerald-200' : 'text-red-800 dark:text-red-200' }}">
+                                        Knowledge Test
+                                    </span>
+                                </div>
+                                <p class="text-xs {{ $eligibility['knowledge_test_passed'] ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300' }}">
+                                    {{ $eligibility['knowledge_test_passed'] ? 'Passed' : 'Not Completed' }}
+                                </p>
+                            </div>
+
+                            {{-- Required Documents --}}
+                            <div class="p-4 rounded-lg border-2 transition-all {{ $eligibility['documents_complete'] ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-red-500 bg-red-50 dark:bg-red-900/20' }}">
+                                <div class="flex items-center gap-2 mb-2">
+                                    @if($eligibility['documents_complete'])
+                                        <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                        </svg>
+                                    @else
+                                        <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                        </svg>
+                                    @endif
+                                    <span class="font-semibold text-sm {{ $eligibility['documents_complete'] ? 'text-emerald-800 dark:text-emerald-200' : 'text-red-800 dark:text-red-200' }}">
+                                        Documents
+                                    </span>
+                                </div>
+                                <p class="text-xs {{ $eligibility['documents_complete'] ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300' }}">
+                                    @if($eligibility['documents_complete'])
+                                        All Required
+                                    @else
+                                        Missing {{ count($eligibility['missing_documents'] ?? []) }} doc(s)
+                                    @endif
+                                </p>
+                            </div>
+
+                            {{-- Activities --}}
+                            <div class="p-4 rounded-lg border-2 transition-all {{ $eligibility['activities_met'] ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-red-500 bg-red-50 dark:bg-red-900/20' }}">
+                                <div class="flex items-center gap-2 mb-2">
+                                    @if($eligibility['activities_met'])
+                                        <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                        </svg>
+                                    @else
+                                        <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                        </svg>
+                                    @endif
+                                    <span class="font-semibold text-sm {{ $eligibility['activities_met'] ? 'text-emerald-800 dark:text-emerald-200' : 'text-red-800 dark:text-red-200' }}">
+                                        Activities
+                                    </span>
+                                </div>
+                                <p class="text-xs {{ $eligibility['activities_met'] ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300' }}">
+                                    {{ $eligibility['activity_details']['approved_count'] ?? 0 }} / {{ $eligibility['activity_details']['required'] ?? 2 }} required
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
                     {{-- Request Summary --}}
@@ -1459,7 +1703,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                     </div>
 
                     {{-- Components Summary --}}
-                    @if($requestType === 'renewal' && $requestComponent && count($components) > 0)
+                    @if($requestComponent && count($components) > 0)
                         <div class="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg">
                             <h3 class="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-3">Component Endorsements</h3>
                             <ul class="space-y-2 text-sm">
@@ -1473,6 +1717,13 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                                 {{ $componentTypeOptions[$comp['component_type']] ?? $comp['component_type'] }}
                                                 @if($comp['component_make']) - {{ $comp['component_make'] }} @endif
                                                 @if($comp['component_model']) {{ $comp['component_model'] }} @endif
+                                                @if($comp['component_type'] === 'barrel')
+                                                    @if($comp['diameter'])
+                                                        <span class="text-zinc-500">(Diameter: {{ $comp['diameter'] }})</span>
+                                                    @elseif(!empty($comp['calibre_id']) || !empty($comp['calibre_manual']))
+                                                        <span class="text-zinc-500">(Calibre: {{ $comp['calibre_manual'] ?? 'Selected' }})</span>
+                                                    @endif
+                                                @endif
                                             </span>
                                         </li>
                                     @endif
@@ -1491,12 +1742,31 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                         <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
                                         </svg>
-                                        {{ $error }}
+                                        {{ is_string($error) ? $error : ($error['message'] ?? json_encode($error)) }}
                                     </li>
                                 @endforeach
                             </ul>
                         </div>
                     @endif
+                    
+                    {{-- Debug: Show document status if trying to submit --}}
+                    @php
+                        // Check document status for debugging
+                        if ($this->canSubmit && $this->declarationAccepted) {
+                            try {
+                                $testRequest = $this->editingRequest ?? new \App\Models\EndorsementRequest();
+                                if ($testRequest->exists || $this->editingRequest) {
+                                    $testRequest->request_type = $this->requestType;
+                                    $missingDocs = $testRequest->getMissingRequestDocuments();
+                                    if (count($missingDocs) > 0) {
+                                        $docLabels = array_map(fn($doc) => \App\Models\EndorsementRequest::getDocumentTypeLabel($doc), $missingDocs);
+                                    }
+                                }
+                            } catch (\Exception $e) {
+                                // Ignore errors in debug display
+                            }
+                        }
+                    @endphp
 
                     {{-- Declaration --}}
                     <div class="p-4 border-2 rounded-lg {{ $declarationAccepted ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-zinc-300 dark:border-zinc-600' }}">
@@ -1536,15 +1806,19 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                     @if(!($currentStep === 3 && $requestType === 'new'))
                         <button wire:click="nextStep" type="button"
                             @disabled(!$this->canProceedToNextStep)
-                            class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                            Next
+                            wire:loading.attr="disabled"
+                            class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-600">
+                            <span wire:loading.remove wire:target="nextStep">Next</span>
+                            <span wire:loading wire:target="nextStep">Processing...</span>
                         </button>
                     @endif
                 @else
                     <button wire:click="submitRequest" type="button"
                         @disabled(!$this->canSubmit)
-                        class="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                        Submit Request
+                        wire:loading.attr="disabled"
+                        class="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-600">
+                        <span wire:loading.remove wire:target="submitRequest">Submit Request</span>
+                        <span wire:loading wire:target="submitRequest">Submitting...</span>
                     </button>
                 @endif
             </div>
@@ -1570,15 +1844,71 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                 </div>
 
                 <div class="px-6 py-4 space-y-4">
+                    {{-- Existing Calibres List --}}
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                            Existing Calibres
+                            <span class="text-xs font-normal text-zinc-500 dark:text-zinc-400">
+                                (Check if your calibre already exists)
+                            </span>
+                        </label>
+                        
+                        {{-- Search existing calibres --}}
+                        <div class="mb-2">
+                            <input type="text" 
+                                wire:model.live.debounce.300ms="calibreSearchQuery"
+                                placeholder="Search existing calibres..."
+                                class="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                        </div>
+
+                        {{-- List of existing calibres --}}
+                        <div class="max-h-48 overflow-y-auto border border-zinc-200 dark:border-zinc-700 rounded-lg bg-zinc-50 dark:bg-zinc-900/50">
+                            @if($this->existingCalibres->count() > 0)
+                                <div class="p-2 space-y-1">
+                                    @foreach($this->existingCalibres as $calibre)
+                                        <div class="px-3 py-2 text-sm rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 cursor-pointer transition-colors"
+                                            wire:click="$set('newCalibreName', '{{ $calibre->name }}')"
+                                            title="Click to use this calibre name">
+                                            <div class="flex items-center justify-between">
+                                                <span class="font-medium text-zinc-900 dark:text-white">{{ $calibre->name }}</span>
+                                                <span class="text-xs text-zinc-500 dark:text-zinc-400">
+                                                    {{ $calibre->category_label }} • {{ $calibre->ignition_label }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="p-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                                    @if($calibreSearchQuery)
+                                        No calibres found matching "{{ $calibreSearchQuery }}"
+                                    @elseif($newCalibreCategory || $newCalibreIgnition)
+                                        No calibres found for selected filters. Try adjusting category or ignition type.
+                                    @else
+                                        Select a category and ignition type to see existing calibres.
+                                    @endif
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+
                     {{-- Calibre Name --}}
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                             Calibre Name <span class="text-red-500">*</span>
+                            <span class="text-xs font-normal text-zinc-500 dark:text-zinc-400">
+                                (Enter the calibre you want to request)
+                            </span>
                         </label>
                         <input type="text" wire:model="newCalibreName" 
                             placeholder="e.g., 6.5 PRC, .300 PRC, 6mm ARC"
                             class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
                         @error('newCalibreName') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                        @if($newCalibreName && $this->existingCalibres->contains('name', $newCalibreName))
+                            <p class="mt-1 text-sm text-amber-600 dark:text-amber-400">
+                                ⚠️ This calibre already exists in our database. Please check the list above.
+                            </p>
+                        @endif
                     </div>
 
                     {{-- Category --}}
@@ -1586,13 +1916,14 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                             Category <span class="text-red-500">*</span>
                         </label>
-                        <select wire:model="newCalibreCategory" 
+                        <select wire:model.live="newCalibreCategory" 
                             class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
                             <option value="">Select category...</option>
                             <option value="handgun">Handgun</option>
                             <option value="rifle">Rifle</option>
                             <option value="shotgun">Shotgun</option>
-                            <option value="other">Other</option>
+                            <option value="muzzleloader">Muzzleloader</option>
+                            <option value="historic">Historic</option>
                         </select>
                         @error('newCalibreCategory') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
@@ -1604,12 +1935,12 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                         </label>
                         <div class="flex gap-4">
                             <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="radio" wire:model="newCalibreIgnition" value="centerfire" 
+                                <input type="radio" wire:model.live="newCalibreIgnition" value="centerfire" 
                                     class="text-emerald-600 focus:ring-emerald-500">
                                 <span class="text-zinc-700 dark:text-zinc-300">Centerfire</span>
                             </label>
                             <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="radio" wire:model="newCalibreIgnition" value="rimfire"
+                                <input type="radio" wire:model.live="newCalibreIgnition" value="rimfire"
                                     class="text-emerald-600 focus:ring-emerald-500">
                                 <span class="text-zinc-700 dark:text-zinc-300">Rimfire</span>
                             </label>
