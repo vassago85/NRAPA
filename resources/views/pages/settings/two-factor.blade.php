@@ -419,9 +419,6 @@ new class extends Component {
             </div>
         </div>
     @endif
-@if(!$isForced)
-</section>
-@endif
 
 <script>
 (function() {
