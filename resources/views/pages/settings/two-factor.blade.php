@@ -191,8 +191,8 @@ new class extends Component {
         $this->reset('code');
         $this->resetErrorBag();
         
-        // Clear session storage and hide verification section
-        $this->dispatch('reset-verification-ui');
+        // Dispatch event to hide verification section via JavaScript
+        $this->dispatch('reset-verification');
     }
 
     public function disable(DisableTwoFactorAuthentication $disableTwoFactorAuthentication): void
@@ -632,10 +632,10 @@ new class extends Component {
 
                             <div id="continue-button-wrapper" style="display: {{ $showVerificationStep ? 'none' : 'block' }};">
                             <button type="button" 
+                                    id="continue-2fa-button"
                                     wire:click.prevent="showVerificationIfNecessary"
                                     wire:loading.attr="disabled"
                                     wire:target="showVerificationIfNecessary"
-                                    onclick="(function() { event.preventDefault(); event.stopPropagation(); const verifyDiv = document.getElementById('verification-section'); const continueBtn = document.getElementById('continue-button-wrapper'); if (verifyDiv) { verifyDiv.style.display = 'block'; verifyDiv.style.visibility = 'visible'; verifyDiv.setAttribute('data-shown', 'true'); sessionStorage.setItem('2fa-verification-shown', 'true'); const input = verifyDiv.querySelector('#two-factor-code'); if (input) { setTimeout(() => { input.focus(); input.select(); }, 200); } } if (continueBtn) { continueBtn.style.display = 'none'; } return false; })()"
                                     class="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium">
                                 <span wire:loading.remove wire:target="showVerificationIfNecessary">{{ __('Continue') }}</span>
                                 <span wire:loading wire:target="showVerificationIfNecessary">{{ __('Loading...') }}</span>
@@ -644,10 +644,10 @@ new class extends Component {
 
                             {{-- Verification Input - Always rendered, completely protected from Livewire re-renders --}}
                             <div id="verification-section" 
-                                 wire:ignore.self
+                                 wire:ignore
                                  class="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-700 space-y-4" 
-                                 style="display: none; visibility: hidden;"
-                                 data-shown="false">
+                                 style="display: none;"
+                                 data-2fa-visible="false">
                                 <div class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                                     <p class="text-xs text-blue-700 dark:text-blue-300 text-center">
                                         Open your authenticator app and enter the 6-digit code shown there. This code refreshes every 30 seconds.
@@ -691,38 +691,106 @@ new class extends Component {
     @endif
 </section>
 
-@script
 <script>
-    // Ensure verification section stays visible even after Livewire updates
-    document.addEventListener('livewire:init', () => {
-        // Check if verification was shown before Livewire update
-        const wasShown = sessionStorage.getItem('2fa-verification-shown') === 'true';
-        if (wasShown) {
-            const verifyDiv = document.getElementById('verification-section');
-            if (verifyDiv) {
-                verifyDiv.style.display = 'block';
-                verifyDiv.style.visibility = 'visible';
-                verifyDiv.setAttribute('data-shown', 'true');
-                const input = verifyDiv.querySelector('#two-factor-code');
-                if (input) {
-                    setTimeout(() => {
-                        input.focus();
-                        input.select();
-                    }, 100);
+(function() {
+    'use strict';
+    
+    function showVerificationSection() {
+        const verifyDiv = document.getElementById('verification-section');
+        const continueBtn = document.getElementById('continue-button-wrapper');
+        
+        if (verifyDiv) {
+            verifyDiv.style.display = 'block';
+            verifyDiv.setAttribute('data-2fa-visible', 'true');
+            sessionStorage.setItem('2fa-verification-shown', 'true');
+            
+            const input = verifyDiv.querySelector('#two-factor-code');
+            if (input) {
+                setTimeout(() => {
+                    input.focus();
+                    input.select();
+                }, 100);
+            }
+        }
+        
+        if (continueBtn) {
+            continueBtn.style.display = 'none';
+        }
+    }
+    
+    function hideVerificationSection() {
+        const verifyDiv = document.getElementById('verification-section');
+        const continueBtn = document.getElementById('continue-button-wrapper');
+        
+        if (verifyDiv) {
+            verifyDiv.style.display = 'none';
+            verifyDiv.setAttribute('data-2fa-visible', 'false');
+        }
+        
+        if (continueBtn) {
+            continueBtn.style.display = 'block';
+        }
+        
+        sessionStorage.removeItem('2fa-verification-shown');
+    }
+    
+    // Set up continue button click handler
+    document.addEventListener('DOMContentLoaded', function() {
+        const continueBtn = document.getElementById('continue-2fa-button');
+        if (continueBtn) {
+            continueBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                showVerificationSection();
+                return false;
+            }, true);
+        }
+        
+        // Restore state if it was shown before
+        if (sessionStorage.getItem('2fa-verification-shown') === 'true') {
+            showVerificationSection();
+        }
+    });
+    
+    // Use MutationObserver to keep verification section visible after Livewire updates
+    const observer = new MutationObserver(function(mutations) {
+        const verifyDiv = document.getElementById('verification-section');
+        if (verifyDiv && sessionStorage.getItem('2fa-verification-shown') === 'true') {
+            if (verifyDiv.getAttribute('data-2fa-visible') === 'true') {
+                if (verifyDiv.style.display === 'none' || verifyDiv.style.display === '') {
+                    verifyDiv.style.display = 'block';
                 }
             }
         }
     });
-
-    // Listen for Livewire updates and restore verification section if needed
-    document.addEventListener('livewire:update', () => {
-        const wasShown = sessionStorage.getItem('2fa-verification-shown') === 'true';
-        if (wasShown) {
-            setTimeout(() => {
+    
+    // Start observing when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        const verifyDiv = document.getElementById('verification-section');
+        if (verifyDiv) {
+            observer.observe(verifyDiv, {
+                attributes: true,
+                attributeFilter: ['style', 'data-2fa-visible'],
+                childList: false,
+                subtree: false
+            });
+        }
+    });
+    
+    // Also listen for Livewire updates
+    document.addEventListener('livewire:init', function() {
+        if (sessionStorage.getItem('2fa-verification-shown') === 'true') {
+            setTimeout(showVerificationSection, 50);
+        }
+    });
+    
+    document.addEventListener('livewire:update', function() {
+        if (sessionStorage.getItem('2fa-verification-shown') === 'true') {
+            setTimeout(function() {
                 const verifyDiv = document.getElementById('verification-section');
-                if (verifyDiv && verifyDiv.getAttribute('data-shown') === 'true') {
+                if (verifyDiv) {
                     verifyDiv.style.display = 'block';
-                    verifyDiv.style.visibility = 'visible';
+                    verifyDiv.setAttribute('data-2fa-visible', 'true');
                     const input = verifyDiv.querySelector('#two-factor-code');
                     if (input && document.activeElement !== input) {
                         input.focus();
@@ -731,20 +799,15 @@ new class extends Component {
             }, 50);
         }
     });
-
-    // Clean up session storage when verification is reset
-    Livewire.on('reset-verification-ui', () => {
-        sessionStorage.removeItem('2fa-verification-shown');
-        const verifyDiv = document.getElementById('verification-section');
-        const continueBtn = document.getElementById('continue-button-wrapper');
-        if (verifyDiv) {
-            verifyDiv.style.display = 'none';
-            verifyDiv.style.visibility = 'hidden';
-            verifyDiv.setAttribute('data-shown', 'false');
-        }
-        if (continueBtn) {
-            continueBtn.style.display = 'block';
-        }
+    
+    // Listen for reset event from Livewire
+    document.addEventListener('livewire:reset-verification', function() {
+        hideVerificationSection();
     });
+    
+    // Also listen via window event
+    window.addEventListener('livewire:reset-verification', function() {
+        hideVerificationSection();
+    });
+})();
 </script>
-@endscript
