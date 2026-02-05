@@ -53,81 +53,93 @@ return new class extends Migration
                 DB::statement("ALTER TABLE calibre_requests MODIFY COLUMN category ENUM('handgun', 'rifle', 'shotgun', 'muzzleloader', 'historic') DEFAULT 'rifle'");
             } elseif ($driver === 'sqlite') {
                 // SQLite: Need to recreate table with new CHECK constraint
-                // This is a simplified approach - in production you might want to preserve data
-                DB::statement("
-                    CREATE TABLE IF NOT EXISTS calibre_requests_new (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        user_id INTEGER NOT NULL,
-                        name TEXT NOT NULL,
-                        category TEXT NOT NULL DEFAULT 'rifle' CHECK(category IN ('handgun', 'rifle', 'shotgun', 'muzzleloader', 'historic')),
-                        ignition_type TEXT NOT NULL DEFAULT 'centerfire' CHECK(ignition_type IN ('rimfire', 'centerfire')),
-                        saps_code TEXT,
-                        aliases TEXT,
-                        reason TEXT,
-                        status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected')),
-                        reviewed_by INTEGER,
-                        reviewed_at TIMESTAMP,
-                        admin_notes TEXT,
-                        calibre_id INTEGER,
-                        created_at TIMESTAMP,
-                        updated_at TIMESTAMP,
-                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                        FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL,
-                        FOREIGN KEY (calibre_id) REFERENCES firearm_calibres(id) ON DELETE SET NULL
-                    )
-                ");
+                // Only proceed if firearm_calibres table exists
+                if (Schema::hasTable('firearm_calibres')) {
+                    // This is a simplified approach - in production you might want to preserve data
+                    DB::statement("
+                        CREATE TABLE IF NOT EXISTS calibre_requests_new (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id INTEGER NOT NULL,
+                            name TEXT NOT NULL,
+                            category TEXT NOT NULL DEFAULT 'rifle' CHECK(category IN ('handgun', 'rifle', 'shotgun', 'muzzleloader', 'historic')),
+                            ignition_type TEXT NOT NULL DEFAULT 'centerfire' CHECK(ignition_type IN ('rimfire', 'centerfire')),
+                            saps_code TEXT,
+                            aliases TEXT,
+                            reason TEXT,
+                            status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected')),
+                            reviewed_by INTEGER,
+                            reviewed_at TIMESTAMP,
+                            admin_notes TEXT,
+                            calibre_id INTEGER,
+                            created_at TIMESTAMP,
+                            updated_at TIMESTAMP,
+                            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                            FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL,
+                            FOREIGN KEY (calibre_id) REFERENCES firearm_calibres(id) ON DELETE SET NULL
+                        )
+                    ");
                 
-                // Copy data from old table, mapping 'other' to 'rifle'
-                DB::statement("
-                    INSERT INTO calibre_requests_new 
-                    SELECT 
-                        id,
-                        user_id,
-                        name,
-                        CASE WHEN category = 'other' THEN 'rifle' ELSE category END as category,
-                        ignition_type,
-                        saps_code,
-                        aliases,
-                        reason,
-                        status,
-                        reviewed_by,
-                        reviewed_at,
-                        admin_notes,
-                        calibre_id,
-                        created_at,
-                        updated_at
-                    FROM calibre_requests
-                ");
-                
-                // Drop old table and rename new one
-                DB::statement("DROP TABLE calibre_requests");
-                DB::statement("ALTER TABLE calibre_requests_new RENAME TO calibre_requests");
-                
-                // Recreate indexes
-                DB::statement("CREATE INDEX IF NOT EXISTS idx_calibre_requests_status_created ON calibre_requests(status, created_at)");
-                DB::statement("CREATE INDEX IF NOT EXISTS idx_calibre_requests_user_id ON calibre_requests(user_id)");
+                    // Copy data from old table, mapping 'other' to 'rifle'
+                    DB::statement("
+                        INSERT INTO calibre_requests_new 
+                        SELECT 
+                            id,
+                            user_id,
+                            name,
+                            CASE WHEN category = 'other' THEN 'rifle' ELSE category END as category,
+                            ignition_type,
+                            saps_code,
+                            aliases,
+                            reason,
+                            status,
+                            reviewed_by,
+                            reviewed_at,
+                            admin_notes,
+                            calibre_id,
+                            created_at,
+                            updated_at
+                        FROM calibre_requests
+                    ");
+                    
+                    // Drop old table and rename new one
+                    DB::statement("DROP TABLE calibre_requests");
+                    DB::statement("ALTER TABLE calibre_requests_new RENAME TO calibre_requests");
+                    
+                    // Recreate indexes
+                    DB::statement("CREATE INDEX IF NOT EXISTS idx_calibre_requests_status_created ON calibre_requests(status, created_at)");
+                    DB::statement("CREATE INDEX IF NOT EXISTS idx_calibre_requests_user_id ON calibre_requests(user_id)");
+                } else {
+                    // firearm_calibres table doesn't exist yet - skip SQLite table recreation
+                    // This migration will need to be re-run after firearm_calibres is created
+                }
             }
             
             // Re-add foreign key constraint pointing to firearm_calibres (if it doesn't already exist)
-            if ($driver === 'mysql') {
-                // Check if foreign key already exists
-                $existingFk = DB::select("
-                    SELECT CONSTRAINT_NAME 
-                    FROM information_schema.KEY_COLUMN_USAGE 
-                    WHERE TABLE_SCHEMA = DATABASE() 
-                    AND TABLE_NAME = 'calibre_requests' 
-                    AND COLUMN_NAME = 'calibre_id' 
-                    AND REFERENCED_TABLE_NAME = 'firearm_calibres'
-                ");
-                
-                if (empty($existingFk)) {
-                    Schema::table('calibre_requests', function (Blueprint $table) {
-                        $table->foreign('calibre_id')->references('id')->on('firearm_calibres')->nullOnDelete();
-                    });
+            // Only add if firearm_calibres table exists
+            if (Schema::hasTable('firearm_calibres')) {
+                if ($driver === 'mysql') {
+                    // Check if foreign key already exists
+                    $existingFk = DB::select("
+                        SELECT CONSTRAINT_NAME 
+                        FROM information_schema.KEY_COLUMN_USAGE 
+                        WHERE TABLE_SCHEMA = DATABASE() 
+                        AND TABLE_NAME = 'calibre_requests' 
+                        AND COLUMN_NAME = 'calibre_id' 
+                        AND REFERENCED_TABLE_NAME = 'firearm_calibres'
+                    ");
+                    
+                    if (empty($existingFk)) {
+                        Schema::table('calibre_requests', function (Blueprint $table) {
+                            $table->foreign('calibre_id')->references('id')->on('firearm_calibres')->nullOnDelete();
+                        });
+                    }
+                } else {
+                    // For SQLite, foreign keys are handled in the table recreation above
+                    // No need to add separately
                 }
             } else {
-                // For SQLite, foreign keys are handled in the table recreation above
-                // No need to add separately
+                // firearm_calibres table doesn't exist yet - skip adding foreign key
+                // This migration will need to be re-run after firearm_calibres is created
             }
         }
     }
