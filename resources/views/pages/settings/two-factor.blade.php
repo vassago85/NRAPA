@@ -674,7 +674,6 @@ new class extends Component {
                                         {{ __('Confirm') }}
                                     </button>
                                 </div>
-                            @endif
                             </div>
                     </div>
                 </div>
