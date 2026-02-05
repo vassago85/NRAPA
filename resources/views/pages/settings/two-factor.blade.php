@@ -169,9 +169,8 @@ new class extends Component {
         $this->showVerificationStep = true;
         $this->resetErrorBag();
         
-        // Force Livewire to update the view
-        // Using dispatch to ensure the change is propagated
-        $this->dispatch('$refresh');
+        // Dispatch event to update Alpine.js state
+        $this->dispatch('verification-step-enabled');
     }
 
     public function confirmTwoFactor(ConfirmTwoFactorAuthentication $confirmTwoFactorAuthentication): void
@@ -573,13 +572,18 @@ new class extends Component {
                 @else
                     <div class="fixed inset-0 bg-black/50"></div>
                 @endif
-                <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6" wire:key="2fa-modal-{{ $showVerificationStep ? 'verify' : 'setup' }}">
+                <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6" 
+                     x-data="{ showVerify: @js($showVerificationStep) }"
+                     x-effect="showVerify = @js($showVerificationStep)"
+                     @verification-step-enabled.window="showVerify = true"
+                     wire:key="2fa-modal">
                     <div class="space-y-6">
                         <div class="text-center">
                             <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">{{ $this->modalConfig['title'] }}</h3>
                             <p class="text-sm text-zinc-600 dark:text-zinc-400 mt-1">{{ $this->modalConfig['description'] }}</p>
                         </div>
 
+                        <div x-show="showVerify" x-cloak>
                         @if ($showVerificationStep)
                             <div class="space-y-4" wire:key="verification-step">
                                 <div class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
@@ -610,7 +614,11 @@ new class extends Component {
                                     </button>
                                 </div>
                             </div>
-                        @else
+                        @endif
+                        </div>
+                        
+                        <div x-show="!showVerify" x-cloak>
+                        @if (!$showVerificationStep)
                             {{-- Instructions Section --}}
                             <div class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-4" wire:key="setup-instructions">
                                 <div class="space-y-3">
@@ -666,8 +674,8 @@ new class extends Component {
                                 <span wire:loading.remove wire:target="showVerificationIfNecessary">{{ __('Continue') }}</span>
                                 <span wire:loading wire:target="showVerificationIfNecessary">{{ __('Loading...') }}</span>
                             </button>
-                            <div x-data x-show="false" x-init="console.log('Modal state:', @js($showVerificationStep))"></div>
                         @endif
+                        </div>
                     </div>
                 </div>
             </div>
