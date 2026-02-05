@@ -178,8 +178,16 @@ new class extends Component {
         // Reset the 2FA login counter when 2FA is successfully enabled
         auth()->user()->reset2FALoginCounter();
         
-        $this->closeModal();
+        // Close modal and reset state
+        $this->showModal = false;
+        $this->showVerificationStep = false;
+        $this->reset('code', 'manualSetupKey', 'qrCodeSvg');
+        $this->resetErrorBag();
+        
         $this->twoFactorEnabled = true;
+        
+        // Clear session storage
+        $this->dispatch('2fa-confirmed');
     }
 
     public function resetVerification(): void
@@ -767,6 +775,32 @@ new class extends Component {
         document.addEventListener(event, function() {
             setTimeout(restoreVerification, 100);
         });
+    });
+    
+    // Listen for 2FA confirmation to clear session storage
+    document.addEventListener('livewire:2fa-confirmed', function() {
+        sessionStorage.removeItem('2fa-verification-shown');
+        const verifyDiv = document.getElementById('verification-section');
+        const continueBtn = document.getElementById('continue-button-wrapper');
+        if (verifyDiv) {
+            verifyDiv.style.display = 'none';
+        }
+        if (continueBtn) {
+            continueBtn.style.display = 'block';
+        }
+    });
+    
+    // Also listen via window event
+    window.addEventListener('livewire:2fa-confirmed', function() {
+        sessionStorage.removeItem('2fa-verification-shown');
+        const verifyDiv = document.getElementById('verification-section');
+        const continueBtn = document.getElementById('continue-button-wrapper');
+        if (verifyDiv) {
+            verifyDiv.style.display = 'none';
+        }
+        if (continueBtn) {
+            continueBtn.style.display = 'block';
+        }
     });
 })();
 </script>
