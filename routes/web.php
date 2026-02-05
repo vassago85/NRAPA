@@ -2,14 +2,6 @@
 
 use Illuminate\Support\Facades\Route;
 
-// Handle Livewire JS module requests (Volt components) - return empty JS to suppress 404s
-// This must be registered FIRST before any other routes to catch Livewire module requests
-Route::get('/livewire-{hash}/js/{path}', function ($hash, $path) {
-    return response('// Empty module - using inline scripts instead', 200)
-        ->header('Content-Type', 'application/javascript')
-        ->header('Cache-Control', 'no-cache, no-store, must-revalidate');
-})->where('hash', '[a-z0-9]+')->where('path', '.*')->name('livewire.js-module');
-
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
