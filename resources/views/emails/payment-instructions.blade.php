@@ -23,23 +23,23 @@
         <table style="width: 100%; border-collapse: collapse;">
             <tr>
                 <td style="padding: 8px 0; color: #6b7280;">Bank:</td>
-                <td style="padding: 8px 0; text-align: right; font-weight: bold;">{{ $bankAccount['bank_name'] }}</td>
+                <td style="padding: 8px 0; text-align: right; font-weight: bold;">{{ $bankAccount['bank_name'] ?: 'To be confirmed' }}</td>
             </tr>
             <tr>
                 <td style="padding: 8px 0; color: #6b7280;">Account Name:</td>
-                <td style="padding: 8px 0; text-align: right; font-weight: bold;">{{ $bankAccount['account_name'] }}</td>
+                <td style="padding: 8px 0; text-align: right; font-weight: bold;">{{ $bankAccount['account_name'] ?: 'To be confirmed' }}</td>
             </tr>
             <tr>
                 <td style="padding: 8px 0; color: #6b7280;">Account Number:</td>
-                <td style="padding: 8px 0; text-align: right; font-weight: bold; font-family: monospace;">{{ $bankAccount['account_number'] }}</td>
+                <td style="padding: 8px 0; text-align: right; font-weight: bold; font-family: monospace;">{{ $bankAccount['account_number'] ?: 'To be confirmed' }}</td>
             </tr>
             <tr>
                 <td style="padding: 8px 0; color: #6b7280;">Branch Code:</td>
-                <td style="padding: 8px 0; text-align: right; font-weight: bold; font-family: monospace;">{{ $bankAccount['branch_code'] }}</td>
+                <td style="padding: 8px 0; text-align: right; font-weight: bold; font-family: monospace;">{{ $bankAccount['branch_code'] ?: 'To be confirmed' }}</td>
             </tr>
             <tr>
                 <td style="padding: 8px 0; color: #6b7280;">Account Type:</td>
-                <td style="padding: 8px 0; text-align: right; font-weight: bold;">{{ $bankAccount['account_type'] }}</td>
+                <td style="padding: 8px 0; text-align: right; font-weight: bold;">{{ $bankAccount['account_type'] ?: 'To be confirmed' }}</td>
             </tr>
         </table>
     </div>

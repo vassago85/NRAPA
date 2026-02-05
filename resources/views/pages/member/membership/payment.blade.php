@@ -116,44 +116,44 @@ new class extends Component {
         <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 mb-6">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Bank Account Details</h2>
 
-            @if(empty($bankAccount['bank_name']) || empty($bankAccount['account_number']))
-                <div class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+            @if(empty($bankAccount['bank_name']) && empty($bankAccount['account_number']))
+                <div class="p-4 mb-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
                     <p class="text-amber-700 dark:text-amber-300">
-                        <strong>Note:</strong> Bank account details have not been configured yet. Please contact NRAPA administration for payment instructions.
+                        <strong>Note:</strong> Bank account details are being configured. Please contact NRAPA administration if you need immediate payment assistance.
                     </p>
                 </div>
-            @else
-                <div class="space-y-3">
-                    <div class="flex justify-between py-2 border-b border-zinc-100 dark:border-zinc-700">
-                        <span class="text-zinc-500 dark:text-zinc-400">Bank</span>
-                        <span class="font-medium text-zinc-900 dark:text-white">{{ $bankAccount['bank_name'] }}</span>
-                    </div>
-                    <div class="flex justify-between py-2 border-b border-zinc-100 dark:border-zinc-700">
-                        <span class="text-zinc-500 dark:text-zinc-400">Account Name</span>
-                        <span class="font-medium text-zinc-900 dark:text-white">{{ $bankAccount['account_name'] }}</span>
-                    </div>
-                    <div class="flex justify-between py-2 border-b border-zinc-100 dark:border-zinc-700">
-                        <span class="text-zinc-500 dark:text-zinc-400">Account Number</span>
-                        <span class="font-mono font-medium text-zinc-900 dark:text-white">{{ $bankAccount['account_number'] }}</span>
-                    </div>
-                    <div class="flex justify-between py-2 border-b border-zinc-100 dark:border-zinc-700">
-                        <span class="text-zinc-500 dark:text-zinc-400">Branch Code</span>
-                        <span class="font-mono font-medium text-zinc-900 dark:text-white">{{ $bankAccount['branch_code'] }}</span>
-                    </div>
-                    <div class="flex justify-between py-2 border-b border-zinc-100 dark:border-zinc-700">
-                        <span class="text-zinc-500 dark:text-zinc-400">Account Type</span>
-                        <span class="font-medium text-zinc-900 dark:text-white">{{ $bankAccount['account_type'] }}</span>
-                    </div>
-                    <div class="flex justify-between py-2 border-b border-zinc-100 dark:border-zinc-700">
-                        <span class="text-zinc-500 dark:text-zinc-400">Amount</span>
-                        <span class="font-bold text-emerald-600 dark:text-emerald-400">R{{ number_format($membershipType->price, 2) }}</span>
-                    </div>
-                    <div class="flex justify-between py-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg px-3 -mx-3">
-                        <span class="text-blue-700 dark:text-blue-300 font-medium">Payment Reference</span>
-                        <span class="font-mono font-bold text-blue-800 dark:text-blue-200">{{ $reference }}</span>
-                    </div>
-                </div>
             @endif
+
+            <div class="space-y-3">
+                <div class="flex justify-between py-2 border-b border-zinc-100 dark:border-zinc-700">
+                    <span class="text-zinc-500 dark:text-zinc-400">Bank</span>
+                    <span class="font-medium text-zinc-900 dark:text-white">{{ $bankAccount['bank_name'] ?: 'To be confirmed' }}</span>
+                </div>
+                <div class="flex justify-between py-2 border-b border-zinc-100 dark:border-zinc-700">
+                    <span class="text-zinc-500 dark:text-zinc-400">Account Name</span>
+                    <span class="font-medium text-zinc-900 dark:text-white">{{ $bankAccount['account_name'] ?: 'To be confirmed' }}</span>
+                </div>
+                <div class="flex justify-between py-2 border-b border-zinc-100 dark:border-zinc-700">
+                    <span class="text-zinc-500 dark:text-zinc-400">Account Number</span>
+                    <span class="font-mono font-medium text-zinc-900 dark:text-white">{{ $bankAccount['account_number'] ?: 'To be confirmed' }}</span>
+                </div>
+                <div class="flex justify-between py-2 border-b border-zinc-100 dark:border-zinc-700">
+                    <span class="text-zinc-500 dark:text-zinc-400">Branch Code</span>
+                    <span class="font-mono font-medium text-zinc-900 dark:text-white">{{ $bankAccount['branch_code'] ?: 'To be confirmed' }}</span>
+                </div>
+                <div class="flex justify-between py-2 border-b border-zinc-100 dark:border-zinc-700">
+                    <span class="text-zinc-500 dark:text-zinc-400">Account Type</span>
+                    <span class="font-medium text-zinc-900 dark:text-white">{{ $bankAccount['account_type'] ?: 'To be confirmed' }}</span>
+                </div>
+                <div class="flex justify-between py-2 border-b border-zinc-100 dark:border-zinc-700">
+                    <span class="text-zinc-500 dark:text-zinc-400">Amount</span>
+                    <span class="font-bold text-emerald-600 dark:text-emerald-400">R{{ number_format($membershipType->price, 2) }}</span>
+                </div>
+                <div class="flex justify-between py-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg px-3 -mx-3">
+                    <span class="text-blue-700 dark:text-blue-300 font-medium">Payment Reference</span>
+                    <span class="font-mono font-bold text-blue-800 dark:text-blue-200">{{ $reference }}</span>
+                </div>
+            </div>
         </div>
 
         <!-- Important Notes -->

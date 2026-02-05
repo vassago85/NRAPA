@@ -121,18 +121,16 @@ new #[Title('Apply for Membership')] class extends Component {
         try {
             $bankAccount = SystemSetting::getBankAccount();
             
-            // Only send if bank details are configured
-            if (!empty($bankAccount['bank_name']) && !empty($bankAccount['account_number'])) {
-                Mail::to($membership->user->email)
-                    ->queue(new PaymentInstructions(
-                        $membership->load('type', 'user'),
-                        $bankAccount,
-                        $membership->payment_reference
-                    ));
+            // Always send payment instructions email (bank details will show "To be confirmed" if not set)
+            Mail::to($membership->user->email)
+                ->queue(new PaymentInstructions(
+                    $membership->load('type', 'user'),
+                    $bankAccount,
+                    $membership->payment_reference
+                ));
 
-                // Mark email as sent
-                $membership->update(['payment_email_sent_at' => now()]);
-            }
+            // Mark email as sent
+            $membership->update(['payment_email_sent_at' => now()]);
         } catch (\Exception $e) {
             // Log error but don't fail the application
             \Log::error('Failed to send payment instructions email', [
