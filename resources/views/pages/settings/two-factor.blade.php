@@ -639,9 +639,13 @@ new class extends Component {
                             </button>
                             @endif
 
-                            {{-- Verification Input - Shows below QR code after clicking Continue --}}
-                            <div id="verification-section" class="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-700 space-y-4" style="display: {{ $showVerificationStep ? 'block' : 'none' }};">
-                            @if ($showVerificationStep)
+                            {{-- Verification Input - Always rendered, shown/hidden via display style --}}
+                            <div id="verification-section" 
+                                 class="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-700 space-y-4" 
+                                 style="display: {{ $showVerificationStep ? 'block' : 'none' }};"
+                                 x-data
+                                 @hide-verification.window="$el.style.display = 'none'; document.getElementById('continue-button-wrapper').style.display = 'block';"
+                                 wire:key="verification-section">
                                 <div class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                                     <p class="text-xs text-blue-700 dark:text-blue-300 text-center">
                                         Open your authenticator app and enter the 6-digit code shown there. This code refreshes every 30 seconds.
