@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\UserSecurityQuestion;
-use Exception;
 use Laravel\Fortify\Actions\ConfirmTwoFactorAuthentication;
 use Laravel\Fortify\Actions\DisableTwoFactorAuthentication;
 use Laravel\Fortify\Actions\EnableTwoFactorAuthentication;
@@ -162,7 +161,7 @@ new class extends Component {
         try {
             $this->qrCodeSvg = $user?->twoFactorQrCodeSvg();
             $this->manualSetupKey = decrypt($user->two_factor_secret);
-        } catch (Exception) {
+        } catch (\Exception) {
             $this->addError('setupData', 'Failed to fetch setup data.');
             $this->reset('qrCodeSvg', 'manualSetupKey');
         }

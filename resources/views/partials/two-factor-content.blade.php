@@ -257,7 +257,7 @@
                             </div>
                             <form wire:submit.prevent="saveSecurityQuestions">
                                 <div class="space-y-4">
-                                    @for($i = 0; $i < UserSecurityQuestion::REQUIRED_QUESTIONS; $i++)
+                                    @for($i = 0; $i < \App\Models\UserSecurityQuestion::REQUIRED_QUESTIONS; $i++)
                                         <div>
                                             <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                                                 Question {{ $i + 1 }}
@@ -265,7 +265,7 @@
                                             <select wire:model="securityQuestions.{{ $i }}" 
                                                     class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
                                                 <option value="">Select a question...</option>
-                                                @foreach(UserSecurityQuestion::getQuestionOptions() as $option)
+                                                @foreach(\App\Models\UserSecurityQuestion::getQuestionOptions() as $option)
                                                     <option value="{{ $option }}">{{ $option }}</option>
                                                 @endforeach
                                             </select>
