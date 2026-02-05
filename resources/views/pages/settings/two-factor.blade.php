@@ -574,14 +574,14 @@ new class extends Component {
         @php
             $isForced = auth()->user()->hasExceeded2FALoginLimit() && !auth()->user()->hasEnabledTwoFactorAuthentication();
         @endphp
-        <div class="fixed inset-0 z-50 overflow-y-auto" x-data x-init="document.body.classList.add('overflow-hidden')" x-on:remove="document.body.classList.remove('overflow-hidden')">
+        <div id="2fa-modal-overlay" class="fixed inset-0 z-50 overflow-y-auto" x-data x-init="document.body.classList.add('overflow-hidden')" x-on:remove="document.body.classList.remove('overflow-hidden')">
             <div class="flex min-h-screen items-center justify-center p-4">
                 @if(!$isForced)
                     <div wire:click="closeModal" class="fixed inset-0 bg-black/50 cursor-pointer"></div>
                 @else
                     <div class="fixed inset-0 bg-black/50"></div>
                 @endif
-                <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6" 
+                <div id="2fa-modal-container" class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6" 
                      wire:key="2fa-modal-{{ $showVerificationStep ? 'verify' : 'setup' }}">
                     <div class="space-y-6">
                         <div class="text-center">
@@ -679,7 +679,9 @@ new class extends Component {
                                             class="flex-1 px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
                                         {{ __('Back') }}
                                     </button>
-                                    <button type="button" wire:click="confirmTwoFactor"
+                                    <button type="button" 
+                                            wire:click="confirmTwoFactor"
+                                            onclick="setTimeout(function() { const overlay = document.getElementById('2fa-modal-overlay'); if(overlay) { overlay.style.display = 'none'; overlay.remove(); } document.body.classList.remove('overflow-hidden'); }, 500);"
                                             class="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium">
                                         {{ __('Confirm') }}
                                     </button>
@@ -777,9 +779,20 @@ new class extends Component {
         });
     });
     
-    // Listen for 2FA confirmation to clear session storage
-    document.addEventListener('livewire:2fa-confirmed', function() {
+    // Function to force close the modal
+    function close2FAModal() {
+        const overlay = document.getElementById('2fa-modal-overlay');
+        const container = document.getElementById('2fa-modal-container');
+        if (overlay) {
+            overlay.style.display = 'none';
+            overlay.remove();
+        }
+        if (container) {
+            container.remove();
+        }
+        document.body.classList.remove('overflow-hidden');
         sessionStorage.removeItem('2fa-verification-shown');
+        
         const verifyDiv = document.getElementById('verification-section');
         const continueBtn = document.getElementById('continue-button-wrapper');
         if (verifyDiv) {
@@ -788,19 +801,26 @@ new class extends Component {
         if (continueBtn) {
             continueBtn.style.display = 'block';
         }
-    });
+    }
     
-    // Also listen via window event
-    window.addEventListener('livewire:2fa-confirmed', function() {
-        sessionStorage.removeItem('2fa-verification-shown');
-        const verifyDiv = document.getElementById('verification-section');
-        const continueBtn = document.getElementById('continue-button-wrapper');
-        if (verifyDiv) {
-            verifyDiv.style.display = 'none';
-        }
-        if (continueBtn) {
-            continueBtn.style.display = 'block';
-        }
+    // Listen for 2FA confirmation to close modal
+    document.addEventListener('livewire:2fa-confirmed', close2FAModal);
+    window.addEventListener('livewire:2fa-confirmed', close2FAModal);
+    
+    // Also watch for Livewire updates and check if modal should be closed
+    document.addEventListener('livewire:update', function() {
+        // Check if showModal is false but modal is still visible
+        setTimeout(function() {
+            const overlay = document.getElementById('2fa-modal-overlay');
+            if (overlay && overlay.style.display !== 'none') {
+                // Check if Livewire has set showModal to false by checking the @if condition
+                // If the modal container doesn't exist in DOM but overlay does, close it
+                const container = document.getElementById('2fa-modal-container');
+                if (!container && overlay) {
+                    close2FAModal();
+                }
+            }
+        }, 100);
     });
 })();
 </script>
