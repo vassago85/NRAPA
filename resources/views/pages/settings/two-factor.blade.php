@@ -35,6 +35,8 @@ new class extends Component {
     public array $securityAnswers = [];
     public bool $isEditingQuestions = false;
 
+    public bool $isForced = false;
+
     public function mount(DisableTwoFactorAuthentication $disableTwoFactorAuthentication): void
     {
         abort_unless(Features::enabled(Features::twoFactorAuthentication()), Response::HTTP_FORBIDDEN);
@@ -46,6 +48,9 @@ new class extends Component {
         $this->twoFactorEnabled = auth()->user()->hasEnabledTwoFactorAuthentication();
         $this->requiresConfirmation = Features::optionEnabled(Features::twoFactorAuthentication(), 'confirm');
         
+        // Check if user is forced to enable 2FA
+        $this->isForced = auth()->user()->hasExceeded2FALoginLimit() && !auth()->user()->hasEnabledTwoFactorAuthentication();
+        
         // Load security questions
         $this->loadSecurityQuestions();
 
@@ -54,7 +59,7 @@ new class extends Component {
         // Skip in testing environment to avoid breaking tests
         if (!app()->environment('testing') 
             && !$this->twoFactorEnabled 
-            && auth()->user()->hasExceeded2FALoginLimit() 
+            && $this->isForced
             && auth()->user()->canEnable2FA()) {
             $enableTwoFactorAuthentication = app(EnableTwoFactorAuthentication::class);
             $this->enable($enableTwoFactorAuthentication);
@@ -185,6 +190,14 @@ new class extends Component {
         $this->resetErrorBag();
         
         $this->twoFactorEnabled = true;
+        $this->isForced = false; // No longer forced after enabling
+        
+        // If forced, redirect to dashboard after enabling
+        if (auth()->user()->hasExceeded2FALoginLimit() && auth()->user()->hasEnabledTwoFactorAuthentication()) {
+            auth()->user()->reset2FALoginCounter();
+            $this->redirect(route('dashboard'), navigate: true);
+            return;
+        }
         
         // Dispatch event to close modal via JavaScript
         $this->dispatch('2fa-confirmed');
@@ -212,7 +225,7 @@ new class extends Component {
     public function closeModal(): void
     {
         // Don't allow closing modal if user has exceeded login limit and hasn't enabled 2FA yet
-        if (auth()->user()->hasExceeded2FALoginLimit() && !auth()->user()->hasEnabledTwoFactorAuthentication()) {
+        if ($this->isForced && !auth()->user()->hasEnabledTwoFactorAuthentication()) {
             return;
         }
 
@@ -255,10 +268,26 @@ new class extends Component {
     }
 } ?>
 
+@if($isForced)
+    {{-- Full-page forced 2FA setup --}}
+    <div class="min-h-screen bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center p-4">
+        <div class="w-full max-w-2xl">
+            <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-xl p-6 md:p-8">
+                <div class="text-center mb-6">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 mb-4">
+                        <svg class="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    </div>
+                    <h1 class="text-2xl font-bold text-zinc-900 dark:text-white mb-2">Two-Factor Authentication Required</h1>
+                    <p class="text-zinc-600 dark:text-zinc-400">You must enable two-factor authentication to continue using the platform.</p>
+                </div>
+@else
 <section class="w-full">
     @include('partials.settings-heading')
 
     <x-settings-layout :heading="__('Two Factor Authentication')" :subheading="__('Add additional security to your account')">
+@endif
         <div class="space-y-6" wire:cloak>
             {{-- Admin/Owner 2FA Requirement Warning --}}
             @if(auth()->user()->requires2FA() && !$twoFactorEnabled)
@@ -315,7 +344,8 @@ new class extends Component {
                 @endif
             @endif
 
-            @if ($twoFactorEnabled)
+            {{-- Show 2FA setup form directly on page if forced, otherwise show status --}}
+            @if ($twoFactorEnabled && !$isForced)
                 <div class="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
                     <div class="flex items-center gap-3">
                         <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -344,17 +374,135 @@ new class extends Component {
                 </p>
                 @endif
             @else
-                <div class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                    <div class="flex items-center gap-3">
-                        <svg class="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                        </svg>
-                        <div>
-                            <p class="font-semibold text-amber-800 dark:text-amber-200">Two-factor authentication is not enabled</p>
-                            <p class="text-sm text-amber-600 dark:text-amber-400">Enable 2FA for additional account security.</p>
+                {{-- Show 2FA setup form --}}
+                @if($isForced)
+                    <div class="mb-6">
+                        <div class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                            <div class="flex items-start gap-3">
+                                <svg class="w-6 h-6 text-red-600 dark:text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                <div>
+                                    <p class="font-semibold text-red-800 dark:text-red-200">Two-Factor Authentication Required</p>
+                                    <p class="text-sm text-red-600 dark:text-red-400 mt-1">
+                                        As an {{ auth()->user()->role_display_name }}, you must enable two-factor authentication to continue using the platform.
+                                        You have exceeded the maximum number of logins ({{ \App\Models\User::MAX_LOGINS_WITHOUT_2FA }}) without 2FA.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
+                @else
+                    <div class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            <div>
+                                <p class="font-semibold text-amber-800 dark:text-amber-200">Two-factor authentication is not enabled</p>
+                                <p class="text-sm text-amber-600 dark:text-amber-400">Enable 2FA for additional account security.</p>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                {{-- Show 2FA setup directly on page if forced --}}
+                @if($isForced && $showModal)
+                    {{-- QR Code and Setup Instructions --}}
+                    <div class="mb-6">
+                        <div class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-4">
+                            <div class="space-y-3">
+                                <div>
+                                    <p class="text-sm font-medium text-blue-900 dark:text-blue-200 mb-2">📱 Step 1: Install an Authenticator App</p>
+                                    <p class="text-xs text-blue-700 dark:text-blue-300 mb-2">
+                                        You'll need an authenticator app to scan the QR code. We recommend:
+                                    </p>
+                                    <ul class="text-xs text-blue-700 dark:text-blue-300 space-y-1 ml-4 list-disc">
+                                        <li><strong>Google Authenticator</strong> (iOS & Android)</li>
+                                        <li><strong>Microsoft Authenticator</strong> (iOS & Android)</li>
+                                        <li><strong>Authy</strong> (iOS & Android)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-center mb-4">
+                            <div class="relative w-64 overflow-hidden border rounded-lg border-zinc-200 dark:border-zinc-700 aspect-square bg-white p-4">
+                                @empty($qrCodeSvg)
+                                    <div class="absolute inset-0 flex items-center justify-center bg-white dark:bg-zinc-700 animate-pulse">
+                                        <svg class="w-8 h-8 text-zinc-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                        </svg>
+                                    </div>
+                                @else
+                                    <div class="flex items-center justify-center h-full">
+                                        <div class="bg-white p-3 rounded">
+                                            {!! $qrCodeSvg !!}
+                                        </div>
+                                    </div>
+                                @endempty
+                            </div>
+                        </div>
+
+                        <div class="text-center mb-6">
+                            <p class="text-xs text-zinc-500 mb-2">Or enter this code manually:</p>
+                            <code class="text-sm font-mono bg-zinc-100 dark:bg-zinc-700 px-3 py-1 rounded">{{ $manualSetupKey }}</code>
+                        </div>
+
+                        <div id="continue-button-wrapper">
+                        <button type="button" 
+                                id="continue-2fa-button"
+                                onclick="if(typeof window.show2FAVerification === 'function') { window.show2FAVerification(); } else { const verifyDiv = document.getElementById('verification-section'); const continueBtn = document.getElementById('continue-button-wrapper'); if(verifyDiv) { verifyDiv.style.display = 'block'; verifyDiv.style.setProperty('display', 'block', 'important'); sessionStorage.setItem('2fa-verification-shown', 'true'); const input = verifyDiv.querySelector('#two-factor-code'); if(input) { setTimeout(() => { input.focus(); input.select(); }, 100); } } if(continueBtn) { continueBtn.style.display = 'none'; } }"
+                                class="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium">
+                            {{ __('Continue') }}
+                        </button>
+                        </div>
+
+                        {{-- Verification Input - Always rendered, controlled purely by JavaScript --}}
+                        <div id="verification-section" 
+                             class="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-700 space-y-4" 
+                             style="display: none;">
+                            <div class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                <p class="text-xs text-blue-700 dark:text-blue-300 text-center">
+                                    Open your authenticator app and enter the 6-digit code shown there. This code refreshes every 30 seconds.
+                                </p>
+                            </div>
+                            
+                            <input type="text" 
+                                   id="two-factor-code"
+                                   name="two_factor_code"
+                                   wire:model="code" 
+                                   maxlength="6" 
+                                   placeholder="000000"
+                                   autocomplete="one-time-code"
+                                   inputmode="numeric"
+                                   pattern="[0-9]{6}"
+                                   class="w-full text-center text-2xl tracking-widest px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
+                                   autofocus>
+                            @error('code') <p class="text-sm text-red-600 text-center">{{ $message }}</p> @enderror
+
+                            <div class="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                                <p class="text-xs font-medium text-amber-800 dark:text-amber-200 text-center">
+                                    ⚠️ Remember: On your next login, you will be required to enter a code from your authenticator app to access your account.
+                                </p>
+                            </div>
+
+                            <div class="flex gap-3">
+                                <button type="button" 
+                                        onclick="const verifyDiv = document.getElementById('verification-section'); const continueBtn = document.getElementById('continue-button-wrapper'); if(verifyDiv) { verifyDiv.style.display = 'none'; } if(continueBtn) { continueBtn.style.display = 'block'; } sessionStorage.removeItem('2fa-verification-shown');"
+                                        class="flex-1 px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                                    {{ __('Back') }}
+                                </button>
+                                <button type="button" 
+                                        wire:click="confirmTwoFactor"
+                                        onclick="(function() { setTimeout(function() { const overlay = document.getElementById('2fa-modal-overlay'); const container = document.getElementById('2fa-modal-container'); const parent = overlay ? overlay.parentElement : null; if(overlay) { overlay.style.display = 'none'; overlay.remove(); } if(container) { container.remove(); } if(parent && parent.id === '2fa-modal-overlay') { parent.remove(); } document.body.classList.remove('overflow-hidden'); sessionStorage.removeItem('2fa-verification-shown'); }, 200); })()"
+                                        class="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium">
+                                    {{ __('Confirm') }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                @endif
 
                 {{-- Security Questions Section --}}
                 <div class="border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden">
@@ -570,20 +718,18 @@ new class extends Component {
                 @endif
             @endif
         </div>
+    @if(!$isForced)
     </x-settings-layout>
+    @else
+    </div>
+    </div>
+    @endif
 
-    {{-- 2FA Setup Modal --}}
-    @if($showModal)
-        @php
-            $isForced = auth()->user()->hasExceeded2FALoginLimit() && !auth()->user()->hasEnabledTwoFactorAuthentication();
-        @endphp
+    {{-- 2FA Setup Modal (only show if not forced) --}}
+    @if($showModal && !$isForced)
         <div id="2fa-modal-overlay" class="fixed inset-0 z-50 overflow-y-auto" x-data x-init="document.body.classList.add('overflow-hidden')" x-on:remove="document.body.classList.remove('overflow-hidden')">
             <div class="flex min-h-screen items-center justify-center p-4">
-                @if(!$isForced)
-                    <div wire:click="closeModal" class="fixed inset-0 bg-black/50 cursor-pointer"></div>
-                @else
-                    <div class="fixed inset-0 bg-black/50"></div>
-                @endif
+                <div wire:click="closeModal" class="fixed inset-0 bg-black/50 cursor-pointer"></div>
                 <div id="2fa-modal-container" class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6" 
                      wire:key="2fa-modal-{{ $showVerificationStep ? 'verify' : 'setup' }}">
                     <div class="space-y-6">
@@ -695,7 +841,9 @@ new class extends Component {
             </div>
         </div>
     @endif
+@if(!$isForced)
 </section>
+@endif
 
 <script>
 (function() {
@@ -858,5 +1006,20 @@ new class extends Component {
             }
         }, 200);
     });
+    
+    // Prevent navigation away if 2FA is forced
+    @if($isForced && !$twoFactorEnabled)
+    window.addEventListener('beforeunload', function(e) {
+        e.preventDefault();
+        e.returnValue = 'You must complete two-factor authentication setup before leaving this page.';
+        return e.returnValue;
+    });
+    
+    // Prevent back button
+    history.pushState(null, null, location.href);
+    window.onpopstate = function() {
+        history.pushState(null, null, location.href);
+    };
+    @endif
 })();
 </script>
