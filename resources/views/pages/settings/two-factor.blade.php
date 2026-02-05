@@ -25,8 +25,6 @@ new class extends Component {
     public string $manualSetupKey = '';
 
     public bool $showModal = false;
-    
-    #[Locked(false)]
     public bool $showVerificationStep = false;
 
     #[Validate('required|string|size:6', onUpdate: false)]
@@ -170,9 +168,6 @@ new class extends Component {
         // This ensures users verify their authenticator app is working before completing setup
         $this->showVerificationStep = true;
         $this->resetErrorBag();
-        
-        // Force Livewire to update by dispatching a browser event
-        $this->dispatch('verification-step-shown');
     }
 
     public function confirmTwoFactor(ConfirmTwoFactorAuthentication $confirmTwoFactorAuthentication): void
@@ -575,9 +570,7 @@ new class extends Component {
                     <div class="fixed inset-0 bg-black/50"></div>
                 @endif
                 <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6" 
-                     wire:key="2fa-modal-{{ $showVerificationStep ? 'verify' : 'setup' }}"
-                     x-data
-                     @verification-step-shown.window="$wire.showVerificationStep = true">
+                     wire:key="2fa-modal-{{ $showVerificationStep ? 'verify' : 'setup' }}">
                     <div class="space-y-6">
                         <div class="text-center">
                             <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">{{ $this->modalConfig['title'] }}</h3>
