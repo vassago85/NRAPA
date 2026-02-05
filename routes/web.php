@@ -985,6 +985,11 @@ Route::get('verify/endorsement/{reference}', function ($reference) {
 
 require __DIR__.'/settings.php';
 
+// Handle Livewire JS module requests (Volt components) - return empty to suppress 404s
+Route::get('/livewire-{hash}/js/{path}', function () {
+    return response('', 204); // No Content
+})->where('path', '.*')->name('livewire.js-module');
+
 // Temporary test route for FirearmSearchPanel component
 if (app()->environment('local', 'development', 'testing')) {
     Route::get('/test-firearm-panel', function () {
