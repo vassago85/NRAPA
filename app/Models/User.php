@@ -225,6 +225,18 @@ class User extends Authenticatable implements MustVerifyEmail
                 $user->uuid = (string) Str::uuid();
             }
         });
+
+        // When soft-deleting, modify email and id_number to free them up for reuse
+        static::deleting(function (User $user) {
+            if (!$user->isForceDeleting()) {
+                $timestamp = now()->timestamp;
+                $user->email = "deleted_{$timestamp}_{$user->email}";
+                if ($user->id_number) {
+                    $user->id_number = "deleted_{$timestamp}_{$user->id_number}";
+                }
+                $user->saveQuietly();
+            }
+        });
     }
 
     /**
