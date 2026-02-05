@@ -684,7 +684,7 @@ new class extends Component {
                                     </button>
                                     <button type="button" 
                                             wire:click="confirmTwoFactor"
-                                            onclick="(function() { setTimeout(function() { const overlay = document.getElementById('2fa-modal-overlay'); const container = document.getElementById('2fa-modal-container'); if(overlay) { overlay.style.display = 'none'; overlay.remove(); } if(container) { container.remove(); } document.body.classList.remove('overflow-hidden'); sessionStorage.removeItem('2fa-verification-shown'); }, 300); })()"
+                                            onclick="(function() { setTimeout(function() { const overlay = document.getElementById('2fa-modal-overlay'); const container = document.getElementById('2fa-modal-container'); const parent = overlay ? overlay.parentElement : null; if(overlay) { overlay.style.display = 'none'; overlay.remove(); } if(container) { container.remove(); } if(parent && parent.id === '2fa-modal-overlay') { parent.remove(); } document.body.classList.remove('overflow-hidden'); sessionStorage.removeItem('2fa-verification-shown'); }, 200); })()"
                                             class="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium">
                                         {{ __('Confirm') }}
                                     </button>
@@ -784,15 +784,34 @@ new class extends Component {
     
     // Function to force close the modal
     function close2FAModal() {
+        // Find all modal elements
         const overlay = document.getElementById('2fa-modal-overlay');
         const container = document.getElementById('2fa-modal-container');
+        
+        // Remove overlay and its parent if it exists
         if (overlay) {
+            const parent = overlay.parentElement;
             overlay.style.display = 'none';
             overlay.remove();
+            // Also remove parent wrapper if it's the modal container
+            if (parent && parent.classList.contains('fixed')) {
+                parent.remove();
+            }
         }
+        
+        // Remove container
         if (container) {
             container.remove();
         }
+        
+        // Remove any remaining modal elements by class
+        const remainingModals = document.querySelectorAll('[id*="2fa-modal"], .fixed.inset-0.z-50');
+        remainingModals.forEach(function(el) {
+            if (el.id && el.id.includes('2fa-modal')) {
+                el.remove();
+            }
+        });
+        
         document.body.classList.remove('overflow-hidden');
         sessionStorage.removeItem('2fa-verification-shown');
         
