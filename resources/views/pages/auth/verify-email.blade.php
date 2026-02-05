@@ -4,6 +4,17 @@
             {{ __('Please verify your email address by clicking on the link we just emailed to you.') }}
         </p>
 
+        <div class="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4">
+            <div class="flex items-start gap-3">
+                <svg class="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                </svg>
+                <p class="text-sm text-amber-700 dark:text-amber-300">
+                    <strong>Can't find the email?</strong> Please check your spam or junk folder. If it's there, mark it as "not spam" to ensure you receive future emails from us.
+                </p>
+            </div>
+        </div>
+
         @if (session('status') == 'verification-link-sent')
             <p class="text-center font-medium text-green-600 dark:text-green-400">
                 {{ __('A new verification link has been sent to the email address you provided during registration.') }}
