@@ -630,7 +630,7 @@ new class extends Component {
                             <div id="continue-button-wrapper">
                             <button type="button" 
                                     id="continue-2fa-button"
-                                    onclick="window.show2FAVerification()"
+                                    onclick="if(typeof window.show2FAVerification === 'function') { window.show2FAVerification(); } else { const verifyDiv = document.getElementById('verification-section'); const continueBtn = document.getElementById('continue-button-wrapper'); if(verifyDiv) { verifyDiv.style.display = 'block'; verifyDiv.style.setProperty('display', 'block', 'important'); sessionStorage.setItem('2fa-verification-shown', 'true'); const input = verifyDiv.querySelector('#two-factor-code'); if(input) { setTimeout(() => { input.focus(); input.select(); }, 100); } } if(continueBtn) { continueBtn.style.display = 'none'; } }"
                                     class="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium">
                                 {{ __('Continue') }}
                             </button>
@@ -667,7 +667,7 @@ new class extends Component {
 
                                 <div class="flex gap-3">
                                     <button type="button" 
-                                            onclick="document.getElementById('verification-section').style.display='none'; document.getElementById('continue-button-wrapper').style.display='block'; sessionStorage.removeItem('2fa-verification-shown');"
+                                            onclick="const verifyDiv = document.getElementById('verification-section'); const continueBtn = document.getElementById('continue-button-wrapper'); if(verifyDiv) { verifyDiv.style.display = 'none'; } if(continueBtn) { continueBtn.style.display = 'block'; } sessionStorage.removeItem('2fa-verification-shown');"
                                             class="flex-1 px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
                                         {{ __('Back') }}
                                     </button>
@@ -685,33 +685,32 @@ new class extends Component {
 </section>
 
 <script>
-// Global function to show verification section - called directly from button onclick
-window.show2FAVerification = function() {
-    const verifyDiv = document.getElementById('verification-section');
-    const continueBtn = document.getElementById('continue-button-wrapper');
-    
-    if (verifyDiv) {
-        verifyDiv.style.display = 'block';
-        verifyDiv.style.setProperty('display', 'block', 'important');
-        sessionStorage.setItem('2fa-verification-shown', 'true');
-        
-        const input = verifyDiv.querySelector('#two-factor-code');
-        if (input) {
-            setTimeout(() => {
-                input.focus();
-                input.select();
-            }, 100);
-        }
-    }
-    
-    if (continueBtn) {
-        continueBtn.style.display = 'none';
-    }
-};
-
-// Keep verification section visible after Livewire updates
 (function() {
     'use strict';
+    
+    // Global function to show verification section
+    window.show2FAVerification = function() {
+        const verifyDiv = document.getElementById('verification-section');
+        const continueBtn = document.getElementById('continue-button-wrapper');
+        
+        if (verifyDiv) {
+            verifyDiv.style.display = 'block';
+            verifyDiv.style.setProperty('display', 'block', 'important');
+            sessionStorage.setItem('2fa-verification-shown', 'true');
+            
+            const input = verifyDiv.querySelector('#two-factor-code');
+            if (input) {
+                setTimeout(() => {
+                    input.focus();
+                    input.select();
+                }, 100);
+            }
+        }
+        
+        if (continueBtn) {
+            continueBtn.style.display = 'none';
+        }
+    };
     
     function restoreVerification() {
         if (sessionStorage.getItem('2fa-verification-shown') === 'true') {
@@ -748,7 +747,7 @@ window.show2FAVerification = function() {
         }
     }
     
-    // Initialize on DOM ready
+    // Initialize immediately and on DOM ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
             restoreVerification();
