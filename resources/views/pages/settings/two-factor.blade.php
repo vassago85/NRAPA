@@ -186,8 +186,11 @@ new class extends Component {
         
         $this->twoFactorEnabled = true;
         
-        // Clear session storage
+        // Dispatch event to close modal via JavaScript
         $this->dispatch('2fa-confirmed');
+        
+        // Also dispatch browser event as fallback
+        $this->js('window.dispatchEvent(new CustomEvent("livewire:2fa-confirmed"))');
     }
 
     public function resetVerification(): void
@@ -681,7 +684,7 @@ new class extends Component {
                                     </button>
                                     <button type="button" 
                                             wire:click="confirmTwoFactor"
-                                            onclick="setTimeout(function() { const overlay = document.getElementById('2fa-modal-overlay'); if(overlay) { overlay.style.display = 'none'; overlay.remove(); } document.body.classList.remove('overflow-hidden'); }, 500);"
+                                            onclick="(function() { setTimeout(function() { const overlay = document.getElementById('2fa-modal-overlay'); const container = document.getElementById('2fa-modal-container'); if(overlay) { overlay.style.display = 'none'; overlay.remove(); } if(container) { container.remove(); } document.body.classList.remove('overflow-hidden'); sessionStorage.removeItem('2fa-verification-shown'); }, 300); })()"
                                             class="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium">
                                         {{ __('Confirm') }}
                                     </button>
@@ -803,24 +806,38 @@ new class extends Component {
         }
     }
     
-    // Listen for 2FA confirmation to close modal
-    document.addEventListener('livewire:2fa-confirmed', close2FAModal);
-    window.addEventListener('livewire:2fa-confirmed', close2FAModal);
+    // Listen for 2FA confirmation to close modal immediately
+    document.addEventListener('livewire:2fa-confirmed', function() {
+        close2FAModal();
+    });
+    window.addEventListener('livewire:2fa-confirmed', function() {
+        close2FAModal();
+    });
     
-    // Also watch for Livewire updates and check if modal should be closed
+    // Watch for Livewire updates and check if modal should be closed
     document.addEventListener('livewire:update', function() {
-        // Check if showModal is false but modal is still visible
         setTimeout(function() {
             const overlay = document.getElementById('2fa-modal-overlay');
-            if (overlay && overlay.style.display !== 'none') {
-                // Check if Livewire has set showModal to false by checking the @if condition
-                // If the modal container doesn't exist in DOM but overlay does, close it
-                const container = document.getElementById('2fa-modal-container');
-                if (!container && overlay) {
+            if (overlay) {
+                // Check if the modal parent (the @if condition) has been removed
+                // If overlay exists but is not in a visible @if block, remove it
+                const computedStyle = window.getComputedStyle(overlay);
+                if (computedStyle.display === 'none' || !overlay.parentElement) {
                     close2FAModal();
                 }
             }
-        }, 100);
+        }, 50);
+    });
+    
+    // Also watch for successful form submission
+    document.addEventListener('livewire:success', function() {
+        setTimeout(function() {
+            const overlay = document.getElementById('2fa-modal-overlay');
+            if (overlay) {
+                // If modal is still visible after success, close it
+                close2FAModal();
+            }
+        }, 200);
     });
 })();
 </script>
