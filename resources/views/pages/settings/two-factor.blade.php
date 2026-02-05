@@ -168,6 +168,9 @@ new class extends Component {
         // This ensures users verify their authenticator app is working before completing setup
         $this->showVerificationStep = true;
         $this->resetErrorBag();
+        
+        // Force Livewire to update the view
+        $this->dispatch('verification-step-shown');
     }
 
     public function confirmTwoFactor(ConfirmTwoFactorAuthentication $confirmTwoFactorAuthentication): void
@@ -569,7 +572,7 @@ new class extends Component {
                 @else
                     <div class="fixed inset-0 bg-black/50"></div>
                 @endif
-                <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6">
+                <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6" wire:key="2fa-modal-{{ $showVerificationStep ? 'verify' : 'setup' }}">
                     <div class="space-y-6">
                         <div class="text-center">
                             <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">{{ $this->modalConfig['title'] }}</h3>
@@ -653,9 +656,13 @@ new class extends Component {
                                 <code class="text-sm font-mono bg-zinc-100 dark:bg-zinc-700 px-3 py-1 rounded">{{ $manualSetupKey }}</code>
                             </div>
 
-                            <button type="button" wire:click="showVerificationIfNecessary"
-                                    class="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium">
-                                {{ __('Continue') }}
+                            <button type="button" 
+                                    wire:click="showVerificationIfNecessary"
+                                    wire:loading.attr="disabled"
+                                    wire:target="showVerificationIfNecessary"
+                                    class="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium">
+                                <span wire:loading.remove wire:target="showVerificationIfNecessary">{{ __('Continue') }}</span>
+                                <span wire:loading wire:target="showVerificationIfNecessary">{{ __('Loading...') }}</span>
                             </button>
                         @endif
                     </div>
