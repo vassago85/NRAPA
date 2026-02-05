@@ -68,6 +68,7 @@ class LearningCategory extends Model
 
     /**
      * Get the image URL.
+     * Learning center images are always served from local storage.
      */
     public function getImageUrlAttribute(): ?string
     {
@@ -75,7 +76,7 @@ class LearningCategory extends Model
             return null;
         }
 
-        return StorageHelper::getUrl($this->image_path);
+        return StorageHelper::getLearningCenterUrl($this->image_path);
     }
 
     /**

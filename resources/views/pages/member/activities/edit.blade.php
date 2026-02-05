@@ -2,11 +2,15 @@
 
 use App\Models\ActivityType;
 use App\Models\ActivityTag;
-use App\Models\Calibre;
+use App\Models\FirearmCalibre;
 use App\Models\Country;
 use App\Models\FirearmType;
+use App\Models\MemberDocument;
+use App\Models\DocumentType;
 use App\Models\Province;
 use App\Models\ShootingActivity;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -23,8 +27,11 @@ new class extends Component {
     public ?int $firearm_type_id = null;
     public ?int $calibre_id = null;
     public ?string $location = null;
+    public string $country_selection = 'south_africa'; // 'south_africa' or 'other'
     public ?int $country_id = null;
+    public ?string $country_name = null; // Manual entry when "other" is selected
     public ?int $province_id = null;
+    public ?string $province_name = null; // Manual entry when "other" is selected
     public ?string $closest_town_city = null;
     public ?string $description = null;
     public $proof_document = null;
@@ -35,15 +42,19 @@ new class extends Component {
     {
         return [
             'track' => ['required', 'in:hunting,sport'],
-            'activity_type_id' => ['required', 'exists:activity_types,id'],
+            'activity_type_id' => ['required', 'exists:activity_types,id'], // Auto-set based on track
+            'activity_tag_id' => ['required', 'exists:activity_tags,id'],
             'activity_tag_ids' => ['nullable', 'array'],
             'activity_tag_ids.*' => ['exists:activity_tags,id'],
             'activity_date' => ['required', 'date', 'before_or_equal:today'],
             'firearm_type_id' => ['required', 'exists:firearm_types,id'],
-            'calibre_id' => ['required', 'exists:calibres,id'],
+            'calibre_id' => ['required', 'exists:firearm_calibres,id'],
             'location' => ['required', 'string', 'max:255'],
-            'country_id' => ['required', 'exists:countries,id'],
+            'country_selection' => ['required', 'in:south_africa,other'],
+            'country_id' => ['required_if:country_selection,south_africa', 'nullable', 'exists:countries,id'],
+            'country_name' => ['required_if:country_selection,other', 'nullable', 'string', 'max:255'],
             'province_id' => ['nullable', 'exists:provinces,id'],
+            'province_name' => ['nullable', 'string', 'max:255'],
             'closest_town_city' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
             'proof_document' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:10240'],
@@ -68,23 +79,46 @@ new class extends Component {
 
         // Populate form fields
         $this->track = $activity->track ?? $activity->activityType?->track;
-        $this->activity_type_id = $activity->activity_type_id;
-        $this->activity_tag_ids = $activity->tags->pluck('id')->toArray();
+        // Auto-set activity_type_id based on track (Dedicated Hunting or Dedicated Sport-Shooting)
+        if ($this->track) {
+            $activityType = ActivityType::where('track', $this->track)
+                ->whereIn('slug', ['dedicated-hunting', 'dedicated-sport-shooting'])
+                ->first();
+            $this->activity_type_id = $activityType?->id ?? $activity->activity_type_id;
+        } else {
+            $this->activity_type_id = $activity->activity_type_id;
+        }
+        $this->activity_tag_id = $activity->tags->first()?->id;
         $this->activity_date = $activity->activity_date?->format('Y-m-d');
         $this->firearm_type_id = $activity->firearm_type_id;
         $this->calibre_id = $activity->calibre_id;
         $this->location = $activity->location;
-        $this->country_id = $activity->country_id;
+        // Determine country selection based on whether country_id exists
+        if ($activity->country_id) {
+            $this->country_selection = 'south_africa';
+            $this->country_id = $activity->country_id;
+        } else {
+            $this->country_selection = 'other';
+            $this->country_name = $activity->country_name;
+        }
         $this->province_id = $activity->province_id;
+        $this->province_name = $activity->province_name;
         $this->closest_town_city = $activity->closest_town_city;
         $this->description = $activity->description;
     }
 
     public function updatedTrack(): void
     {
-        // Reset activity type when track changes
-        $this->activity_type_id = null;
-        $this->activity_tag_ids = [];
+        // Auto-set activity type based on track (only 2 types: Dedicated Hunting or Dedicated Sport-Shooting)
+        if ($this->track) {
+            $activityType = ActivityType::where('track', $this->track)
+                ->whereIn('slug', ['dedicated-hunting', 'dedicated-sport-shooting'])
+                ->first();
+            $this->activity_type_id = $activityType?->id;
+        } else {
+            $this->activity_type_id = null;
+        }
+        $this->activity_tag_id = null;
     }
 
 
@@ -94,32 +128,157 @@ new class extends Component {
 
         $this->activity->update([
             'track' => $this->track,
-            'activity_type_id' => $this->activity_type_id,
+            'activity_type_id' => $this->activity_type_id, // Auto-set based on track
             'activity_date' => $this->activity_date,
             'firearm_type_id' => $this->firearm_type_id,
             'calibre_id' => $this->calibre_id,
             'location' => $this->location,
-            'country_id' => $this->country_id,
-            'province_id' => $this->province_id,
+            'country_id' => $this->country_selection === 'south_africa' ? $this->country_id : null,
+            'country_name' => $this->country_selection === 'other' ? $this->country_name : null,
+            'province_id' => $this->country_selection === 'south_africa' ? $this->province_id : null,
+            'province_name' => $this->country_selection === 'other' ? $this->province_name : null,
             'closest_town_city' => $this->closest_town_city,
             'description' => $this->description,
         ]);
 
-        // Handle file uploads if new files provided
-        // Use R2 if configured, otherwise use local disk (storage/app/private)
-        $disk = config('filesystems.disks.r2.key') ? 'r2' : 'local';
+        // Handle file uploads if new files provided and create MemberDocument records
+        $disk = config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
+        
+        // Get or create document type for activity evidence
+        $evidenceDocumentType = DocumentType::firstOrCreate(
+            ['slug' => 'activity-evidence'],
+            [
+                'name' => 'Activity Evidence',
+                'description' => 'Proof of activity participation (photos, certificates, etc.)',
+                'is_active' => true,
+                'expiry_months' => null,
+                'archive_months' => 12,
+                'sort_order' => 100,
+            ]
+        );
+        
+        $updateData = [];
         
         if ($this->proof_document) {
-            $proofPath = $this->proof_document->store('activities/' . auth()->id() . '/proof', $disk);
-            // TODO: Link to activity via evidence_document_id when document management is implemented
+            // Delete old evidence document if it exists
+            if ($this->activity->evidence_document_id) {
+                $oldDocument = MemberDocument::find($this->activity->evidence_document_id);
+                if ($oldDocument) {
+                    // Delete file from storage
+                    try {
+                        Storage::disk($disk)->delete($oldDocument->file_path);
+                    } catch (\Exception $e) {
+                        // Log error but continue
+                    }
+                    // Delete document record
+                    $oldDocument->delete();
+                }
+            }
+            
+            // Generate unique filename
+            $filename = Str::random(40) . '.' . $this->proof_document->getClientOriginalExtension();
+            $directory = "documents/" . auth()->user()->uuid . "/activity-evidence";
+            
+            // Store file
+            $path = $this->proof_document->storeAs(
+                $directory,
+                $filename,
+                [
+                    'disk' => $disk,
+                    'visibility' => 'private',
+                    'options' => [
+                        'ContentDisposition' => 'inline',
+                        'ContentType' => $this->proof_document->getMimeType(),
+                    ],
+                ]
+            );
+            
+            // Create MemberDocument record
+            $evidenceDocument = MemberDocument::create([
+                'user_id' => auth()->id(),
+                'document_type_id' => $evidenceDocumentType->id,
+                'file_path' => $path,
+                'original_filename' => $this->proof_document->getClientOriginalName(),
+                'mime_type' => $this->proof_document->getMimeType(),
+                'file_size' => $this->proof_document->getSize(),
+                'status' => 'pending',
+                'uploaded_at' => now(),
+                'metadata' => [
+                    'activity_id' => $this->activity->id,
+                    'activity_date' => $this->activity->activity_date->format('Y-m-d'),
+                    'activity_type' => $this->activity->activityType?->name,
+                ],
+            ]);
+            
+            $updateData['evidence_document_id'] = $evidenceDocument->id;
         }
 
         // Sync activity tags
-        $this->activity->tags()->sync($this->activity_tag_ids);
+        // Sync the single selected tag
+        if ($this->activity_tag_id) {
+            $this->activity->tags()->sync([$this->activity_tag_id]);
+        } else {
+            $this->activity->tags()->sync([]);
+        }
 
         if ($this->additional_document) {
-            $additionalPath = $this->additional_document->store('activities/' . auth()->id() . '/additional', $disk);
-            // TODO: Link to activity via additional_document_id when document management is implemented
+            // Delete old additional document if it exists
+            if ($this->activity->additional_document_id) {
+                $oldDocument = MemberDocument::find($this->activity->additional_document_id);
+                if ($oldDocument) {
+                    // Delete file from storage
+                    try {
+                        Storage::disk($disk)->delete($oldDocument->file_path);
+                    } catch (\Exception $e) {
+                        // Log error but continue
+                    }
+                    // Delete document record
+                    $oldDocument->delete();
+                }
+            }
+            
+            // Generate unique filename
+            $filename = Str::random(40) . '.' . $this->additional_document->getClientOriginalExtension();
+            $directory = "documents/" . auth()->user()->uuid . "/activity-evidence";
+            
+            // Store file
+            $path = $this->additional_document->storeAs(
+                $directory,
+                $filename,
+                [
+                    'disk' => $disk,
+                    'visibility' => 'private',
+                    'options' => [
+                        'ContentDisposition' => 'inline',
+                        'ContentType' => $this->additional_document->getMimeType(),
+                    ],
+                ]
+            );
+            
+            // Create MemberDocument record
+            $additionalDocument = MemberDocument::create([
+                'user_id' => auth()->id(),
+                'document_type_id' => $evidenceDocumentType->id,
+                'file_path' => $path,
+                'original_filename' => $this->additional_document->getClientOriginalName(),
+                'mime_type' => $this->additional_document->getMimeType(),
+                'file_size' => $this->additional_document->getSize(),
+                'status' => 'pending',
+                'uploaded_at' => now(),
+                'metadata' => [
+                    'activity_id' => $this->activity->id,
+                    'activity_date' => $this->activity->activity_date->format('Y-m-d'),
+                    'activity_type' => $this->activity->activityType?->name,
+                    'is_additional' => true,
+                ],
+            ]);
+            
+            $updateData['additional_document_id'] = $additionalDocument->id;
+        }
+        
+        // Update activity with document IDs if any were uploaded
+        if (!empty($updateData)) {
+            $this->activity->update($updateData);
         }
 
         session()->flash('success', 'Activity updated successfully.');
@@ -169,7 +328,7 @@ new class extends Component {
     {
         return [
             'firearmTypes' => FirearmType::active()->ordered()->get(),
-            'calibres' => Calibre::active()->ordered()->get(),
+            'calibres' => FirearmCalibre::active()->ordered()->get(),
             'countries' => Country::active()->ordered()->get(),
             'provinces' => Province::active()->ordered()->get(),
         ];
@@ -209,17 +368,8 @@ new class extends Component {
                     @error('track') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                 </div>
 
-                <!-- Activity Type -->
-                <div>
-                    <label for="activity_type_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Activity Type <span class="text-red-500">*</span></label>
-                    <select id="activity_type_id" wire:model="activity_type_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500" @disabled(!$track)>
-                        <option value="">Select Activity Type</option>
-                        @foreach($this->activityTypes as $type)
-                            <option value="{{ $type->id }}">{{ $type->name }}</option>
-                        @endforeach
-                    </select>
-                    @error('activity_type_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                </div>
+                <!-- Activity Type (auto-set based on track, hidden from user) -->
+                <input type="hidden" wire:model="activity_type_id">
 
                 <!-- Activity Date -->
                 <div>
@@ -228,19 +378,22 @@ new class extends Component {
                     @error('activity_date') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                 </div>
 
-                <!-- Activity Tags (Optional) -->
-                @if($track && $this->activityTags->count() > 0)
-                <div>
-                    <label for="activity_tag_ids" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Tags (Optional)</label>
-                    <select id="activity_tag_ids" wire:model="activity_tag_ids" multiple class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500 min-h-[100px]">
-                        @foreach($this->activityTags as $tag)
-                            <option value="{{ $tag->id }}">{{ $tag->label }}</option>
-                        @endforeach
+                <!-- Activity Tag (replaces Activity Type - provides details) -->
+                <div wire:key="activity-tag-{{ $track }}">
+                    <label for="activity_tag_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Activity Type <span class="text-red-500">*</span></label>
+                    <select id="activity_tag_id" wire:model="activity_tag_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500" @disabled(!$track)>
+                        <option value="">Select Activity Type</option>
+                        @if($track)
+                            @foreach($this->activityTags as $tag)
+                                <option value="{{ $tag->id }}">{{ $tag->label }}</option>
+                            @endforeach
+                            @if($this->activityTags->isEmpty())
+                                <option value="" disabled>No activity types available for {{ $track === 'hunting' ? 'Dedicated Hunting' : 'Dedicated Sport Shooting' }} track</option>
+                            @endif
+                        @endif
                     </select>
-                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Hold Ctrl/Cmd to select multiple tags (e.g., PRS, IPSC, IDPA)</p>
-                    @error('activity_tag_ids') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    @error('activity_tag_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                 </div>
-                @endif
             </div>
         </div>
 
@@ -256,29 +409,43 @@ new class extends Component {
                     @error('location') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                 </div>
 
-                <!-- Country -->
+                <!-- Country Selection -->
                 <div>
-                    <label for="country_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Country <span class="text-red-500">*</span></label>
-                    <select id="country_id" wire:model="country_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
-                        <option value="">Select Country</option>
-                        @foreach($countries as $country)
-                            <option value="{{ $country->id }}">{{ $country->name }}</option>
-                        @endforeach
+                    <label for="country_selection" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Country <span class="text-red-500">*</span></label>
+                    <select id="country_selection" wire:model.live="country_selection" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
+                        <option value="south_africa">South Africa</option>
+                        <option value="other">Other</option>
                     </select>
-                    @error('country_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    @error('country_selection') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                 </div>
 
-                <!-- Province -->
-                <div>
-                    <label for="province_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Province</label>
-                    <select id="province_id" wire:model="province_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
-                        <option value="">Select Province</option>
-                        @foreach($provinces as $province)
-                            <option value="{{ $province->id }}">{{ $province->name }}</option>
-                        @endforeach
-                    </select>
-                    @error('province_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                </div>
+                @if($this->country_selection === 'south_africa')
+                    <!-- Province (only show for South Africa) -->
+                    <div>
+                        <label for="province_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Province</label>
+                        <select id="province_id" wire:model="province_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
+                            <option value="">Select Province</option>
+                            @foreach($provinces as $province)
+                                <option value="{{ $province->id }}">{{ $province->name }}</option>
+                            @endforeach
+                        </select>
+                        @error('province_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    </div>
+                @else
+                    <!-- Manual Country Entry -->
+                    <div>
+                        <label for="country_name" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Country Name <span class="text-red-500">*</span></label>
+                        <input type="text" id="country_name" wire:model="country_name" placeholder="e.g., Mozambique, Namibia, Botswana" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white placeholder-zinc-400 focus:border-emerald-500 focus:ring-emerald-500">
+                        @error('country_name') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    </div>
+
+                    <!-- Manual Province/State Entry -->
+                    <div>
+                        <label for="province_name" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Province/State/Region</label>
+                        <input type="text" id="province_name" wire:model="province_name" placeholder="e.g., Maputo Province, Khomas Region" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white placeholder-zinc-400 focus:border-emerald-500 focus:ring-emerald-500">
+                        @error('province_name') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    </div>
+                @endif
 
                 <!-- Closest Town/City -->
                 <div>

@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\Calibre;
 use App\Models\CertificateType;
 use App\Models\Country;
 use App\Models\DocumentType;
@@ -23,7 +22,8 @@ class FormDataSeeder extends Seeder
         $this->seedDocumentTypes();
         $this->seedCertificateTypes();
         $this->seedFirearmTypes();
-        $this->seedCalibres();
+        // Calibre seeding removed - using FirearmCalibre system instead
+        // Import calibre data via: php artisan nrapa:import-firearm-reference
     }
 
     /**
@@ -235,12 +235,4 @@ class FormDataSeeder extends Seeder
         $this->call(FirearmTypeSeeder::class);
     }
 
-    /**
-     * Seed calibres.
-     */
-    protected function seedCalibres(): void
-    {
-        // Call the existing CalibreSeeder
-        $this->call(CalibreSeeder::class);
-    }
 }

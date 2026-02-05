@@ -39,7 +39,12 @@
 @endphp
 
 @if($hasAccess)
-@if($hasChildren && $isCollapsible)
+@if(($item['type'] ?? null) === 'heading')
+    {{-- Heading (non-clickable) --}}
+    <div class="px-3 py-2 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+        {{ $item['label'] }}
+    </div>
+@elseif($hasChildren && $isCollapsible)
     {{-- Collapsible Group --}}
     <div x-data="{ 
         open: {{ $defaultOpen ? 'true' : 'false' }},

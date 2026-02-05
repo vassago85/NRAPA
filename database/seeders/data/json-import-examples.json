@@ -1,0 +1,74 @@
+{
+  "learning_articles_example": {
+    "export_date": "2026-01-28T12:00:00Z",
+    "version": "1.0",
+    "articles": [
+      {
+        "title": "Firearm Safety Basics",
+        "category": "Safety",
+        "category_description": "Essential safety information for firearm owners",
+        "excerpt": "Learn the fundamental safety rules every firearm owner must know.",
+        "content": "<h2>Firearm Safety Basics</h2><p>Always treat every firearm as if it is loaded...</p>",
+        "is_published": true,
+        "is_featured": false,
+        "dedicated_type": "both",
+        "published_at": "2026-01-28T12:00:00Z"
+      },
+      {
+        "title": "Hunting Regulations in South Africa",
+        "category": "Regulations",
+        "category_description": "Legal requirements and regulations",
+        "excerpt": "Understanding the legal framework for hunting activities.",
+        "content": "<h2>Hunting Regulations</h2><p>South Africa has specific regulations...</p>",
+        "is_published": true,
+        "is_featured": true,
+        "dedicated_type": "hunter",
+        "published_at": "2026-01-28T12:00:00Z"
+      }
+    ]
+  },
+  "knowledge_test_questions_example": {
+    "export_date": "2026-01-28T12:00:00Z",
+    "version": "1.0",
+    "test_name": "Firearm Safety Test",
+    "questions": [
+      {
+        "question_type": "multiple_choice",
+        "question_text": "What is the first rule of firearm safety?",
+        "options": [
+          "Always treat every firearm as if it is loaded",
+          "Keep your finger off the trigger until ready to shoot",
+          "Never point a firearm at anything you don't intend to destroy",
+          "Be sure of your target and what is beyond it"
+        ],
+        "correct_answer": "Always treat every firearm as if it is loaded",
+        "points": 1,
+        "sort_order": 1,
+        "is_active": true
+      },
+      {
+        "question_type": "multiple_choice",
+        "question_text": "When should you unload a firearm?",
+        "options": [
+          "Only when storing it",
+          "When not in use",
+          "Never",
+          "Only when cleaning it"
+        ],
+        "correct_answer": "When not in use",
+        "points": 1,
+        "sort_order": 2,
+        "is_active": true
+      },
+      {
+        "question_type": "written",
+        "question_text": "Explain why it's important to know what is beyond your target when shooting.",
+        "options": null,
+        "correct_answer": null,
+        "points": 5,
+        "sort_order": 3,
+        "is_active": true
+      }
+    ]
+  }
+}

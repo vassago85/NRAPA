@@ -32,7 +32,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Requests - Admin')] cl
     #[Computed]
     public function requests()
     {
-        $query = EndorsementRequest::with(['user', 'firearm', 'firearm.calibre'])
+        $query = EndorsementRequest::with(['user', 'firearm', 'firearm.firearmCalibre', 'firearm.firearmMake', 'firearm.firearmModel'])
             ->orderBy('created_at', 'desc');
 
         if ($this->status) {

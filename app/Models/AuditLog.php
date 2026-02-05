@@ -23,7 +23,20 @@ class AuditLog extends Model
         'new_values',
         'ip_address',
         'user_agent',
+        'created_at',
     ];
+
+    /**
+     * Indicates if the model uses timestamps.
+     * We only use created_at, not updated_at.
+     */
+    public $timestamps = true;
+
+    /**
+     * The name of the "updated at" column.
+     * Set to null to disable updated_at since the column doesn't exist.
+     */
+    const UPDATED_AT = null;
 
     /**
      * The attributes that should be cast.
@@ -47,6 +60,10 @@ class AuditLog extends Model
         static::creating(function (AuditLog $log) {
             if (empty($log->uuid)) {
                 $log->uuid = (string) Str::uuid();
+            }
+            // Ensure created_at is set
+            if (empty($log->created_at)) {
+                $log->created_at = now();
             }
         });
     }

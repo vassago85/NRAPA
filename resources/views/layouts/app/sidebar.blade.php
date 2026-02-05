@@ -59,11 +59,18 @@
                 <!-- Logo -->
                 <div class="flex items-center justify-between h-16 px-4 border-b border-zinc-200 dark:border-zinc-700 flex-shrink-0">
                     <a href="{{ route('dashboard') }}" class="flex items-center gap-3" wire:navigate @click="sidebarOpen = false">
-                        <div class="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700">
-                            <svg class="size-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12 2L4 6V12C4 16.42 7.58 20.58 12 22C16.42 20.58 20 16.42 20 12V6L12 2Z"/>
-                            </svg>
-                        </div>
+                        @php
+                            $logoUrl = \App\Helpers\DocumentHelper::getLogoUrl();
+                        @endphp
+                        @if($logoUrl)
+                            <img src="{{ $logoUrl }}" alt="NRAPA Logo" class="h-8 w-auto object-contain" />
+                        @else
+                            <div class="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700">
+                                <svg class="size-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2L4 6V12C4 16.42 7.58 20.58 12 22C16.42 20.58 20 16.42 20 12V6L12 2Z"/>
+                                </svg>
+                            </div>
+                        @endif
                         <span class="text-lg font-bold text-zinc-900 dark:text-white">NRAPA</span>
                     </a>
                     <button @click="sidebarOpen = false" class="lg:hidden p-2 -mr-2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800">
@@ -107,6 +114,23 @@
                             <p class="text-xs text-zinc-500 dark:text-zinc-400 truncate">{{ auth()->user()->email }}</p>
                         </div>
                     </div>
+                    
+                    {{-- View as Member Toggle (for admin/owner/dev) --}}
+                    @if(auth()->user()->hasRoleLevel(\App\Models\User::ROLE_ADMIN))
+                        @php
+                            $viewingAsMember = session('view_as_member', false);
+                        @endphp
+                        <form method="POST" action="{{ route('toggle-member-view') }}" class="mt-3">
+                            @csrf
+                            <button type="submit" class="w-full px-3 py-2 text-xs font-medium text-center {{ $viewingAsMember ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/50' : 'text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800' }} rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors flex items-center justify-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
+                                </svg>
+                                {{ $viewingAsMember ? 'View as Admin' : 'View as Member' }}
+                            </button>
+                        </form>
+                    @endif
+                    
                     <div class="mt-3 flex gap-2">
                         <a href="{{ route('profile.edit') }}" wire:navigate @click="sidebarOpen = false" class="flex-1 px-3 py-2 text-xs font-medium text-center text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
                             Settings

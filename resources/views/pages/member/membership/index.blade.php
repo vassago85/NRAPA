@@ -454,7 +454,7 @@ new #[Title('My Membership')] class extends Component {
                                         @endif
                                     </div>
                                     <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
-                                        R{{ number_format($type->total_price, 0) }}
+                                        R{{ number_format($type->price, 0) }}
                                         {{ $type->duration_type === 'lifetime' ? '(Lifetime)' : '/year' }}
                                     </p>
                                 </div>

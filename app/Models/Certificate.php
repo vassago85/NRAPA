@@ -22,6 +22,10 @@ class Certificate extends Model
         'certificate_number',
         'issued_at',
         'issued_by',
+        'signatory_name',
+        'signatory_title',
+        'signatory_signature_path',
+        'commissioner_oaths_scan_path',
         'valid_from',
         'valid_until',
         'revoked_at',
@@ -239,6 +243,42 @@ class Certificate extends Model
     public function getVerificationUrl(): string
     {
         return route('certificates.verify', ['qr_code' => $this->qr_code]);
+    }
+
+    /**
+     * Get the signature image URL.
+     */
+    public function getSignatureImageUrl(): ?string
+    {
+        if (!$this->signatory_signature_path) {
+            return null;
+        }
+
+        $disk = app()->environment(['local', 'development', 'testing']) ? 'public' : 'r2_public';
+        
+        if (!\Illuminate\Support\Facades\Storage::disk($disk)->exists($this->signatory_signature_path)) {
+            return null;
+        }
+
+        return \App\Helpers\StorageHelper::getUrl($this->signatory_signature_path);
+    }
+
+    /**
+     * Get the commissioner of oaths scan URL.
+     */
+    public function getCommissionerScanUrl(): ?string
+    {
+        if (!$this->commissioner_oaths_scan_path) {
+            return null;
+        }
+
+        $disk = app()->environment(['local', 'development', 'testing']) ? 'public' : 'r2_public';
+        
+        if (!\Illuminate\Support\Facades\Storage::disk($disk)->exists($this->commissioner_oaths_scan_path)) {
+            return null;
+        }
+
+        return \App\Helpers\StorageHelper::getUrl($this->commissioner_oaths_scan_path);
     }
 
     // ===== Scopes =====

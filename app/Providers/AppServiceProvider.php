@@ -21,9 +21,17 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         // Register DocumentRenderer implementation
+        // Use PDF renderer in production, fallback to fake renderer if DomPDF not available
         $this->app->singleton(
             \App\Contracts\DocumentRenderer::class,
-            \App\Services\FakeDocumentRenderer::class
+            function ($app) {
+                // Check if DomPDF is available
+                if (class_exists(\Barryvdh\DomPDF\Facade\Pdf::class)) {
+                    return new \App\Services\PdfDocumentRenderer();
+                }
+                // Fallback to fake renderer for development/testing
+                return new \App\Services\FakeDocumentRenderer();
+            }
         );
     }
 

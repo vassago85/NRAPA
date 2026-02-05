@@ -2,13 +2,17 @@
 
 use App\Models\ActivityType;
 use App\Models\ActivityTag;
-use App\Models\Calibre;
+use App\Models\FirearmCalibre;
 use App\Models\Country;
 use App\Models\FirearmType;
 use App\Models\LoadData;
+use App\Models\MemberDocument;
+use App\Models\DocumentType;
 use App\Models\Province;
 use App\Models\ShootingActivity;
 use App\Models\UserFirearm;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -30,8 +34,11 @@ new class extends Component {
     
     // Location
     public ?string $location = null;
+    public string $country_selection = 'south_africa'; // 'south_africa' or 'other'
     public ?int $country_id = null;
+    public ?string $country_name = null; // Manual entry when "other" is selected
     public ?int $province_id = null;
+    public ?string $province_name = null; // Manual entry when "other" is selected
     public ?string $closest_town_city = null;
     public ?string $description = null;
     public $proof_document = null;
@@ -39,6 +46,10 @@ new class extends Component {
 
     // Dynamic options
     public array $loadDataOptions = [];
+    
+    // Calibre search
+    public string $calibreSearch = '';
+    public bool $showCalibreDropdown = false;
 
     protected function rules(): array
     {
@@ -48,8 +59,11 @@ new class extends Component {
             'activity_date' => ['required', 'date', 'before_or_equal:today'],
             'firearm_source' => ['required', 'in:armoury,manual'],
             'location' => ['required', 'string', 'max:255'],
-            'country_id' => ['required', 'exists:countries,id'],
+            'country_selection' => ['required', 'in:south_africa,other'],
+            'country_id' => ['required_if:country_selection,south_africa', 'nullable', 'exists:countries,id'],
+            'country_name' => ['required_if:country_selection,other', 'nullable', 'string', 'max:255'],
             'province_id' => ['nullable', 'exists:provinces,id'],
+            'province_name' => ['nullable', 'string', 'max:255'],
             'closest_town_city' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
             'proof_document' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:10240'],
@@ -68,7 +82,7 @@ new class extends Component {
             $rules['load_data_id'] = ['nullable', 'exists:load_data,id'];
         } else {
             $rules['firearm_type_id'] = ['required', 'exists:firearm_types,id'];
-            $rules['calibre_id'] = ['required', 'exists:calibres,id'];
+            $rules['calibre_id'] = ['required', 'exists:firearm_calibres,id'];
         }
 
         return $rules;
@@ -85,7 +99,8 @@ new class extends Component {
 
         $user = auth()->user();
 
-        // Set default country to South Africa
+        // Set default country selection to South Africa
+        $this->country_selection = 'south_africa';
         $this->country_id = Country::where('code', 'ZA')->first()?->id;
         
         // Set default closest city from user's address
@@ -135,6 +150,8 @@ new class extends Component {
         if ($value === 'armoury') {
             $this->firearm_type_id = null;
             $this->calibre_id = null;
+            $this->calibreSearch = '';
+            $this->showCalibreDropdown = false;
         } else {
             $this->user_firearm_id = null;
             $this->load_data_id = null;
@@ -173,7 +190,13 @@ new class extends Component {
         if ($this->firearm_source === 'armoury' && $this->user_firearm_id) {
             $userFirearm = UserFirearm::find($this->user_firearm_id);
             $firearmTypeId = $userFirearm->firearm_type_id;
-            $calibreId = $userFirearm->calibre_id;
+            $calibreId = $userFirearm->firearm_calibre_id ?? $userFirearm->calibre_id;
+            if ($calibreId) {
+                $calibre = FirearmCalibre::find($calibreId);
+                if ($calibre) {
+                    $this->calibreSearch = $calibre->name;
+                }
+            }
             $userFirearmId = $userFirearm->id;
             $loadDataId = $this->load_data_id;
         } else {
@@ -181,19 +204,30 @@ new class extends Component {
             $calibreId = $this->calibre_id;
         }
 
+        // Get the activity type based on track (Dedicated Hunting or Dedicated Sport-Shooting)
+        $activityType = ActivityType::where('track', $this->track)
+            ->whereIn('slug', ['dedicated-hunting', 'dedicated-sport-shooting'])
+            ->first();
+
+        if (!$activityType) {
+            throw new \Exception('Activity type not found for track: ' . $this->track);
+        }
+
         // Create the activity
         $activity = ShootingActivity::create([
             'user_id' => auth()->id(),
             'track' => $this->track,
-            'activity_type_id' => null, // No longer using activity_type_id
+            'activity_type_id' => $activityType->id, // Set to Dedicated Hunting or Dedicated Sport-Shooting
             'activity_date' => $this->activity_date,
             'firearm_type_id' => $firearmTypeId,
             'calibre_id' => $calibreId,
             'user_firearm_id' => $userFirearmId,
             'load_data_id' => $loadDataId,
             'location' => $this->location,
-            'country_id' => $this->country_id,
-            'province_id' => $this->province_id,
+            'country_id' => $this->country_selection === 'south_africa' ? $this->country_id : null,
+            'country_name' => $this->country_selection === 'other' ? $this->country_name : null,
+            'province_id' => $this->country_selection === 'south_africa' ? $this->province_id : null,
+            'province_name' => $this->country_selection === 'other' ? $this->province_name : null,
             'closest_town_city' => $this->closest_town_city,
             'description' => $this->description,
             'activity_year_month_start' => 1, // Fixed: January (activity period is 1 Jan - 30 Sep)
@@ -205,18 +239,109 @@ new class extends Component {
             $activity->tags()->attach($this->activity_tag_id);
         }
 
-        // Handle file uploads
-        // Use R2 if configured, otherwise use local disk (storage/app/private)
-        $disk = config('filesystems.disks.r2.key') ? 'r2' : 'local';
+        // Handle file uploads and create MemberDocument records
+        $disk = config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
         
+        // Get or create document type for activity evidence
+        $evidenceDocumentType = DocumentType::firstOrCreate(
+            ['slug' => 'activity-evidence'],
+            [
+                'name' => 'Activity Evidence',
+                'description' => 'Proof of activity participation (photos, certificates, etc.)',
+                'is_active' => true,
+                'expiry_months' => null,
+                'archive_months' => 12,
+                'sort_order' => 100,
+            ]
+        );
+        
+        $evidenceDocumentId = null;
         if ($this->proof_document) {
-            $proofPath = $this->proof_document->store('activities/' . auth()->id() . '/proof', $disk);
-            // TODO: Link to activity via evidence_document_id when document management is implemented
+            // Generate unique filename
+            $filename = Str::random(40) . '.' . $this->proof_document->getClientOriginalExtension();
+            $directory = "documents/" . auth()->user()->uuid . "/activity-evidence";
+            
+            // Store file
+            $path = $this->proof_document->storeAs(
+                $directory,
+                $filename,
+                [
+                    'disk' => $disk,
+                    'visibility' => 'private',
+                    'options' => [
+                        'ContentDisposition' => 'inline',
+                        'ContentType' => $this->proof_document->getMimeType(),
+                    ],
+                ]
+            );
+            
+            // Create MemberDocument record
+            $evidenceDocument = MemberDocument::create([
+                'user_id' => auth()->id(),
+                'document_type_id' => $evidenceDocumentType->id,
+                'file_path' => $path,
+                'original_filename' => $this->proof_document->getClientOriginalName(),
+                'mime_type' => $this->proof_document->getMimeType(),
+                'file_size' => $this->proof_document->getSize(),
+                'status' => 'pending',
+                'uploaded_at' => now(),
+                'metadata' => [
+                    'activity_id' => $activity->id,
+                    'activity_date' => $activity->activity_date->format('Y-m-d'),
+                    'activity_type' => $activity->activityType?->name,
+                ],
+            ]);
+            
+            $evidenceDocumentId = $evidenceDocument->id;
         }
 
+        $additionalDocumentId = null;
         if ($this->additional_document) {
-            $additionalPath = $this->additional_document->store('activities/' . auth()->id() . '/additional', $disk);
-            // TODO: Link to activity via additional_document_id when document management is implemented
+            // Generate unique filename
+            $filename = Str::random(40) . '.' . $this->additional_document->getClientOriginalExtension();
+            $directory = "documents/" . auth()->user()->uuid . "/activity-evidence";
+            
+            // Store file
+            $path = $this->additional_document->storeAs(
+                $directory,
+                $filename,
+                [
+                    'disk' => $disk,
+                    'visibility' => 'private',
+                    'options' => [
+                        'ContentDisposition' => 'inline',
+                        'ContentType' => $this->additional_document->getMimeType(),
+                    ],
+                ]
+            );
+            
+            // Create MemberDocument record
+            $additionalDocument = MemberDocument::create([
+                'user_id' => auth()->id(),
+                'document_type_id' => $evidenceDocumentType->id,
+                'file_path' => $path,
+                'original_filename' => $this->additional_document->getClientOriginalName(),
+                'mime_type' => $this->additional_document->getMimeType(),
+                'file_size' => $this->additional_document->getSize(),
+                'status' => 'pending',
+                'uploaded_at' => now(),
+                'metadata' => [
+                    'activity_id' => $activity->id,
+                    'activity_date' => $activity->activity_date->format('Y-m-d'),
+                    'activity_type' => $activity->activityType?->name,
+                    'is_additional' => true,
+                ],
+            ]);
+            
+            $additionalDocumentId = $additionalDocument->id;
+        }
+        
+        // Update activity with document IDs
+        if ($evidenceDocumentId || $additionalDocumentId) {
+            $activity->update([
+                'evidence_document_id' => $evidenceDocumentId,
+                'additional_document_id' => $additionalDocumentId,
+            ]);
         }
 
         session()->flash('success', 'Activity submitted successfully and is pending review.');
@@ -229,6 +354,19 @@ new class extends Component {
         $this->activity_tag_id = null;
     }
     
+    public function updatedCountrySelection($value): void
+    {
+        // Reset fields when switching between South Africa and Other
+        if ($value === 'south_africa') {
+            $this->country_name = null;
+            $this->province_name = null;
+            $this->country_id = Country::where('code', 'ZA')->first()?->id;
+        } else {
+            $this->country_id = null;
+            $this->province_id = null;
+        }
+    }
+
     public function updatedCountryId($value): void
     {
         // Reset province if country is not South Africa
@@ -241,11 +379,7 @@ new class extends Component {
     #[Computed]
     public function isSouthAfrica()
     {
-        if (!$this->country_id) {
-            return false;
-        }
-        $country = Country::find($this->country_id);
-        return $country && $country->code === 'ZA';
+        return $this->country_selection === 'south_africa';
     }
 
     #[Computed]
@@ -286,7 +420,64 @@ new class extends Component {
     #[Computed]
     public function calibres()
     {
-        return Calibre::active()->ordered()->get();
+        return FirearmCalibre::active()->ordered()->get();
+    }
+
+    #[Computed]
+    public function filteredCalibres()
+    {
+        $calibres = $this->calibres;
+        
+        if (empty($this->calibreSearch)) {
+            return $calibres;
+        }
+        
+        $searchTerm = strtolower($this->calibreSearch);
+        return $calibres->filter(function ($calibre) use ($searchTerm) {
+            return str_contains(strtolower($calibre->name), $searchTerm);
+        });
+    }
+
+    public function selectCalibre(int $calibreId): void
+    {
+        $calibre = FirearmCalibre::find($calibreId);
+        if ($calibre) {
+            $this->calibre_id = $calibreId;
+            $this->calibreSearch = $calibre->name;
+            $this->showCalibreDropdown = false;
+        }
+    }
+
+    public function updatedCalibreSearch(): void
+    {
+        $this->showCalibreDropdown = strlen($this->calibreSearch) >= 1;
+        
+        // If calibre_id is set but search doesn't match, clear it
+        if ($this->calibre_id) {
+            $selected = FirearmCalibre::find($this->calibre_id);
+            if ($selected && !str_contains(strtolower($selected->name), strtolower($this->calibreSearch))) {
+                $this->calibre_id = null;
+            } elseif ($selected && strtolower($selected->name) === strtolower($this->calibreSearch)) {
+                // Search matches selected, keep it
+                return;
+            }
+        }
+    }
+
+    public function updatedCalibreId($value): void
+    {
+        // Update search text when calibre_id changes (e.g., from armoury selection)
+        if ($value) {
+            $calibre = FirearmCalibre::find($value);
+            if ($calibre && empty($this->calibreSearch)) {
+                $this->calibreSearch = $calibre->name;
+            }
+            $this->showCalibreDropdown = false;
+        } else {
+            if (empty($this->calibreSearch)) {
+                $this->showCalibreDropdown = false;
+            }
+        }
     }
 
     #[Computed]
@@ -306,7 +497,7 @@ new class extends Component {
     {
         return UserFirearm::where('user_id', auth()->id())
             ->active()
-            ->with(['firearmType', 'calibre'])
+            ->with(['firearmType', 'firearmCalibre', 'firearmMake', 'firearmModel'])
             ->get();
     }
 }; ?>
@@ -382,30 +573,42 @@ new class extends Component {
                     @error('location') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                 </div>
 
-                <!-- Country -->
+                <!-- Country Selection -->
                 <div>
-                    <label for="country_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Country <span class="text-red-500">*</span></label>
-                    <select id="country_id" wire:model="country_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
-                        <option value="">Select Country</option>
-                        @foreach($this->countries as $country)
-                            <option value="{{ $country->id }}">{{ $country->name }}</option>
-                        @endforeach
+                    <label for="country_selection" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Country <span class="text-red-500">*</span></label>
+                    <select id="country_selection" wire:model.live="country_selection" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
+                        <option value="south_africa">South Africa</option>
+                        <option value="other">Other</option>
                     </select>
-                    @error('country_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    @error('country_selection') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                 </div>
 
-                <!-- Province (only show for South Africa) -->
-                @if($this->isSouthAfrica)
-                <div>
-                    <label for="province_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Province</label>
-                    <select id="province_id" wire:model="province_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
-                        <option value="">Select Province</option>
-                        @foreach($this->provinces as $province)
-                            <option value="{{ $province->id }}">{{ $province->name }}</option>
-                        @endforeach
-                    </select>
-                    @error('province_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                </div>
+                @if($this->country_selection === 'south_africa')
+                    <!-- Province (only show for South Africa) -->
+                    <div>
+                        <label for="province_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Province</label>
+                        <select id="province_id" wire:model="province_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
+                            <option value="">Select Province</option>
+                            @foreach($this->provinces as $province)
+                                <option value="{{ $province->id }}">{{ $province->name }}</option>
+                            @endforeach
+                        </select>
+                        @error('province_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    </div>
+                @else
+                    <!-- Manual Country Entry -->
+                    <div>
+                        <label for="country_name" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Country Name <span class="text-red-500">*</span></label>
+                        <input type="text" id="country_name" wire:model="country_name" placeholder="e.g., Mozambique, Namibia, Botswana" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white placeholder-zinc-400 focus:border-emerald-500 focus:ring-emerald-500">
+                        @error('country_name') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    </div>
+
+                    <!-- Manual Province/State Entry -->
+                    <div>
+                        <label for="province_name" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Province/State/Region</label>
+                        <input type="text" id="province_name" wire:model="province_name" placeholder="e.g., Maputo Province, Khomas Region" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white placeholder-zinc-400 focus:border-emerald-500 focus:ring-emerald-500">
+                        @error('province_name') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    </div>
                 @endif
 
                 <!-- Closest Town/City -->
@@ -463,7 +666,7 @@ new class extends Component {
                                 @foreach($this->userFirearms as $firearm)
                                     <option value="{{ $firearm->id }}">
                                         {{ $firearm->display_name }} 
-                                        @if($firearm->calibre) ({{ $firearm->calibre->name }}) @endif
+                                        @if($firearm->calibre_display) ({{ $firearm->calibre_display }}) @endif
                                         @if($firearm->nickname) - {{ $firearm->nickname }} @endif
                                     </option>
                                 @endforeach
@@ -502,7 +705,7 @@ new class extends Component {
                             <div class="mt-2 grid grid-cols-2 gap-2 text-sm text-emerald-700 dark:text-emerald-300">
                                 <div><span class="font-medium">Make/Model:</span> {{ $selectedFirearm->make }} {{ $selectedFirearm->model }}</div>
                                 <div><span class="font-medium">Type:</span> {{ $selectedFirearm->firearmType?->name ?? 'N/A' }}</div>
-                                <div><span class="font-medium">Calibre:</span> {{ $selectedFirearm->calibre?->name ?? 'N/A' }}</div>
+                                <div><span class="font-medium">Calibre:</span> {{ $selectedFirearm->calibre_display ?? 'N/A' }}</div>
                                 @if($selectedFirearm->serial_number)
                                     <div><span class="font-medium">S/N:</span> {{ $selectedFirearm->serial_number }}</div>
                                 @endif
@@ -555,31 +758,55 @@ new class extends Component {
                     </div>
 
                     <!-- Calibre -->
-                    <div>
-                        <label for="calibre_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Calibre / Bore <span class="text-red-500">*</span></label>
-                        <select id="calibre_id" wire:model="calibre_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
-                            <option value="">Search/Select a Calibre</option>
-                            <optgroup label="Rifle">
-                                @foreach($this->calibres->where('category', 'rifle') as $calibre)
-                                    <option value="{{ $calibre->id }}">{{ $calibre->name }}</option>
-                                @endforeach
-                            </optgroup>
-                            <optgroup label="Handgun">
-                                @foreach($this->calibres->where('category', 'handgun') as $calibre)
-                                    <option value="{{ $calibre->id }}">{{ $calibre->name }}</option>
-                                @endforeach
-                            </optgroup>
-                            <optgroup label="Shotgun">
-                                @foreach($this->calibres->where('category', 'shotgun') as $calibre)
-                                    <option value="{{ $calibre->id }}">{{ $calibre->name }}</option>
-                                @endforeach
-                            </optgroup>
-                            <optgroup label="Other">
-                                @foreach($this->calibres->where('category', 'other') as $calibre)
-                                    <option value="{{ $calibre->id }}">{{ $calibre->name }}</option>
-                                @endforeach
-                            </optgroup>
-                        </select>
+                    <div class="relative" x-data="{ open: @entangle('showCalibreDropdown') }" @click.away="open = false">
+                        <label for="calibre_search" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Calibre / Bore <span class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <input 
+                                type="text"
+                                id="calibre_search"
+                                wire:model.live.debounce.250ms="calibreSearch"
+                                x-on:focus="open = true"
+                                placeholder="Type to search calibre (e.g., 6.5 Creedmoor, .308 Win, 9mm)..."
+                                class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500"
+                                autocomplete="off"
+                            />
+                            @if($calibre_id)
+                                <button 
+                                    type="button"
+                                    wire:click="$set('calibre_id', null); $set('calibreSearch', '')"
+                                    class="absolute right-2 top-2 p-1 text-zinc-400 hover:text-red-600 dark:hover:text-red-400"
+                                >
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            @endif
+                            
+                            @if($showCalibreDropdown && $this->filteredCalibres->count() > 0)
+                                <div class="absolute z-50 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                    @foreach($this->filteredCalibres as $calibre)
+                                        <button
+                                            type="button"
+                                            wire:click="selectCalibre({{ $calibre->id }})"
+                                            x-on:click="open = false"
+                                            class="w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white flex items-center justify-between"
+                                        >
+                                            <span>{{ $calibre->name }}</span>
+                                            <span class="text-xs text-zinc-500 dark:text-zinc-400 capitalize">{{ $calibre->category }}</span>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            @elseif($showCalibreDropdown && strlen($calibreSearch) >= 1 && $this->filteredCalibres->count() === 0)
+                                <div class="absolute z-50 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-lg shadow-lg p-4 text-sm text-zinc-500 dark:text-zinc-400">
+                                    No calibres found matching "{{ $calibreSearch }}"
+                                </div>
+                            @endif
+                        </div>
+                        @if($calibre_id)
+                            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                                Selected: {{ FirearmCalibre::find($calibre_id)?->name ?? '' }}
+                            </p>
+                        @endif
                         @error('calibre_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                     </div>
                 </div>

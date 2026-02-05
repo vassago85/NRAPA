@@ -17,6 +17,7 @@ class MembershipStandingService
      * - Not revoked
      * - good_standing flag is true (if column exists)
      * - Recent payment if required (for non-lifetime memberships)
+     * - Terms & Conditions accepted (if active terms exist)
      */
     public function isInGoodStanding(User $user, ?Membership $membership = null): bool
     {
@@ -48,6 +49,12 @@ class MembershipStandingService
 
         // Check if revoked
         if ($membership->status === 'revoked') {
+            return false;
+        }
+
+        // Check if Terms & Conditions have been accepted
+        $activeTerms = \App\Models\TermsVersion::active();
+        if ($activeTerms && !$user->hasAcceptedActiveTerms()) {
             return false;
         }
 
@@ -91,6 +98,12 @@ class MembershipStandingService
 
         if ($membership->status === 'revoked') {
             return 'Membership has been revoked.';
+        }
+
+        // Check if Terms & Conditions have been accepted
+        $activeTerms = \App\Models\TermsVersion::active();
+        if ($activeTerms && !$user->hasAcceptedActiveTerms()) {
+            return 'Pending Terms Acceptance';
         }
 
         return null; // In good standing

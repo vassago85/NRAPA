@@ -17,7 +17,7 @@ new class extends Component {
             'activityType',
             'tags',
             'firearmType',
-            'calibre',
+            'userFirearm.firearmCalibre',
             'country',
             'province',
             'verifier',
@@ -116,12 +116,12 @@ new class extends Component {
 
                 <div>
                     <dt class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Country</dt>
-                    <dd class="mt-1 text-sm text-zinc-900 dark:text-white">{{ $activity->country?->name ?? 'N/A' }}</dd>
+                    <dd class="mt-1 text-sm text-zinc-900 dark:text-white">{{ $activity->country?->name ?? $activity->country_name ?? 'N/A' }}</dd>
                 </div>
 
                 <div>
                     <dt class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Province</dt>
-                    <dd class="mt-1 text-sm text-zinc-900 dark:text-white">{{ $activity->province?->name ?? 'N/A' }}</dd>
+                    <dd class="mt-1 text-sm text-zinc-900 dark:text-white">{{ $activity->province?->name ?? $activity->province_name ?? 'N/A' }}</dd>
                 </div>
 
                 <div>
@@ -143,7 +143,7 @@ new class extends Component {
 
                 <div>
                     <dt class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Calibre / Bore</dt>
-                    <dd class="mt-1 text-sm text-zinc-900 dark:text-white">{{ $activity->calibre?->name ?? 'N/A' }}</dd>
+                    <dd class="mt-1 text-sm text-zinc-900 dark:text-white">{{ $activity->calibre_name ?? 'N/A' }}</dd>
                 </div>
             </dl>
         </div>

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Contracts\DocumentRenderer;
 use App\Models\Certificate;
+use App\Models\EndorsementRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\View;
@@ -32,6 +33,27 @@ class FakeDocumentRenderer implements DocumentRenderer
         // Ensure relationships are loaded
         $certificate->loadMissing(['user', 'membership.type', 'certificateType']);
         
+        // Map old template names to new templates
+        $templateMap = [
+            'documents.paid-up' => 'documents.certificates.good-standing',
+            'documents.dedicated-hunter' => 'documents.certificates.dedicated-status',
+            'documents.dedicated-sport' => 'documents.certificates.dedicated-status',
+            'certificates.confirmation' => 'documents.certificates.good-standing',
+        ];
+        
+        if (isset($templateMap[$template])) {
+            $template = $templateMap[$template];
+        }
+        
+        // Also check by slug
+        $slug = $certificate->certificateType->slug ?? '';
+        if ($slug === 'membership-certificate' || $slug === 'paid-up-certificate' || $slug === 'good-standing-certificate') {
+            $template = 'documents.certificates.good-standing';
+        } elseif ($slug === 'dedicated-hunter-certificate' || $slug === 'dedicated-hunter' || 
+                  $slug === 'dedicated-sport-certificate' || $slug === 'dedicated-sport') {
+            $template = 'documents.certificates.dedicated-status';
+        }
+        
         // Render the Blade template to HTML
         $html = View::make($template, [
             'certificate' => $certificate,
@@ -59,10 +81,22 @@ class FakeDocumentRenderer implements DocumentRenderer
         // Ensure membership is loaded
         $membership = $user->activeMembership;
         
+        // Map old template names to new templates
+        if ($template === 'documents.welcome-letter' || str_contains($template, 'welcome')) {
+            $template = 'documents.letters.welcome';
+        }
+        
         // Render the Blade template to HTML
+        // Try to get certificate if available (for QR code)
+        $certificate = \App\Models\Certificate::where('user_id', $user->id)
+            ->whereHas('certificateType', fn($q) => $q->where('slug', 'welcome-letter'))
+            ->latest('created_at')
+            ->first();
+        
         $html = View::make($template, [
             'user' => $user,
             'membership' => $membership,
+            'certificate' => $certificate,
             'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
         ])->render();
 
@@ -80,7 +114,7 @@ class FakeDocumentRenderer implements DocumentRenderer
     public function renderEndorsementLetter(EndorsementRequest $request, string $template): string
     {
         // Ensure relationships are loaded
-        $request->loadMissing(['user', 'firearm', 'firearm.calibre', 'components', 'membership']);
+        $request->loadMissing(['user', 'firearm', 'firearm.firearmCalibre', 'firearm.firearmMake', 'firearm.firearmModel', 'components', 'membership']);
         
         // Render the Blade template to HTML
         $html = View::make($template, [

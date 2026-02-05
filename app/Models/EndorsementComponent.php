@@ -8,16 +8,10 @@ use Illuminate\Support\Str;
 
 class EndorsementComponent extends Model
 {
-    // Component type constants
+    // Component type constants (only barrel, action, and receiver are allowed)
     public const TYPE_BARREL = 'barrel';
     public const TYPE_ACTION = 'action';
-    public const TYPE_BOLT = 'bolt';
     public const TYPE_RECEIVER = 'receiver';
-    public const TYPE_FRAME = 'frame';
-    public const TYPE_SLIDE = 'slide';
-    public const TYPE_CYLINDER = 'cylinder';
-    public const TYPE_TRIGGER_GROUP = 'trigger_group';
-    public const TYPE_OTHER = 'other';
 
     /**
      * The attributes that are mass assignable.
@@ -32,6 +26,7 @@ class EndorsementComponent extends Model
         'component_model',
         'calibre_id',
         'calibre_manual',
+        'diameter', // Barrel diameter (required before chambering)
         'relates_to_firearm',
         'notes',
     ];
@@ -78,31 +73,20 @@ class EndorsementComponent extends Model
         return $this->belongsTo(EndorsementRequest::class);
     }
 
-    /**
-     * Get the calibre (for barrels).
-     */
-    public function calibre(): BelongsTo
-    {
-        return $this->belongsTo(Calibre::class);
-    }
+    // Legacy calibre relationship removed - EndorsementComponent uses calibre_id for legacy data only
 
     // ===== Static Options =====
 
     /**
      * Get component type options.
+     * Only barrel, action, and receiver are allowed.
      */
     public static function getComponentTypeOptions(): array
     {
         return [
             self::TYPE_BARREL => 'Barrel',
             self::TYPE_ACTION => 'Action',
-            self::TYPE_BOLT => 'Bolt',
             self::TYPE_RECEIVER => 'Receiver',
-            self::TYPE_FRAME => 'Frame',
-            self::TYPE_SLIDE => 'Slide',
-            self::TYPE_CYLINDER => 'Cylinder',
-            self::TYPE_TRIGGER_GROUP => 'Trigger Group',
-            self::TYPE_OTHER => 'Other',
         ];
     }
 
@@ -110,6 +94,15 @@ class EndorsementComponent extends Model
      * Check if this component type typically requires a calibre.
      */
     public static function requiresCalibre(string $componentType): bool
+    {
+        return $componentType === self::TYPE_BARREL;
+    }
+
+    /**
+     * Check if this component type can have a diameter.
+     * Barrels can specify either calibre or diameter (diameter for barrels before chambering).
+     */
+    public static function canHaveDiameter(string $componentType): bool
     {
         return $componentType === self::TYPE_BARREL;
     }
@@ -126,12 +119,12 @@ class EndorsementComponent extends Model
 
     /**
      * Get the calibre display name.
+     * Legacy calibre relationship removed - uses calibre_manual for display.
      */
     public function getCalibreDisplayAttribute(): ?string
     {
-        if ($this->calibre) {
-            return $this->calibre->name;
-        }
+        // Legacy calibre_id is kept for backward compatibility but relationship removed
+        // Use calibre_manual for display
         return $this->calibre_manual;
     }
 

@@ -99,19 +99,28 @@ class LoadData extends Model
         return $this->belongsTo(UserFirearm::class);
     }
 
-    public function calibre(): BelongsTo
-    {
-        return $this->belongsTo(Calibre::class);
-    }
+    // Legacy calibre relationship removed - LoadData uses calibre_id for legacy data only
 
     // Accessors
+
+    /**
+     * Get calibre name from user firearm if available, otherwise null.
+     */
+    public function getCalibreNameAttribute(): ?string
+    {
+        if ($this->userFirearm && $this->userFirearm->calibre_display) {
+            return $this->userFirearm->calibre_display;
+        }
+        return null;
+    }
 
     public function getDisplayNameAttribute(): string
     {
         $parts = [$this->name];
         
-        if ($this->calibre) {
-            $parts[] = "({$this->calibre->name})";
+        // Use calibre_name accessor
+        if ($this->calibre_name) {
+            $parts[] = "({$this->calibre_name})";
         }
 
         return implode(' ', $parts);

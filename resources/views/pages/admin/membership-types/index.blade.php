@@ -29,9 +29,6 @@ new #[Title('Membership Types - Admin')] class extends Component {
     #[Validate('required|numeric|min:0')]
     public float $price = 0;
     
-    #[Validate('required|numeric|min:0')]
-    public float $admin_fee = 0;
-    
     #[Validate('required|in:annual,lifetime,custom')]
     public string $duration_type = 'annual';
     
@@ -85,7 +82,6 @@ new #[Title('Membership Types - Admin')] class extends Component {
         $this->icon = $type->icon;
         $this->description = $type->description ?? '';
         $this->price = (float) $type->price;
-        $this->admin_fee = (float) $type->admin_fee;
         $this->duration_type = $type->duration_type;
         $this->duration_months = $type->duration_months;
         $this->dedicated_type = $type->dedicated_type;
@@ -136,7 +132,6 @@ new #[Title('Membership Types - Admin')] class extends Component {
             'icon' => $this->icon ?: null,
             'description' => $this->description ?: null,
             'price' => $this->price,
-            'admin_fee' => $this->admin_fee,
             'duration_type' => $this->duration_type,
             'duration_months' => $this->duration_type === 'lifetime' ? null : $this->duration_months,
             'dedicated_type' => $this->dedicated_type ?: null,
@@ -234,7 +229,6 @@ new #[Title('Membership Types - Admin')] class extends Component {
         $this->icon = null;
         $this->description = '';
         $this->price = 0;
-        $this->admin_fee = 0;
         $this->duration_type = 'annual';
         $this->duration_months = 12;
         $this->dedicated_type = null;
@@ -322,10 +316,7 @@ new #[Title('Membership Types - Admin')] class extends Component {
                         </td>
                         <td class="whitespace-nowrap px-4 py-3">
                             <div>
-                                <p class="font-medium text-zinc-900 dark:text-white">R{{ number_format($type->total_price, 0) }}</p>
-                                @if($type->admin_fee > 0)
-                                <p class="text-xs text-zinc-500 dark:text-zinc-400">R{{ number_format($type->price, 0) }} + R{{ number_format($type->admin_fee, 0) }} fee</p>
-                                @endif
+                                <p class="font-medium text-zinc-900 dark:text-white">R{{ number_format($type->price, 0) }}</p>
                             </div>
                         </td>
                         <td class="whitespace-nowrap px-4 py-3">
@@ -428,23 +419,17 @@ new #[Title('Membership Types - Admin')] class extends Component {
                         @error('description') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Base Price (R) *</label>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Price (R) *</label>
                             <input type="number" wire:model="price" step="0.01" min="0" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
                             @error('price') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Admin Fee (R) *</label>
-                            <input type="number" wire:model="admin_fee" step="0.01" min="0" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
-                            @error('admin_fee') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                         </div>
 
                         <div>
                             <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Total</label>
                             <div class="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white font-medium">
-                                R{{ number_format($price + $admin_fee, 2) }}
+                                R{{ number_format($price, 2) }}
                             </div>
                         </div>
                     </div>

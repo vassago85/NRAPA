@@ -24,6 +24,10 @@ new #[Title('Manage Questions - Admin')] class extends Component {
     public string $correctAnswer = '';
     public int $points = 1;
 
+    // JSON Import
+    public $jsonImportFile = null;
+    public bool $showJsonImportModal = false;
+
     public function mount(KnowledgeTest $test): void
     {
         $this->test = $test;
@@ -182,6 +186,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
 
     protected function resetForm(): void
     {
+        $this->editingQuestionId = null;
         $this->questionType = 'multiple_choice';
         $this->questionText = '';
         $this->questionImage = null;
@@ -190,6 +195,139 @@ new #[Title('Manage Questions - Admin')] class extends Component {
         $this->options = ['', '', '', ''];
         $this->correctAnswer = '';
         $this->points = 1;
+    }
+
+    // JSON Import/Export Methods
+    public function openJsonImportModal(): void
+    {
+        $this->showJsonImportModal = true;
+        $this->jsonImportFile = null;
+    }
+
+    public function closeJsonImportModal(): void
+    {
+        $this->showJsonImportModal = false;
+        $this->jsonImportFile = null;
+    }
+
+    public function importQuestionsFromJson(): void
+    {
+        $this->validate([
+            'jsonImportFile' => ['required', 'file', 'mimes:json,txt', 'max:5120'],
+        ]);
+
+        try {
+            $content = file_get_contents($this->jsonImportFile->getRealPath());
+            $data = json_decode($content, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                session()->flash('error', 'Invalid JSON file: ' . json_last_error_msg());
+                return;
+            }
+
+            if (!isset($data['questions']) || !is_array($data['questions'])) {
+                session()->flash('error', 'JSON file must contain a "questions" array.');
+                return;
+            }
+
+            $imported = 0;
+            $skipped = 0;
+            $errors = [];
+            $maxSortOrder = $this->test->questions()->max('sort_order') ?? 0;
+
+            foreach ($data['questions'] as $index => $questionData) {
+                try {
+                    // Validate required fields
+                    if (empty($questionData['question_text']) || empty($questionData['question_type'])) {
+                        $skipped++;
+                        $errors[] = "Question #{$index}: Missing question_text or question_type";
+                        continue;
+                    }
+
+                    $questionType = $questionData['question_type'];
+                    if (!in_array($questionType, ['multiple_choice', 'written'])) {
+                        $skipped++;
+                        $errors[] = "Question #{$index}: Invalid question_type (must be 'multiple_choice' or 'written')";
+                        continue;
+                    }
+
+                    // Validate multiple choice questions
+                    if ($questionType === 'multiple_choice') {
+                        if (empty($questionData['options']) || !is_array($questionData['options']) || count($questionData['options']) < 2) {
+                            $skipped++;
+                            $errors[] = "Question #{$index}: Multiple choice questions need at least 2 options";
+                            continue;
+                        }
+                        if (empty($questionData['correct_answer'])) {
+                            $skipped++;
+                            $errors[] = "Question #{$index}: Missing correct_answer";
+                            continue;
+                        }
+                    }
+
+                    // Create question
+                    $maxSortOrder++;
+                    KnowledgeTestQuestion::create([
+                        'knowledge_test_id' => $this->test->id,
+                        'question_type' => $questionType,
+                        'question_text' => $questionData['question_text'],
+                        'options' => $questionType === 'multiple_choice' ? $questionData['options'] : null,
+                        'correct_answer' => $questionType === 'multiple_choice' ? $questionData['correct_answer'] : null,
+                        'points' => $questionData['points'] ?? 1,
+                        'sort_order' => $questionData['sort_order'] ?? $maxSortOrder,
+                        'is_active' => $questionData['is_active'] ?? true,
+                    ]);
+
+                    $imported++;
+                } catch (\Exception $e) {
+                    $skipped++;
+                    $errors[] = "Question #{$index}: " . $e->getMessage();
+                }
+            }
+
+            $message = "Imported {$imported} question(s)";
+            if ($skipped > 0) {
+                $message .= ", skipped {$skipped}";
+            }
+            if (!empty($errors) && count($errors) <= 5) {
+                $message .= ". Errors: " . implode('; ', array_slice($errors, 0, 5));
+            }
+
+            session()->flash('success', $message);
+            $this->closeJsonImportModal();
+        } catch (\Exception $e) {
+            session()->flash('error', 'Import failed: ' . $e->getMessage());
+        }
+    }
+
+    public function exportQuestionsToJson()
+    {
+        $questions = $this->test->questions()->ordered()->get();
+
+        $data = [
+            'export_date' => now()->toIso8601String(),
+            'version' => '1.0',
+            'test_name' => $this->test->name,
+            'questions' => $questions->map(function ($question) {
+                return [
+                    'question_type' => $question->question_type,
+                    'question_text' => $question->question_text,
+                    'options' => $question->options,
+                    'correct_answer' => $question->correct_answer,
+                    'points' => $question->points,
+                    'sort_order' => $question->sort_order,
+                    'is_active' => $question->is_active,
+                ];
+            })->toArray(),
+        ];
+
+        $filename = 'knowledge-test-questions-' . \Illuminate\Support\Str::slug($this->test->name) . '-' . now()->format('Y-m-d-His') . '.json';
+
+        return response()->streamDownload(function () use ($data) {
+            echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        }, $filename, [
+            'Content-Type' => 'application/json',
+        ]);
     }
 }; ?>
 
@@ -209,12 +347,26 @@ new #[Title('Manage Questions - Admin')] class extends Component {
             </div>
         </div>
         @if($editingQuestionId === null)
-        <button wire:click="$set('editingQuestionId', 0)" class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">
-            <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Add Question
-        </button>
+        <div class="flex gap-2">
+            <button wire:click="openJsonImportModal" class="inline-flex items-center gap-2 rounded-lg border border-blue-300 bg-white px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:bg-zinc-700 dark:text-blue-400 dark:hover:bg-zinc-600">
+                <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+                </svg>
+                Import JSON
+            </button>
+            <button wire:click="exportQuestionsToJson" class="inline-flex items-center gap-2 rounded-lg border border-green-300 bg-white px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-50 dark:border-green-600 dark:bg-zinc-700 dark:text-green-400 dark:hover:bg-zinc-600">
+                <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                Export JSON
+            </button>
+            <button wire:click="$set('editingQuestionId', 0)" class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">
+                <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                Add Question
+            </button>
+        </div>
         @endif
     </div>
 
@@ -447,4 +599,89 @@ new #[Title('Manage Questions - Admin')] class extends Component {
         </div>
         @endforelse
     </div>
+
+    {{-- JSON Import Modal --}}
+    @if($showJsonImportModal)
+    <div class="fixed inset-0 z-50 overflow-y-auto" x-data="{ open: @entangle('showJsonImportModal') }" x-show="open" x-cloak>
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div wire:click="closeJsonImportModal" class="fixed inset-0 bg-black/50 transition-opacity"></div>
+            <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-2xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-zinc-900 dark:text-white">Import Questions from JSON</h2>
+                    <button wire:click="closeJsonImportModal" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors">
+                        <svg class="size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+                        <p class="text-sm text-blue-700 dark:text-blue-300">
+                            <strong>JSON Format:</strong> Your JSON file should contain a "questions" array. Each question should have:
+                            <code class="block mt-2 p-2 bg-white dark:bg-zinc-800 rounded text-xs font-mono">question_type (multiple_choice/written), question_text, options (for MC), correct_answer (for MC), points (optional), sort_order (optional), is_active (optional)</code>
+                        </p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Select JSON File</label>
+                        <div 
+                            x-data="{ 
+                                dragging: false,
+                                handleDrop(e) {
+                                    this.dragging = false;
+                                    const files = e.dataTransfer.files;
+                                    if (files.length > 0) {
+                                        const input = this.$refs.jsonFileInput;
+                                        const dataTransfer = new DataTransfer();
+                                        dataTransfer.items.add(files[0]);
+                                        input.files = dataTransfer.files;
+                                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                                    }
+                                }
+                            }"
+                            x-on:dragover.prevent="dragging = true"
+                            x-on:dragleave.prevent="dragging = false"
+                            x-on:drop.prevent="handleDrop($event)"
+                            :class="{ 'border-blue-500 bg-blue-50 dark:bg-blue-900/20': dragging }"
+                            class="flex h-32 w-full cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-zinc-300 bg-zinc-50 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-900 dark:hover:bg-zinc-800 transition-colors"
+                        >
+                            <label class="cursor-pointer text-center">
+                                <svg class="mx-auto size-8 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                                </svg>
+                                <p class="mt-2 text-sm text-zinc-500">Drop or click to upload JSON file</p>
+                                <p class="text-xs text-zinc-400">JSON, TXT up to 5MB</p>
+                                <input x-ref="jsonFileInput" type="file" wire:model="jsonImportFile" class="hidden" accept=".json,.txt">
+                            </label>
+                        </div>
+                        @if($jsonImportFile)
+                        <div class="mt-2 flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-2 dark:border-zinc-700 dark:bg-zinc-900">
+                            <svg class="size-5 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                            </svg>
+                            <span class="flex-1 text-sm text-zinc-900 dark:text-white">{{ $jsonImportFile->getClientOriginalName() }}</span>
+                            <button type="button" wire:click="$set('jsonImportFile', null)" class="text-red-500 hover:text-red-700">
+                                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                        @endif
+                        @error('jsonImportFile') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div class="flex gap-3">
+                        <button wire:click="importQuestionsFromJson" class="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                            Import Questions
+                        </button>
+                        <button wire:click="closeJsonImportModal" class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>

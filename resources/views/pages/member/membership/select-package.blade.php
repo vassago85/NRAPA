@@ -132,12 +132,6 @@ new class extends Component {
                                     <span class="text-sm text-zinc-500 dark:text-zinc-400">/{{ $type->duration_months }}mo</span>
                                 @endif
                             </div>
-                            @if($type->admin_fee > 0)
-                                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                                    + R{{ number_format($type->admin_fee, 0) }} admin fee
-                                    <span class="font-medium">(Total: R{{ number_format($type->total_price, 0) }})</span>
-                                </p>
-                            @endif
                         </div>
                         
                         @if($type->description)

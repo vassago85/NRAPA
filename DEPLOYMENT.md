@@ -30,7 +30,7 @@ docker build -t nrapa-app:latest .
 - Or run: `docker compose up -d`
 
 ### 4. Configure Nginx Proxy Manager
-- **Domain**: `members.nrapa.co.za` (or your NRAPA domain)
+- **Domain**: `nrapa.charsley.co.za` (test environment)
 - **Forward Hostname**: **Host IP** (e.g. `41.72.157.26`) — **not** `localhost`
 - **Forward Port**: `8085`
 - **Forward Scheme**: `http`
@@ -61,14 +61,45 @@ docker compose down
 docker compose up -d
 ```
 
-**Step 3: Verify**
+**Step 3: Run migrations (if needed)**
+```bash
+docker exec nrapa-app php artisan migrate --force
+```
+
+**Step 4: Clear caches**
+```bash
+docker exec nrapa-app php artisan config:clear
+docker exec nrapa-app php artisan route:clear
+docker exec nrapa-app php artisan view:clear
+docker exec nrapa-app php artisan cache:clear
+```
+
+**Step 5: Verify**
 ```bash
 docker logs nrapa-app --tail 30
 ```
 
 ### Quick Update (one-liner):
 ```bash
-cd /opt/nrapa && git pull && docker build -t nrapa-app:latest . && docker compose down && docker compose up -d
+cd /opt/nrapa && git pull && docker build -t nrapa-app:latest . && docker compose down && docker compose up -d && docker exec nrapa-app php artisan migrate --force && docker exec nrapa-app php artisan config:clear && docker exec nrapa-app php artisan route:clear && docker exec nrapa-app php artisan view:clear
+```
+
+### Full Update Script (recommended):
+```bash
+#!/bin/bash
+cd /opt/nrapa
+git pull
+docker build -t nrapa-app:latest .
+docker compose down
+docker compose up -d
+sleep 5  # Wait for containers to start
+docker exec nrapa-app php artisan migrate --force
+docker exec nrapa-app php artisan config:clear
+docker exec nrapa-app php artisan route:clear
+docker exec nrapa-app php artisan view:clear
+docker exec nrapa-app php artisan cache:clear
+echo "Deployment complete!"
+docker logs nrapa-app --tail 20
 ```
 
 ---
@@ -181,10 +212,45 @@ base64:k2j+RehijTAMeuojTYpp7+7VHbr9BlMLlVPaDBVgDqw=
 
 | Environment | URL |
 |-------------|-----|
-| Production | `https://members.nrapa.co.za` |
+| Test/Staging | `https://nrapa.charsley.co.za` |
+| Production | `https://members.nrapa.co.za` (future) |
 | Local Dev | `http://nrapa.test` |
 | Monitoring | `https://status.charsley.co.za` |
 | Invoicing | `https://invoice.charsley.co.za` |
+
+---
+
+## 📱 QR Code Configuration
+
+QR codes are automatically generated for certificates and endorsement letters. They point to verification URLs that use `APP_URL`.
+
+### Environment Setting Required
+
+**Critical**: Set `APP_URL` to your test domain in Docker environment variables:
+
+```env
+APP_URL=https://nrapa.charsley.co.za
+```
+
+### Verify QR Code Configuration
+
+After deployment, verify `APP_URL` is set correctly:
+
+```bash
+docker exec nrapa-app php artisan tinker
+>>> config('app.url')
+```
+
+Should return: `https://nrapa.charsley.co.za` (test environment)
+
+### Testing QR Codes
+
+1. Generate a test certificate (admin access required)
+2. View the certificate and scan the QR code
+3. Verify it points to: `https://nrapa.charsley.co.za/verify/{qr_code}`
+4. Test the verification page loads correctly
+
+**See `DEPLOY_QR_CODE_SETUP.md` for detailed QR code testing instructions.**
 
 ---
 
@@ -252,7 +318,7 @@ services:
       - APP_NAME=NRAPA
       - APP_ENV=production
       - APP_DEBUG=false
-      - APP_URL=https://nrapa.charsley.co.za
+      - APP_URL=https://nrapa.charsley.co.za  # Test environment
       - APP_KEY=base64:k2j+RehijTAMeuojTYpp7+7VHbr9BlMLlVPaDBVgDqw=
       - DB_CONNECTION=mysql
       - DB_HOST=db

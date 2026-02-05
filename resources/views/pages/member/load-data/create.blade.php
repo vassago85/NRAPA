@@ -2,7 +2,7 @@
 
 use App\Models\LoadData;
 use App\Models\UserFirearm;
-use App\Models\Calibre;
+use App\Models\FirearmCalibre;
 use Livewire\Component;
 
 new class extends Component {
@@ -148,8 +148,8 @@ new class extends Component {
     public function with(): array
     {
         return [
-            'firearms' => UserFirearm::forUser(auth()->id())->active()->with('calibre')->get(),
-            'calibres' => Calibre::active()->ordered()->get(),
+            'firearms' => UserFirearm::forUser(auth()->id())->active()->with(['firearmCalibre', 'firearmMake', 'firearmModel'])->get(),
+            'calibres' => FirearmCalibre::active()->ordered()->get(),
             'bulletTypes' => LoadData::bulletTypes(),
             'statuses' => LoadData::statuses(),
         ];
@@ -189,7 +189,7 @@ new class extends Component {
                             class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
                         <option value="">Select firearm...</option>
                         @foreach($firearms as $firearm)
-                            <option value="{{ $firearm->id }}">{{ $firearm->display_name }} ({{ $firearm->calibre?->name ?? 'No calibre' }})</option>
+                            <option value="{{ $firearm->id }}">{{ $firearm->display_name }}@if($firearm->calibre_display) ({{ $firearm->calibre_display }})@endif</option>
                         @endforeach
                     </select>
                 </div>

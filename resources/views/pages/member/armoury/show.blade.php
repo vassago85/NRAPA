@@ -12,7 +12,7 @@ new class extends Component {
             abort(403);
         }
 
-        $this->firearm = $firearm->load(['firearmType', 'calibre', 'loadData']);
+        $this->firearm = $firearm->load(['firearmType', 'firearmCalibre', 'firearmMake', 'firearmModel', 'loadData']);
     }
 
     public function deleteFirearm(): void
@@ -92,11 +92,11 @@ new class extends Component {
                 <dl class="grid grid-cols-2 gap-4">
                     <div>
                         <dt class="text-sm text-zinc-500">Make</dt>
-                        <dd class="font-medium text-zinc-900 dark:text-white">{{ $firearm->make ?? 'Not specified' }}</dd>
+                        <dd class="font-medium text-zinc-900 dark:text-white">{{ $firearm->make_display ?? $firearm->make ?? 'Not specified' }}</dd>
                     </div>
                     <div>
                         <dt class="text-sm text-zinc-500">Model</dt>
-                        <dd class="font-medium text-zinc-900 dark:text-white">{{ $firearm->model ?? 'Not specified' }}</dd>
+                        <dd class="font-medium text-zinc-900 dark:text-white">{{ $firearm->model_display ?? $firearm->model ?? 'Not specified' }}</dd>
                     </div>
                     <div>
                         <dt class="text-sm text-zinc-500">Serial Number</dt>
@@ -108,7 +108,7 @@ new class extends Component {
                     </div>
                     <div>
                         <dt class="text-sm text-zinc-500">Calibre</dt>
-                        <dd class="font-medium text-zinc-900 dark:text-white">{{ $firearm->calibre?->name ?? 'Not specified' }}</dd>
+                        <dd class="font-medium text-zinc-900 dark:text-white">{{ $firearm->calibre_display ?? 'Not specified' }}</dd>
                     </div>
                 </dl>
             </div>

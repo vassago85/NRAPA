@@ -43,7 +43,9 @@ class VerificationService
             $requiresGoodStanding = in_array($certType->slug, [
                 'dedicated-hunter-certificate',
                 'dedicated-sport-certificate',
+                'membership-certificate',
                 'paid-up-certificate',
+                'good-standing-certificate',
                 'membership-card',
             ]);
 

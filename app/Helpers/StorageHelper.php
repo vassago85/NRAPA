@@ -30,24 +30,21 @@ class StorageHelper
     }
 
     /**
-     * Get the public storage disk name (for learning images, etc.).
-     * Uses R2 public bucket if configured, otherwise falls back to 'public'.
+     * Get the public storage disk name (for non-sensitive content).
+     * Always uses local 'public' disk.
      */
     public static function getPublicDisk(): string
     {
-        // Always use public/local storage for local/development/testing environments
-        if (app()->environment(['local', 'development', 'testing'])) {
-            return 'public';
-        }
-        
-        if (config('filesystems.disks.r2_public.key')) {
-            return 'r2_public';
-        }
-        
-        if (config('filesystems.disks.s3.key')) {
-            return 's3';
-        }
-        
+        return 'public';
+    }
+
+    /**
+     * Get the local storage disk name for learning center content.
+     * Always uses local 'public' disk regardless of environment.
+     * Learning center images should be stored locally on the server.
+     */
+    public static function getLearningCenterDisk(): string
+    {
         return 'public';
     }
 
@@ -65,6 +62,20 @@ class StorageHelper
     }
 
     /**
+     * Store a file for learning center (always uses local storage).
+     * Learning center images are always stored locally on the server.
+     *
+     * @param \Illuminate\Http\UploadedFile|\Livewire\Features\SupportFileUploads\TemporaryUploadedFile $file
+     * @param string $path The directory path to store the file
+     * @return string The stored file path
+     */
+    public static function storeLearningCenterFile($file, string $path): string
+    {
+        $disk = static::getLearningCenterDisk();
+        return $file->store($path, $disk);
+    }
+
+    /**
      * Delete a file from the public disk.
      *
      * @param string $path The file path to delete
@@ -77,8 +88,20 @@ class StorageHelper
     }
 
     /**
-     * Get a URL for a public file (learning images, etc.).
-     * Uses direct public URL for R2 public bucket.
+     * Delete a learning center file (always uses local storage).
+     *
+     * @param string $path The file path to delete
+     * @return bool
+     */
+    public static function deleteLearningCenterFile(string $path): bool
+    {
+        $disk = static::getLearningCenterDisk();
+        return Storage::disk($disk)->delete($path);
+    }
+
+    /**
+     * Get a URL for a public file (non-sensitive content).
+     * Uses local public disk.
      *
      * @param string|null $path The file path
      * @return string|null
@@ -92,18 +115,33 @@ class StorageHelper
         $disk = static::getPublicDisk();
 
         try {
-            // For R2 public bucket, use the public URL directly
-            if ($disk === 'r2_public') {
-                $publicUrl = config('filesystems.disks.r2_public.url');
-                if (!empty($publicUrl)) {
-                    return rtrim($publicUrl, '/') . '/' . ltrim($path, '/');
-                }
-            }
-
-            // For local/public disk, return regular URL
+            // Return regular URL for local/public disk
             return Storage::disk($disk)->url($path);
         } catch (\Exception $e) {
             \Log::error('StorageHelper::getUrl failed', ['path' => $path, 'disk' => $disk, 'error' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    /**
+     * Get a URL for a learning center file (always uses local storage).
+     * Learning center images are always served from local public disk.
+     *
+     * @param string|null $path The file path
+     * @return string|null
+     */
+    public static function getLearningCenterUrl(?string $path): ?string
+    {
+        if (empty($path)) {
+            return null;
+        }
+
+        $disk = static::getLearningCenterDisk();
+
+        try {
+            return Storage::disk($disk)->url($path);
+        } catch (\Exception $e) {
+            \Log::error('StorageHelper::getLearningCenterUrl failed', ['path' => $path, 'disk' => $disk, 'error' => $e->getMessage()]);
             return null;
         }
     }

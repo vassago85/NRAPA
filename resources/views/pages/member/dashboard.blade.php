@@ -5,12 +5,37 @@ use App\Models\MembershipType;
 use App\Models\MemberDocument;
 use App\Models\EndorsementRequest;
 use App\Models\Certificate;
+use App\Models\ShootingActivity;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Title('Dashboard')] class extends Component {
+    public bool $rejectedDocumentsAlertDismissed = false;
+    public bool $rejectedActivitiesAlertDismissed = false;
+
+    public function mount(): void
+    {
+        // Check if user has dismissed the rejected documents alert in this session
+        $this->rejectedDocumentsAlertDismissed = session()->get('rejected_documents_alert_dismissed', false);
+        // Check if user has dismissed the rejected activities alert in this session
+        $this->rejectedActivitiesAlertDismissed = session()->get('rejected_activities_alert_dismissed', false);
+    }
+
+    public function dismissRejectedDocumentsAlert(): void
+    {
+        $this->rejectedDocumentsAlertDismissed = true;
+        session()->put('rejected_documents_alert_dismissed', true);
+    }
+
+    public function dismissRejectedActivitiesAlert(): void
+    {
+        $this->rejectedActivitiesAlertDismissed = true;
+        session()->put('rejected_activities_alert_dismissed', true);
+    }
+
     #[Computed]
     public function user()
     {
@@ -74,6 +99,28 @@ new #[Title('Dashboard')] class extends Component {
         return MemberDocument::where('user_id', $this->user->id)
             ->pending()
             ->with('documentType')
+            ->get();
+    }
+
+    #[Computed]
+    public function rejectedDocuments()
+    {
+        return MemberDocument::where('user_id', $this->user->id)
+            ->where('status', 'rejected')
+            ->whereNotNull('rejection_reason')
+            ->with('documentType')
+            ->orderBy('verified_at', 'desc')
+            ->get();
+    }
+
+    #[Computed]
+    public function rejectedActivities()
+    {
+        return ShootingActivity::where('user_id', $this->user->id)
+            ->where('status', 'rejected')
+            ->whereNotNull('rejection_reason')
+            ->with('activityType')
+            ->orderBy('updated_at', 'desc')
             ->get();
     }
 
@@ -149,8 +196,116 @@ new #[Title('Dashboard')] class extends Component {
     </div>
 
     {{-- Action Required Notifications --}}
-    @if($this->pendingDocuments->count() > 0 || $this->showEndorsementStatus)
+    @if($this->pendingDocuments->count() > 0 || $this->rejectedDocuments->count() > 0 || $this->rejectedActivities->count() > 0 || $this->showEndorsementStatus)
     <div class="space-y-4">
+        {{-- Rejected Activities Alert --}}
+        @if($this->rejectedActivities->count() > 0 && !$this->rejectedActivitiesAlertDismissed)
+        <div class="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20 relative">
+            <button wire:click="dismissRejectedActivitiesAlert" 
+                class="absolute top-3 right-3 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200 transition-colors"
+                title="Dismiss this alert">
+                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+            <div class="flex items-start gap-4 pr-8">
+                <div class="flex size-10 flex-shrink-0 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/50">
+                    <svg class="size-5 text-red-600 dark:text-red-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <h3 class="font-semibold text-red-800 dark:text-red-200">Activities Rejected</h3>
+                    <p class="mt-1 text-sm text-red-700 dark:text-red-300">
+                        You have {{ $this->rejectedActivities->count() }} activit{{ $this->rejectedActivities->count() > 1 ? 'ies' : 'y' }} that {{ $this->rejectedActivities->count() > 1 ? 'were' : 'was' }} rejected and need attention:
+                    </p>
+                    <ul class="mt-2 space-y-2 text-sm text-red-700 dark:text-red-300">
+                        @foreach($this->rejectedActivities->take(3) as $activity)
+                            <li class="flex flex-col gap-1 rounded-lg bg-red-100/50 dark:bg-red-900/30 p-2">
+                                <div class="flex items-center gap-2 font-medium">
+                                    <svg class="size-3" fill="currentColor" viewBox="0 0 8 8">
+                                        <circle cx="4" cy="4" r="3"/>
+                                    </svg>
+                                    {{ $activity->activityType?->name ?? 'Activity' }} - {{ $activity->activity_date->format('d M Y') }}
+                                    <span class="text-xs text-red-600 dark:text-red-400 font-normal">(rejected {{ $activity->updated_at->diffForHumans() }})</span>
+                                </div>
+                                @if($activity->rejection_reason)
+                                    <p class="ml-5 text-xs text-red-600 dark:text-red-400 italic">
+                                        "{{ Str::limit($activity->rejection_reason, 100) }}"
+                                    </p>
+                                @endif
+                            </li>
+                        @endforeach
+                        @if($this->rejectedActivities->count() > 3)
+                            <li class="text-xs italic">and {{ $this->rejectedActivities->count() - 3 }} more...</li>
+                        @endif
+                    </ul>
+                    <a href="{{ route('activities.index') }}" wire:navigate 
+                        class="mt-3 inline-flex items-center gap-1 text-sm font-medium text-red-800 hover:text-red-900 dark:text-red-200 dark:hover:text-red-100">
+                        View All Activities
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+        @endif
+
+        {{-- Rejected Documents Alert --}}
+        @if($this->rejectedDocuments->count() > 0 && !$this->rejectedDocumentsAlertDismissed)
+        <div class="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20 relative">
+            <button wire:click="dismissRejectedDocumentsAlert" 
+                class="absolute top-3 right-3 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200 transition-colors"
+                title="Dismiss this alert">
+                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+            <div class="flex items-start gap-4 pr-8">
+                <div class="flex size-10 flex-shrink-0 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/50">
+                    <svg class="size-5 text-red-600 dark:text-red-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <h3 class="font-semibold text-red-800 dark:text-red-200">Documents Rejected</h3>
+                    <p class="mt-1 text-sm text-red-700 dark:text-red-300">
+                        You have {{ $this->rejectedDocuments->count() }} document{{ $this->rejectedDocuments->count() > 1 ? 's' : '' }} that {{ $this->rejectedDocuments->count() > 1 ? 'were' : 'was' }} rejected and need attention:
+                    </p>
+                    <ul class="mt-2 space-y-2 text-sm text-red-700 dark:text-red-300">
+                        @foreach($this->rejectedDocuments->take(3) as $doc)
+                            <li class="flex flex-col gap-1 rounded-lg bg-red-100/50 dark:bg-red-900/30 p-2">
+                                <div class="flex items-center gap-2 font-medium">
+                                    <svg class="size-3" fill="currentColor" viewBox="0 0 8 8">
+                                        <circle cx="4" cy="4" r="3"/>
+                                    </svg>
+                                    {{ $doc->documentType?->name ?? 'Document' }}
+                                    <span class="text-xs text-red-600 dark:text-red-400 font-normal">(rejected {{ $doc->verified_at?->diffForHumans() ?? 'recently' }})</span>
+                                </div>
+                                @if($doc->rejection_reason)
+                                    <p class="ml-5 text-xs text-red-600 dark:text-red-400 italic">
+                                        "{{ Str::limit($doc->rejection_reason, 100) }}"
+                                    </p>
+                                @endif
+                            </li>
+                        @endforeach
+                        @if($this->rejectedDocuments->count() > 3)
+                            <li class="text-xs italic">and {{ $this->rejectedDocuments->count() - 3 }} more...</li>
+                        @endif
+                    </ul>
+                    <a href="{{ route('documents.index') }}" wire:navigate 
+                        class="mt-3 inline-flex items-center gap-1 text-sm font-medium text-red-800 hover:text-red-900 dark:text-red-200 dark:hover:text-red-100">
+                        View All Documents
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+        @endif
+
         {{-- Pending Documents Alert --}}
         @if($this->pendingDocuments->count() > 0)
         <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
@@ -351,11 +506,45 @@ new #[Title('Dashboard')] class extends Component {
                             @if(!$knowledgeTestPassed)
                                 Complete the knowledge test (one-time requirement).
                             @elseif(!$documentsComplete)
-                                Update your proof of address - must be valid within 3 months for endorsement requests.
+                                @php
+                                    $missingDocs = $eligibility['missing_documents'] ?? [];
+                                    $missingDocNames = array_column($missingDocs, 'name');
+                                @endphp
+                                @if(count($missingDocNames) > 0)
+                                    Missing required documents: {{ implode(', ', $missingDocNames) }}. 
+                                    @if(in_array('Proof of Address', $missingDocNames))
+                                        @php
+                                            $poaPending = \App\Models\MemberDocument::where('user_id', $this->user->id)
+                                                ->whereHas('documentType', fn($q) => $q->where('slug', 'proof-of-address'))
+                                                ->where('status', 'pending')
+                                                ->exists();
+                                        @endphp
+                                        @if($poaPending)
+                                            Your Proof of Address is pending admin verification.
+                                        @else
+                                            Upload and verify your Proof of Address (must be valid within 3 months).
+                                        @endif
+                                    @else
+                                        Documents must be verified by an admin before they count toward requirements.
+                                    @endif
+                                @else
+                                    Update your proof of address - must be valid within 3 months for endorsement requests.
+                                @endif
                             @elseif(!$activitiesMet)
                                 Submit {{ $requiredCount }} activities per year to maintain dedicated status. You have {{ $approvedCount }} approved.
                             @endif
                         </p>
+                        @if(!$activitiesMet)
+                            <div class="mt-3">
+                                <a href="{{ route('activities.submit') }}" wire:navigate 
+                                    class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                    </svg>
+                                    Submit Activity Now
+                                </a>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -596,12 +785,6 @@ new #[Title('Dashboard')] class extends Component {
                                 <span class="text-sm text-zinc-500 dark:text-zinc-400">/{{ $type->duration_months }}mo</span>
                             @endif
                         </div>
-                        @if($type->admin_fee > 0)
-                            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                                + R{{ number_format($type->admin_fee, 0) }} admin fee
-                                <span class="font-medium">(Total: R{{ number_format($type->total_price, 0) }})</span>
-                            </p>
-                        @endif
                     </div>
                     
                     @if($type->description)

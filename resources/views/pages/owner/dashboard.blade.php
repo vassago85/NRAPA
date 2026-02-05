@@ -14,9 +14,7 @@ new class extends Component {
     
     // Storage status
     public bool $privateStorageConfigured = false;
-    public bool $publicStorageConfigured = false;
     public string $privateBucket = '';
-    public string $publicBucket = '';
 
     public function mount(): void
     {
@@ -30,9 +28,7 @@ new class extends Component {
         
         // Check storage configuration
         $this->privateBucket = SystemSetting::get('r2_bucket', '');
-        $this->publicBucket = SystemSetting::get('r2_public_bucket', '');
         $this->privateStorageConfigured = !empty($this->privateBucket) && !empty(SystemSetting::get('r2_access_key_id'));
-        $this->publicStorageConfigured = !empty($this->publicBucket) && !empty(SystemSetting::get('r2_public_url'));
     }
 }; ?>
 
@@ -141,27 +137,6 @@ new class extends Component {
                     </div>
                 </div>
             </div>
-            
-            {{-- Public Bucket --}}
-            <div class="p-4 rounded-lg {{ $publicStorageConfigured ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800' }}">
-                <div class="flex items-center gap-3">
-                    @if($publicStorageConfigured)
-                        <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    @else
-                        <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                    @endif
-                    <div>
-                        <p class="font-medium {{ $publicStorageConfigured ? 'text-green-800 dark:text-green-200' : 'text-amber-800 dark:text-amber-200' }}">Public Bucket (Learning Images)</p>
-                        <p class="text-sm {{ $publicStorageConfigured ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400' }}">
-                            @if($publicStorageConfigured)
-                                {{ $publicBucket }}
-                            @else
-                                Not configured - learning images won't work
-                            @endif
-                        </p>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -177,11 +152,18 @@ new class extends Component {
                     <p class="text-sm text-zinc-600 dark:text-zinc-400">Configure bank accounts, email, storage, and approval workflows</p>
                 </div>
             </div>
-            <a href="{{ route('owner.settings.index') }}" wire:navigate
-                class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655-5.653a2.548 2.548 0 010-3.586L11.42 15.17z"/></svg>
-                Manage Settings
-            </a>
+            <div class="flex gap-3">
+                <a href="{{ route('owner.settings.backup') }}" wire:navigate
+                    class="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    Create Backup
+                </a>
+                <a href="{{ route('owner.settings.index') }}" wire:navigate
+                    class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655-5.653a2.548 2.548 0 010-3.586L11.42 15.17z"/></svg>
+                    Manage Settings
+                </a>
+            </div>
         </div>
     </div>
 

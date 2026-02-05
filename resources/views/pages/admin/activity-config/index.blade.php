@@ -31,11 +31,20 @@ new class extends Component {
             'activityTypeSortOrder' => ['required', 'integer', 'min:0'],
         ]);
 
+        // Only allow "Dedicated Hunting" and "Dedicated Sport-Shooting" activity types
+        $allowedSlugs = ['dedicated-hunting', 'dedicated-sport-shooting'];
+        $slug = \Illuminate\Support\Str::slug($this->activityTypeName);
+        
+        if (!in_array($slug, $allowedSlugs)) {
+            session()->flash('error', 'Only "Dedicated Hunting" and "Dedicated Sport-Shooting" activity types are allowed. Use Activity Tags for more details.');
+            return;
+        }
+
         ActivityType::updateOrCreate(
             ['id' => $this->editingActivityTypeId],
             [
                 'name' => $this->activityTypeName,
-                'slug' => \Illuminate\Support\Str::slug($this->activityTypeName),
+                'slug' => $slug,
                 'track' => $this->activityTypeTrack,
                 'group' => $this->activityTypeGroup,
                 'sort_order' => $this->activityTypeSortOrder,

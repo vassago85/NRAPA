@@ -15,7 +15,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
             abort(403);
         }
         
-        $this->request = $request->load(['firearm', 'firearm.calibre', 'components', 'documents']);
+        $this->request = $request->load(['firearm', 'firearm.firearmCalibre', 'firearm.firearmMake', 'firearm.firearmModel', 'components', 'documents']);
     }
 
 }; ?>
@@ -86,6 +86,19 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
                                 <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $request->issued_at->format('d M Y H:i') }}</dd>
                             </div>
                         @endif
+                        @if($request->expires_at)
+                            <div>
+                                <dt class="text-zinc-500 dark:text-zinc-400">Expires</dt>
+                                <dd class="mt-1 font-medium {{ $request->is_expired ? 'text-red-600 dark:text-red-400' : ($request->is_expiring_soon ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-900 dark:text-white') }}">
+                                    {{ $request->expires_at->format('d M Y') }}
+                                    @if($request->is_expired)
+                                        <span class="ml-1 text-xs">(Expired)</span>
+                                    @elseif($request->is_expiring_soon)
+                                        <span class="ml-1 text-xs">(Expiring Soon)</span>
+                                    @endif
+                                </dd>
+                            </div>
+                        @endif
                         @if($request->letter_reference)
                             <div>
                                 <dt class="text-zinc-500 dark:text-zinc-400">Reference Number</dt>
@@ -133,10 +146,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
                                     <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $request->firearm->action_type_label }}</dd>
                                 </div>
                             @endif
-                            @if($request->firearm->make || $request->firearm->model)
+                            @if($request->firearm->make_display || $request->firearm->make || $request->firearm->model_display || $request->firearm->model)
                                 <div>
                                     <dt class="text-zinc-500 dark:text-zinc-400">Make / Model</dt>
-                                    <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $request->firearm->make }} {{ $request->firearm->model }}</dd>
+                                    <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $request->firearm->make_display ?? $request->firearm->make }} {{ $request->firearm->model_display ?? $request->firearm->model }}</dd>
                                 </div>
                             @endif
                             @if($request->firearm->serial_number)
@@ -256,24 +269,26 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
                             <h4 class="text-lg font-semibold text-green-600 dark:text-green-400 mb-2">Endorsement Issued</h4>
                             <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4">Your endorsement letter is ready for download.</p>
                             
-                            @if($request->isIssued())
-                                <div class="flex gap-2">
+                            @if($request->letter_file_path)
+                                <div class="flex flex-col gap-2">
+                                    <a href="{{ route('member.endorsements.letter', $request) }}"
+                                        class="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+                                        </svg>
+                                        Download PDF
+                                    </a>
                                     <a href="{{ route('member.endorsements.preview', $request) }}" target="_blank"
-                                        class="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2">
+                                        class="w-full px-4 py-2 border border-emerald-600 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors flex items-center justify-center gap-2">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
                                         </svg>
-                                        View Letter
-                                    </a>
-                                    <a href="{{ route('member.endorsements.preview', $request) }}" target="_blank"
-                                        class="flex-1 px-4 py-2 border border-emerald-600 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors flex items-center justify-center gap-2">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
-                                        </svg>
-                                        Print
+                                        Preview
                                     </a>
                                 </div>
+                            @else
+                                <p class="text-xs text-zinc-400">Letter is being generated. Please check back shortly.</p>
                             @endif
                         </div>
                     @elseif($request->isRejected())
@@ -288,6 +303,27 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
                                 <p class="text-sm text-zinc-600 dark:text-zinc-400">{{ $request->rejection_reason }}</p>
                             @endif
                         </div>
+                    @elseif($request->isApproved())
+                        <div class="text-center">
+                            <div class="w-16 h-16 mx-auto bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-4">
+                                <svg class="w-8 h-8 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <h4 class="text-lg font-semibold text-emerald-600 dark:text-emerald-400 mb-2">Approved</h4>
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4">Your request has been approved. The endorsement letter will be generated shortly.</p>
+                            @if($request->letter_file_path)
+                                <div class="flex gap-2">
+                                    <a href="{{ route('member.endorsements.letter', $request) }}"
+                                        class="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+                                        </svg>
+                                        Download PDF
+                                    </a>
+                                </div>
+                            @endif
+                        </div>
                     @elseif($request->isSubmitted())
                         <div class="text-center">
                             <div class="w-16 h-16 mx-auto bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4">
@@ -298,7 +334,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
                             <h4 class="text-lg font-semibold text-blue-600 dark:text-blue-400 mb-2">Under Review</h4>
                             <p class="text-sm text-zinc-500 dark:text-zinc-400">Your request is being processed. You will be notified once reviewed.</p>
                         </div>
-                    @else
+                    @elseif($request->isDraft())
                         <div class="text-center">
                             <div class="w-16 h-16 mx-auto bg-zinc-100 dark:bg-zinc-700 rounded-full flex items-center justify-center mb-4">
                                 <svg class="w-8 h-8 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -311,6 +347,16 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
                                 class="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2">
                                 Continue Editing
                             </a>
+                        </div>
+                    @else
+                        <div class="text-center">
+                            <div class="w-16 h-16 mx-auto bg-zinc-100 dark:bg-zinc-700 rounded-full flex items-center justify-center mb-4">
+                                <svg class="w-8 h-8 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                </svg>
+                            </div>
+                            <h4 class="text-lg font-semibold text-zinc-700 dark:text-zinc-300 mb-2">Locked</h4>
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400">This request cannot be edited.</p>
                         </div>
                     @endif
                 </div>

@@ -12,7 +12,7 @@ new class extends Component {
             abort(403);
         }
 
-        $this->load = $load->load(['calibre', 'userFirearm']);
+        $this->load = $load->load(['userFirearm', 'userFirearm.firearmCalibre']);
     }
 
     public function toggleFavorite(): void
@@ -46,7 +46,7 @@ new class extends Component {
                             </svg>
                         @endif
                     </div>
-                    <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{{ $load->calibre?->name ?? 'No calibre specified' }}</p>
+                    <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{{ $load->calibre_name ?? 'No calibre specified' }}</p>
                 </div>
             </div>
             <div class="flex items-center gap-2">

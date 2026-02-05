@@ -10,10 +10,12 @@ new class extends Component {
     public string $search = '';
     public string $statusFilter = 'pending';
 
-    public function approve(ShootingActivity $activity): void
+    public function approve(int $activityId): void
     {
+        $activity = ShootingActivity::findOrFail($activityId);
         $activity->approve(auth()->user());
         session()->flash('success', 'Activity approved successfully.');
+        $this->resetPage(); // Reset pagination to show updated list
     }
 
     public function with(): array

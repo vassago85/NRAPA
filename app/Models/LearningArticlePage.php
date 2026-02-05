@@ -70,7 +70,8 @@ class LearningArticlePage extends Model
             return null;
         }
 
-        return StorageHelper::getUrl($this->image_path);
+        // Learning center images are always served from local storage
+        return StorageHelper::getLearningCenterUrl($this->image_path);
     }
 
     /**

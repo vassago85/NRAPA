@@ -40,7 +40,7 @@ new class extends Component {
     {
         $query = LoadData::query()
             ->forUser(auth()->id())
-            ->with(['calibre', 'userFirearm']);
+            ->with(['userFirearm', 'userFirearm.firearmCalibre']);
 
         if ($this->search) {
             $query->where(function ($q) {
@@ -60,8 +60,21 @@ new class extends Component {
 
         return [
             'loads' => $query->orderByDesc('is_favorite')->orderByDesc('created_at')->paginate(12),
-            'calibres' => Calibre::whereHas('loadData', function ($q) {
-                $q->where('user_id', auth()->id());
+            'calibres' => FirearmCalibre::whereIn('id', function ($query) {
+                $query->select('firearm_calibre_id')
+                    ->from('user_firearms')
+                    ->whereIn('id', function ($q) {
+                        $q->select('user_firearm_id')
+                            ->from('load_data')
+                            ->where('user_id', auth()->id())
+                            ->whereNotNull('user_firearm_id');
+                    });
+            })->orWhereIn('id', function ($query) {
+                // Legacy: calibre_id might still point to firearm_calibres if migrated
+                $query->select('calibre_id')
+                    ->from('load_data')
+                    ->where('user_id', auth()->id())
+                    ->whereNotNull('calibre_id');
             })->orderBy('name')->get(),
         ];
     }
@@ -126,7 +139,7 @@ new class extends Component {
                                     </svg>
                                 @endif
                             </div>
-                            <p class="text-sm text-zinc-500">{{ $load->calibre?->name ?? 'No calibre' }}</p>
+                            <p class="text-sm text-zinc-500">{{ $load->calibre_name ?? 'No calibre' }}</p>
                         </div>
                         @php $badge = $load->status_badge; @endphp
                         <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium

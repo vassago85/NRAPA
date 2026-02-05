@@ -16,6 +16,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Seed system settings (FAR numbers, etc.)
+        $this->call(SystemSettingsSeeder::class);
+
         // Seed form data (countries, provinces, document types, certificate types)
         $this->call(FormDataSeeder::class);
 

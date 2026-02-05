@@ -2,6 +2,7 @@
 
 @php
     $variant = 'doc--welcome';
+    $farNumbers = \App\Helpers\DocumentDataHelper::getFarNumbers();
 @endphp
 
 @section('content')
@@ -19,6 +20,10 @@
         <div class="doc-badge">
             <span class="dot"></span>
             <span>FAR Accredited | SAPS Recognised</span>
+        </div>
+        <div style="margin-top: 8px; font-size: 11px; color: var(--text);">
+            <span><b>FAR Sport Shooting:</b> {{ $farNumbers['sport'] }}</span>
+            <span style="margin-left: 12px;"><b>FAR Hunting:</b> {{ $farNumbers['hunting'] }}</span>
         </div>
     </div>
 </div>

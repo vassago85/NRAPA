@@ -45,8 +45,9 @@ class RedirectIfNoMembership
             return $next($request);
         }
 
-        // Skip for admin/owner/developer roles - they have full access
-        if ($user->hasRoleLevel(\App\Models\User::ROLE_ADMIN)) {
+        // Skip for admin/owner/developer roles when NOT viewing as member
+        // When viewing as member, they must have active membership like regular members
+        if ($user->hasRoleLevel(\App\Models\User::ROLE_ADMIN) && !session('view_as_member', false)) {
             return $next($request);
         }
 

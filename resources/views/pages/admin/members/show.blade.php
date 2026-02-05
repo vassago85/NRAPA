@@ -5,6 +5,8 @@ use App\Models\Membership;
 use App\Models\UserDeletionRequest;
 use App\Models\AccountResetLog;
 use App\Models\UserSecurityQuestion;
+use App\Models\KnowledgeTest;
+use App\Models\KnowledgeTestAttempt;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Password;
 use Livewire\Attributes\Computed;
@@ -16,11 +18,18 @@ new #[Title('Member Details - Admin')] class extends Component {
     public bool $showDeleteModal = false;
     public bool $showRequestDeleteModal = false;
     public string $deleteReason = '';
+    public bool $showDeleteCertificateModal = false;
+    public ?int $certificateToDelete = null;
     
     // Account reset properties
     public bool $showResetPasswordModal = false;
     public bool $showReset2FAModal = false;
     public string $resetNotes = '';
+    
+    // Knowledge test manual completion
+    public bool $showMarkKnowledgeTestModal = false;
+    public ?int $selectedKnowledgeTestId = null;
+    public string $knowledgeTestNotes = '';
     
     // 2FA verification for members
     public array $securityAnswers = [];
@@ -37,6 +46,16 @@ new #[Title('Member Details - Admin')] class extends Component {
             'knowledgeTestAttempts.knowledgeTest',
             'deletionRequests',
         ]);
+    }
+
+    #[Computed]
+    public function issuedEndorsements()
+    {
+        return \App\Models\EndorsementRequest::where('user_id', $this->user->id)
+            ->where('status', 'issued')
+            ->with(['firearm.firearmCalibre', 'firearm.firearmMake', 'firearm.firearmModel'])
+            ->latest('issued_at')
+            ->get();
     }
 
     #[Computed]
@@ -265,7 +284,7 @@ new #[Title('Member Details - Admin')] class extends Component {
             $certificate = match($documentType) {
                 'dedicated-hunter' => $issueService->issueDedicatedHunterCertificate($this->user, $issuer),
                 'dedicated-sport' => $issueService->issueDedicatedSportCertificate($this->user, $issuer),
-                'paid-up' => $issueService->issuePaidUpCertificate($this->user, $issuer),
+                'membership-certificate' => $issueService->issueMembershipCertificate($this->user, $issuer),
                 'membership-card' => $issueService->issueMembershipCard($this->user, $issuer),
                 'welcome-letter' => $issueService->issueWelcomeLetter($this->user, $issuer),
                 default => throw new \Exception('Unknown document type'),
@@ -296,6 +315,152 @@ new #[Title('Member Details - Admin')] class extends Component {
         } catch (\Exception $e) {
             session()->flash('error', 'Failed to issue document: ' . $e->getMessage());
         }
+    }
+
+    public function deleteCertificate(): void
+    {
+        if (!$this->certificateToDelete) {
+            session()->flash('error', 'No certificate selected for deletion.');
+            return;
+        }
+
+        try {
+            $certificate = \App\Models\Certificate::find($this->certificateToDelete);
+            
+            if (!$certificate) {
+                session()->flash('error', 'Certificate not found.');
+                return;
+            }
+
+            // Verify this certificate belongs to the user we're viewing
+            if ($certificate->user_id !== $this->user->id) {
+                session()->flash('error', 'Certificate does not belong to this member.');
+                return;
+            }
+
+            // Log the deletion
+            \App\Models\AuditLog::create([
+                'user_id' => auth()->id(),
+                'event' => 'certificate_deleted',
+                'auditable_type' => \App\Models\Certificate::class,
+                'auditable_id' => $certificate->id,
+                'old_values' => [
+                    'certificate_number' => $certificate->certificate_number,
+                    'certificate_type' => $certificate->certificateType->name ?? null,
+                    'user_id' => $certificate->user_id,
+                ],
+                'new_values' => ['deleted' => true],
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
+
+            // Delete associated file if exists
+            if ($certificate->file_path) {
+                $disk = app()->environment(['local', 'development', 'testing']) ? 'local' : 'r2';
+                try {
+                    \Illuminate\Support\Facades\Storage::disk($disk)->delete($certificate->file_path);
+                } catch (\Exception $e) {
+                    // Log but don't fail deletion if file doesn't exist
+                    \Illuminate\Support\Facades\Log::warning('Failed to delete certificate file', [
+                        'file_path' => $certificate->file_path,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            $certificateNumber = $certificate->certificate_number;
+            $certificate->delete();
+
+            // Refresh user to update certificates list
+            $this->user->refresh();
+            $this->user->load(['certificates.certificateType']);
+
+            $this->showDeleteCertificateModal = false;
+            $this->certificateToDelete = null;
+
+            session()->flash('success', "Certificate {$certificateNumber} has been deleted.");
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to delete certificate', [
+                'certificate_id' => $this->certificateToDelete,
+                'error' => $e->getMessage(),
+            ]);
+            session()->flash('error', 'Failed to delete certificate: ' . $e->getMessage());
+        }
+    }
+
+    public function openMarkKnowledgeTestModal(): void
+    {
+        $this->knowledgeTestNotes = '';
+        $this->selectedKnowledgeTestId = null;
+        $this->showMarkKnowledgeTestModal = true;
+    }
+
+    public function markKnowledgeTestComplete(): void
+    {
+        $this->validate([
+            'selectedKnowledgeTestId' => 'required|exists:knowledge_tests,id',
+            'knowledgeTestNotes' => 'nullable|string|max:500',
+        ]);
+
+        // Check if user already has a passed test
+        if ($this->user->hasPassedKnowledgeTest()) {
+            session()->flash('error', 'User has already passed a knowledge test.');
+            $this->showMarkKnowledgeTestModal = false;
+            return;
+        }
+
+        $knowledgeTest = KnowledgeTest::findOrFail($this->selectedKnowledgeTestId);
+
+        // Get total points for the test
+        $totalPoints = $knowledgeTest->total_points ?? 100;
+        
+        // Create a passed attempt
+        $attempt = KnowledgeTestAttempt::create([
+            'user_id' => $this->user->id,
+            'knowledge_test_id' => $knowledgeTest->id,
+            'started_at' => now(),
+            'submitted_at' => now(),
+            'auto_score' => $totalPoints,
+            'manual_score' => 0,
+            'total_score' => $totalPoints,
+            'passed' => true,
+            'marked_at' => now(),
+            'marked_by' => auth()->id(),
+            'marker_notes' => $this->knowledgeTestNotes ?: 'Manually marked as complete by admin',
+        ]);
+
+        // Log the action
+        \App\Models\AuditLog::create([
+            'user_id' => auth()->id(),
+            'event' => 'knowledge_test_manually_completed',
+            'auditable_type' => KnowledgeTestAttempt::class,
+            'auditable_id' => $attempt->id,
+            'old_values' => null,
+            'new_values' => [
+                'user_id' => $this->user->id,
+                'knowledge_test_id' => $knowledgeTest->id,
+                'passed' => true,
+                'notes' => $this->knowledgeTestNotes,
+            ],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+
+        // Refresh user to show updated status
+        $this->user->refresh();
+        $this->user->load(['knowledgeTestAttempts.knowledgeTest']);
+
+        $this->showMarkKnowledgeTestModal = false;
+        $this->knowledgeTestNotes = '';
+        $this->selectedKnowledgeTestId = null;
+
+        session()->flash('success', 'Knowledge test marked as complete successfully.');
+    }
+
+    #[Computed]
+    public function availableKnowledgeTests()
+    {
+        return KnowledgeTest::active()->orderBy('name')->get();
     }
 
     public function getStatusClasses(string $status): string
@@ -603,7 +768,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                 @endphp
                 <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/50">
                     <h3 class="text-sm font-semibold text-zinc-900 dark:text-white mb-2">Dedicated Hunter Certificate</h3>
-                    <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Official certificate confirming Dedicated Hunter Status</p>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Official certificate confirming Dedicated Hunter Status with valid documents and activities up to date</p>
                     @if(!$hasHunterStatus)
                         <p class="text-xs text-amber-600 dark:text-amber-400 mb-3">Member does not have approved dedicated hunter status</p>
                     @endif
@@ -641,10 +806,10 @@ new #[Title('Member Details - Admin')] class extends Component {
                     </button>
                 </div>
 
-                {{-- Paid-Up Certificate --}}
+                {{-- Membership Certificate --}}
                 @php
-                    $hasPaidUpCert = $this->user->certificates()
-                        ->whereHas('certificateType', fn($q) => $q->where('slug', 'paid-up-certificate'))
+                    $hasMembershipCert = $this->user->certificates()
+                        ->whereHas('certificateType', fn($q) => $q->where('slug', 'membership-certificate'))
                         ->whereNull('revoked_at')
                         ->where(function ($q) {
                             $q->whereNull('valid_until')->orWhere('valid_until', '>=', now());
@@ -652,9 +817,9 @@ new #[Title('Member Details - Admin')] class extends Component {
                         ->exists();
                 @endphp
                 <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/50">
-                    <h3 class="text-sm font-semibold text-zinc-900 dark:text-white mb-2">Proof of Paid-Up Membership</h3>
-                    <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Certificate confirming member is in good standing</p>
-                    <button wire:click="issueDocument('paid-up')" 
+                    <h3 class="text-sm font-semibold text-zinc-900 dark:text-white mb-2">Membership Certificate</h3>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Certificate confirming member is paid-up, active, and in good standing</p>
+                    <button wire:click="issueDocument('membership-certificate')" 
                             class="w-full px-3 py-2 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">
                         Issue Certificate
                     </button>
@@ -669,7 +834,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                 @endphp
                 <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/50">
                     <h3 class="text-sm font-semibold text-zinc-900 dark:text-white mb-2">Membership Card</h3>
-                    <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">NRAPA membership identification card</p>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Simple membership identification card (credit card format, wallet compatible)</p>
                     <button wire:click="issueDocument('membership-card')" 
                             class="w-full px-3 py-2 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">
                         Issue Card
@@ -695,11 +860,11 @@ new #[Title('Member Details - Admin')] class extends Component {
     </div>
     @endif
 
-    {{-- Certificates --}}
-    @if($this->user->certificates->count() > 0)
+    {{-- Certificates & Endorsements --}}
+    @if($this->user->certificates->count() > 0 || $this->issuedEndorsements->count() > 0)
     <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
         <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
-            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Issued Certificates & Documents</h2>
+            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Issued Certificates & Endorsements</h2>
         </div>
 
         <div class="overflow-x-auto">
@@ -711,6 +876,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Issued</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Valid Until</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
@@ -735,6 +901,79 @@ new #[Title('Member Details - Admin')] class extends Component {
                                 <span class="inline-flex items-center rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900 dark:text-orange-200">Expired</span>
                             @endif
                         </td>
+                        <td class="whitespace-nowrap px-6 py-4 text-sm">
+                            <div class="flex items-center gap-2">
+                                <a href="{{ route('admin.certificates.show', $certificate) }}" wire:navigate
+                                    class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/></svg>
+                                    View
+                                </a>
+                                <button wire:click="$set('certificateToDelete', {{ $certificate->id }}); $set('showDeleteCertificateModal', true)"
+                                    class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    @endforeach
+                    {{-- Endorsement Letters --}}
+                    @foreach($this->issuedEndorsements as $endorsement)
+                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
+                        <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-900 dark:text-white">
+                            Endorsement Letter{{ $endorsement->request_type === 'renewal' ? ' (Renewal)' : '' }}
+                            @if($endorsement->firearm)
+                                <span class="block text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                                    {{ $endorsement->firearm->make }} {{ $endorsement->firearm->model }}
+                                </span>
+                            @endif
+                        </td>
+                        <td class="whitespace-nowrap px-6 py-4 font-mono text-sm text-zinc-900 dark:text-white">
+                            {{ $endorsement->letter_reference ?? 'END-' . $endorsement->id }}
+                        </td>
+                        <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">
+                            {{ $endorsement->issued_at ? $endorsement->issued_at->format('d M Y') : '-' }}
+                        </td>
+                        <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">
+                            @if($endorsement->expires_at)
+                                <span class="{{ $endorsement->is_expired ? 'text-red-600 dark:text-red-400' : ($endorsement->is_expiring_soon ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-600 dark:text-zinc-400') }}">
+                                    {{ $endorsement->expires_at->format('d M Y') }}
+                                </span>
+                                @if($endorsement->is_expired)
+                                    <span class="ml-1 text-xs text-red-600 dark:text-red-400">(Expired)</span>
+                                @elseif($endorsement->is_expiring_soon)
+                                    <span class="ml-1 text-xs text-amber-600 dark:text-amber-400">(Expiring Soon)</span>
+                                @endif
+                            @else
+                                <span class="text-zinc-400 dark:text-zinc-500">-</span>
+                            @endif
+                        </td>
+                        <td class="whitespace-nowrap px-6 py-4">
+                            @if($endorsement->is_expired)
+                                <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">Expired</span>
+                            @elseif($endorsement->is_expiring_soon)
+                                <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Expiring Soon</span>
+                            @else
+                                <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Issued</span>
+                            @endif
+                        </td>
+                        <td class="whitespace-nowrap px-6 py-4 text-sm">
+                            <div class="flex items-center gap-2">
+                                <a href="{{ route('admin.endorsements.show', $endorsement->uuid) }}" wire:navigate
+                                    class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/></svg>
+                                    View
+                                </a>
+                                @if($endorsement->letter_file_path)
+                                <a href="{{ route('admin.endorsements.download', $endorsement->uuid) }}"
+                                    class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                                    target="_blank">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+                                    Download
+                                </a>
+                                @endif
+                            </div>
+                        </td>
                     </tr>
                     @endforeach
                 </tbody>
@@ -742,6 +981,88 @@ new #[Title('Member Details - Admin')] class extends Component {
         </div>
     </div>
     @endif
+
+    {{-- Delete Certificate Modal --}}
+    @if($showDeleteCertificateModal)
+    <div class="fixed inset-0 z-50 overflow-y-auto" x-data="{ show: @entangle('showDeleteCertificateModal') }" x-show="show" x-cloak>
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div class="fixed inset-0 bg-black/50 transition-opacity" x-on:click="show = false"></div>
+            <div class="relative w-full max-w-md rounded-xl bg-white shadow-xl dark:bg-zinc-800">
+                <div class="p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="flex size-10 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+                            <svg class="size-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Delete Certificate</h3>
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400">This action cannot be undone</p>
+                        </div>
+                    </div>
+                    <p class="mb-6 text-sm text-zinc-600 dark:text-zinc-400">
+                        Are you sure you want to delete this certificate? This will permanently remove the certificate record and associated file.
+                    </p>
+                    <div class="flex justify-end gap-3">
+                        <button wire:click="$set('showDeleteCertificateModal', false); $set('certificateToDelete', null)"
+                            class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 dark:hover:bg-zinc-600">
+                            Cancel
+                        </button>
+                        <button wire:click="deleteCertificate"
+                            class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700">
+                            Delete Certificate
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Knowledge Test Status --}}
+    <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
+            <div class="flex items-center justify-between">
+                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Knowledge Test Status</h2>
+                @if(!$this->user->hasPassedKnowledgeTest())
+                    <button wire:click="openMarkKnowledgeTestModal" class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Mark as Complete
+                    </button>
+                @endif
+            </div>
+        </div>
+        <div class="p-6">
+            @if($this->user->hasPassedKnowledgeTest())
+                <div class="flex items-center gap-3">
+                    <svg class="size-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <div>
+                        <p class="font-medium text-green-800 dark:text-green-200">Knowledge Test Passed</p>
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                            @php
+                                $passedAttempt = $this->user->knowledgeTestAttempts->where('passed', true)->first();
+                            @endphp
+                            @if($passedAttempt)
+                                Passed on {{ $passedAttempt->submitted_at?->format('d M Y') ?? $passedAttempt->marked_at?->format('d M Y') ?? 'N/A' }}
+                            @endif
+                        </p>
+                    </div>
+                </div>
+            @else
+                <div class="flex items-center gap-3">
+                    <svg class="size-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div>
+                        <p class="font-medium text-amber-800 dark:text-amber-200">Knowledge Test Not Completed</p>
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400">Member has not passed the knowledge test yet</p>
+                    </div>
+                </div>
+            @endif
+        </div>
+    </div>
 
     {{-- Knowledge Test Attempts --}}
     @if($this->user->knowledgeTestAttempts->count() > 0)
@@ -763,11 +1084,16 @@ new #[Title('Member Details - Admin')] class extends Component {
                 <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
                     @foreach($this->user->knowledgeTestAttempts as $attempt)
                     <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
-                        <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-900 dark:text-white">{{ $attempt->knowledgeTest->title ?? 'N/A' }}</td>
+                        <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-900 dark:text-white">{{ $attempt->knowledgeTest->name ?? 'N/A' }}</td>
                         <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">{{ $attempt->started_at->format('d M Y H:i') }}</td>
                         <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-900 dark:text-white">
-                            @if($attempt->score !== null)
-                                {{ $attempt->score }}%
+                            @if($attempt->total_score !== null && $attempt->knowledgeTest)
+                                @php
+                                    $percentage = $attempt->knowledgeTest->total_points > 0 
+                                        ? round(($attempt->total_score / $attempt->knowledgeTest->total_points) * 100, 1)
+                                        : 0;
+                                @endphp
+                                {{ $percentage }}% ({{ $attempt->total_score }}/{{ $attempt->knowledgeTest->total_points }})
                             @else
                                 —
                             @endif
@@ -1035,6 +1361,64 @@ new #[Title('Member Details - Admin')] class extends Component {
                         @endif
                         class="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed">
                         Reset 2FA
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Mark Knowledge Test Complete Modal --}}
+    @if($showMarkKnowledgeTestModal)
+    <div class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div wire:click="$set('showMarkKnowledgeTestModal', false)" class="fixed inset-0 bg-black/50"></div>
+            <div class="relative w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-zinc-800">
+                <div class="mb-4 flex items-center gap-3">
+                    <div class="flex size-10 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/50">
+                        <svg class="size-5 text-emerald-600 dark:text-emerald-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Mark Knowledge Test Complete</h3>
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400">Manually mark knowledge test as passed</p>
+                    </div>
+                </div>
+                
+                <p class="mb-4 text-zinc-600 dark:text-zinc-300">
+                    Mark knowledge test as complete for <strong>{{ $this->user->name }}</strong>. This is useful when importing users who have already completed the test.
+                </p>
+
+                <div class="mb-4">
+                    <label for="selectedKnowledgeTestId" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                        Knowledge Test <span class="text-red-500">*</span>
+                    </label>
+                    <select wire:model="selectedKnowledgeTestId" id="selectedKnowledgeTestId" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-2 text-sm text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
+                        <option value="">Select a knowledge test...</option>
+                        @foreach($this->availableKnowledgeTests as $test)
+                            <option value="{{ $test->id }}">{{ $test->name }}</option>
+                        @endforeach
+                    </select>
+                    @error('selectedKnowledgeTestId') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                </div>
+
+                <div class="mb-4">
+                    <label for="knowledgeTestNotes" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                        Notes (Optional)
+                    </label>
+                    <textarea wire:model="knowledgeTestNotes" id="knowledgeTestNotes" rows="3" placeholder="e.g., Completed test in previous system, imported user..." class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-2 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:border-emerald-500 focus:ring-emerald-500"></textarea>
+                    @error('knowledgeTestNotes') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <button wire:click="$set('showMarkKnowledgeTestModal', false)" 
+                        class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700">
+                        Cancel
+                    </button>
+                    <button wire:click="markKnowledgeTestComplete"
+                        class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                        Mark as Complete
                     </button>
                 </div>
             </div>

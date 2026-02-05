@@ -11,8 +11,14 @@ class SidebarMenu
     {
         $user = auth()->user();
         $menu = [];
+        
+        // Check if admin/owner/dev is viewing as member
+        $viewingAsMember = session('view_as_member', false);
+        $isAdminRole = $user->hasRoleLevel(\App\Models\User::ROLE_ADMIN);
+        $showMemberArea = !$isAdminRole || $viewingAsMember;
 
-        // 1. MEMBER AREA (visible to all authenticated users)
+        // 1. MEMBER AREA (only visible to members OR admin/owner/dev viewing as member)
+        if ($showMemberArea) {
         $memberAreaItems = [
             [
                 'label' => 'Dashboard',
@@ -94,10 +100,11 @@ class SidebarMenu
             'children' => $learningItems,
         ];
 
-        $menu[] = [
-            'section' => 'MEMBER AREA',
-            'items' => $memberAreaItems,
-        ];
+            $menu[] = [
+                'section' => 'MEMBER AREA',
+                'items' => $memberAreaItems,
+            ];
+        }
 
         // 2. ADMINISTRATION (admin + owner)
         if ($user->hasRoleLevel(\App\Models\User::ROLE_ADMIN)) {
@@ -140,8 +147,7 @@ class SidebarMenu
                 ],
                 [
                     'label' => 'Activities',
-                    'route' => 'admin.approvals.index',
-                    'route_params' => ['type' => 'activities'],
+                    'route' => 'admin.activities.index',
                     'icon' => 'clipboard',
                     'pending_count' => $pendingActivities,
                 ],
@@ -162,14 +168,41 @@ class SidebarMenu
                         'icon' => 'users',
                         'roles' => ['admin', 'owner', 'developer'],
                     ],
+                    // Approvals heading (non-clickable)
                     [
                         'label' => 'Approvals',
+                        'type' => 'heading',
+                        'roles' => ['admin', 'owner', 'developer'],
+                    ],
+                    // All Approvals sub-items listed directly
+                    [
+                        'label' => 'All Approvals',
                         'route' => 'admin.approvals.index',
                         'icon' => 'check-circle',
                         'roles' => ['admin', 'owner', 'developer'],
-                        'collapsible' => true,
                         'pending_count' => $totalPending,
-                        'children' => $approvalsItems,
+                    ],
+                    [
+                        'label' => 'Documents',
+                        'route' => 'admin.documents.index',
+                        'icon' => 'document-text',
+                        'roles' => ['admin', 'owner', 'developer'],
+                        'pending_count' => $pendingDocs,
+                    ],
+                    [
+                        'label' => 'Memberships',
+                        'route' => 'admin.approvals.index',
+                        'route_params' => ['type' => 'memberships'],
+                        'icon' => 'badge',
+                        'roles' => ['admin', 'owner', 'developer'],
+                        'pending_count' => $pendingMemberships,
+                    ],
+                    [
+                        'label' => 'Activities',
+                        'route' => 'admin.activities.index',
+                        'icon' => 'clipboard',
+                        'roles' => ['admin', 'owner', 'developer'],
+                        'pending_count' => $pendingActivities,
                     ],
                     [
                         'label' => 'Endorsements',
@@ -208,6 +241,12 @@ class SidebarMenu
                         'label' => 'Firearm Settings',
                         'route' => 'admin.firearm-settings.index',
                         'icon' => 'cog',
+                        'roles' => ['admin', 'owner', 'developer'],
+                    ],
+                    [
+                        'label' => 'Firearm Reference Data',
+                        'route' => 'admin.firearm-reference.index',
+                        'icon' => 'cube',
                         'roles' => ['admin', 'owner', 'developer'],
                     ],
                 ],
@@ -272,6 +311,21 @@ class SidebarMenu
                         'route' => 'owner.settings.index',
                         'icon' => 'cog-6-tooth',
                         'roles' => ['owner', 'developer'],
+                    ],
+                ],
+            ];
+        }
+
+        // 7. DEVELOPER (developer only - at bottom)
+        if ($user->isDeveloper()) {
+            $menu[] = [
+                'section' => 'DEVELOPER',
+                'items' => [
+                    [
+                        'label' => 'Developer Dashboard',
+                        'route' => 'developer.dashboard',
+                        'icon' => 'squares-2x2',
+                        'roles' => ['developer'],
                     ],
                 ],
             ];

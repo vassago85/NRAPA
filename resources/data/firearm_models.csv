@@ -1,0 +1,165 @@
+make_name,name,normalized_name,category_hint,is_active
+Glock,G17,glock 17,handgun,true
+Glock,G19,glock 19,handgun,true
+Glock,G20,glock 20,handgun,true
+Glock,G21,glock 21,handgun,true
+Glock,G22,glock 22,handgun,true
+Glock,G23,glock 23,handgun,true
+Glock,G26,glock 26,handgun,true
+Glock,G27,glock 27,handgun,true
+Glock,G30,glock 30,handgun,true
+Glock,G31,glock 31,handgun,true
+Glock,G34,glock 34,handgun,true
+Glock,G35,glock 35,handgun,true
+Glock,G40,glock 40,handgun,true
+Glock,G41,glock 41,handgun,true
+Glock,G42,glock 42,handgun,true
+Glock,G43,glock 43,handgun,true
+Glock,G44,glock 44,handgun,true
+Glock,G45,glock 45,handgun,true
+Glock,G48,glock 48,handgun,true
+Howa,1500,howa 1500,rifle,true
+Howa,1500 Lightweight,howa 1500 lightweight,rifle,true
+Howa,1500 Heavy Barrel,howa 1500 heavy barrel,rifle,true
+Howa,1500 Mini Action,howa 1500 mini action,rifle,true
+Howa,1500 Ranchland,howa 1500 ranchland,rifle,true
+Tikka,T3x,tikka t3x,rifle,true
+Tikka,T3x Lite,tikka t3x lite,rifle,true
+Tikka,T3x Super Varmint,tikka t3x super varmint,rifle,true
+Tikka,T3x TAC A1,tikka t3x tac a1,rifle,true
+Tikka,T3x CTR,tikka t3x ctr,rifle,true
+Tikka,T3x Arctic,tikka t3x arctic,rifle,true
+Tikka,T3x UPR,tikka t3x upr,rifle,true
+Tikka,T3x Roughtech,tikka t3x roughtech,rifle,true
+CZ,455,c z 455,rifle,true
+CZ,457,c z 457,rifle,true
+CZ,527,c z 527,rifle,true
+CZ,550,c z 550,rifle,true
+CZ,557,c z 557,rifle,true
+CZ,600,c z 600,rifle,true
+CZ,75,c z 75,handgun,true
+CZ,75 B,c z 75 b,handgun,true
+CZ,75 SP-01,c z 75 sp 01,handgun,true
+CZ,75 Shadow,c z 75 shadow,handgun,true
+CZ,P-07,c z p 07,handgun,true
+CZ,P-09,c z p 09,handgun,true
+CZ,P-10 C,c z p 10 c,handgun,true
+CZ,P-10 F,c z p 10 f,handgun,true
+CZ,Scorpion,c z scorpion,handgun,true
+Bergara,B14,bergara b14,rifle,true
+Bergara,B14 HMR,bergara b14 hmr,rifle,true
+Bergara,B14 Ridge,bergara b14 ridge,rifle,true
+Bergara,B14 Wilderness,bergara b14 wilderness,rifle,true
+Bergara,B14 Premier,bergara b14 premier,rifle,true
+Bergara,B14 BMP,bergara b14 bmp,rifle,true
+Bergara,B14R,bergara b14r,rifle,true
+Sako,85,sako 85,rifle,true
+Sako,90,sako 90,rifle,true
+Sako,TRG-22,sako trg 22,rifle,true
+Sako,TRG-42,sako trg 42,rifle,true
+Sako,A7,sako a7,rifle,true
+Sako,S20,sako s20,rifle,true
+Remington,700,remington 700,rifle,true
+Remington,700 ADL,remington 700 adl,rifle,true
+Remington,700 BDL,remington 700 bdl,rifle,true
+Remington,700 CDL,remington 700 cdl,rifle,true
+Remington,700 SPS,remington 700 sps,rifle,true
+Remington,700 XCR,remington 700 xcr,rifle,true
+Remington,700 Sendero,remington 700 sendero,rifle,true
+Remington,700 Police,remington 700 police,rifle,true
+Remington,700 AAC-SD,remington 700 aac sd,rifle,true
+Remington,783,remington 783,rifle,true
+Remington,870,remington 870,shotgun,true
+Remington,1100,remington 1100,shotgun,true
+Remington,1187,remington 1187,shotgun,true
+Winchester,70,winchester 70,rifle,true
+Winchester,94,winchester 94,rifle,true
+Winchester,1886,winchester 1886,rifle,true
+Winchester,1892,winchester 1892,rifle,true
+Winchester,1894,winchester 1894,rifle,true
+Winchester,1895,winchester 1895,rifle,true
+Winchester,1300,winchester 1300,shotgun,true
+Winchester,SX4,winchester sx4,shotgun,true
+Ruger,10/22,ruger 10 22,rifle,true
+Ruger,American,ruger american,rifle,true
+Ruger,Precision Rifle,ruger precision rifle,rifle,true
+Ruger,SR-556,ruger sr 556,rifle,true
+Ruger,AR-556,ruger ar 556,rifle,true
+Ruger,GP100,ruger gp100,handgun,true
+Ruger,SP101,ruger sp101,handgun,true
+Ruger,Redhawk,ruger redhawk,handgun,true
+Ruger,Super Redhawk,ruger super redhawk,handgun,true
+Ruger,Blackhawk,ruger blackhawk,handgun,true
+Ruger,Vaquero,ruger vaquero,handgun,true
+Ruger,SR9,ruger sr9,handgun,true
+Ruger,Security-9,ruger security 9,handgun,true
+Ruger,EC9s,ruger ec9s,handgun,true
+Ruger,LC9s,ruger lc9s,handgun,true
+Savage,110,savage 110,rifle,true
+Savage,110 Precision,savage 110 precision,rifle,true
+Savage,110 Tactical,savage 110 tactical,rifle,true
+Savage,110 Storm,savage 110 storm,rifle,true
+Savage,110 Apex,savage 110 apex,rifle,true
+Savage,110 Elite Precision,savage 110 elite precision,rifle,true
+Savage,Mark II,savage mark ii,rifle,true
+Savage,93R17,savage 93r17,rifle,true
+Weatherby,Mark V,weatherby mark v,rifle,true
+Weatherby,Vanguard,weatherby vanguard,rifle,true
+Weatherby,Accumark,weatherby accumark,rifle,true
+Weatherby,Backcountry,weatherby backcountry,rifle,true
+Weatherby,Element,weatherby element,shotgun,true
+Barrett,M82,barrett m82,rifle,true
+Barrett,M95,barrett m95,rifle,true
+Barrett,M107,barrett m107,rifle,true
+Barrett,M107A1,barrett m107a1,rifle,true
+Barrett,MRAD,barrett mrad,rifle,true
+Accuracy International,AX,accuracy international ax,rifle,true
+Accuracy International,AXMC,accuracy international axmc,rifle,true
+Accuracy International,AT,accuracy international at,rifle,true
+Accuracy International,AW,accuracy international aw,rifle,true
+Blaser,R8,blaser r8,rifle,true
+Blaser,R93,blaser r93,rifle,true
+Blaser,K95,blaser k95,rifle,true
+Heckler & Koch,USP,heckler koch usp,handgun,true
+Heckler & Koch,P30,heckler koch p30,handgun,true
+Heckler & Koch,VP9,heckler koch vp9,handgun,true
+Heckler & Koch,MP5,heckler koch mp5,rifle,true
+Heckler & Koch,G36,heckler koch g36,rifle,true
+Heckler & Koch,416,heckler koch 416,rifle,true
+Heckler & Koch,MR223,heckler koch mr223,rifle,true
+Sig Sauer,P226,sig sauer p226,handgun,true
+Sig Sauer,P229,sig sauer p229,handgun,true
+Sig Sauer,P320,sig sauer p320,handgun,true
+Sig Sauer,P365,sig sauer p365,handgun,true
+Sig Sauer,MCX,sig sauer mcx,rifle,true
+Sig Sauer,MPX,sig sauer mpx,rifle,true
+Sig Sauer,716,sig sauer 716,rifle,true
+Walther,PPQ,walther ppq,handgun,true
+Walther,PPS,walther pps,handgun,true
+Walther,PDP,walther pdp,handgun,true
+Mauser,M98,mauser m98,rifle,true
+Mauser,K98,mauser k98,rifle,true
+Steyr,Scout,steyr scout,rifle,true
+Steyr,SSG 08,steyr ssg 08,rifle,true
+FN Herstal,FN SCAR,fn herstal scar,rifle,true
+FN Herstal,FN FAL,fn herstal fal,rifle,true
+FN Herstal,FN 509,fn herstal 509,handgun,true
+Browning,X-Bolt,browning x bolt,rifle,true
+Browning,AB3,browning ab3,rifle,true
+Browning,Citori,browning citori,shotgun,true
+Browning,Maxus,browning maxus,shotgun,true
+Marlin,1895,marlin 1895,rifle,true
+Marlin,336,marlin 336,rifle,true
+Marlin,1894,marlin 1894,rifle,true
+Mossberg,500,mossberg 500,shotgun,true
+Mossberg,590,mossberg 590,shotgun,true
+Mossberg,930,mossberg 930,shotgun,true
+Benelli,Super Black Eagle,benelli super black eagle,shotgun,true
+Benelli,M4,benelli m4,shotgun,true
+Benelli,Ethos,benelli ethos,shotgun,true
+Beretta,686,beretta 686,shotgun,true
+Beretta,692,beretta 692,shotgun,true
+Beretta,Silver Pigeon,beretta silver pigeon,shotgun,true
+Beretta,APX,beretta apx,handgun,true
+Beretta,92,beretta 92,handgun,true
+Beretta,PX4,beretta px4,handgun,true

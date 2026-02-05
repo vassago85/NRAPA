@@ -25,3 +25,10 @@ Schedule::command('nrapa:send-license-expiry-notifications')
     ->timezone('Africa/Johannesburg')
     ->withoutOverlapping()
     ->runInBackground();
+
+// Daily database backup at 2 AM
+Schedule::command('nrapa:daily-database-backup')
+    ->dailyAt('02:00')
+    ->timezone('Africa/Johannesburg')
+    ->withoutOverlapping()
+    ->runInBackground();

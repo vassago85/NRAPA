@@ -74,6 +74,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'nominated_at',
         'logins_without_2fa',
         'last_2fa_reminder_at',
+        'email_verified_at',
     ];
 
     /**
@@ -284,6 +285,45 @@ class User extends Authenticatable implements MustVerifyEmail
     public function certificates(): HasMany
     {
         return $this->hasMany(Certificate::class);
+    }
+
+    /**
+     * Get all terms acceptances for this user.
+     */
+    public function termsAcceptances(): HasMany
+    {
+        return $this->hasMany(TermsAcceptance::class);
+    }
+
+    /**
+     * Check if user has accepted the active terms version.
+     */
+    public function hasAcceptedActiveTerms(): bool
+    {
+        try {
+            $activeTerms = TermsVersion::active();
+            if (!$activeTerms) {
+                return false; // No active terms = must accept
+            }
+
+            return $this->termsAcceptances()
+                ->where('terms_version_id', $activeTerms->id)
+                ->exists();
+        } catch (\Exception $e) {
+            // Table doesn't exist yet - return false (migrations need to be run)
+            return false;
+        }
+    }
+
+    /**
+     * Get the latest terms acceptance.
+     */
+    public function latestTermsAcceptance(): ?TermsAcceptance
+    {
+        return $this->termsAcceptances()
+            ->with('termsVersion')
+            ->latest('accepted_at')
+            ->first();
     }
 
     /**
@@ -628,9 +668,14 @@ class User extends Authenticatable implements MustVerifyEmail
             return !$targetUser->isDeveloper();
         }
 
-        // Owners can delete admins and members
+        // Owners can delete members only (NOT admins)
         if ($this->isOwner()) {
-            return !$targetUser->isDeveloper() && !$targetUser->isOwner();
+            return $targetUser->isMember();
+        }
+        
+        // Admins cannot delete anyone (must request deletion)
+        if ($this->isAdmin()) {
+            return false;
         }
 
         return false;

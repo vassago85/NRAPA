@@ -50,7 +50,6 @@ class MembershipType extends Model
         'expiry_day',
         'pricing_model',
         'price',
-        'admin_fee',
         'allows_dedicated_status',
         'dedicated_type',
         'requires_knowledge_test',
@@ -74,7 +73,6 @@ class MembershipType extends Model
             'expiry_month' => 'integer',
             'expiry_day' => 'integer',
             'price' => 'decimal:2',
-            'admin_fee' => 'decimal:2',
             'requires_renewal' => 'boolean',
             'allows_dedicated_status' => 'boolean',
             'requires_knowledge_test' => 'boolean',
@@ -278,11 +276,11 @@ class MembershipType extends Model
     }
 
     /**
-     * Get the total price including admin fee.
+     * Get the total price (same as base price, no admin fee).
      */
     public function getTotalPriceAttribute(): float
     {
-        return (float) $this->price + (float) $this->admin_fee;
+        return (float) $this->price;
     }
 
     /**

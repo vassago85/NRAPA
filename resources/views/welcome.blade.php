@@ -334,13 +334,9 @@
                         <h3 class="text-xl font-bold text-white mb-2">{{ $type->name }}</h3>
                         
                         <div class="flex items-baseline gap-1 mb-4">
-                            <span class="text-3xl font-bold text-white">R{{ number_format($type->total_price, 0) }}</span>
+                            <span class="text-3xl font-bold text-white">R{{ number_format($type->price, 0) }}</span>
                             <span class="text-sm text-zinc-400">/ {{ $type->duration_type === 'lifetime' ? 'once-off' : 'year' }}</span>
                         </div>
-                        
-                        @if($type->admin_fee > 0)
-                        <p class="text-xs text-zinc-500 mb-4">(Includes R{{ number_format($type->admin_fee, 0) }} admin fee)</p>
-                        @endif
                         
                         <p class="text-sm text-zinc-400 mb-6">{{ $type->description }}</p>
                         

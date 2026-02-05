@@ -54,7 +54,7 @@ new class extends Component {
     {
         $query = UserFirearm::query()
             ->forUser(auth()->id())
-            ->with(['firearmType', 'calibre']);
+            ->with(['firearmType', 'firearmCalibre', 'firearmMake', 'firearmModel']);
 
         if ($this->search) {
             $query->where(function ($q) {
@@ -235,8 +235,8 @@ new class extends Component {
                         </div>
 
                         <div class="space-y-1 text-sm text-zinc-600 dark:text-zinc-400 mb-4">
-                            @if($firearm->calibre)
-                                <p><span class="font-medium">Calibre:</span> {{ $firearm->calibre->name }}</p>
+                            @if($firearm->calibre_display)
+                                <p><span class="font-medium">Calibre:</span> {{ $firearm->calibre_display }}</p>
                             @endif
                             @if($firearm->firearmType)
                                 <p><span class="font-medium">Type:</span> {{ $firearm->firearmType->name }}</p>

@@ -25,7 +25,7 @@ new class extends Component {
         $activityPeriod = ShootingActivity::getActivityPeriod($user);
 
         $activities = ShootingActivity::where('user_id', $user->id)
-            ->with(['activityType', 'tags', 'firearmType', 'calibre', 'country', 'province'])
+            ->with(['activityType', 'tags', 'firearmType', 'userFirearm', 'userFirearm.firearmCalibre', 'country', 'province'])
             ->when($this->statusFilter, fn($q) => $q->where('status', $this->statusFilter))
             ->when($this->search, fn($q) => $q->where(function($query) {
                 $query->where('location', 'like', '%' . $this->search . '%')

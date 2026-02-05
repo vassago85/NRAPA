@@ -1,17 +1,23 @@
 <?php
 
+use App\Helpers\StorageHelper;
 use App\Models\KnowledgeTest;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 new #[Title('Create Knowledge Test - Admin')] class extends Component {
+    use WithFileUploads;
+
     #[Validate('required|string|max:255')]
     public string $name = '';
 
     #[Validate('nullable|string|max:1000')]
     public string $description = '';
+
+    public $testDocument = null;
 
     #[Validate('required|integer|min:1|max:100')]
     public int $passing_score = 70;
@@ -24,17 +30,31 @@ new #[Title('Create Knowledge Test - Admin')] class extends Component {
 
     public bool $is_active = false;
 
-    #[Validate('required|in:hunter,sport_shooter,both')]
+    #[Validate('required|in:hunter,sport,both')]
     public string $dedicated_type = 'both';
 
     public function save(): void
     {
-        $this->validate();
+        $this->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'testDocument' => ['nullable', 'file', 'mimes:pdf,doc,docx', 'max:10240'],
+            'passing_score' => ['required', 'integer', 'min:1', 'max:100'],
+            'time_limit_minutes' => ['nullable', 'integer', 'min:1', 'max:480'],
+            'max_attempts' => ['required', 'integer', 'min:1', 'max:10'],
+            'dedicated_type' => ['required', 'in:hunter,sport,both'],
+        ]);
+
+        $documentPath = null;
+        if ($this->testDocument) {
+            $documentPath = StorageHelper::storeFile($this->testDocument, 'knowledge-tests/documents');
+        }
 
         $test = KnowledgeTest::create([
             'slug' => Str::slug($this->name),
             'name' => $this->name,
             'description' => $this->description,
+            'document_path' => $documentPath,
             'passing_score' => $this->passing_score,
             'time_limit_minutes' => $this->time_limit_minutes,
             'max_attempts' => $this->max_attempts,
@@ -80,6 +100,61 @@ new #[Title('Create Knowledge Test - Admin')] class extends Component {
                     <textarea id="description" wire:model="description" rows="3" class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white" placeholder="Brief description of the test..."></textarea>
                     @error('description') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
                 </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Test Document (Optional)</label>
+                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Upload a PDF, DOC, or DOCX file containing test materials or reference documents</p>
+                    <div class="mt-2">
+                        @if($testDocument)
+                        <div class="flex items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-900">
+                            <svg class="size-8 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                            </svg>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-zinc-900 dark:text-white">{{ $testDocument->getClientOriginalName() }}</p>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ number_format($testDocument->getSize() / 1024, 2) }} KB</p>
+                            </div>
+                            <button type="button" wire:click="$set('testDocument', null)" class="rounded-lg bg-red-500 p-1.5 text-white hover:bg-red-600">
+                                <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        @else
+                        <div 
+                            x-data="{ 
+                                dragging: false,
+                                handleDrop(e) {
+                                    this.dragging = false;
+                                    const files = e.dataTransfer.files;
+                                    if (files.length > 0) {
+                                        const input = this.$refs.testDocumentInput;
+                                        const dataTransfer = new DataTransfer();
+                                        dataTransfer.items.add(files[0]);
+                                        input.files = dataTransfer.files;
+                                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                                    }
+                                }
+                            }"
+                            x-on:dragover.prevent="dragging = true"
+                            x-on:dragleave.prevent="dragging = false"
+                            x-on:drop.prevent="handleDrop($event)"
+                            :class="{ 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20': dragging }"
+                            class="flex h-24 w-full cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-zinc-300 bg-zinc-50 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-900 dark:hover:bg-zinc-800 transition-colors"
+                        >
+                            <label class="cursor-pointer text-center">
+                                <svg class="mx-auto size-6 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                                </svg>
+                                <p class="mt-1 text-xs text-zinc-500">Drop or click to upload document</p>
+                                <p class="text-xs text-zinc-400">PDF, DOC, DOCX up to 10MB</p>
+                                <input x-ref="testDocumentInput" type="file" wire:model="testDocument" class="hidden" accept=".pdf,.doc,.docx">
+                            </label>
+                        </div>
+                        @endif
+                    </div>
+                    @error('testDocument') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
+                </div>
             </div>
         </div>
 
@@ -91,7 +166,7 @@ new #[Title('Create Knowledge Test - Admin')] class extends Component {
                 <label for="dedicated_type" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Required For</label>
                 <select id="dedicated_type" wire:model="dedicated_type" class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
                     <option value="hunter">Dedicated Hunter Only</option>
-                    <option value="sport_shooter">Dedicated Sport Shooter Only</option>
+                    <option value="sport">Dedicated Sport Shooter Only</option>
                     <option value="both">Both (Hunter & Sport Shooter)</option>
                 </select>
                 @error('dedicated_type') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror

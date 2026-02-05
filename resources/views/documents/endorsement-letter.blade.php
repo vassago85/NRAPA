@@ -8,6 +8,7 @@
             ? url('/verify/endorsement/' . $request->letter_reference)
             : '#');
     $qrCodeUrl = $verificationUrl !== '#' ? \App\Helpers\QrCodeHelper::generateUrl($verificationUrl, 256) : null;
+    $farNumbers = \App\Helpers\DocumentDataHelper::getFarNumbers();
 @endphp
 
 @section('content')
@@ -25,6 +26,10 @@
         <div class="doc-badge">
             <span class="dot"></span>
             <span>FAR Accredited | SAPS Recognised</span>
+        </div>
+        <div style="margin-top: 8px; font-size: 11px; color: var(--text);">
+            <span><b>FAR Sport Shooting:</b> {{ $farNumbers['sport'] }}</span>
+            <span style="margin-left: 12px;"><b>FAR Hunting:</b> {{ $farNumbers['hunting'] }}</span>
         </div>
     </div>
 </div>
@@ -66,15 +71,15 @@
         </div>
         <div class="doc-row" style="margin-top:6px;">
             <span class="doc-label">Make:</span>
-            <span class="doc-value">{{ $request->firearm->make ?? 'N/A' }}</span>
+            <span class="doc-value">{{ $request->firearm->make_display ?? $request->firearm->make ?? 'N/A' }}</span>
         </div>
         <div class="doc-row" style="margin-top:6px;">
             <span class="doc-label">Model:</span>
-            <span class="doc-value">{{ $request->firearm->model ?? 'N/A' }}</span>
+            <span class="doc-value">{{ $request->firearm->model_display ?? $request->firearm->model ?? 'N/A' }}</span>
         </div>
         <div class="doc-row" style="margin-top:6px;">
             <span class="doc-label">Calibre:</span>
-            <span class="doc-value">{{ $request->firearm->calibre?->name ?? 'N/A' }}</span>
+            <span class="doc-value">{{ $request->firearm->calibre_display ?? 'N/A' }}</span>
         </div>
         @if($request->firearm->action_type)
         <div class="doc-row" style="margin-top:6px;">

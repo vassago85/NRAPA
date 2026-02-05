@@ -15,10 +15,6 @@ new class extends Component {
     public string $r2_endpoint = '';
     public string $r2_url = '';
     public string $r2_region = 'auto';
-    
-    // R2 Public bucket (for learning images)
-    public string $r2_public_bucket = '';
-    public string $r2_public_url = '';
 
     public bool $showSecretKey = false;
     public string $connectionStatus = '';
@@ -32,8 +28,6 @@ new class extends Component {
         $this->r2_endpoint = SystemSetting::get('r2_endpoint', '');
         $this->r2_url = SystemSetting::get('r2_url', '');
         $this->r2_region = SystemSetting::get('r2_region', 'auto');
-        $this->r2_public_bucket = SystemSetting::get('r2_public_bucket', '');
-        $this->r2_public_url = SystemSetting::get('r2_public_url', '');
     }
 
     public function saveStorageSettings(): void
@@ -48,8 +42,6 @@ new class extends Component {
                 'r2_endpoint' => 'required|url|max:255',
                 'r2_url' => 'nullable|url|max:255',
                 'r2_region' => 'required|string|max:50',
-                'r2_public_bucket' => 'required|string|max:255',
-                'r2_public_url' => 'required|url|max:255',
             ]);
         } else {
             // Local storage - no R2 fields required
@@ -68,8 +60,6 @@ new class extends Component {
             SystemSetting::set('r2_endpoint', $this->r2_endpoint, 'string', 'storage', 'R2 Endpoint URL');
             SystemSetting::set('r2_url', $this->r2_url, 'string', 'storage', 'R2 Private URL');
             SystemSetting::set('r2_region', $this->r2_region, 'string', 'storage', 'R2 Region');
-            SystemSetting::set('r2_public_bucket', $this->r2_public_bucket, 'string', 'storage', 'R2 Public Bucket Name');
-            SystemSetting::set('r2_public_url', $this->r2_public_url, 'string', 'storage', 'R2 Public URL');
 
             // Update runtime config for R2 private bucket
             config([
@@ -80,16 +70,6 @@ new class extends Component {
                 'filesystems.disks.r2.endpoint' => $this->r2_endpoint,
                 'filesystems.disks.r2.url' => $this->r2_url,
                 'filesystems.disks.r2.region' => $this->r2_region,
-            ]);
-            
-            // Update runtime config for R2 public bucket
-            config([
-                'filesystems.disks.r2_public.key' => $this->r2_access_key_id,
-                'filesystems.disks.r2_public.secret' => $this->r2_secret_access_key,
-                'filesystems.disks.r2_public.bucket' => $this->r2_public_bucket,
-                'filesystems.disks.r2_public.endpoint' => $this->r2_endpoint,
-                'filesystems.disks.r2_public.url' => $this->r2_public_url,
-                'filesystems.disks.r2_public.region' => $this->r2_region,
             ]);
         } else {
             // Local storage - update default
@@ -303,29 +283,6 @@ new class extends Component {
                                     <input type="text" id="r2_bucket" wire:model="r2_bucket" placeholder="nrapa-storage"
                                         class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
                                     @error('r2_bucket') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Public Bucket Section -->
-                        <div class="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-700">
-                            <h4 class="text-md font-semibold text-zinc-900 dark:text-white mb-2">Public Bucket (Learning Content)</h4>
-                            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4">For learning images and non-sensitive content. Enable R2.dev public access on this bucket.</p>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label for="r2_public_bucket" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Public Bucket Name</label>
-                                    <input type="text" id="r2_public_bucket" wire:model="r2_public_bucket" placeholder="nrapa-public"
-                                        class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
-                                    @error('r2_public_bucket') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                                </div>
-                                
-                                <div>
-                                    <label for="r2_public_url" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Public URL (R2.dev)</label>
-                                    <input type="url" id="r2_public_url" wire:model="r2_public_url" placeholder="https://pub-xxxxxxxx.r2.dev"
-                                        class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent font-mono text-sm">
-                                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Enable R2.dev subdomain in bucket settings</p>
-                                    @error('r2_public_url') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                                 </div>
                             </div>
                         </div>

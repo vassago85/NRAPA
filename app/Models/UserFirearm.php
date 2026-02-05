@@ -20,7 +20,6 @@ class UserFirearm extends Model
         'firearm_type',    // SAPS 271 canonical: rifle|shotgun|handgun|hand_machine_carbine|combination
         'action',          // SAPS 271: semi_automatic|automatic|manual|other
         'other_action_text', // When action = 'other'
-        'calibre_id',
         'calibre_code',    // SAPS calibre code
         'make',
         'model',
@@ -50,6 +49,21 @@ class UserFirearm extends Model
         'image_path',
         'license_document_path',
         'is_active',
+        // New reference fields
+        'firearm_calibre_id',
+        'firearm_make_id',
+        'firearm_model_id',
+        'calibre_text_override',
+        'make_text_override',
+        'model_text_override',
+        // SAPS 271 serial fields
+        'barrel_serial_number',
+        'barrel_make_text',
+        'frame_serial_number',
+        'frame_make_text',
+        'receiver_serial_number',
+        'receiver_make_text',
+        'engraved_text',
     ];
 
     protected $casts = [
@@ -96,9 +110,28 @@ class UserFirearm extends Model
         return $this->belongsTo(FirearmType::class);
     }
 
-    public function calibre(): BelongsTo
+    /**
+     * Get the firearm calibre reference.
+     */
+    public function firearmCalibre(): BelongsTo
     {
-        return $this->belongsTo(Calibre::class);
+        return $this->belongsTo(FirearmCalibre::class, 'firearm_calibre_id');
+    }
+
+    /**
+     * Get the firearm make reference.
+     */
+    public function firearmMake(): BelongsTo
+    {
+        return $this->belongsTo(FirearmMake::class, 'firearm_make_id');
+    }
+
+    /**
+     * Get the firearm model reference.
+     */
+    public function firearmModel(): BelongsTo
+    {
+        return $this->belongsTo(FirearmModel::class, 'firearm_model_id');
     }
 
     /**
@@ -154,8 +187,8 @@ class UserFirearm extends Model
             'rifle' => 'Rifle',
             'shotgun' => 'Shotgun',
             'handgun' => 'Handgun',
-            'hand_machine_carbine' => 'Hand Machine Carbine',
             'combination' => 'Combination',
+            'other' => $this->firearm_type_other ? "Other ({$this->firearm_type_other})" : 'Other',
             default => null,
         };
     }
@@ -214,9 +247,9 @@ class UserFirearm extends Model
         }
 
         $parts = array_filter([
-            $this->make,
-            $this->model,
-            $this->calibre?->name,
+            $this->make_display ?? $this->make,
+            $this->model_display ?? $this->model,
+            $this->calibre_display,
         ]);
 
         return implode(' ', $parts) ?: 'Unnamed Firearm';
@@ -225,13 +258,48 @@ class UserFirearm extends Model
     public function getFullDescriptionAttribute(): string
     {
         $parts = array_filter([
-            $this->make,
-            $this->model,
-            $this->calibre?->name,
+            $this->make_display ?? $this->make,
+            $this->model_display ?? $this->model,
+            $this->calibre_display,
             $this->primary_serial ? "S/N: {$this->primary_serial}" : null,
         ]);
 
         return implode(' - ', $parts) ?: 'No details';
+    }
+
+    /**
+     * Get the calibre display name.
+     */
+    public function getCalibreDisplayAttribute(): ?string
+    {
+        // Use new reference system
+        if ($this->firearmCalibre) {
+            return $this->firearmCalibre->name;
+        }
+        // Fallback to override
+        return $this->calibre_text_override;
+    }
+
+    /**
+     * Get the make display name.
+     */
+    public function getMakeDisplayAttribute(): ?string
+    {
+        if ($this->firearmMake) {
+            return $this->firearmMake->name;
+        }
+        return $this->make_text_override ?? $this->make;
+    }
+
+    /**
+     * Get the model display name.
+     */
+    public function getModelDisplayAttribute(): ?string
+    {
+        if ($this->firearmModel) {
+            return $this->firearmModel->name;
+        }
+        return $this->model_text_override ?? $this->model;
     }
 
     /**
@@ -253,8 +321,8 @@ class UserFirearm extends Model
         }
         
         // Calibre
-        if ($this->calibre) {
-            $parts[] = $this->calibre->name;
+        if ($this->calibre_display) {
+            $parts[] = $this->calibre_display;
             if ($this->calibre_code) {
                 $parts[] = "({$this->calibre_code})";
             }
@@ -263,11 +331,13 @@ class UserFirearm extends Model
         }
         
         // Make/Model
-        if ($this->make) {
-            $parts[] = $this->make;
+        $makeName = $this->make_display ?? $this->make;
+        if ($makeName) {
+            $parts[] = $makeName;
         }
-        if ($this->model) {
-            $parts[] = $this->model;
+        $modelName = $this->model_display ?? $this->model;
+        if ($modelName) {
+            $parts[] = $modelName;
         }
         
         // Serial numbers

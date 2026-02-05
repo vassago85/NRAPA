@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\CalibreRequest;
+use App\Models\EndorsementRequest;
 use App\Models\MemberDocument;
 use App\Models\Membership;
 use App\Models\ShootingActivity;
@@ -14,6 +15,7 @@ new class extends Component {
     public int $pendingMemberships = 0;
     public int $pendingActivities = 0;
     public int $pendingCalibres = 0;
+    public int $pendingEndorsements = 0;
     public int $totalOutstandingApprovals = 0;
     
     public function mount(): void
@@ -39,6 +41,13 @@ new class extends Component {
             $this->pendingMemberships = Membership::where('status', 'applied')->count();
             $this->pendingActivities = ShootingActivity::where('status', 'pending')->count();
             $this->pendingCalibres = CalibreRequest::where('status', 'pending')->count();
+            // Pending endorsements (submitted, under review, pending documents, or approved but not yet issued)
+            $this->pendingEndorsements = EndorsementRequest::whereIn('status', [
+                EndorsementRequest::STATUS_SUBMITTED,
+                EndorsementRequest::STATUS_UNDER_REVIEW,
+                EndorsementRequest::STATUS_PENDING_DOCUMENTS,
+                EndorsementRequest::STATUS_APPROVED, // Approved but letter not yet generated
+            ])->count();
         } catch (\Exception $e) {
             // Tables might not exist yet
         }
@@ -46,7 +55,8 @@ new class extends Component {
         $this->totalOutstandingApprovals = $this->pendingDocuments 
             + $this->pendingMemberships 
             + $this->pendingActivities 
-            + $this->pendingCalibres;
+            + $this->pendingCalibres
+            + $this->pendingEndorsements;
     }
     
     public function refresh(): void
@@ -180,6 +190,10 @@ new class extends Component {
                             <span class="text-zinc-600 dark:text-zinc-400">Calibres:</span>
                             <span class="font-medium text-zinc-900 dark:text-white">{{ $pendingCalibres }}</span>
                         </div>
+                        <div class="flex justify-between">
+                            <span class="text-zinc-600 dark:text-zinc-400">Endorsements:</span>
+                            <span class="font-medium text-zinc-900 dark:text-white">{{ $pendingEndorsements }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -222,6 +236,18 @@ new class extends Component {
                     <span class="px-2 py-1 text-xs font-bold text-white bg-amber-600 rounded-full">{{ $pendingDocuments }}</span>
                     @endif
                 </a>
+                <a href="{{ route('admin.endorsements.index') }}" wire:navigate
+                    class="flex items-center justify-between gap-3 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-700/50 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors {{ $pendingEndorsements > 0 ? 'ring-2 ring-amber-500' : '' }}">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-5 h-5 text-zinc-600 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <span class="text-zinc-700 dark:text-zinc-300 font-medium">Endorsement Requests</span>
+                    </div>
+                    @if($pendingEndorsements > 0)
+                    <span class="px-2 py-1 text-xs font-bold text-white bg-amber-600 rounded-full">{{ $pendingEndorsements }}</span>
+                    @endif
+                </a>
                 <a href="{{ route('admin.settings.index') }}" wire:navigate
                     class="flex items-center gap-3 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-700/50 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
                     <svg class="w-5 h-5 text-zinc-600 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -261,7 +287,7 @@ new class extends Component {
                         <span class="text-xs text-zinc-500 dark:text-zinc-400">pending</span>
                     </div>
                 </a>
-                <a href="{{ route('admin.approvals.index', ['type' => 'activities']) }}" wire:navigate
+                <a href="{{ route('admin.activities.index') }}" wire:navigate
                     class="flex items-center justify-between p-3 rounded-lg bg-zinc-50 dark:bg-zinc-700/50 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
                     <div class="flex items-center gap-3">
                         <svg class="w-5 h-5 text-zinc-600 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -284,6 +310,19 @@ new class extends Component {
                     </div>
                     <div class="flex items-center gap-2">
                         <span class="text-sm font-medium text-zinc-900 dark:text-white">{{ $pendingCalibres }}</span>
+                        <span class="text-xs text-zinc-500 dark:text-zinc-400">pending</span>
+                    </div>
+                </a>
+                <a href="{{ route('admin.endorsements.index') }}" wire:navigate
+                    class="flex items-center justify-between p-3 rounded-lg bg-zinc-50 dark:bg-zinc-700/50 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors {{ $pendingEndorsements > 0 ? 'ring-2 ring-amber-500' : '' }}">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-5 h-5 text-zinc-600 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <span class="text-zinc-700 dark:text-zinc-300">Endorsements</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium text-zinc-900 dark:text-white">{{ $pendingEndorsements }}</span>
                         <span class="text-xs text-zinc-500 dark:text-zinc-400">pending</span>
                     </div>
                 </a>

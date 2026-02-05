@@ -5,6 +5,7 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
 
 class ShootingActivity extends Model
@@ -30,7 +31,9 @@ class ShootingActivity extends Model
         'load_data_id',
         'location',
         'country_id',
+        'country_name',
         'province_id',
+        'province_name',
         'closest_town_city',
         'evidence_document_id',
         'additional_document_id',
@@ -146,13 +149,7 @@ class ShootingActivity extends Model
         return $this->belongsTo(FirearmType::class);
     }
 
-    /**
-     * Get the calibre.
-     */
-    public function calibre(): BelongsTo
-    {
-        return $this->belongsTo(Calibre::class);
-    }
+    // Legacy calibre relationship removed - ShootingActivity uses calibre_id for legacy data only
 
     /**
      * Get the user's firearm (from their armoury).
@@ -269,6 +266,43 @@ class ShootingActivity extends Model
             'verified_at' => now(),
             'verified_by' => $admin->id,
         ]);
+
+        // Send notification to member
+        $this->notifyRejection($reason);
+    }
+
+    /**
+     * Send notification to member about activity rejection.
+     */
+    protected function notifyRejection(string $reason): void
+    {
+        $user = $this->user;
+        if (!$user) {
+            return;
+        }
+
+        $activityTypeName = $this->activityType?->name ?? 'Activity';
+        $activityDate = $this->activity_date->format('d M Y');
+        $title = "Activity Rejected: {$activityTypeName}";
+        $message = "Your activity submission for {$activityDate} ({$activityTypeName}) has been rejected.\n\nReason: {$reason}\n\nPlease review and resubmit if needed.";
+
+        // Send via NtfyService if available
+        if (class_exists(\App\Services\NtfyService::class)) {
+            $ntfyService = app(\App\Services\NtfyService::class);
+            $ntfyService->notifyUser(
+                $user,
+                'activity_rejected',
+                $title,
+                $message,
+                'high',
+                [
+                    'activity_id' => $this->id,
+                    'activity_type' => $activityTypeName,
+                    'activity_date' => $activityDate,
+                    'rejection_reason' => $reason,
+                ]
+            );
+        }
     }
 
     /**
@@ -384,5 +418,16 @@ class ShootingActivity extends Model
         ]);
 
         return implode(', ', $parts);
+    }
+
+    /**
+     * Get calibre name from user firearm if available, otherwise null.
+     */
+    public function getCalibreNameAttribute(): ?string
+    {
+        if ($this->userFirearm && $this->userFirearm->calibre_display) {
+            return $this->userFirearm->calibre_display;
+        }
+        return null;
     }
 }

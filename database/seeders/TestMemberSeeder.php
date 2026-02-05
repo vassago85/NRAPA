@@ -3,12 +3,14 @@
 namespace Database\Seeders;
 
 use App\Models\ActivityType;
-use App\Models\Calibre;
+use App\Models\FirearmCalibre;
 use App\Models\Certificate;
 use App\Models\CertificateType;
 use App\Models\Country;
 use App\Models\DedicatedStatusApplication;
 use App\Models\DocumentType;
+use App\Models\EndorsementFirearm;
+use App\Models\EndorsementRequest;
 use App\Models\EventCategory;
 use App\Models\FirearmType;
 use App\Models\KnowledgeTest;
@@ -83,6 +85,15 @@ class TestMemberSeeder extends Seeder
         $this->createCertificates($user, $membership);
         $this->command->info("  ✓ Certificates issued");
 
+        // 8. Create approved endorsement letter
+        $endorsementRequest = $this->createApprovedEndorsementLetter($user, $membership);
+        if ($endorsementRequest && $endorsementRequest->letter_reference) {
+            $this->command->info("  ✓ Approved endorsement letter created: {$endorsementRequest->letter_reference}");
+        } else {
+            $letterRef = $endorsementRequest?->letter_reference ?? 'pending';
+            $this->command->info("  ✓ Approved endorsement request created (letter reference: {$letterRef})");
+        }
+
         $this->command->newLine();
         $this->command->info('Test member created successfully!');
         $this->command->table(
@@ -93,6 +104,7 @@ class TestMemberSeeder extends Seeder
                 ['Membership #', $membership->membership_number],
                 ['Status', 'Active - Dedicated Sport Shooter'],
                 ['Valid Until', $membership->expires_at?->format('Y-m-d') ?? 'N/A'],
+                ['Endorsement Letter', $endorsementRequest?->letter_reference ?? 'N/A'],
             ]
         );
     }
@@ -256,7 +268,7 @@ class TestMemberSeeder extends Seeder
                 'name' => 'Dedicated Sport Shooter Knowledge Test',
                 'slug' => 'dedicated-sport-test',
                 'description' => 'Knowledge test for dedicated sport shooter status',
-                'dedicated_type' => 'sport_shooter',
+                'dedicated_type' => 'sport',
                 'time_limit_minutes' => 60,
                 'passing_score' => 70,
                 'max_attempts' => 3,
@@ -303,7 +315,7 @@ class TestMemberSeeder extends Seeder
         $firearmType = FirearmType::where('dedicated_type', 'sport')
             ->orWhere('dedicated_type', 'both')
             ->first();
-        $calibre = Calibre::where('category', 'rifle')->first();
+        $calibre = FirearmCalibre::where('category', 'rifle')->where('is_active', true)->first();
         $country = Country::where('code', 'ZA')->first();
         $province = Province::where('code', 'GP')->first();
 
@@ -338,7 +350,7 @@ class TestMemberSeeder extends Seeder
                 'activity_date' => $activityData['activity_date'],
                 'description' => $activityData['description'],
                 'firearm_type_id' => $firearmType?->id,
-                'calibre_id' => $calibre?->id,
+                // Note: shooting_activities still uses calibre_id (old system) - can be null
                 'location' => $activityData['location'],
                 'country_id' => $country?->id,
                 'province_id' => $province?->id,
@@ -370,7 +382,7 @@ class TestMemberSeeder extends Seeder
             'uuid' => Str::uuid()->toString(),
             'user_id' => $user->id,
             'membership_id' => $membership->id,
-            'dedicated_type' => 'sport_shooter',
+            'dedicated_type' => 'sport',
             'status' => 'approved',
             'applied_at' => now()->subDays(15),
             'reviewed_at' => now()->subDays(14),
@@ -433,5 +445,83 @@ class TestMemberSeeder extends Seeder
                 ],
             ]);
         }
+    }
+
+    /**
+     * Create an approved and issued endorsement letter for the test user.
+     */
+    protected function createApprovedEndorsementLetter(User $user, Membership $membership): EndorsementRequest
+    {
+        $developer = User::where('role', User::ROLE_DEVELOPER)->first() ?? User::first();
+
+        // Check if user already has an issued endorsement letter
+        $existing = EndorsementRequest::where('user_id', $user->id)
+            ->where('status', EndorsementRequest::STATUS_ISSUED)
+            ->first();
+
+        if ($existing) {
+            return $existing;
+        }
+
+        // Get firearm type and calibre for the endorsement
+        $firearmType = FirearmType::where('dedicated_type', 'sport')
+            ->orWhere('dedicated_type', 'both')
+            ->first();
+        $calibre = FirearmCalibre::where('category', 'rifle')->where('is_active', true)->first();
+
+        // Create the endorsement request
+        $request = EndorsementRequest::create([
+            'uuid' => Str::uuid()->toString(),
+            'user_id' => $user->id,
+            'request_type' => EndorsementRequest::TYPE_NEW,
+            'status' => EndorsementRequest::STATUS_APPROVED, // Start as approved
+            'purpose' => EndorsementRequest::PURPOSE_SECTION_16,
+            'declaration_accepted_at' => now()->subDays(5),
+            'declaration_text' => 'I declare that the information provided is true and correct.',
+            'submitted_at' => now()->subDays(5),
+            'reviewed_at' => now()->subDays(4),
+            'reviewer_id' => $developer?->id,
+            'member_notes' => 'Test endorsement request - auto-generated for testing',
+            'admin_notes' => 'Test member - fully compliant, auto-approved',
+        ]);
+
+        // Approve the request
+        $request->approve($developer, 'Test member - fully compliant');
+
+        // Create endorsement firearm if firearm type and calibre exist
+        if ($firearmType && $calibre) {
+            EndorsementFirearm::create([
+                'uuid' => Str::uuid()->toString(),
+                'endorsement_request_id' => $request->id,
+                'firearm_category' => EndorsementFirearm::CATEGORY_RIFLE,
+                'ignition_type' => EndorsementFirearm::IGNITION_CENTERFIRE,
+                'action_type' => EndorsementFirearm::ACTION_BOLT_ACTION,
+                'firearm_calibre_id' => $calibre->id,
+                'licence_section' => EndorsementFirearm::LICENCE_SECTION_16,
+            ]);
+        }
+
+        // Generate letter reference
+        $letterReference = EndorsementRequest::generateLetterReference();
+
+        // Generate the endorsement letter using DocumentRenderer
+        try {
+            $renderer = app(\App\Contracts\DocumentRenderer::class);
+            $letterPath = $renderer->renderEndorsementLetter($request, 'documents.letters.endorsement');
+            
+            // Issue the letter
+            $request->issue($developer, $letterReference, $letterPath);
+        } catch (\Exception $e) {
+            // If letter generation fails, still mark as issued with reference
+            // The letter can be regenerated later via admin UI
+            $request->update([
+                'status' => EndorsementRequest::STATUS_ISSUED,
+                'issued_at' => now(),
+                'issued_by' => $developer?->id,
+                'letter_reference' => $letterReference,
+            ]);
+        }
+
+        return $request->fresh();
     }
 }

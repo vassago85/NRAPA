@@ -22,7 +22,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
     public function requests()
     {
         $query = EndorsementRequest::where('user_id', auth()->id())
-            ->with(['firearm', 'firearm.calibre', 'documents'])
+            ->with(['firearm', 'firearm.firearmCalibre', 'firearm.firearmMake', 'firearm.firearmModel', 'documents'])
             ->orderBy('created_at', 'desc');
 
         if ($this->statusFilter) {
@@ -129,7 +129,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
         $sportCompliant = $approvedActivities >= $requiredSport;
         $hunterCompliant = $approvedActivities >= $requiredHunter;
 
+        // Check Proof of Address compliance (age check, doesn't block compliance)
+        $poaCompliance = EndorsementRequest::checkProofOfAddressCompliance($user);
+
         // Determine overall compliance based on dedicated type
+        // Note: POA age doesn't block compliance, only activities do
         $isCompliant = match($dedicatedType) {
             MembershipType::DEDICATED_TYPE_SPORT => $sportCompliant,
             MembershipType::DEDICATED_TYPE_HUNTER => $hunterCompliant,
@@ -152,6 +156,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
             'is_past_deadline' => $isPastDeadline,
             'deadline_date' => $period['nrapa_deadline']->format('d M Y'),
             'period_label' => $period['label'],
+            'poa_compliance' => $poaCompliance,
         ];
     }
 
@@ -372,7 +377,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
             @endif
         </div>
         <div class="p-6">
-            <div class="grid gap-4 md:grid-cols-3">
+            <div class="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
                 {{-- Knowledge Test --}}
                 <div class="p-4 rounded-lg border {{ $this->eligibility['knowledge_test_passed'] ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' }}">
                     <div class="flex items-center gap-3 mb-2">
@@ -436,6 +441,40 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                         </div>
                     @endif
                 </div>
+
+                {{-- Proof of Address Compliance (Age Check) --}}
+                @if($this->complianceStatus['poa_compliance']['has_document'])
+                <div class="p-4 rounded-lg border {{ $this->complianceStatus['poa_compliance']['is_compliant'] ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20' }}">
+                    <div class="flex items-center gap-3 mb-2">
+                        @if($this->complianceStatus['poa_compliance']['is_compliant'])
+                        <div class="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
+                            <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        @else
+                        <div class="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+                            <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                        </div>
+                        @endif
+                        <h3 class="font-semibold text-zinc-900 dark:text-white">Proof of Address</h3>
+                    </div>
+                    @if($this->complianceStatus['poa_compliance']['is_compliant'])
+                    <p class="text-sm text-green-700 dark:text-green-300">
+                        Up to date ({{ round($this->complianceStatus['poa_compliance']['age_days'] / 30, 1) }} months old)
+                    </p>
+                    @else
+                    <p class="text-sm text-amber-700 dark:text-amber-300 mb-1">
+                        Older than 3 months ({{ round($this->complianceStatus['poa_compliance']['age_days'] / 30, 1) }} months old)
+                    </p>
+                    <p class="text-xs text-amber-600 dark:text-amber-400">
+                        New POA will be required when requesting an endorsement
+                    </p>
+                    @endif
+                </div>
+                @endif
 
                 {{-- Activities --}}
                 <div class="p-4 rounded-lg border {{ $this->eligibility['activities_met'] ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' }}">
@@ -612,7 +651,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                             </div>
 
                             <div class="flex items-center gap-2">
-                                @if($request->isDraft())
+                                @if($request->canEdit())
                                     <a href="{{ route('member.endorsements.edit', $request) }}" wire:navigate
                                         class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-emerald-700 bg-emerald-100 hover:bg-emerald-200 dark:text-emerald-300 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 rounded-lg transition-colors">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -656,12 +695,22 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                                     </button>
                                 @elseif($request->isIssued())
                                     <a href="{{ route('member.endorsements.show', $request) }}" wire:navigate
-                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-emerald-700 bg-emerald-100 hover:bg-emerald-200 dark:text-emerald-300 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 rounded-lg transition-colors">
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-zinc-700 bg-zinc-100 hover:bg-zinc-200 dark:text-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 rounded-lg transition-colors">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                         </svg>
-                                        Download
+                                        View
                                     </a>
+                                    @if($request->letter_file_path)
+                                    <a href="{{ route('member.endorsements.letter', $request) }}"
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 rounded-lg transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+                                        </svg>
+                                        Download PDF
+                                    </a>
+                                    @endif
                                 @else
                                     <a href="{{ route('member.endorsements.show', $request) }}" wire:navigate
                                         class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-zinc-700 bg-zinc-100 hover:bg-zinc-200 dark:text-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 rounded-lg transition-colors">

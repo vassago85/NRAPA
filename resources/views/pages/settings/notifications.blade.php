@@ -18,6 +18,7 @@ new class extends Component {
     public bool $notify_new_member = true;
     public bool $notify_payment_received = true;
     public bool $notify_document_uploaded = true;
+    public bool $notify_document_rejected = true;
     public bool $notify_membership_expiring = true;
     public bool $notify_activity_submitted = true;
     public bool $notify_knowledge_test_completed = true;
@@ -43,6 +44,7 @@ new class extends Component {
             $this->notify_new_member = $prefs->notify_new_member;
             $this->notify_payment_received = $prefs->notify_payment_received;
             $this->notify_document_uploaded = $prefs->notify_document_uploaded;
+            $this->notify_document_rejected = $prefs->notify_document_rejected ?? true;
             $this->notify_membership_expiring = $prefs->notify_membership_expiring;
             $this->notify_activity_submitted = $prefs->notify_activity_submitted;
             $this->notify_knowledge_test_completed = $prefs->notify_knowledge_test_completed;
@@ -91,6 +93,7 @@ new class extends Component {
                 'notify_new_member' => $this->notify_new_member,
                 'notify_payment_received' => $this->notify_payment_received,
                 'notify_document_uploaded' => $this->notify_document_uploaded,
+                'notify_document_rejected' => $this->notify_document_rejected,
                 'notify_membership_expiring' => $this->notify_membership_expiring,
                 'notify_activity_submitted' => $this->notify_activity_submitted,
                 'notify_knowledge_test_completed' => $this->notify_knowledge_test_completed,
@@ -265,6 +268,7 @@ new class extends Component {
                             'notify_new_member' => ['New Member Registration', 'Get notified when a new member registers'],
                             'notify_payment_received' => ['Payment Received', 'Get notified when payment is confirmed'],
                             'notify_document_uploaded' => ['Document Uploaded', 'Get notified when a member uploads a document'],
+                            'notify_document_rejected' => ['Document Rejected', 'Get notified when a member\'s document is rejected'],
                             'notify_membership_expiring' => ['Membership Expiring', 'Get notified about expiring memberships'],
                             'notify_activity_submitted' => ['Activity Submitted', 'Get notified when an activity is submitted for review'],
                             'notify_knowledge_test_completed' => ['Knowledge Test Completed', 'Get notified when a member completes their test'],

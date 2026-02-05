@@ -56,7 +56,7 @@ class MemberDocument extends Model
     /**
      * Document type slugs that require ID information.
      */
-    public const ID_DOCUMENT_SLUGS = ['id-document', 'id-copy', 'identity-document'];
+    public const ID_DOCUMENT_SLUGS = ['identity-document', 'id-document', 'id-copy'];
 
     /**
      * Document type slugs that require address information.
@@ -238,6 +238,41 @@ class MemberDocument extends Model
             'verified_by' => $admin->id,
             'rejection_reason' => $reason,
         ]);
+
+        // Send notification to member
+        $this->notifyRejection($reason);
+    }
+
+    /**
+     * Send notification to member about document rejection.
+     */
+    protected function notifyRejection(string $reason): void
+    {
+        $user = $this->user;
+        if (!$user) {
+            return;
+        }
+
+        $documentTypeName = $this->documentType?->name ?? 'Document';
+        $title = "Document Rejected: {$documentTypeName}";
+        $message = "Your {$documentTypeName} has been rejected.\n\nReason: {$reason}\n\nPlease review and upload a new document.";
+
+        // Send via NtfyService if available
+        if (class_exists(\App\Services\NtfyService::class)) {
+            $ntfyService = app(\App\Services\NtfyService::class);
+            $ntfyService->notifyUser(
+                $user,
+                'document_rejected',
+                $title,
+                $message,
+                'high',
+                [
+                    'document_id' => $this->id,
+                    'document_type' => $documentTypeName,
+                    'rejection_reason' => $reason,
+                ]
+            );
+        }
     }
 
     /**

@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use App\Helpers\StorageHelper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Storage;
 
 class LearningArticleImage extends Model
 {
@@ -30,9 +30,10 @@ class LearningArticleImage extends Model
 
     /**
      * Get the image URL.
+     * Learning center images are always served from local storage.
      */
     public function getUrlAttribute(): string
     {
-        return Storage::url($this->path);
+        return StorageHelper::getLearningCenterUrl($this->path) ?? '';
     }
 }

@@ -156,8 +156,8 @@ new class extends Component {
     public function with(): array
     {
         return [
-            'firearms' => UserFirearm::forUser(auth()->id())->active()->with('calibre')->get(),
-            'calibres' => Calibre::active()->ordered()->get(),
+            'firearms' => UserFirearm::forUser(auth()->id())->active()->with(['firearmCalibre', 'firearmMake', 'firearmModel'])->get(),
+            'calibres' => FirearmCalibre::active()->ordered()->get(),
             'bulletTypes' => LoadData::bulletTypes(),
             'statuses' => LoadData::statuses(),
         ];

@@ -5,6 +5,7 @@
         ? route('certificates.verify', ['qr_code' => $certificate->qr_code])
         : '#';
     $qrCodeUrl = \App\Helpers\QrCodeHelper::generateUrl($verificationUrl, 120);
+    $farNumbers = \App\Helpers\DocumentDataHelper::getFarNumbers();
 @endphp
 
 @push('document-styles')
@@ -18,8 +19,11 @@
 <div class="doc-card-inner">
     <div class="doc-card-top">
         <div class="doc-card-logo">
-            @if(isset($logo_url))
-                <img src="{{ $logo_url }}" alt="NRAPA">
+            @php
+                $logoUrl = $logo_url ?? \App\Helpers\DocumentDataHelper::getLogoUrl();
+            @endphp
+            @if($logoUrl)
+                <img src="{{ $logoUrl }}" alt="NRAPA">
             @else
                 <div style="width:100%; height:100%; background:linear-gradient(135deg, #0f4c81 0%, #3b82f6 100%); display:grid; place-items:center; color:#fff; font-weight:bold; font-size:7pt;">NRAPA</div>
             @endif
@@ -27,6 +31,9 @@
         <div>
             <div class="doc-card-org">NRAPA</div>
             <div class="doc-card-meta">Membership Card</div>
+            <div style="font-size:5.5pt; color:rgba(255,255,255,.85); margin-top:2px; line-height:1.2;">
+                FAR Sport: {{ $farNumbers['sport'] }} | Hunting: {{ $farNumbers['hunting'] }}
+            </div>
         </div>
     </div>
     
@@ -51,7 +58,6 @@
     
     <div style="margin-top:auto; display:flex; justify-content:space-between; align-items:flex-end; font-size:7.5pt; color:rgba(255,255,255,.92);">
         <div>
-            <div>FCA Status: <strong style="color:#fff;">Active</strong></div>
             <div style="margin-top:2px;">
                 Enrolled: {{ $certificate->membership->activated_at?->format('M Y') ?? $certificate->membership->applied_at?->format('M Y') ?? 'N/A' }}
             </div>

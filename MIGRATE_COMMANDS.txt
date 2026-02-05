@@ -1,0 +1,9 @@
+Run these commands ONE AT A TIME in your terminal:
+
+cd c:\laragon\www\NRAPA
+
+php artisan migrate --force
+
+php artisan nrapa:import-firearm-reference
+
+php artisan optimize:clear

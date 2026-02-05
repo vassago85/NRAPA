@@ -46,6 +46,18 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     }
 
     #[Computed]
+    public function downloadUrl()
+    {
+        $user = auth()->user();
+        if ($user->isDeveloper()) {
+            return route('developer.certificates.download', $this->certificate);
+        } elseif ($user->isOwner() || $user->isAdmin()) {
+            return route('admin.certificates.download', $this->certificate);
+        }
+        return route('certificates.download', $this->certificate);
+    }
+
+    #[Computed]
     public function isMembershipCard(): bool
     {
         return $this->certificate->certificateType->slug === 'membership-card';
@@ -94,6 +106,64 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             return route('admin.certificates.wallet.google', $this->certificate);
         }
         return route('certificates.wallet.google', $this->certificate);
+    }
+
+    public bool $showDeleteModal = false;
+
+    public function deleteCertificate(): void
+    {
+        $user = auth()->user();
+        
+        // Only admins, owners, and developers can delete
+        if (!$user->isAdmin() && !$user->isOwner() && !$user->isDeveloper()) {
+            session()->flash('error', 'You do not have permission to delete certificates.');
+            return;
+        }
+
+        try {
+            // Log the deletion
+            \App\Models\AuditLog::create([
+                'user_id' => auth()->id(),
+                'event' => 'certificate_deleted',
+                'auditable_type' => \App\Models\Certificate::class,
+                'auditable_id' => $this->certificate->id,
+                'old_values' => [
+                    'certificate_number' => $this->certificate->certificate_number,
+                    'certificate_type' => $this->certificate->certificateType->name ?? null,
+                    'user_id' => $this->certificate->user_id,
+                ],
+                'new_values' => ['deleted' => true],
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
+
+            // Delete associated file if exists
+            if ($this->certificate->file_path) {
+                $disk = app()->environment(['local', 'development', 'testing']) ? 'local' : 'r2';
+                \Illuminate\Support\Facades\Storage::disk($disk)->delete($this->certificate->file_path);
+            }
+
+            $certificateNumber = $this->certificate->certificate_number;
+            $this->certificate->delete();
+
+            session()->flash('success', "Certificate {$certificateNumber} has been deleted.");
+            
+            // Redirect to certificates index
+            $indexRoute = 'certificates.index';
+            if ($user->isDeveloper()) {
+                $indexRoute = 'developer.certificates.index';
+            } elseif ($user->isOwner() || $user->isAdmin()) {
+                $indexRoute = 'admin.certificates.index';
+            }
+            
+            $this->redirect(route($indexRoute), navigate: true);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to delete certificate', [
+                'certificate_id' => $this->certificate->id,
+                'error' => $e->getMessage(),
+            ]);
+            session()->flash('error', 'Failed to delete certificate: ' . $e->getMessage());
+        }
     }
 }; ?>
 
@@ -169,11 +239,26 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/></svg>
                                 View Full Screen
                             </a>
+                            @if($this->certificate->file_path)
+                            <a href="{{ $this->downloadUrl }}" 
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+                                Download PDF
+                            </a>
+                            @endif
                             <a href="{{ $this->previewUrl }}" target="_blank" 
                                 class="inline-flex items-center gap-2 px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                                 Print
                             </a>
+                            
+                            @if(auth()->user()->isAdmin() || auth()->user()->isOwner() || auth()->user()->isDeveloper())
+                                <button wire:click="$set('showDeleteModal', true)" 
+                                    class="inline-flex items-center gap-2 px-4 py-2 border border-red-300 dark:border-red-600 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    Delete
+                                </button>
+                            @endif
                             
                             @if($this->isMembershipCard && $this->walletEnabled)
                                 <div class="flex-1 border-l border-zinc-300 dark:border-zinc-600 pl-3">
@@ -301,8 +386,40 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                         </dl>
                     </div>
                 </div>
-                @endif
+            @endif
+        </div>
+    </div>
+
+    {{-- Delete Confirmation Modal --}}
+    @if($showDeleteModal)
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" x-data="{ show: @entangle('showDeleteModal') }" x-show="show" x-cloak>
+        <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-xl max-w-md w-full mx-4" @click.away="show = false">
+            <div class="p-6">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Delete Certificate</h3>
+                </div>
+                <p class="text-zinc-600 dark:text-zinc-400 mb-6">
+                    Are you sure you want to delete certificate <strong>{{ $this->certificate->certificate_number }}</strong>? 
+                    This action cannot be undone and will permanently remove the certificate and its associated file.
+                </p>
+                <div class="flex gap-3 justify-end">
+                    <button wire:click="$set('showDeleteModal', false)" 
+                        class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                        Cancel
+                    </button>
+                    <button wire:click="deleteCertificate" 
+                        class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg">
+                        Delete Certificate
+                    </button>
+                </div>
             </div>
         </div>
     </div>
+    @endif
+</div>
 </div>

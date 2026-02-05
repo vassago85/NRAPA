@@ -1,6 +1,8 @@
 {
   "site_name": "NRAPA Members Portal",
   "description": "National Rifle & Pistol Association of South Africa - Member Portal",
+  "version": "2026-01-29",
+  "last_updated": "2026-01-29",
   "authentication": {
     "public_routes": [
       {
@@ -99,6 +101,40 @@
         ]
       },
       {
+        "label": "Certificates & Endorsements",
+        "route": "certificates.index",
+        "path": "/certificates",
+        "icon": "document-check",
+        "view": "pages::member.certificates.index",
+        "roles": ["member", "admin", "owner", "developer"],
+        "description": "View membership certificates and issued endorsement letters",
+        "requires_active_membership": true,
+        "includes": ["certificates", "endorsements"],
+        "sub_routes": [
+          {
+            "route": "certificates.show",
+            "path": "/certificates/{certificate}",
+            "view": "pages::member.certificates.show",
+            "description": "View specific certificate"
+          },
+          {
+            "route": "certificates.download",
+            "path": "/certificates/{certificate}/download",
+            "description": "Download certificate PDF"
+          },
+          {
+            "route": "certificates.wallet.apple",
+            "path": "/certificates/{certificate}/wallet/apple",
+            "description": "Download Apple Wallet pass (membership cards only)"
+          },
+          {
+            "route": "certificates.wallet.google",
+            "path": "/certificates/{certificate}/wallet/google",
+            "description": "Download Google Wallet pass (membership cards only)"
+          }
+        ]
+      },
+      {
         "label": "Documents",
         "route": "documents.index",
         "path": "/documents",
@@ -156,133 +192,165 @@
             "description": "Edit pending activity"
           }
         ]
+      },
+      {
+        "label": "Endorsement Requests",
+        "route": "member.endorsements.index",
+        "path": "/endorsements",
+        "icon": "document-text",
+        "view": "pages::member.endorsements.index",
+        "roles": ["member", "admin", "owner", "developer"],
+        "description": "Request endorsement letters for firearm applications",
+        "requires_active_membership": true,
+        "sub_routes": [
+          {
+            "route": "member.endorsements.create",
+            "path": "/endorsements/create",
+            "view": "pages::member.endorsements.create",
+            "description": "Create new endorsement request (wizard form)"
+          },
+          {
+            "route": "member.endorsements.edit",
+            "path": "/endorsements/{request}/edit",
+            "view": "pages::member.endorsements.create",
+            "description": "Edit draft endorsement request"
+          },
+          {
+            "route": "member.endorsements.show",
+            "path": "/endorsements/{request}",
+            "view": "pages::member.endorsements.show",
+            "description": "View endorsement request details"
+          },
+          {
+            "route": "member.endorsements.preview",
+            "path": "/endorsements/{request}/preview",
+            "description": "Preview endorsement letter template"
+          },
+          {
+            "route": "member.endorsements.letter",
+            "path": "/endorsements/{request}/letter",
+            "description": "Download issued endorsement letter PDF (only when status = 'issued')"
+          }
+        ]
+      },
+      {
+        "label": "Virtual Safe",
+        "route": "armoury.index",
+        "path": "/armoury",
+        "icon": "shield-check",
+        "view": "pages::member.armoury.index",
+        "roles": ["member", "admin", "owner", "developer"],
+        "description": "Virtual Safe - List all firearms",
+        "requires_active_membership": true,
+        "sub_routes": [
+          {
+            "route": "armoury.create",
+            "path": "/armoury/add",
+            "view": "pages::member.armoury.create",
+            "description": "Add firearm to Virtual Safe"
+          },
+          {
+            "route": "armoury.show",
+            "path": "/armoury/{firearm}",
+            "view": "pages::member.armoury.show",
+            "description": "View firearm details"
+          },
+          {
+            "route": "armoury.edit",
+            "path": "/armoury/{firearm}/edit",
+            "view": "pages::member.armoury.edit",
+            "description": "Edit firearm details"
+          }
+        ]
+      },
+      {
+        "label": "Virtual Loading Bench",
+        "route": "load-data.index",
+        "path": "/load-data",
+        "icon": "beaker",
+        "view": "pages::member.load-data.index",
+        "roles": ["member", "admin", "owner", "developer"],
+        "description": "Virtual Loading Bench - List reloading data",
+        "requires_active_membership": true,
+        "sub_routes": [
+          {
+            "route": "load-data.create",
+            "path": "/load-data/create",
+            "view": "pages::member.load-data.create",
+            "description": "Create new load data entry"
+          },
+          {
+            "route": "load-data.show",
+            "path": "/load-data/{load}",
+            "view": "pages::member.load-data.show",
+            "description": "View load data details"
+          },
+          {
+            "route": "load-data.edit",
+            "path": "/load-data/{load}/edit",
+            "view": "pages::member.load-data.edit",
+            "description": "Edit load data"
+          }
+        ]
+      },
+      {
+        "label": "Knowledge Tests",
+        "route": "knowledge-test.index",
+        "path": "/knowledge-test",
+        "icon": "academic-cap",
+        "view": "pages::member.knowledge-test.index",
+        "roles": ["member", "admin", "owner", "developer"],
+        "description": "List available knowledge tests",
+        "requires_active_membership": true,
+        "sub_routes": [
+          {
+            "route": "knowledge-test.take",
+            "path": "/knowledge-test/{test}/take",
+            "view": "pages::member.knowledge-test.take",
+            "description": "Take a knowledge test"
+          },
+          {
+            "route": "knowledge-test.results",
+            "path": "/knowledge-test/{attempt}/results",
+            "view": "pages::member.knowledge-test.results",
+            "description": "View test results"
+          }
+        ]
+      },
+      {
+        "label": "Learning Center",
+        "route": "learning.index",
+        "path": "/learning",
+        "icon": "book-open",
+        "view": "pages::member.learning.index",
+        "roles": ["member", "admin", "owner", "developer"],
+        "description": "Learning Center - Browse articles",
+        "requires_active_membership": true,
+        "sub_routes": [
+          {
+            "route": "learning.category",
+            "path": "/learning/category/{category}",
+            "view": "pages::member.learning.category",
+            "description": "View articles by category"
+          },
+          {
+            "route": "learning.show",
+            "path": "/learning/{article}",
+            "view": "pages::member.learning.show",
+            "description": "Read learning article"
+          }
+        ]
+      },
+      {
+        "label": "Settings",
+        "route": "settings.index",
+        "path": "/settings",
+        "icon": "cog-6-tooth",
+        "view": "pages::member.settings.index",
+        "roles": ["member", "admin", "owner", "developer"],
+        "description": "Account settings and preferences"
       }
-    ],
-    "additional_member_routes": {
-      "requires_active_membership": true,
-      "routes": [
-        {
-          "route": "certificates.index",
-          "path": "/certificates",
-          "view": "pages::member.certificates.index",
-          "description": "View membership certificates"
-        },
-        {
-          "route": "certificates.show",
-          "path": "/certificates/{certificate}",
-          "view": "pages::member.certificates.show",
-          "description": "View specific certificate"
-        },
-        {
-          "route": "knowledge-test.index",
-          "path": "/knowledge-test",
-          "view": "pages::member.knowledge-test.index",
-          "description": "List available knowledge tests"
-        },
-        {
-          "route": "knowledge-test.take",
-          "path": "/knowledge-test/{test}/take",
-          "view": "pages::member.knowledge-test.take",
-          "description": "Take a knowledge test"
-        },
-        {
-          "route": "knowledge-test.results",
-          "path": "/knowledge-test/{attempt}/results",
-          "view": "pages::member.knowledge-test.results",
-          "description": "View test results"
-        },
-        {
-          "route": "armoury.index",
-          "path": "/armoury",
-          "view": "pages::member.armoury.index",
-          "description": "Virtual Safe - List all firearms"
-        },
-        {
-          "route": "armoury.create",
-          "path": "/armoury/add",
-          "view": "pages::member.armoury.create",
-          "description": "Add firearm to Virtual Safe"
-        },
-        {
-          "route": "armoury.show",
-          "path": "/armoury/{firearm}",
-          "view": "pages::member.armoury.show",
-          "description": "View firearm details"
-        },
-        {
-          "route": "armoury.edit",
-          "path": "/armoury/{firearm}/edit",
-          "view": "pages::member.armoury.edit",
-          "description": "Edit firearm details"
-        },
-        {
-          "route": "load-data.index",
-          "path": "/load-data",
-          "view": "pages::member.load-data.index",
-          "description": "Virtual Loading Bench - List reloading data"
-        },
-        {
-          "route": "load-data.create",
-          "path": "/load-data/create",
-          "view": "pages::member.load-data.create",
-          "description": "Create new load data entry"
-        },
-        {
-          "route": "load-data.show",
-          "path": "/load-data/{load}",
-          "view": "pages::member.load-data.show",
-          "description": "View load data details"
-        },
-        {
-          "route": "load-data.edit",
-          "path": "/load-data/{load}/edit",
-          "view": "pages::member.load-data.edit",
-          "description": "Edit load data"
-        },
-        {
-          "route": "learning.index",
-          "path": "/learning",
-          "view": "pages::member.learning.index",
-          "description": "Learning Center - Browse articles"
-        },
-        {
-          "route": "learning.category",
-          "path": "/learning/category/{category}",
-          "view": "pages::member.learning.category",
-          "description": "View articles by category"
-        },
-        {
-          "route": "learning.show",
-          "path": "/learning/{article}",
-          "view": "pages::member.learning.show",
-          "description": "Read learning article"
-        },
-        {
-          "route": "member.endorsements.index",
-          "path": "/endorsements",
-          "view": "pages::member.endorsements.index",
-          "description": "List endorsement requests"
-        },
-        {
-          "route": "member.endorsements.create",
-          "path": "/endorsements/create",
-          "view": "pages::member.endorsements.create",
-          "description": "Create new endorsement request"
-        },
-        {
-          "route": "member.endorsements.edit",
-          "path": "/endorsements/{request}/edit",
-          "view": "pages::member.endorsements.create",
-          "description": "Edit endorsement request"
-        },
-        {
-          "route": "member.endorsements.show",
-          "path": "/endorsements/{request}",
-          "view": "pages::member.endorsements.show",
-          "description": "View endorsement request details"
-        }
-      ]
-    }
+    ]
   },
   "admin_area": {
     "section": "ADMINISTRATION",
@@ -313,9 +381,63 @@
             "route": "admin.members.show",
             "path": "/admin/members/{user}",
             "view": "pages::admin.members.show",
-            "description": "View member details"
+            "description": "View member details (includes certificates AND endorsement letters)",
+            "features": [
+              "View member profile",
+              "Issue certificates",
+              "View issued certificates",
+              "View issued endorsement letters",
+              "Download endorsement PDFs",
+              "Manage membership",
+              "Reset password/2FA",
+              "Delete certificates"
+            ]
           }
         ]
+      },
+      {
+        "label": "Endorsements",
+        "route": "admin.endorsements.index",
+        "path": "/admin/endorsements",
+        "icon": "document-text",
+        "view": "pages::admin.endorsements.index",
+        "roles": ["admin", "owner", "developer"],
+        "description": "Review and approve endorsement requests",
+        "sub_routes": [
+          {
+            "route": "admin.endorsements.show",
+            "path": "/admin/endorsements/{request}",
+            "view": "pages::admin.endorsements.show",
+            "description": "Review specific endorsement request",
+            "features": [
+              "View request details",
+              "Check member compliance",
+              "Approve request (with non-compliance warning)",
+              "Reject request",
+              "Request additional documents",
+              "Generate and issue PDF letter",
+              "Download issued letter"
+            ]
+          },
+          {
+            "route": "admin.endorsements.preview",
+            "path": "/admin/endorsements/{request}/preview",
+            "description": "Preview endorsement letter template"
+          },
+          {
+            "route": "admin.endorsements.download",
+            "path": "/admin/endorsements/{request}/download",
+            "description": "Download issued endorsement letter PDF"
+          }
+        ],
+        "workflow": {
+          "statuses": ["draft", "submitted", "under_review", "pending_documents", "approved", "issued", "rejected", "cancelled"],
+          "notifications": {
+            "on_submit": "Admins receive notification when member submits request",
+            "type": "endorsement_request",
+            "preference": "notify_endorsement_request"
+          }
+        }
       },
       {
         "label": "Approvals",
@@ -385,6 +507,33 @@
                 "description": "Review specific activity"
               }
             ]
+          }
+        ]
+      },
+      {
+        "label": "Certificates",
+        "route": "admin.certificates.index",
+        "path": "/admin/certificates",
+        "icon": "document-check",
+        "view": "pages::member.certificates.index",
+        "roles": ["admin", "owner", "developer"],
+        "description": "View all certificates and endorsement letters",
+        "sub_routes": [
+          {
+            "route": "admin.certificates.show",
+            "path": "/admin/certificates/{certificate}",
+            "view": "pages::member.certificates.show",
+            "description": "View specific certificate"
+          },
+          {
+            "route": "admin.certificates.download",
+            "path": "/admin/certificates/{certificate}/download",
+            "description": "Download certificate PDF"
+          },
+          {
+            "route": "admin.certificates.wallet.apple",
+            "path": "/admin/certificates/{certificate}/wallet/apple",
+            "description": "Download Apple Wallet pass"
           }
         ]
       }
@@ -518,21 +667,7 @@
           "description": "General system settings"
         }
       ]
-    },
-    "additional_admin_routes": [
-      {
-        "route": "admin.endorsements.index",
-        "path": "/admin/endorsements",
-        "view": "pages::admin.endorsements.index",
-        "description": "Manage endorsement requests"
-      },
-      {
-        "route": "admin.endorsements.show",
-        "path": "/admin/endorsements/{request}",
-        "view": "pages::admin.endorsements.show",
-        "description": "Review specific endorsement request"
-      }
-    ]
+    }
   },
   "owner_area": {
     "section": "OWNER",
@@ -593,6 +728,12 @@
         "path": "/owner/settings/approvals",
         "view": "pages::owner.settings.approvals",
         "description": "Approval workflow settings"
+      },
+      {
+        "route": "owner.settings.documents",
+        "path": "/owner/settings/documents",
+        "view": "pages::owner.settings.documents",
+        "description": "Document settings and templates"
       }
     ]
   },
@@ -620,8 +761,136 @@
         "path": "/developer/owners/nominate",
         "view": "pages::developer.owners.create",
         "description": "Nominate new owner"
+      },
+      {
+        "route": "developer.certificates.index",
+        "path": "/developer/certificates",
+        "view": "pages::member.certificates.index",
+        "description": "View all certificates and endorsements"
+      },
+      {
+        "route": "developer.certificates.show",
+        "path": "/developer/certificates/{certificate}",
+        "view": "pages::member.certificates.show",
+        "description": "View specific certificate"
+      },
+      {
+        "route": "developer.test.far-numbers",
+        "path": "/developer/test/far-numbers",
+        "description": "Test FAR number retrieval (debug route)"
+      },
+      {
+        "route": "developer.fix.endorsement-status-enum",
+        "path": "/developer/fix/endorsement-status-enum",
+        "description": "Fix endorsement status enum for SQLite (adds 'approved' status)"
       }
     ]
+  },
+  "endorsement_system": {
+    "description": "Endorsement letter request and management system",
+    "workflow": {
+      "member_flow": [
+        {
+          "step": 1,
+          "name": "Select Request Type",
+          "options": ["New Endorsement", "Renewal Endorsement"],
+          "route": "member.endorsements.create"
+        },
+        {
+          "step": 2,
+          "name": "Firearm Details",
+          "description": "SAPS 271 Form Section E fields",
+          "fields": [
+            "Firearm Category (Handgun, Rifle Manual, Rifle Self-loading, Shotgun)",
+            "Action Type",
+            "Ignition Type",
+            "Calibre",
+            "Make & Model",
+            "Serial Numbers (Barrel, Frame, Receiver)"
+          ]
+        },
+        {
+          "step": 3,
+          "name": "Additional Details",
+          "fields": ["Intended Use", "Motivation", "Components (if renewal)"]
+        },
+        {
+          "step": 4,
+          "name": "Documents",
+          "description": "Upload required documents"
+        },
+        {
+          "step": 5,
+          "name": "Review & Submit",
+          "description": "Verify prerequisites and submit"
+        }
+      ],
+      "admin_flow": [
+        {
+          "action": "Review Request",
+          "route": "admin.endorsements.show",
+          "checks": [
+            "Member compliance status",
+            "Knowledge test passed",
+            "Documents complete",
+            "Activities met"
+          ]
+        },
+        {
+          "action": "Approve",
+          "description": "Can approve even if non-compliant (with warning popup)",
+          "status_change": "approved"
+        },
+        {
+          "action": "Generate & Issue Letter",
+          "description": "Generates PDF using DomPDF",
+          "status_change": "issued",
+          "generates": "PDF file stored in storage"
+        },
+        {
+          "action": "Reject",
+          "description": "Requires rejection reason",
+          "status_change": "rejected"
+        }
+      ]
+    },
+    "statuses": {
+      "draft": "Member is still editing",
+      "submitted": "Awaiting admin review",
+      "under_review": "Admin is reviewing",
+      "pending_documents": "Admin requested additional documents",
+      "approved": "Approved, ready for letter generation",
+      "issued": "PDF letter generated and available for download",
+      "rejected": "Request rejected",
+      "cancelled": "Member cancelled request"
+    },
+    "notifications": {
+      "on_submit": {
+        "description": "Admins receive notification when member submits request",
+        "type": "endorsement_request",
+        "preference": "notify_endorsement_request",
+        "priority": "high",
+        "includes": ["Member name", "Firearm details", "Direct link to review"]
+      }
+    },
+    "pdf_generation": {
+      "engine": "DomPDF (barryvdh/laravel-dompdf)",
+      "template": "documents.letters.endorsement",
+      "format": "A4 Portrait",
+      "storage": "Local (dev) or R2/S3 (production)",
+      "file_naming": "endorsement-letter-{uuid}.pdf"
+    },
+    "download_security": {
+      "member_access": "Can only download own issued letters",
+      "admin_access": "Can download any issued letter",
+      "requirement": "Status must be 'issued'",
+      "check": "isIssued() method"
+    },
+    "integration": {
+      "certificates_page": "Issued endorsements appear alongside certificates",
+      "member_profile": "Admins can view endorsements on member profile page",
+      "certificate_number": "Uses letter_reference (e.g., END-2026-12345)"
+    }
   },
   "role_hierarchy": {
     "developer": {
@@ -661,13 +930,13 @@
       "can_access": [
         "All member routes",
         "certificates",
+        "endorsements",
         "knowledge-test",
         "activities",
         "armoury",
         "load-data",
         "documents",
-        "learning",
-        "endorsements"
+        "learning"
       ],
       "middleware": "membership.required"
     }
@@ -699,7 +968,8 @@
         "counts": [
           "Documents (pending status)",
           "Memberships (applied status)",
-          "Activities (pending status)"
+          "Activities (pending status)",
+          "Endorsements (submitted/under_review status)"
         ]
       }
     ]
@@ -716,6 +986,11 @@
       "livewire": "app/Livewire",
       "blade_components": "resources/views/components",
       "partials": "resources/views/partials"
+    },
+    "document_templates": {
+      "certificates": "resources/views/documents/certificates",
+      "letters": "resources/views/documents/letters",
+      "endorsement": "documents.letters.endorsement"
     }
   },
   "key_features": {
@@ -725,13 +1000,18 @@
       "Activity Submission & Tracking",
       "Document Upload & Management",
       "Membership Certificates (QR-verified)",
+      "Dedicated Status Certificates",
+      "Membership Cards (Apple/Google Wallet)",
+      "Endorsement Letter Requests (5-step wizard)",
       "Knowledge Tests",
-      "Endorsement Letter Requests",
       "Learning Center"
     ],
     "admin_features": [
-      "Member Management",
-      "Approval Workflows (Documents, Memberships, Activities)",
+      "Member Management (with endorsement viewing)",
+      "Endorsement Request Management",
+      "Approval Workflows (Documents, Memberships, Activities, Endorsements)",
+      "Certificate Issuance",
+      "Endorsement Letter PDF Generation",
       "Activity Configuration",
       "Firearm Settings (Types & Calibres)",
       "Calibre Request Management",
@@ -746,13 +1026,26 @@
       "Bank Details Configuration",
       "Email Configuration",
       "Storage Configuration (R2/S3)",
-      "Approval Workflow Settings"
+      "Approval Workflow Settings",
+      "Document Template Settings"
     ],
     "developer_features": [
       "Test Member Generator",
       "User Impersonation",
       "Owner Management",
+      "FAR Number Testing",
+      "Database Fix Utilities",
       "Full System Access"
+    ]
+  },
+  "recent_updates": {
+    "2026-01-29": [
+      "Added PDF generation for endorsement letters (DomPDF)",
+      "Endorsements now appear in certificates list",
+      "Admins can view endorsements on member profile page",
+      "Notification system for endorsement requests",
+      "Non-compliant approval with warning popup",
+      "Download restrictions (members can only download issued letters)"
     ]
   }
 }

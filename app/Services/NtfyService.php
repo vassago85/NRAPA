@@ -187,9 +187,11 @@ class NtfyService
             'new_member' => ['bust_in_silhouette', 'new'],
             'payment_received' => ['money_with_wings', 'bank'],
             'document_uploaded' => ['page_facing_up', 'inbox_tray'],
+            'document_rejected' => ['page_facing_up', 'x', 'warning'],
             'membership_expiring' => ['hourglass', 'warning'],
             'activity_submitted' => ['clipboard', 'gun'],
             'knowledge_test_completed' => ['mortar_board', 'memo'],
+            'endorsement_request' => ['page_facing_up', 'inbox_tray', 'gun'],
             'system_errors' => ['rotating_light', 'computer'],
             default => ['bell'],
         };

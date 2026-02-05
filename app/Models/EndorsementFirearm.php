@@ -8,11 +8,12 @@ use Illuminate\Support\Str;
 
 class EndorsementFirearm extends Model
 {
-    // Firearm category constants (aligned with SAPS)
-    public const CATEGORY_HANDGUN = 'handgun';
-    public const CATEGORY_RIFLE_MANUAL = 'rifle_manual';
-    public const CATEGORY_RIFLE_SELF_LOADING = 'rifle_self_loading';
+    // Firearm category constants (SAPS 271 Form Section E compliant)
+    public const CATEGORY_RIFLE = 'rifle';
     public const CATEGORY_SHOTGUN = 'shotgun';
+    public const CATEGORY_HANDGUN = 'handgun';
+    public const CATEGORY_COMBINATION = 'combination';
+    public const CATEGORY_OTHER = 'other';
 
     // Ignition type constants
     public const IGNITION_RIMFIRE = 'rimfire';
@@ -41,7 +42,8 @@ class EndorsementFirearm extends Model
     protected $fillable = [
         'uuid',
         'endorsement_request_id',
-        'firearm_category',          // 1. Type of Firearm
+        'firearm_category',          // 1. Type of Firearm (SAPS 271: rifle|shotgun|handgun|combination|other)
+        'firearm_type_other',        // Specification when firearm_category = 'other'
         'ignition_type',
         'action_type',               // 1.1 Action
         'action_other_specify',      // 1.1 Other action (specify)
@@ -62,6 +64,13 @@ class EndorsementFirearm extends Model
         'saps_reference',
         'licence_expiry_date',
         'user_firearm_id',
+        // New reference fields
+        'firearm_calibre_id',
+        'firearm_make_id',
+        'firearm_model_id',
+        'calibre_text_override',
+        'make_text_override',
+        'model_text_override',
     ];
 
     /**
@@ -106,12 +115,30 @@ class EndorsementFirearm extends Model
         return $this->belongsTo(EndorsementRequest::class);
     }
 
+    // Legacy calibre relationship removed - use firearmCalibre() instead
+
     /**
-     * Get the calibre.
+     * Get the firearm calibre reference.
      */
-    public function calibre(): BelongsTo
+    public function firearmCalibre(): BelongsTo
     {
-        return $this->belongsTo(Calibre::class);
+        return $this->belongsTo(FirearmCalibre::class, 'firearm_calibre_id');
+    }
+
+    /**
+     * Get the firearm make reference.
+     */
+    public function firearmMake(): BelongsTo
+    {
+        return $this->belongsTo(FirearmMake::class, 'firearm_make_id');
+    }
+
+    /**
+     * Get the firearm model reference.
+     */
+    public function firearmModel(): BelongsTo
+    {
+        return $this->belongsTo(FirearmModel::class, 'firearm_model_id');
     }
 
     /**
@@ -130,10 +157,11 @@ class EndorsementFirearm extends Model
     public static function getCategoryOptions(): array
     {
         return [
-            self::CATEGORY_HANDGUN => 'Handgun',
-            self::CATEGORY_RIFLE_MANUAL => 'Rifle (Manual)',
-            self::CATEGORY_RIFLE_SELF_LOADING => 'Rifle (Self-loading)',
+            self::CATEGORY_RIFLE => 'Rifle',
             self::CATEGORY_SHOTGUN => 'Shotgun',
+            self::CATEGORY_HANDGUN => 'Handgun',
+            self::CATEGORY_COMBINATION => 'Combination',
+            self::CATEGORY_OTHER => 'Other',
         ];
     }
 
@@ -164,28 +192,13 @@ class EndorsementFirearm extends Model
             self::ACTION_OTHER => 'Other',
         ];
 
-        if ($category === self::CATEGORY_HANDGUN) {
-            return [
-                self::ACTION_REVOLVER => 'Revolver',
-                self::ACTION_SEMI_AUTO => 'Semi-Automatic',
-                self::ACTION_SINGLE_SHOT => 'Single Shot',
-                self::ACTION_OTHER => 'Other',
-            ];
-        }
-
-        if ($category === self::CATEGORY_RIFLE_MANUAL) {
+        if ($category === self::CATEGORY_RIFLE) {
             return [
                 self::ACTION_BOLT_ACTION => 'Bolt Action',
                 self::ACTION_LEVER_ACTION => 'Lever Action',
+                self::ACTION_SEMI_AUTO => 'Semi-Automatic',
                 self::ACTION_SINGLE_SHOT => 'Single Shot',
                 self::ACTION_PUMP_ACTION => 'Pump Action',
-                self::ACTION_OTHER => 'Other',
-            ];
-        }
-
-        if ($category === self::CATEGORY_RIFLE_SELF_LOADING) {
-            return [
-                self::ACTION_SEMI_AUTO => 'Semi-Automatic',
                 self::ACTION_OTHER => 'Other',
             ];
         }
@@ -199,6 +212,23 @@ class EndorsementFirearm extends Model
                 self::ACTION_LEVER_ACTION => 'Lever Action',
                 self::ACTION_OTHER => 'Other',
             ];
+        }
+
+        if ($category === self::CATEGORY_HANDGUN) {
+            return [
+                self::ACTION_REVOLVER => 'Revolver',
+                self::ACTION_SEMI_AUTO => 'Semi-Automatic',
+                self::ACTION_SINGLE_SHOT => 'Single Shot',
+                self::ACTION_OTHER => 'Other',
+            ];
+        }
+
+        if ($category === self::CATEGORY_COMBINATION) {
+            return $allOptions; // All actions possible for combination firearms
+        }
+
+        if ($category === self::CATEGORY_OTHER) {
+            return $allOptions; // All actions possible for other types
         }
 
         return $allOptions;
@@ -222,10 +252,13 @@ class EndorsementFirearm extends Model
      */
     public static function getCalibreCategoryFilter(string $firearmCategory): ?string
     {
+        // Map SAPS 271 firearm categories to calibre categories for filtering
+        // Note: This is for legacy Calibre system - new system uses FirearmCalibre
         return match($firearmCategory) {
-            self::CATEGORY_HANDGUN => Calibre::CATEGORY_HANDGUN,
-            self::CATEGORY_RIFLE_MANUAL, self::CATEGORY_RIFLE_SELF_LOADING => Calibre::CATEGORY_RIFLE,
-            self::CATEGORY_SHOTGUN => Calibre::CATEGORY_SHOTGUN,
+            self::CATEGORY_RIFLE, self::CATEGORY_COMBINATION => 'rifle', // Combination can use rifle calibres
+            self::CATEGORY_SHOTGUN => 'shotgun',
+            self::CATEGORY_HANDGUN => 'handgun',
+            self::CATEGORY_OTHER => null, // Other types - no filter
             default => null,
         };
     }
@@ -301,7 +334,14 @@ class EndorsementFirearm extends Model
      */
     public function getCategoryLabelAttribute(): string
     {
-        return self::getCategoryOptions()[$this->firearm_category] ?? ucfirst($this->firearm_category);
+        $label = self::getCategoryOptions()[$this->firearm_category] ?? ucfirst($this->firearm_category);
+        
+        // Add specification for "other" type
+        if ($this->firearm_category === self::CATEGORY_OTHER && $this->firearm_type_other) {
+            return "{$label} ({$this->firearm_type_other})";
+        }
+        
+        return $label;
     }
 
     /**
@@ -336,10 +376,38 @@ class EndorsementFirearm extends Model
      */
     public function getCalibreDisplayAttribute(): ?string
     {
+        // Prefer new reference system
+        if ($this->firearmCalibre) {
+            return $this->firearmCalibre->name;
+        }
+        // Fallback to legacy calibre
         if ($this->calibre) {
             return $this->calibre->name;
         }
-        return $this->calibre_manual;
+        // Fallback to override or manual
+        return $this->calibre_text_override ?? $this->calibre_manual;
+    }
+
+    /**
+     * Get the make display name.
+     */
+    public function getMakeDisplayAttribute(): ?string
+    {
+        if ($this->firearmMake) {
+            return $this->firearmMake->name;
+        }
+        return $this->make_text_override ?? $this->make;
+    }
+
+    /**
+     * Get the model display name.
+     */
+    public function getModelDisplayAttribute(): ?string
+    {
+        if ($this->firearmModel) {
+            return $this->firearmModel->name;
+        }
+        return $this->model_text_override ?? $this->model;
     }
 
     /**

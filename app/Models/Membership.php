@@ -80,6 +80,17 @@ class Membership extends Model
                 $membership->applied_at = now();
             }
         });
+
+        // Send terms acceptance email when membership is activated
+        static::updated(function (Membership $membership) {
+            // Check if status changed to 'active'
+            if ($membership->wasChanged('status') && $membership->status === 'active') {
+                $user = $membership->user;
+                if ($user) {
+                    \App\Helpers\TermsHelper::checkAndNotify($user);
+                }
+            }
+        });
     }
 
     /**

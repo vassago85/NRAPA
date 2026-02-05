@@ -29,6 +29,7 @@ class LearningArticle extends Model
         'excerpt',
         'content',
         'featured_image',
+        'document_path',
         'reading_time_minutes',
         'sort_order',
         'is_published',
@@ -186,6 +187,7 @@ class LearningArticle extends Model
 
     /**
      * Get the featured image URL.
+     * Learning center images are always served from local storage.
      */
     public function getFeaturedImageUrlAttribute(): ?string
     {
@@ -193,7 +195,28 @@ class LearningArticle extends Model
             return null;
         }
 
-        return StorageHelper::getUrl($this->featured_image);
+        return StorageHelper::getLearningCenterUrl($this->featured_image);
+    }
+
+    /**
+     * Check if the article has a document.
+     */
+    public function hasDocument(): bool
+    {
+        return !empty($this->document_path);
+    }
+
+    /**
+     * Get the document URL.
+     * Learning center documents are always served from local storage.
+     */
+    public function getDocumentUrlAttribute(): ?string
+    {
+        if (!$this->hasDocument()) {
+            return null;
+        }
+
+        return StorageHelper::getLearningCenterUrl($this->document_path);
     }
 
     /**

@@ -141,13 +141,43 @@ class TestMemberGenerator extends Component
     {
         $baseEmail = 'testmember' . ($index > 0 ? $index + 1 : '') . '@nrapa.test';
         
+        // Check if user already exists by email
+        $existingUser = User::where('email', $baseEmail)->first();
+        
+        if ($existingUser) {
+            // Update existing user but keep their ID number if it exists
+            $existingUser->update([
+                'name' => 'Test Member ' . ($index + 1),
+                'password' => Hash::make('TestMember2026!'),
+                'email_verified_at' => now(),
+                'phone' => '+27 82 ' . str_pad(1234567 + $index, 7, '0', STR_PAD_LEFT),
+                'date_of_birth' => '1985-07-02',
+                'physical_address' => '123 Test Street ' . ($index + 1) . ', Garsfontein, Pretoria, 0042',
+                'postal_address' => 'PO Box ' . (12345 + $index) . ', Garsfontein, 0042',
+                'is_admin' => false,
+                'role' => User::ROLE_MEMBER,
+            ]);
+            return $existingUser;
+        }
+        
+        // Generate unique ID number - use a large offset to avoid conflicts with seeder
+        // Start from 9000000 to avoid conflicts with TestMemberSeeder (which uses 5800086)
+        $idNumberSuffix = 9000000 + ($index * 100) + (time() % 100);
+        $idNumber = '850702' . str_pad((string)$idNumberSuffix, 7, '0', STR_PAD_LEFT);
+        
+        // Ensure ID number is unique - if it exists, increment
+        while (User::where('id_number', $idNumber)->exists()) {
+            $idNumberSuffix++;
+            $idNumber = '850702' . str_pad((string)$idNumberSuffix, 7, '0', STR_PAD_LEFT);
+        }
+        
         return User::create([
             'uuid' => Str::uuid()->toString(),
             'name' => 'Test Member ' . ($index + 1),
             'email' => $baseEmail,
             'password' => Hash::make('TestMember2026!'),
             'email_verified_at' => now(),
-            'id_number' => '850702' . str_pad((5800086 + $index), 7, '0', STR_PAD_LEFT),
+            'id_number' => $idNumber,
             'phone' => '+27 82 ' . str_pad(1234567 + $index, 7, '0', STR_PAD_LEFT),
             'date_of_birth' => '1985-07-02',
             'physical_address' => '123 Test Street ' . ($index + 1) . ', Garsfontein, Pretoria, 0042',

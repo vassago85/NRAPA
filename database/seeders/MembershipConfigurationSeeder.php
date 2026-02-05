@@ -73,17 +73,27 @@ class MembershipConfigurationSeeder extends Seeder
 
     /**
      * Seed document types.
+     * 
+     * Simplified to only core member documents:
+     * - ID (Identity Document)
+     * - Proof of Address
+     * - Competency (Firearm Competency Certificate)
+     * - Firearm Licence (for Virtual Safe/Armoury)
+     * 
+     * Other document types (safe photos, character references, SAPS forms, activity evidence, etc.)
+     * are handled through activities or endorsement requests, not general member documents.
      */
     protected function seedDocumentTypes(): void
     {
         $documentTypes = [
-            // Identity & Address
+            // Core Member Documents
             [
                 'slug' => 'identity-document',
-                'name' => 'Identity Document',
+                'name' => 'ID',
                 'description' => 'South African ID document or passport (certified copy)',
                 'expiry_months' => null, // Permanent
                 'archive_months' => 12,
+                'is_active' => true,
                 'sort_order' => 1,
             ],
             [
@@ -92,165 +102,30 @@ class MembershipConfigurationSeeder extends Seeder
                 'description' => 'Utility bill or bank statement not older than 3 months',
                 'expiry_months' => 3,
                 'archive_months' => 12,
+                'is_active' => true,
                 'sort_order' => 2,
             ],
             [
-                'slug' => 'passport-photo',
-                'name' => 'Passport Photo',
-                'description' => 'Recent passport-sized colour photo (not older than 3 months)',
-                'expiry_months' => 3,
-                'archive_months' => 12,
-                'sort_order' => 3,
-            ],
-            
-            // Safe & Storage
-            [
-                'slug' => 'safe-photo-exterior',
-                'name' => 'Safe Photo (Exterior)',
-                'description' => 'Photo showing safe from outside, including how it is secured/bolted',
-                'expiry_months' => 24,
-                'archive_months' => 12,
-                'sort_order' => 10,
-            ],
-            [
-                'slug' => 'safe-photo-interior',
-                'name' => 'Safe Photo (Interior)',
-                'description' => 'Photo showing inside of safe with current firearm storage',
-                'expiry_months' => 24,
-                'archive_months' => 12,
-                'sort_order' => 11,
-            ],
-            [
-                'slug' => 'sabs-compliance-certificate',
-                'name' => 'SABS Compliance Certificate',
-                'description' => 'South African Bureau of Standards compliance certificate for firearm safe',
-                'expiry_months' => null, // Permanent
-                'archive_months' => 12,
-                'sort_order' => 12,
-            ],
-            
-            // Competency & Training
-            [
                 'slug' => 'firearm-competency',
-                'name' => 'Firearm Competency Certificate',
+                'name' => 'Competency',
                 'description' => 'Valid SAPS firearm competency certificate',
                 'expiry_months' => 120, // 10 years
                 'archive_months' => 12,
-                'sort_order' => 20,
+                'is_active' => true,
+                'sort_order' => 3,
             ],
-            [
-                'slug' => 'training-certificate',
-                'name' => 'Accredited Training Certificate',
-                'description' => 'Certificate from accredited firearms training provider (unit standards)',
-                'expiry_months' => null, // Permanent
-                'archive_months' => 12,
-                'sort_order' => 21,
-            ],
-            
-            // Character References
-            [
-                'slug' => 'character-reference-1',
-                'name' => 'Character Reference 1',
-                'description' => 'Character reference from non-family member (must include contact details)',
-                'expiry_months' => 6,
-                'archive_months' => 12,
-                'sort_order' => 30,
-            ],
-            [
-                'slug' => 'character-reference-2',
-                'name' => 'Character Reference 2',
-                'description' => 'Character reference from non-family member (must include contact details)',
-                'expiry_months' => 6,
-                'archive_months' => 12,
-                'sort_order' => 31,
-            ],
-            [
-                'slug' => 'character-reference-3',
-                'name' => 'Character Reference 3',
-                'description' => 'Character reference from non-family member (must include contact details)',
-                'expiry_months' => 6,
-                'archive_months' => 12,
-                'sort_order' => 32,
-            ],
-            
-            // SAPS Forms
-            [
-                'slug' => 'saps-517-competency',
-                'name' => 'SAPS 517 Form',
-                'description' => 'Completed SAPS 517 - Application for Competency Certificate',
-                'expiry_months' => 6,
-                'archive_months' => 24,
-                'sort_order' => 40,
-            ],
-            [
-                'slug' => 'saps-271-licence',
-                'name' => 'SAPS 271 Form',
-                'description' => 'Completed SAPS 271 - Application for Licence to Possess a Firearm',
-                'expiry_months' => 6,
-                'archive_months' => 24,
-                'sort_order' => 41,
-            ],
-            [
-                'slug' => 'saps-350a-dealer',
-                'name' => 'SAPS 350(a) Form',
-                'description' => 'Dealer purchase form for new firearm acquisition',
-                'expiry_months' => 12,
-                'archive_months' => 24,
-                'sort_order' => 42,
-            ],
-            
-            // Activity Evidence
-            [
-                'slug' => 'shooting-activity-evidence',
-                'name' => 'Shooting Activity Evidence',
-                'description' => 'Evidence of shooting activity (range attendance, competition results)',
-                'expiry_months' => 12,
-                'archive_months' => 12,
-                'sort_order' => 50,
-            ],
-            [
-                'slug' => 'dedicated-activity-log',
-                'name' => 'Dedicated Status Activity Log',
-                'description' => 'Activity log for dedicated status application',
-                'expiry_months' => 12,
-                'archive_months' => 24,
-                'sort_order' => 51,
-            ],
-            [
-                'slug' => 'competition-scoresheet',
-                'name' => 'Competition Scoresheet',
-                'description' => 'Official scoresheet or results from shooting competition',
-                'expiry_months' => 12,
-                'archive_months' => 24,
-                'sort_order' => 52,
-            ],
-            [
-                'slug' => 'hunting-permit',
-                'name' => 'Hunting Permit',
-                'description' => 'Valid hunting permit or invitation to hunt',
-                'expiry_months' => 12,
-                'archive_months' => 12,
-                'sort_order' => 53,
-            ],
-            
-            // Licence Documents
             [
                 'slug' => 'firearm-licence',
                 'name' => 'Firearm Licence',
-                'description' => 'Current SAPS firearm licence card',
+                'description' => 'Current SAPS firearm licence card (for Virtual Safe)',
                 'expiry_months' => 60, // 5 years typical
                 'archive_months' => 24,
-                'sort_order' => 60,
-            ],
-            [
-                'slug' => 'motivation-letter',
-                'name' => 'Motivation Letter',
-                'description' => 'Motivation letter for firearm licence application',
-                'expiry_months' => 6,
-                'archive_months' => 24,
-                'sort_order' => 61,
+                'is_active' => true,
+                'sort_order' => 4,
             ],
         ];
+
+        $activeSlugs = array_column($documentTypes, 'slug');
 
         foreach ($documentTypes as $type) {
             DocumentType::updateOrCreate(
@@ -258,6 +133,10 @@ class MembershipConfigurationSeeder extends Seeder
                 $type
             );
         }
+
+        // Deactivate ALL document types except the 4 core ones
+        // This ensures any document types not in our list are also deactivated
+        DocumentType::whereNotIn('slug', $activeSlugs)->update(['is_active' => false]);
     }
 
     /**
@@ -303,31 +182,31 @@ class MembershipConfigurationSeeder extends Seeder
             [
                 'slug' => 'dedicated-hunter-certificate',
                 'name' => 'Dedicated Hunter Certificate',
-                'description' => 'Official certificate confirming Dedicated Hunter Status (Life Member)',
-                'template' => 'documents.dedicated-hunter',
-                'validity_months' => null, // Valid as long as membership is active
+                'description' => 'Official certificate confirming Dedicated Hunter Status with valid documents and activities up to date',
+                'template' => 'documents.certificates.dedicated-status',
+                'validity_months' => null, // Valid as long as membership is active and requirements met
                 'sort_order' => 10,
             ],
             [
                 'slug' => 'dedicated-sport-certificate',
                 'name' => 'Dedicated Sport Shooter Certificate',
-                'description' => 'Official certificate confirming Dedicated Sport Shooter Status (Life Member)',
-                'template' => 'documents.dedicated-sport',
-                'validity_months' => null,
+                'description' => 'Official certificate confirming Dedicated Sport Shooter Status with valid documents and activities up to date',
+                'template' => 'documents.certificates.dedicated-status',
+                'validity_months' => null, // Valid as long as membership is active and requirements met
                 'sort_order' => 11,
             ],
             [
-                'slug' => 'paid-up-certificate',
-                'name' => 'Proof of Paid-Up Membership Certificate',
-                'description' => 'Certificate confirming member is in good standing and paid-up',
-                'template' => 'documents.paid-up',
+                'slug' => 'membership-certificate',
+                'name' => 'Membership Certificate',
+                'description' => 'Certificate confirming member is paid-up, active, and in good standing',
+                'template' => 'documents.certificates.good-standing',
                 'validity_months' => 12,
                 'sort_order' => 12,
             ],
             [
                 'slug' => 'membership-card',
                 'name' => 'Membership Card',
-                'description' => 'NRAPA membership identification card',
+                'description' => 'NRAPA membership identification card (simple card format, wallet compatible)',
                 'template' => 'documents.membership-card',
                 'validity_months' => null, // Valid as long as membership is active
                 'sort_order' => 13,
@@ -369,7 +248,6 @@ class MembershipConfigurationSeeder extends Seeder
                 'expiry_day' => null,
                 'pricing_model' => 'annual',
                 'price' => 750.00,
-                'admin_fee' => 50.00,
                 'allows_dedicated_status' => true,
                 'dedicated_type' => MembershipType::DEDICATED_TYPE_SPORT,
                 'requires_knowledge_test' => true,
@@ -392,7 +270,6 @@ class MembershipConfigurationSeeder extends Seeder
                 'expiry_day' => null,
                 'pricing_model' => 'annual',
                 'price' => 750.00,
-                'admin_fee' => 50.00,
                 'allows_dedicated_status' => true,
                 'dedicated_type' => MembershipType::DEDICATED_TYPE_HUNTER,
                 'requires_knowledge_test' => true,
@@ -415,7 +292,6 @@ class MembershipConfigurationSeeder extends Seeder
                 'expiry_day' => null,
                 'pricing_model' => 'annual',
                 'price' => 1150.00,
-                'admin_fee' => 50.00,
                 'allows_dedicated_status' => true,
                 'dedicated_type' => MembershipType::DEDICATED_TYPE_BOTH,
                 'requires_knowledge_test' => true,
@@ -438,7 +314,6 @@ class MembershipConfigurationSeeder extends Seeder
                 'expiry_day' => null,
                 'pricing_model' => 'annual',
                 'price' => 350.00,
-                'admin_fee' => 0.00,
                 'allows_dedicated_status' => true,
                 'dedicated_type' => null,
                 'requires_knowledge_test' => true,
@@ -461,7 +336,6 @@ class MembershipConfigurationSeeder extends Seeder
                 'expiry_day' => null,
                 'pricing_model' => 'once_off',
                 'price' => 5000.00,
-                'admin_fee' => 0.00,
                 'allows_dedicated_status' => true,
                 'dedicated_type' => MembershipType::DEDICATED_TYPE_BOTH,
                 'requires_knowledge_test' => true,
@@ -484,7 +358,6 @@ class MembershipConfigurationSeeder extends Seeder
                 'expiry_day' => null,
                 'pricing_model' => 'annual',
                 'price' => 175.00,
-                'admin_fee' => 0.00,
                 'allows_dedicated_status' => false,
                 'dedicated_type' => null,
                 'requires_knowledge_test' => true,

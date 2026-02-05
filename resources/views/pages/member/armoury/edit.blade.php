@@ -2,7 +2,6 @@
 
 use App\Models\UserFirearm;
 use App\Models\FirearmType;
-use App\Models\Calibre;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -32,6 +31,9 @@ new class extends Component {
     // Legacy support (kept for backwards compatibility)
     public ?int $firearm_type_id = null;
     public string $serial_number = ''; // Legacy, will be migrated to receiver
+
+    // FirearmSearchPanel data
+    public ?array $firearmPanelData = null;
 
     // Category filters for calibre selector
     public ?string $selectedCategory = null;
@@ -122,6 +124,59 @@ new class extends Component {
                 $this->selectedIgnition = $firearmType->ignition_type !== 'both' ? $firearmType->ignition_type : null;
             }
         }
+        
+        // Initialize FirearmSearchPanel data
+        $this->firearmPanelData = $this->getFirearmPanelInitialData();
+    }
+
+    /**
+     * Get initial data for FirearmSearchPanel component.
+     */
+    private function getFirearmPanelInitialData(): array
+    {
+        $barrel = $this->firearm->barrelComponent();
+        $frame = $this->firearm->frameComponent();
+        $receiver = $this->firearm->receiverComponent();
+        
+        return [
+            'firearm_type' => $this->firearm->firearm_type ?? '',
+            'action_type' => $this->firearm->action ?? '',
+            'action_type_other' => $this->firearm->other_action_text ?? '',
+            'firearm_calibre_id' => $this->firearm->firearm_calibre_id,
+            'calibre_text_override' => $this->firearm->calibre_text_override,
+            'calibre_code' => $this->firearm->calibre_code ?? '',
+            'firearm_make_id' => $this->firearm->firearm_make_id,
+            'make_text_override' => $this->firearm->make_text_override,
+            'firearm_model_id' => $this->firearm->firearm_model_id,
+            'model_text_override' => $this->firearm->model_text_override,
+            'barrel_serial_number' => $barrel?->serial ?? $this->firearm->barrel_serial_number ?? '',
+            'barrel_make_text' => $barrel?->make ?? $this->firearm->barrel_make_text ?? '',
+            'frame_serial_number' => $frame?->serial ?? $this->firearm->frame_serial_number ?? '',
+            'frame_make_text' => $frame?->make ?? $this->firearm->frame_make_text ?? '',
+            'receiver_serial_number' => $receiver?->serial ?? $this->firearm->receiver_serial_number ?? '',
+            'receiver_make_text' => $receiver?->make ?? $this->firearm->receiver_make_text ?? '',
+            'engraved_text' => $this->firearm->engraved_text ?? '',
+        ];
+    }
+
+    /**
+     * Sync FirearmSearchPanel data back to component properties.
+     */
+    public function syncFirearmPanelData(array $data): void
+    {
+        $this->firearmPanelData = $data;
+        
+        // Sync to legacy properties for backward compatibility
+        $this->firearm_type = $data['firearm_type'] ?? '';
+        $this->action = $data['action_type'] ?? '';
+        $this->other_action_text = $data['action_type_other'] ?? '';
+        $this->calibre_code = $data['calibre_code'] ?? '';
+        $this->barrel_serial = $data['barrel_serial_number'] ?? '';
+        $this->barrel_make = $data['barrel_make_text'] ?? '';
+        $this->frame_serial = $data['frame_serial_number'] ?? '';
+        $this->frame_make = $data['frame_make_text'] ?? '';
+        $this->receiver_serial = $data['receiver_serial_number'] ?? '';
+        $this->receiver_make = $data['receiver_make_text'] ?? '';
     }
 
     public function updatedFirearmType($value): void
@@ -192,7 +247,12 @@ new class extends Component {
      */
     public function validateSerialRequirement(): void
     {
-        if (empty($this->barrel_serial) && empty($this->frame_serial) && empty($this->receiver_serial) && empty($this->serial_number)) {
+        $firearmData = $this->firearmPanelData ?? [];
+        $barrelSerial = $firearmData['barrel_serial_number'] ?? $this->barrel_serial;
+        $frameSerial = $firearmData['frame_serial_number'] ?? $this->frame_serial;
+        $receiverSerial = $firearmData['receiver_serial_number'] ?? $this->receiver_serial;
+        
+        if (empty($barrelSerial) && empty($frameSerial) && empty($receiverSerial) && empty($this->serial_number)) {
             $this->addError('barrel_serial', 'Provide at least one serial number (Barrel, Frame, or Receiver) as per SAPS 271.');
         }
     }
@@ -202,16 +262,35 @@ new class extends Component {
         $this->validate();
         $this->validateSerialRequirement();
 
+        // Get data from FirearmSearchPanel if available
+        $firearmData = $this->firearmPanelData ?? [];
+        
         $data = [
-            // SAPS 271 canonical fields
-            'firearm_type' => $this->firearm_type,
-            'action' => $this->action,
-            'other_action_text' => $this->action === 'other' ? $this->other_action_text : null,
-            'calibre_id' => $this->calibre_id,
-            'calibre_code' => $this->calibre_code ?: null,
-            'make' => $this->make ?: null,
-            'model' => $this->model ?: null,
+            // SAPS 271 canonical fields - prefer FirearmSearchPanel data
+            'firearm_type' => $firearmData['firearm_type'] ?? $this->firearm_type,
+            'action' => $firearmData['action_type'] ?? $this->action,
+            'other_action_text' => ($firearmData['action_type'] ?? $this->action) === 'other' 
+                ? ($firearmData['action_type_other'] ?? $this->other_action_text) 
+                : null,
+            'calibre_id' => $this->calibre_id, // Legacy, kept for backward compatibility
+            'firearm_calibre_id' => $firearmData['firearm_calibre_id'] ?? null,
+            'calibre_text_override' => $firearmData['calibre_text_override'] ?? null,
+            'calibre_code' => $firearmData['calibre_code'] ?? $this->calibre_code ?: null,
+            'firearm_make_id' => $firearmData['firearm_make_id'] ?? null,
+            'make_text_override' => $firearmData['make_text_override'] ?? null,
+            'make' => $firearmData['make_text_override'] ?? $this->make ?: null, // Legacy fallback
+            'firearm_model_id' => $firearmData['firearm_model_id'] ?? null,
+            'model_text_override' => $firearmData['model_text_override'] ?? null,
+            'model' => $firearmData['model_text_override'] ?? $this->model ?: null, // Legacy fallback
             'nickname' => $this->nickname ?: null,
+            // SAPS 271 serial fields
+            'barrel_serial_number' => $firearmData['barrel_serial_number'] ?? $this->barrel_serial ?: null,
+            'barrel_make_text' => $firearmData['barrel_make_text'] ?? $this->barrel_make ?: null,
+            'frame_serial_number' => $firearmData['frame_serial_number'] ?? $this->frame_serial ?: null,
+            'frame_make_text' => $firearmData['frame_make_text'] ?? $this->frame_make ?: null,
+            'receiver_serial_number' => $firearmData['receiver_serial_number'] ?? $this->receiver_serial ?: null,
+            'receiver_make_text' => $firearmData['receiver_make_text'] ?? $this->receiver_make ?: null,
+            'engraved_text' => $firearmData['engraved_text'] ?? null,
             // Legacy fields (kept for backwards compatibility)
             'firearm_type_id' => $this->firearm_type_id,
             'serial_number' => $this->serial_number ?: null, // Will be migrated to receiver if provided
@@ -242,40 +321,47 @@ new class extends Component {
 
         $this->firearm->update($data);
 
-        // Update firearm components (SAPS 271 canonical)
+        // Update firearm components (SAPS 271 canonical) - prefer FirearmSearchPanel data
         // Delete existing components and recreate
         $this->firearm->components()->delete();
         
+        $barrelSerial = $firearmData['barrel_serial_number'] ?? $this->barrel_serial;
+        $frameSerial = $firearmData['frame_serial_number'] ?? $this->frame_serial;
+        $receiverSerial = $firearmData['receiver_serial_number'] ?? $this->receiver_serial;
+        $barrelMake = $firearmData['barrel_make_text'] ?? $this->barrel_make;
+        $frameMake = $firearmData['frame_make_text'] ?? $this->frame_make;
+        $receiverMake = $firearmData['receiver_make_text'] ?? $this->receiver_make;
+        
         $components = [];
         
-        if (!empty($this->barrel_serial)) {
+        if (!empty($barrelSerial)) {
             $components[] = [
                 'firearm_id' => $this->firearm->id,
                 'type' => 'barrel',
-                'serial' => $this->barrel_serial,
-                'make' => $this->barrel_make ?: null,
+                'serial' => $barrelSerial,
+                'make' => $barrelMake ?: null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
         }
         
-        if (!empty($this->frame_serial)) {
+        if (!empty($frameSerial)) {
             $components[] = [
                 'firearm_id' => $this->firearm->id,
                 'type' => 'frame',
-                'serial' => $this->frame_serial,
-                'make' => $this->frame_make ?: null,
+                'serial' => $frameSerial,
+                'make' => $frameMake ?: null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
         }
         
-        if (!empty($this->receiver_serial)) {
+        if (!empty($receiverSerial)) {
             $components[] = [
                 'firearm_id' => $this->firearm->id,
                 'type' => 'receiver',
-                'serial' => $this->receiver_serial,
-                'make' => $this->receiver_make ?: null,
+                'serial' => $receiverSerial,
+                'make' => $receiverMake ?: null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
@@ -332,148 +418,32 @@ new class extends Component {
     </x-slot>
 
     <form wire:submit="save" class="space-y-8">
-        <!-- Basic Information - SAPS 271 Canonical -->
+        <!-- Basic Information -->
         <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
-            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Basic Information (SAPS 271)</h2>
+            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Basic Information</h2>
             <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Nickname (optional)</label>
                     <input type="text" wire:model="nickname" placeholder="e.g., Match Rifle, Hunting Rifle"
                            class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
                 </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Firearm Type <span class="text-red-500">*</span></label>
-                    <select wire:model.live="firearm_type"
-                            class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
-                        <option value="">Select type...</option>
-                        <option value="rifle">Rifle</option>
-                        <option value="shotgun">Shotgun</option>
-                        <option value="handgun">Handgun</option>
-                        <option value="hand_machine_carbine">Hand Machine Carbine</option>
-                        <option value="combination">Combination</option>
-                    </select>
-                    @error('firearm_type') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">SAPS 271 classification</p>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Action <span class="text-red-500">*</span></label>
-                    <select wire:model.live="action"
-                            class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
-                        <option value="">Select action...</option>
-                        <option value="semi_automatic">Semi-Automatic</option>
-                        <option value="automatic">Automatic</option>
-                        <option value="manual">Manual</option>
-                        <option value="other">Other</option>
-                    </select>
-                    @error('action') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                </div>
-
-                @if($action === 'other')
-                <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Specify Other Action <span class="text-red-500">*</span></label>
-                    <input type="text" wire:model="other_action_text" placeholder="e.g., Lever action, Pump action"
-                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
-                    @error('other_action_text') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                </div>
-                @endif
-
-                <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Calibre</label>
-                    <livewire:components.calibre-selector 
-                        wire:model="calibre_id"
-                        :calibre-id="$calibre_id"
-                        :category-filter="$selectedCategory"
-                        :ignition-filter="$selectedIgnition"
-                    />
-                    @error('calibre_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Calibre Code (SAPS)</label>
-                    <input type="text" wire:model="calibre_code" placeholder="e.g., 308, 9MM"
-                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
-                    @error('calibre_code') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Official SAPS calibre code</p>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Make</label>
-                    <input type="text" wire:model="make" placeholder="e.g., Howa, Tikka, CZ"
-                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
-                    @error('make') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Model</label>
-                    <input type="text" wire:model="model" placeholder="e.g., 1500, T3x, 455"
-                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
-                    @error('model') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                </div>
             </div>
         </div>
 
-        <!-- SAPS 271 Component Serial Numbers -->
-        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
-            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Component Serial Numbers (SAPS 271)</h2>
-            <p class="mb-4 text-sm text-zinc-600 dark:text-zinc-400">
-                Provide at least one serial number (Barrel, Frame, or Receiver) as per SAPS 271 requirements.
-            </p>
-            <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
-                <!-- Barrel -->
-                <div class="space-y-4">
-                    <h3 class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Barrel</h3>
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Serial Number</label>
-                        <input type="text" wire:model="barrel_serial"
-                               class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
-                        @error('barrel_serial') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Make (optional)</label>
-                        <input type="text" wire:model="barrel_make"
-                               class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
-                    </div>
-                </div>
-
-                <!-- Frame -->
-                <div class="space-y-4">
-                    <h3 class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Frame</h3>
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Serial Number</label>
-                        <input type="text" wire:model="frame_serial"
-                               class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
-                        @error('frame_serial') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Make (optional)</label>
-                        <input type="text" wire:model="frame_make"
-                               class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
-                    </div>
-                </div>
-
-                <!-- Receiver -->
-                <div class="space-y-4">
-                    <h3 class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Receiver</h3>
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Serial Number</label>
-                        <input type="text" wire:model="receiver_serial"
-                               class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
-                        @error('receiver_serial') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Make (optional)</label>
-                        <input type="text" wire:model="receiver_make"
-                               class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
-                    </div>
-                </div>
-            </div>
-            @if(empty($barrel_serial) && empty($frame_serial) && empty($receiver_serial) && empty($serial_number))
-                <p class="mt-4 text-sm text-red-600 dark:text-red-400">
-                    ⚠️ Provide at least one serial number (Barrel, Frame, or Receiver) as per SAPS 271.
-                </p>
-            @endif
+        <!-- Firearm Details (SAPS 271) - Using FirearmSearchPanel -->
+        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6"
+             x-data="{ panelData: @entangle('firearmPanelData') }"
+             @firearm-data-updated.window="panelData = $event.detail.data; $wire.syncFirearmPanelData(panelData)">
+            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Firearm Details (SAPS 271 Form Section E)</h2>
+            @php
+                if (!isset($firearmPanelData) || $firearmPanelData === null) {
+                    $firearmPanelData = [];
+                }
+            @endphp
+            <livewire:firearm-search-panel 
+                wire:key="armoury-edit-firearm-panel-{{ $firearm->id }}"
+                :initial-data="$firearmPanelData"
+            />
         </div>
 
         <!-- Barrel & Stock Details -->

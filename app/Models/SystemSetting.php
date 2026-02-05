@@ -17,9 +17,8 @@ class SystemSetting extends Model
 
     protected function casts(): array
     {
-        return [
-            'value' => 'array',
-        ];
+        // Don't cast value as array by default - handle it in get() method based on type
+        return [];
     }
 
     /**
@@ -36,11 +35,13 @@ class SystemSetting extends Model
         }
 
         // Handle different types
+        $value = $setting->value;
+        
         return match ($setting->type) {
-            'boolean' => (bool) $setting->value,
-            'integer' => (int) $setting->value,
-            'json', 'array' => $setting->value,
-            default => $setting->value,
+            'boolean' => (bool) $value,
+            'integer' => (int) $value,
+            'json', 'array' => is_string($value) ? json_decode($value, true) : $value,
+            default => $value, // string type or default - return as-is
         };
     }
 
@@ -49,10 +50,16 @@ class SystemSetting extends Model
      */
     public static function set(string $key, mixed $value, string $type = 'string', ?string $group = null, ?string $description = null): static
     {
+        // Convert value to appropriate format based on type
+        $storedValue = match ($type) {
+            'json', 'array' => is_array($value) ? json_encode($value) : $value,
+            default => (string) $value, // Store as string for string, boolean, integer types
+        };
+
         $setting = static::updateOrCreate(
             ['key' => $key],
             [
-                'value' => $value,
+                'value' => $storedValue,
                 'type' => $type,
                 'group' => $group,
                 'description' => $description,

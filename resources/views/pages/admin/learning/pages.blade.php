@@ -77,15 +77,15 @@ new #[Title('Manage Pages - Learning Center')] class extends Component {
         $imagePath = $this->existingPageImage;
 
         if ($this->removePageImage && $this->existingPageImage) {
-            StorageHelper::deleteFile($this->existingPageImage);
+            StorageHelper::deleteLearningCenterFile($this->existingPageImage);
             $imagePath = null;
         }
 
         if ($this->pageImage) {
             if ($this->existingPageImage) {
-                StorageHelper::deleteFile($this->existingPageImage);
+                StorageHelper::deleteLearningCenterFile($this->existingPageImage);
             }
-            $imagePath = StorageHelper::storeFile($this->pageImage, 'learning/pages');
+            $imagePath = StorageHelper::storeLearningCenterFile($this->pageImage, 'learning/pages');
         }
 
         $data = [
@@ -114,7 +114,7 @@ new #[Title('Manage Pages - Learning Center')] class extends Component {
         $page = LearningArticlePage::findOrFail($id);
 
         if ($page->image_path) {
-            StorageHelper::deleteFile($page->image_path);
+            StorageHelper::deleteLearningCenterFile($page->image_path);
         }
 
         $deletedPageNumber = $page->page_number;
@@ -224,7 +224,7 @@ new #[Title('Manage Pages - Learning Center')] class extends Component {
                     </div>
                     @elseif($existingPageImage && !$removePageImage)
                     <div class="relative inline-block">
-                        <img src="{{ StorageHelper::getUrl($existingPageImage) }}" alt="Current" class="max-h-48 rounded-lg border border-zinc-200 object-contain dark:border-zinc-700">
+                        <img src="{{ StorageHelper::getLearningCenterUrl($existingPageImage) }}" alt="Current" class="max-h-48 rounded-lg border border-zinc-200 object-contain dark:border-zinc-700">
                         <button type="button" wire:click="$set('removePageImage', true)" class="absolute -right-2 -top-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600">
                             <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />

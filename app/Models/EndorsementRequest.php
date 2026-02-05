@@ -53,6 +53,7 @@ class EndorsementRequest extends Model
         'submitted_at',
         'reviewed_at',
         'issued_at',
+        'expires_at',
         'rejected_at',
         'cancelled_at',
         'reviewer_id',
@@ -62,6 +63,9 @@ class EndorsementRequest extends Model
         'rejection_reason',
         'letter_reference',
         'letter_file_path',
+        'dedicated_status_compliant',
+        'dedicated_category',
+        'dedicated_status_snapshot_at',
     ];
 
     /**
@@ -74,8 +78,10 @@ class EndorsementRequest extends Model
             'submitted_at' => 'datetime',
             'reviewed_at' => 'datetime',
             'issued_at' => 'datetime',
+            'expires_at' => 'datetime',
             'rejected_at' => 'datetime',
             'cancelled_at' => 'datetime',
+            'dedicated_status_snapshot_at' => 'datetime',
         ];
     }
 
@@ -228,6 +234,7 @@ class EndorsementRequest extends Model
 
     /**
      * Get missing required documents for endorsement.
+     * For Proof of Address: requires document to be verified and not older than 3 months.
      */
     public static function getMissingRequiredDocuments(User $user): array
     {
@@ -235,7 +242,7 @@ class EndorsementRequest extends Model
 
         // Required document type slugs for endorsement
         $requiredDocSlugs = [
-            'id-document' => 'South African ID Document',
+            'identity-document' => 'ID',
             'proof-of-address' => 'Proof of Address',
         ];
 
@@ -244,14 +251,27 @@ class EndorsementRequest extends Model
             if (!$docType) continue;
 
             // Check if user has a valid (verified, not expired) document of this type
-            $hasValid = MemberDocument::where('user_id', $user->id)
+            // Get the most recent verified document
+            $validDocument = MemberDocument::where('user_id', $user->id)
                 ->where('document_type_id', $docType->id)
                 ->where('status', 'verified')
                 ->where(function ($q) {
                     $q->whereNull('expires_at')
                         ->orWhere('expires_at', '>', now());
                 })
-                ->exists();
+                ->orderBy('verified_at', 'desc')
+                ->first();
+            
+            $hasValid = $validDocument !== null;
+
+            // Special check for Proof of Address: must be verified within last 3 months for endorsement
+            if ($slug === 'proof-of-address' && $hasValid) {
+                $threeMonthsAgo = now()->subMonths(3);
+                if ($validDocument->verified_at && $validDocument->verified_at->lt($threeMonthsAgo)) {
+                    // POA exists but is older than 3 months - require new one for endorsement
+                    $hasValid = false;
+                }
+            }
 
             if (!$hasValid) {
                 $missing[] = [
@@ -263,6 +283,64 @@ class EndorsementRequest extends Model
         }
 
         return $missing;
+    }
+
+    /**
+     * Check Proof of Address compliance for dedicated status.
+     * Returns compliance info without requiring new upload (only checks age).
+     */
+    public static function checkProofOfAddressCompliance(User $user): array
+    {
+        $docType = DocumentType::where('slug', 'proof-of-address')->first();
+        
+        if (!$docType) {
+            return [
+                'has_document' => false,
+                'is_compliant' => false,
+                'is_older_than_3_months' => false,
+                'verified_at' => null,
+                'age_days' => null,
+                'message' => 'Proof of Address document type not found',
+            ];
+        }
+
+        // Get the most recent verified document
+        $validDocument = MemberDocument::where('user_id', $user->id)
+            ->where('document_type_id', $docType->id)
+            ->where('status', 'verified')
+            ->where(function ($q) {
+                $q->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
+            ->orderBy('verified_at', 'desc')
+            ->first();
+
+        if (!$validDocument || !$validDocument->verified_at) {
+            return [
+                'has_document' => false,
+                'is_compliant' => false,
+                'is_older_than_3_months' => true,
+                'verified_at' => null,
+                'age_days' => null,
+                'message' => 'No verified Proof of Address found',
+            ];
+        }
+
+        $threeMonthsAgo = now()->subMonths(3);
+        $isOlderThan3Months = $validDocument->verified_at->lt($threeMonthsAgo);
+        $ageDays = $validDocument->verified_at->diffInDays(now());
+
+        return [
+            'has_document' => true,
+            'is_compliant' => !$isOlderThan3Months,
+            'is_older_than_3_months' => $isOlderThan3Months,
+            'verified_at' => $validDocument->verified_at,
+            'age_days' => $ageDays,
+            'age_months' => round($ageDays / 30, 1),
+            'message' => $isOlderThan3Months 
+                ? "Proof of Address is older than 3 months ({$ageDays} days old). New POA will be required when requesting an endorsement."
+                : "Proof of Address is up to date ({$ageDays} days old).",
+        ];
     }
 
     /**
@@ -428,6 +506,15 @@ class EndorsementRequest extends Model
     }
 
     /**
+     * Check if the request can be edited.
+     * Only draft requests can be edited.
+     */
+    public function canEdit(): bool
+    {
+        return $this->isDraft();
+    }
+
+    /**
      * Check if request is submitted.
      */
     public function isSubmitted(): bool
@@ -525,15 +612,14 @@ class EndorsementRequest extends Model
             return false;
         }
 
-        // Must have all required documents uploaded or system verified
-        if (!$this->hasAllRequiredDocuments()) {
-            return false;
-        }
-
         // Must have purpose selected
         if (!$this->purpose) {
             return false;
         }
+
+        // Note: Documents are checked but not blocking submission
+        // Admin can request documents after submission if needed
+        // This allows members to submit even if auto-verification didn't work perfectly
 
         return true;
     }
@@ -544,6 +630,12 @@ class EndorsementRequest extends Model
     public function getSubmissionErrors(): array
     {
         $errors = [];
+        
+        // Check terms acceptance
+        $activeTerms = \App\Models\TermsVersion::active();
+        if ($activeTerms && !$this->user->hasAcceptedActiveTerms()) {
+            $errors[] = 'You must accept the Terms & Conditions before submitting endorsement requests.';
+        }
 
         if (!$this->isDraft()) {
             $errors[] = 'Request is not in draft status.';
@@ -561,9 +653,12 @@ class EndorsementRequest extends Model
             $errors[] = 'Purpose is required.';
         }
 
+        // Note: Missing documents are warnings, not blockers
+        // Admin can request documents after submission if needed
         $missingDocs = $this->getMissingRequestDocuments();
-        foreach ($missingDocs as $docType) {
-            $errors[] = "Missing required document: " . self::getDocumentTypeLabel($docType);
+        if (count($missingDocs) > 0) {
+            $docLabels = array_map(fn($doc) => self::getDocumentTypeLabel($doc), $missingDocs);
+            $errors[] = "Note: Some documents may need to be uploaded: " . implode(', ', $docLabels) . ". Admin can request these after submission.";
         }
 
         return $errors;
@@ -621,12 +716,57 @@ class EndorsementRequest extends Model
             return false;
         }
 
-        $this->update([
+        $result = $this->update([
             'status' => self::STATUS_SUBMITTED,
             'submitted_at' => now(),
         ]);
 
-        return true;
+        // Refresh the model to ensure status is updated
+        $this->refresh();
+
+        // Notify admins about the new endorsement request
+        if ($result) {
+            $this->notifyAdminsOfSubmission();
+        }
+
+        return $result;
+    }
+
+    /**
+     * Notify admins when an endorsement request is submitted.
+     */
+    protected function notifyAdminsOfSubmission(): void
+    {
+        try {
+            $ntfyService = app(\App\Services\NtfyService::class);
+            
+            $title = 'New Endorsement Request Submitted';
+            $message = sprintf(
+                '%s has submitted an endorsement request for %s. Review and approve at: %s',
+                $this->user->name,
+                $this->firearm ? ($this->firearm->make . ' ' . $this->firearm->model) : 'a firearm',
+                route('admin.endorsements.show', $this->uuid)
+            );
+
+            $ntfyService->notifyAdmins(
+                'endorsement_request',
+                $title,
+                $message,
+                'high',
+                [
+                    'endorsement_request_id' => $this->id,
+                    'endorsement_request_uuid' => $this->uuid,
+                    'user_id' => $this->user_id,
+                    'user_name' => $this->user->name,
+                ]
+            );
+        } catch (\Exception $e) {
+            // Log error but don't fail the submission
+            \Illuminate\Support\Facades\Log::error('Failed to send endorsement request notification', [
+                'endorsement_request_id' => $this->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -676,20 +816,55 @@ class EndorsementRequest extends Model
 
     /**
      * Issue the endorsement letter (can only be called on approved requests).
+     * Requires dedicated_status_compliant and dedicated_category to be set.
      */
-    public function issue(User $admin, string $letterReference, ?string $letterPath = null): void
+    public function issue(User $admin, string $letterReference, ?string $letterPath = null, ?bool $dedicatedStatusCompliant = null, ?string $dedicatedCategory = null): void
     {
         // Ensure request is approved before issuing letter
         if ($this->status !== self::STATUS_APPROVED) {
             throw new \Exception('Endorsement request must be approved before letter can be issued.');
         }
 
+        // If dedicated status not provided, determine from current membership
+        if ($dedicatedStatusCompliant === null || $dedicatedCategory === null) {
+            $eligibility = self::getEligibilitySummary($this->user);
+            $dedicatedStatusCompliant = $eligibility['eligible'] ?? false;
+            
+            // Determine dedicated category from membership type
+            $membership = $this->user->activeMembership;
+            $dedicatedType = $membership?->type?->dedicated_type ?? null;
+            
+            if ($dedicatedCategory === null) {
+                $dedicatedCategory = match($dedicatedType) {
+                    'sport' => 'Dedicated Sport Shooter',
+                    'hunter' => 'Dedicated Hunter',
+                    'both' => 'Dedicated Sport Shooter & Dedicated Hunter',
+                    default => null,
+                };
+            }
+        }
+
+        // Block issuance if not compliant
+        if (!$dedicatedStatusCompliant) {
+            throw new \Exception('Dedicated Status is not compliant. Endorsement cannot be issued.');
+        }
+
+        // Ensure dedicated category is set
+        if (empty($dedicatedCategory)) {
+            throw new \Exception('Dedicated Category must be specified before endorsement can be issued.');
+        }
+
+        $issuedAt = now();
         $this->update([
             'status' => self::STATUS_ISSUED,
-            'issued_at' => now(),
+            'issued_at' => $issuedAt,
+            'expires_at' => $issuedAt->copy()->addYear(), // Endorsement letters expire 1 year after issue
             'issued_by' => $admin->id,
             'letter_reference' => $letterReference,
             'letter_file_path' => $letterPath,
+            'dedicated_status_compliant' => $dedicatedStatusCompliant,
+            'dedicated_category' => $dedicatedCategory,
+            'dedicated_status_snapshot_at' => now(),
         ]);
     }
 
@@ -794,6 +969,28 @@ class EndorsementRequest extends Model
         return $query->where('request_type', self::TYPE_RENEWAL);
     }
 
+    /**
+     * Scope to valid (not expired) issued letters.
+     */
+    public function scopeValid($query)
+    {
+        return $query->where('status', self::STATUS_ISSUED)
+            ->where(function ($q) {
+                $q->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            });
+    }
+
+    /**
+     * Scope to expired issued letters.
+     */
+    public function scopeExpired($query)
+    {
+        return $query->where('status', self::STATUS_ISSUED)
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '<=', now());
+    }
+
     // ===== Accessors =====
 
     /**
@@ -821,6 +1018,66 @@ class EndorsementRequest extends Model
             return $this->purpose_other_text ?? 'Other';
         }
         return self::getPurposeOptions()[$this->purpose] ?? '';
+    }
+
+    /**
+     * Check if the endorsement letter is expired.
+     */
+    public function getIsExpiredAttribute(): bool
+    {
+        if (!$this->isIssued() || !$this->expires_at) {
+            return false;
+        }
+
+        return $this->expires_at->isPast();
+    }
+
+    /**
+     * Check if the endorsement letter is expiring soon (within 30 days).
+     */
+    public function getIsExpiringSoonAttribute(): bool
+    {
+        if (!$this->isIssued() || !$this->expires_at || $this->is_expired) {
+            return false;
+        }
+
+        return $this->expires_at->isBefore(now()->addDays(30));
+    }
+
+    /**
+     * Get days until expiry (negative if expired).
+     */
+    public function getDaysUntilExpiryAttribute(): ?int
+    {
+        if (!$this->isIssued() || !$this->expires_at) {
+            return null;
+        }
+
+        return now()->startOfDay()->diffInDays($this->expires_at, false);
+    }
+
+    /**
+     * Get dedicated status label (Compliant, Non-Compliant, or Not Recorded (Legacy)).
+     */
+    public function getDedicatedStatusLabelAttribute(): string
+    {
+        if ($this->dedicated_status_compliant === null) {
+            return 'Not Recorded (Legacy)';
+        }
+        
+        return $this->dedicated_status_compliant ? 'Compliant' : 'Non-Compliant';
+    }
+
+    /**
+     * Get dedicated category label (with legacy fallback).
+     */
+    public function getDedicatedCategoryLabelAttribute(): string
+    {
+        if (empty($this->dedicated_category)) {
+            return 'Not Recorded (Legacy)';
+        }
+        
+        return $this->dedicated_category;
     }
 
     /**

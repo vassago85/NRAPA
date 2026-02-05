@@ -16,6 +16,7 @@ class KnowledgeTest extends Model
         'slug',
         'name',
         'description',
+        'document_path',
         'passing_score',
         'time_limit_minutes',
         'max_attempts',
@@ -126,7 +127,8 @@ class KnowledgeTest extends Model
     {
         return match($this->dedicated_type) {
             'hunter' => 'Dedicated Hunter',
-            'sport_shooter' => 'Dedicated Sport Shooter',
+            'sport' => 'Dedicated Sport Shooter',
+            'sport_shooter' => 'Dedicated Sport Shooter', // Legacy support
             'both' => 'Both (Hunter & Sport Shooter)',
             default => null,
         };
@@ -162,5 +164,25 @@ class KnowledgeTest extends Model
             ->count();
 
         return max(0, $this->max_attempts - $attemptCount);
+    }
+
+    /**
+     * Check if the test has a document.
+     */
+    public function hasDocument(): bool
+    {
+        return !empty($this->document_path);
+    }
+
+    /**
+     * Get the document URL.
+     */
+    public function getDocumentUrlAttribute(): ?string
+    {
+        if (!$this->hasDocument()) {
+            return null;
+        }
+
+        return \App\Helpers\StorageHelper::getUrl($this->document_path);
     }
 }

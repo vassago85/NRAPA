@@ -52,21 +52,6 @@ class StorageConfigServiceProvider extends ServiceProvider
                         'filesystems.disks.r2.url' => SystemSetting::get('r2_url'),
                         'filesystems.disks.r2.region' => SystemSetting::get('r2_region', 'auto'),
                     ]);
-                    
-                    // Public bucket (for learning images, etc.)
-                    $publicBucket = SystemSetting::get('r2_public_bucket');
-                    $publicUrl = SystemSetting::get('r2_public_url');
-                    
-                    if ($publicBucket) {
-                        config([
-                            'filesystems.disks.r2_public.key' => $r2AccessKeyId,
-                            'filesystems.disks.r2_public.secret' => SystemSetting::get('r2_secret_access_key'),
-                            'filesystems.disks.r2_public.bucket' => $publicBucket,
-                            'filesystems.disks.r2_public.endpoint' => SystemSetting::get('r2_endpoint'),
-                            'filesystems.disks.r2_public.url' => $publicUrl,
-                            'filesystems.disks.r2_public.region' => SystemSetting::get('r2_region', 'auto'),
-                        ]);
-                    }
                 }
             }
         } catch (\Exception $e) {
