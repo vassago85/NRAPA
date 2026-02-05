@@ -286,14 +286,15 @@ new class extends Component {
                     <p class="text-zinc-600 dark:text-zinc-400">You must enable two-factor authentication to continue using the platform.</p>
                 </div>
                 <div class="space-y-6" wire:cloak>
+                    @include('partials.two-factor-content')
 @else
     <section class="w-full">
         @include('partials.settings-heading')
 
         <x-settings-layout :heading="__('Two Factor Authentication')" :subheading="__('Add additional security to your account')">
             <div class="space-y-6" wire:cloak>
+                @include('partials.two-factor-content')
 @endif
-                @if(auth()->user()->requires2FA() && !$twoFactorEnabled)
                 @php
                     $remaining = auth()->user()->getRemainingLoginsWithout2FA();
                     $hasExceeded = auth()->user()->hasExceeded2FALoginLimit();
