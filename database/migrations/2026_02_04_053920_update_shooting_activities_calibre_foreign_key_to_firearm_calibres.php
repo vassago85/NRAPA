@@ -50,6 +50,46 @@ return new class extends Migration
             }
         }
 
+        // Clean up invalid calibre_id values before adding foreign key
+        // Set calibre_id to NULL if it doesn't exist in firearm_calibres
+        if (Schema::hasTable('firearm_calibres')) {
+            // Find all shooting_activities with calibre_id that don't exist in firearm_calibres
+            $invalidCalibres = DB::table('shooting_activities')
+                ->whereNotNull('calibre_id')
+                ->whereNotIn('calibre_id', function ($query) {
+                    $query->select('id')->from('firearm_calibres');
+                })
+                ->pluck('calibre_id', 'id')
+                ->toArray();
+            
+            if (!empty($invalidCalibres)) {
+                // Set invalid calibre_id values to NULL
+                DB::table('shooting_activities')
+                    ->whereIn('id', array_keys($invalidCalibres))
+                    ->update(['calibre_id' => null]);
+            }
+        }
+
+        // Clean up invalid calibre_id values before adding foreign key
+        // Set calibre_id to NULL if it doesn't exist in firearm_calibres
+        if (Schema::hasTable('firearm_calibres')) {
+            // Find all shooting_activities with calibre_id that don't exist in firearm_calibres
+            $validCalibreIds = DB::table('firearm_calibres')->pluck('id')->toArray();
+            
+            if (!empty($validCalibreIds)) {
+                // Set invalid calibre_id values to NULL
+                DB::table('shooting_activities')
+                    ->whereNotNull('calibre_id')
+                    ->whereNotIn('calibre_id', $validCalibreIds)
+                    ->update(['calibre_id' => null]);
+            } else {
+                // If firearm_calibres table is empty, set all calibre_id to NULL
+                DB::table('shooting_activities')
+                    ->whereNotNull('calibre_id')
+                    ->update(['calibre_id' => null]);
+            }
+        }
+
         // Add new foreign key constraint pointing to firearm_calibres (if it doesn't already exist)
         if (Schema::hasTable('firearm_calibres')) {
             if ($driver === 'mysql' || $driver === 'mariadb') {
