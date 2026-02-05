@@ -287,11 +287,11 @@ new class extends Component {
                 </div>
                 <div class="space-y-6" wire:cloak>
 @else
-<section class="w-full">
-    @include('partials.settings-heading')
+    <section class="w-full">
+        @include('partials.settings-heading')
 
-    <x-settings-layout :heading="__('Two Factor Authentication')" :subheading="__('Add additional security to your account')">
-        <div class="space-y-6" wire:cloak>
+        <x-settings-layout :heading="__('Two Factor Authentication')" :subheading="__('Add additional security to your account')">
+            <div class="space-y-6" wire:cloak>
 @endif
             {{-- Admin/Owner 2FA Requirement Warning --}}
             @if(auth()->user()->requires2FA() && !$twoFactorEnabled)
