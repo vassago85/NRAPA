@@ -293,7 +293,7 @@ new class extends Component {
         <x-settings-layout :heading="__('Two Factor Authentication')" :subheading="__('Add additional security to your account')">
             <div class="space-y-6" wire:cloak>
 @endif
-            {{-- Admin/Owner 2FA Requirement Warning --}}
+                {{-- Admin/Owner 2FA Requirement Warning --}}
             @if(auth()->user()->requires2FA() && !$twoFactorEnabled)
                 @php
                     $remaining = auth()->user()->getRemainingLoginsWithout2FA();
@@ -704,11 +704,10 @@ new class extends Component {
                     <p class="text-xs text-zinc-500 dark:text-zinc-400">Complete the requirements above to enable 2FA.</p>
                 @endif
             @endif
-        </div>
+                </div>
 @if(!$isForced)
     </x-settings-layout>
 @else
-                </div>
             </div>
         </div>
     </div>
