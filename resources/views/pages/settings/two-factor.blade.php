@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\UserSecurityQuestion;
+use Exception;
 use Laravel\Fortify\Actions\ConfirmTwoFactorAuthentication;
 use Laravel\Fortify\Actions\DisableTwoFactorAuthentication;
 use Laravel\Fortify\Actions\EnableTwoFactorAuthentication;
