@@ -7,7 +7,9 @@ use App\Models\AccountResetLog;
 use App\Models\UserSecurityQuestion;
 use App\Models\KnowledgeTest;
 use App\Models\KnowledgeTestAttempt;
+use App\Mail\AccountDeleted;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -233,6 +235,23 @@ new #[Title('Member Details - Admin')] class extends Component {
         ]);
 
         $userName = $this->user->name;
+        $userEmail = $this->user->email;
+
+        // Send notification email before deletion (email will be modified on delete)
+        try {
+            Mail::to($userEmail)->send(new AccountDeleted(
+                userName: $userName,
+                userEmail: $userEmail,
+                reason: $this->deleteReason,
+                deletedBy: auth()->user()->name
+            ));
+        } catch (\Exception $e) {
+            // Log error but continue with deletion
+            \Illuminate\Support\Facades\Log::warning('Failed to send account deletion email', [
+                'user_id' => $this->user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         // Create a deletion record for audit purposes
         UserDeletionRequest::create([
