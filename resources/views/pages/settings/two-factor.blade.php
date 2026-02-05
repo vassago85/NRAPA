@@ -642,9 +642,9 @@ new class extends Component {
                             </button>
                             </div>
 
-                            {{-- Verification Input - Always rendered, completely protected from Livewire re-renders --}}
+                            {{-- Verification Input - Always rendered, protected from Livewire re-renders but allows wire:model to work --}}
                             <div id="verification-section" 
-                                 wire:ignore
+                                 wire:ignore.self
                                  class="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-700 space-y-4" 
                                  style="display: none;"
                                  data-2fa-visible="false">
@@ -701,8 +701,12 @@ new class extends Component {
         
         if (verifyDiv) {
             verifyDiv.style.display = 'block';
+            verifyDiv.style.setProperty('display', 'block', 'important');
             verifyDiv.setAttribute('data-2fa-visible', 'true');
             sessionStorage.setItem('2fa-verification-shown', 'true');
+            
+            // Set up observer if not already done
+            setupObserver();
             
             const input = verifyDiv.querySelector('#two-factor-code');
             if (input) {
@@ -753,28 +757,39 @@ new class extends Component {
     });
     
     // Use MutationObserver to keep verification section visible after Livewire updates
-    const observer = new MutationObserver(function(mutations) {
-        const verifyDiv = document.getElementById('verification-section');
-        if (verifyDiv && sessionStorage.getItem('2fa-verification-shown') === 'true') {
-            if (verifyDiv.getAttribute('data-2fa-visible') === 'true') {
-                if (verifyDiv.style.display === 'none' || verifyDiv.style.display === '') {
-                    verifyDiv.style.display = 'block';
-                }
-            }
-        }
-    });
+    let observer = null;
     
-    // Start observing when DOM is ready
-    document.addEventListener('DOMContentLoaded', function() {
+    function setupObserver() {
         const verifyDiv = document.getElementById('verification-section');
-        if (verifyDiv) {
+        if (verifyDiv && !observer) {
+            observer = new MutationObserver(function(mutations) {
+                if (sessionStorage.getItem('2fa-verification-shown') === 'true') {
+                    const verifyDiv = document.getElementById('verification-section');
+                    if (verifyDiv && verifyDiv.getAttribute('data-2fa-visible') === 'true') {
+                        const computedStyle = window.getComputedStyle(verifyDiv);
+                        if (computedStyle.display === 'none' || verifyDiv.style.display === 'none') {
+                            verifyDiv.style.display = 'block';
+                            verifyDiv.style.setProperty('display', 'block', 'important');
+                        }
+                    }
+                }
+            });
+            
             observer.observe(verifyDiv, {
                 attributes: true,
-                attributeFilter: ['style', 'data-2fa-visible'],
-                childList: false,
-                subtree: false
+                attributeFilter: ['style', 'class'],
+                childList: true,
+                subtree: true
             });
         }
+    }
+    
+    // Start observing when DOM is ready
+    document.addEventListener('DOMContentLoaded', setupObserver);
+    
+    // Also set up observer after Livewire initializes
+    document.addEventListener('livewire:init', function() {
+        setTimeout(setupObserver, 100);
     });
     
     // Also listen for Livewire updates
@@ -790,11 +805,27 @@ new class extends Component {
                 const verifyDiv = document.getElementById('verification-section');
                 if (verifyDiv) {
                     verifyDiv.style.display = 'block';
+                    verifyDiv.style.setProperty('display', 'block', 'important');
                     verifyDiv.setAttribute('data-2fa-visible', 'true');
+                    setupObserver(); // Ensure observer is active
                     const input = verifyDiv.querySelector('#two-factor-code');
                     if (input && document.activeElement !== input) {
                         input.focus();
                     }
+                }
+            }, 50);
+        }
+    });
+    
+    // Also listen for morph updates (Livewire v3)
+    document.addEventListener('livewire:morph-updated', function() {
+        if (sessionStorage.getItem('2fa-verification-shown') === 'true') {
+            setTimeout(function() {
+                const verifyDiv = document.getElementById('verification-section');
+                if (verifyDiv) {
+                    verifyDiv.style.display = 'block';
+                    verifyDiv.style.setProperty('display', 'block', 'important');
+                    verifyDiv.setAttribute('data-2fa-visible', 'true');
                 }
             }, 50);
         }
