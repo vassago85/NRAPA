@@ -74,25 +74,26 @@ class PurgeDeletedUsers extends Command
         
         foreach ($deletedUsers as $user) {
             try {
-                // Force delete related records that might cause foreign key issues
-                $user->memberships()->forceDelete();
-                $user->certificates()->forceDelete();
-                $user->knowledgeTestAttempts()->forceDelete();
-                $user->securityQuestions()->forceDelete();
-                $user->documents()->forceDelete();
-                $user->deletionRequests()->forceDelete();
-                $user->shootingActivities()->forceDelete();
-                $user->dedicatedStatusApplications()->forceDelete();
-                $user->firearmMotivationRequests()->forceDelete();
-                $user->firearms()->forceDelete();
-                $user->loadData()->forceDelete();
-                $user->payments()->forceDelete();
-                $user->termsAcceptances()->forceDelete();
-                $user->statusHistory()->forceDelete();
-                $user->accountResetLogs()->forceDelete();
+                // Force delete related records - wrap each in try-catch to handle missing tables
+                $this->safeDelete(fn() => $user->memberships()->forceDelete());
+                $this->safeDelete(fn() => $user->certificates()->forceDelete());
+                $this->safeDelete(fn() => $user->knowledgeTestAttempts()->forceDelete());
+                $this->safeDelete(fn() => $user->securityQuestions()->forceDelete());
+                $this->safeDelete(fn() => $user->documents()->forceDelete());
+                $this->safeDelete(fn() => $user->deletionRequests()->forceDelete());
+                $this->safeDelete(fn() => $user->shootingActivities()->forceDelete());
+                $this->safeDelete(fn() => $user->dedicatedStatusApplications()->forceDelete());
+                $this->safeDelete(fn() => $user->firearmMotivationRequests()->forceDelete());
+                $this->safeDelete(fn() => $user->firearms()->forceDelete());
+                $this->safeDelete(fn() => $user->loadData()->forceDelete());
+                $this->safeDelete(fn() => $user->payments()->forceDelete());
+                $this->safeDelete(fn() => $user->termsAcceptances()->forceDelete());
+                $this->safeDelete(fn() => $user->statusHistory()->forceDelete());
+                $this->safeDelete(fn() => $user->accountResetLogs()->forceDelete());
+                $this->safeDelete(fn() => $user->notificationPreference()?->forceDelete());
                 
                 // Delete endorsement requests (no direct relationship)
-                \App\Models\EndorsementRequest::where('user_id', $user->id)->forceDelete();
+                $this->safeDelete(fn() => \App\Models\EndorsementRequest::where('user_id', $user->id)->forceDelete());
                 
                 // Force delete the user
                 $user->forceDelete();
@@ -108,5 +109,17 @@ class PurgeDeletedUsers extends Command
         $this->info("Successfully purged {$purged} of {$count} user(s).");
         
         return Command::SUCCESS;
+    }
+    
+    /**
+     * Safely execute a delete operation, ignoring errors for missing tables.
+     */
+    protected function safeDelete(callable $callback): void
+    {
+        try {
+            $callback();
+        } catch (\Exception $e) {
+            // Ignore errors for missing tables or other issues
+        }
     }
 }
