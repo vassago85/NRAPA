@@ -187,6 +187,9 @@ new class extends Component {
         $this->showVerificationStep = false;
         $this->reset('code');
         $this->resetErrorBag();
+        
+        // Also hide via JavaScript as fallback
+        $this->dispatch('hide-verification');
     }
 
     public function disable(DisableTwoFactorAuthentication $disableTwoFactorAuthentication): void
