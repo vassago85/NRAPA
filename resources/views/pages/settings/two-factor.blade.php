@@ -282,13 +282,14 @@ new class extends Component {
                     <h1 class="text-2xl font-bold text-zinc-900 dark:text-white mb-2">Two-Factor Authentication Required</h1>
                     <p class="text-zinc-600 dark:text-zinc-400">You must enable two-factor authentication to continue using the platform.</p>
                 </div>
+                <div class="space-y-6" wire:cloak>
 @else
 <section class="w-full">
     @include('partials.settings-heading')
 
     <x-settings-layout :heading="__('Two Factor Authentication')" :subheading="__('Add additional security to your account')">
-@endif
         <div class="space-y-6" wire:cloak>
+@endif
             {{-- Admin/Owner 2FA Requirement Warning --}}
             @if(auth()->user()->requires2FA() && !$twoFactorEnabled)
                 @php
@@ -375,24 +376,7 @@ new class extends Component {
                 @endif
             @else
                 {{-- Show 2FA setup form --}}
-                @if($isForced)
-                    <div class="mb-6">
-                        <div class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                            <div class="flex items-start gap-3">
-                                <svg class="w-6 h-6 text-red-600 dark:text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                                </svg>
-                                <div>
-                                    <p class="font-semibold text-red-800 dark:text-red-200">Two-Factor Authentication Required</p>
-                                    <p class="text-sm text-red-600 dark:text-red-400 mt-1">
-                                        As an {{ auth()->user()->role_display_name }}, you must enable two-factor authentication to continue using the platform.
-                                        You have exceeded the maximum number of logins ({{ \App\Models\User::MAX_LOGINS_WITHOUT_2FA }}) without 2FA.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @else
+                @if(!$isForced)
                     <div class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
                         <div class="flex items-center gap-3">
                             <svg class="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -721,7 +705,9 @@ new class extends Component {
     @if(!$isForced)
     </x-settings-layout>
     @else
-    </div>
+                </div>
+            </div>
+        </div>
     </div>
     @endif
 
