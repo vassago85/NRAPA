@@ -20,9 +20,32 @@ return new class extends Migration
         
         if (Schema::hasTable('calibre_requests')) {
             // Drop the old foreign key constraint if it exists
-            Schema::table('calibre_requests', function (Blueprint $table) {
-                $table->dropForeign(['calibre_id']);
-            });
+            if ($driver === 'mysql') {
+                // Check if foreign key exists before dropping (only drop if pointing to 'calibres' table)
+                $foreignKeys = DB::select("
+                    SELECT CONSTRAINT_NAME 
+                    FROM information_schema.KEY_COLUMN_USAGE 
+                    WHERE TABLE_SCHEMA = DATABASE() 
+                    AND TABLE_NAME = 'calibre_requests' 
+                    AND COLUMN_NAME = 'calibre_id' 
+                    AND REFERENCED_TABLE_NAME = 'calibres'
+                ");
+                
+                if (!empty($foreignKeys)) {
+                    foreach ($foreignKeys as $fk) {
+                        DB::statement("ALTER TABLE calibre_requests DROP FOREIGN KEY `{$fk->CONSTRAINT_NAME}`");
+                    }
+                }
+            } else {
+                // For SQLite, foreign keys are handled differently - will be recreated below
+                try {
+                    Schema::table('calibre_requests', function (Blueprint $table) {
+                        $table->dropForeign(['calibre_id']);
+                    });
+                } catch (\Exception $e) {
+                    // Foreign key might not exist, continue
+                }
+            }
             
             // Update category enum to match FirearmCalibre categories
             if ($driver === 'mysql') {
@@ -85,10 +108,27 @@ return new class extends Migration
                 DB::statement("CREATE INDEX IF NOT EXISTS idx_calibre_requests_user_id ON calibre_requests(user_id)");
             }
             
-            // Re-add foreign key constraint pointing to firearm_calibres
-            Schema::table('calibre_requests', function (Blueprint $table) {
-                $table->foreign('calibre_id')->references('id')->on('firearm_calibres')->nullOnDelete();
-            });
+            // Re-add foreign key constraint pointing to firearm_calibres (if it doesn't already exist)
+            if ($driver === 'mysql') {
+                // Check if foreign key already exists
+                $existingFk = DB::select("
+                    SELECT CONSTRAINT_NAME 
+                    FROM information_schema.KEY_COLUMN_USAGE 
+                    WHERE TABLE_SCHEMA = DATABASE() 
+                    AND TABLE_NAME = 'calibre_requests' 
+                    AND COLUMN_NAME = 'calibre_id' 
+                    AND REFERENCED_TABLE_NAME = 'firearm_calibres'
+                ");
+                
+                if (empty($existingFk)) {
+                    Schema::table('calibre_requests', function (Blueprint $table) {
+                        $table->foreign('calibre_id')->references('id')->on('firearm_calibres')->nullOnDelete();
+                    });
+                }
+            } else {
+                // For SQLite, foreign keys are handled in the table recreation above
+                // No need to add separately
+            }
         }
     }
 
