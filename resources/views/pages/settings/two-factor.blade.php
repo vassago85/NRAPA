@@ -187,9 +187,6 @@ new class extends Component {
         $this->showVerificationStep = false;
         $this->reset('code');
         $this->resetErrorBag();
-        
-        // Also hide via JavaScript as fallback
-        $this->dispatch('hide-verification');
     }
 
     public function disable(DisableTwoFactorAuthentication $disableTwoFactorAuthentication): void
@@ -627,24 +624,22 @@ new class extends Component {
                                 <code class="text-sm font-mono bg-zinc-100 dark:bg-zinc-700 px-3 py-1 rounded">{{ $manualSetupKey }}</code>
                             </div>
 
-                            @if (!$showVerificationStep)
+                            <div id="continue-button-wrapper" style="display: {{ $showVerificationStep ? 'none' : 'block' }};">
                             <button type="button" 
-                                    wire:click="showVerificationIfNecessary"
+                                    wire:click.prevent="showVerificationIfNecessary"
                                     wire:loading.attr="disabled"
                                     wire:target="showVerificationIfNecessary"
-                                    onclick="setTimeout(() => { const verifyDiv = document.getElementById('verification-section'); if (verifyDiv) verifyDiv.style.display = 'block'; }, 100);"
+                                    onclick="event.preventDefault(); event.stopPropagation(); const verifyDiv = document.getElementById('verification-section'); const continueBtn = document.getElementById('continue-button-wrapper'); if (verifyDiv) { verifyDiv.style.display = 'block'; const input = verifyDiv.querySelector('#two-factor-code'); if (input) input.focus(); } if (continueBtn) continueBtn.style.display = 'none'; return false;"
                                     class="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium">
                                 <span wire:loading.remove wire:target="showVerificationIfNecessary">{{ __('Continue') }}</span>
                                 <span wire:loading wire:target="showVerificationIfNecessary">{{ __('Loading...') }}</span>
                             </button>
-                            @endif
+                            </div>
 
                             {{-- Verification Input - Always rendered, shown/hidden via display style --}}
                             <div id="verification-section" 
                                  class="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-700 space-y-4" 
                                  style="display: {{ $showVerificationStep ? 'block' : 'none' }};"
-                                 x-data
-                                 @hide-verification.window="$el.style.display = 'none'; document.getElementById('continue-button-wrapper').style.display = 'block';"
                                  wire:key="verification-section">
                                 <div class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                                     <p class="text-xs text-blue-700 dark:text-blue-300 text-center">
