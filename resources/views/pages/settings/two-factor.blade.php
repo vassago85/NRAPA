@@ -705,14 +705,14 @@ new class extends Component {
                 @endif
             @endif
         </div>
-    @if(!$isForced)
+@if(!$isForced)
     </x-settings-layout>
-    @else
+@else
                 </div>
             </div>
         </div>
     </div>
-    @endif
+@endif
 
     {{-- 2FA Setup Modal (only show if not forced) --}}
     @if($showModal && !$isForced)
