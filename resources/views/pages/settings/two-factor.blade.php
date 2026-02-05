@@ -644,7 +644,15 @@ new class extends Component {
                                     </p>
                                 </div>
                                 
-                                <input type="text" wire:model="code" maxlength="6" placeholder="000000"
+                                <input type="text" 
+                                       id="two-factor-code"
+                                       name="two_factor_code"
+                                       wire:model="code" 
+                                       maxlength="6" 
+                                       placeholder="000000"
+                                       autocomplete="one-time-code"
+                                       inputmode="numeric"
+                                       pattern="[0-9]{6}"
                                        class="w-full text-center text-2xl tracking-widest px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
                                        autofocus>
                                 @error('code') <p class="text-sm text-red-600 text-center">{{ $message }}</p> @enderror
