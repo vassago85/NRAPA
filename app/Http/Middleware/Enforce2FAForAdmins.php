@@ -30,8 +30,9 @@ class Enforce2FAForAdmins
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Skip 2FA enforcement in local/development environments
-        if (app()->environment(['local', 'development', 'testing'])) {
+        // Skip 2FA enforcement in local/development environments or test domains
+        if (app()->environment(['local', 'development', 'testing']) || 
+            str_contains($request->getHost(), 'charsley.co.za')) {
             return $next($request);
         }
 

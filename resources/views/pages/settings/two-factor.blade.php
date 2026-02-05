@@ -183,6 +183,9 @@ new class extends Component {
         // Reset the 2FA login counter when 2FA is successfully enabled
         auth()->user()->reset2FALoginCounter();
         
+        // Refresh user model to ensure counter reset is reflected
+        auth()->user()->refresh();
+        
         // Close modal and reset state
         $this->showModal = false;
         $this->showVerificationStep = false;
@@ -192,9 +195,8 @@ new class extends Component {
         $this->twoFactorEnabled = true;
         $this->isForced = false; // No longer forced after enabling
         
-        // If forced, redirect to dashboard after enabling
-        if (auth()->user()->hasExceeded2FALoginLimit() && auth()->user()->hasEnabledTwoFactorAuthentication()) {
-            auth()->user()->reset2FALoginCounter();
+        // If user was forced, redirect to dashboard after enabling
+        if ($this->isForced) {
             $this->redirect(route('dashboard'), navigate: true);
             return;
         }
