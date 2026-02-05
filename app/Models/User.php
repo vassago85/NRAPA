@@ -815,6 +815,16 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Check if user can disable 2FA.
+     * Admins, owners, and developers cannot disable 2FA (it's mandatory for them).
+     */
+    public function canDisable2FA(): bool
+    {
+        // Users who require 2FA cannot disable it
+        return !$this->requires2FA();
+    }
+
+    /**
      * Get the reason why 2FA cannot be enabled.
      */
     public function get2FABlockReason(): ?string
