@@ -115,7 +115,7 @@ new #[Title('Members - Admin')] class extends Component {
         $this->reset(['excelFile', 'importResults', 'defaultPassword', 'defaultMembershipType', 'skipDuplicates', 'autoApprove', 'autoActivate']);
     }
     
-    public function downloadTemplate(): void
+    public function downloadTemplate(): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         $importer = new ExcelMemberImporter();
         $tempPath = storage_path('app/temp/member_import_template.xlsx');
