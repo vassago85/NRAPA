@@ -287,6 +287,10 @@ new class extends Component {
                 </div>
                 <div class="space-y-6" wire:cloak>
                     @include('partials.two-factor-content')
+                </div>
+            </div>
+        </div>
+    </div>
 @else
     <section class="w-full">
         @include('partials.settings-heading')
@@ -294,15 +298,9 @@ new class extends Component {
         <x-settings-layout :heading="__('Two Factor Authentication')" :subheading="__('Add additional security to your account')">
             <div class="space-y-6" wire:cloak>
                 @include('partials.two-factor-content')
-@endif
-        </div>
-@if(!$isForced)
-    </x-settings-layout>
-@else
-                </div>
             </div>
-        </div>
-    </div>
+        </x-settings-layout>
+    </section>
 @endif
 
     {{-- 2FA Setup Modal (only show if not forced) --}}
