@@ -2,6 +2,14 @@
 
 use Illuminate\Support\Facades\Route;
 
+// Handle Livewire JS module requests (Volt components) - return empty JS to suppress 404s
+// This must be registered FIRST before any other routes to catch Livewire module requests
+Route::get('/livewire-{hash}/js/{path}', function ($hash, $path) {
+    return response('// Empty module - using inline scripts instead', 200)
+        ->header('Content-Type', 'application/javascript')
+        ->header('Cache-Control', 'no-cache, no-store, must-revalidate');
+})->where('hash', '[a-z0-9]+')->where('path', '.*')->name('livewire.js-module');
+
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
@@ -984,14 +992,6 @@ Route::get('verify/endorsement/{reference}', function ($reference) {
 })->name('endorsements.verify');
 
 require __DIR__.'/settings.php';
-
-// Handle Livewire JS module requests (Volt components) - return empty JS to suppress 404s
-// This must be registered before Livewire's routes
-Route::get('/livewire-{hash}/js/{path}', function ($hash, $path) {
-    return response('// Empty module - using inline scripts instead', 200)
-        ->header('Content-Type', 'application/javascript')
-        ->header('Cache-Control', 'no-cache, no-store, must-revalidate');
-})->where('hash', '[a-z0-9]+')->where('path', '.*')->name('livewire.js-module');
 
 // Temporary test route for FirearmSearchPanel component
 if (app()->environment('local', 'development', 'testing')) {
