@@ -164,13 +164,10 @@ new class extends Component {
 
     public function showVerificationIfNecessary(): void
     {
-        if ($this->requiresConfirmation) {
-            $this->showVerificationStep = true;
-            $this->resetErrorBag();
-            return;
-        }
-
-        $this->closeModal();
+        // Always show verification step to confirm 2FA setup
+        // This ensures users verify their authenticator app is working before completing setup
+        $this->showVerificationStep = true;
+        $this->resetErrorBag();
     }
 
     public function confirmTwoFactor(ConfirmTwoFactorAuthentication $confirmTwoFactorAuthentication): void
