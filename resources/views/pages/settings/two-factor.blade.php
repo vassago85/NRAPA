@@ -578,38 +578,6 @@ new class extends Component {
                             <p class="text-sm text-zinc-600 dark:text-zinc-400 mt-1">{{ $this->modalConfig['description'] }}</p>
                         </div>
 
-                        @if ($showVerificationStep)
-                            {{-- This section is now shown below QR code instead --}}
-                            <div class="space-y-4">
-                                <div class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                                    <p class="text-xs text-blue-700 dark:text-blue-300 text-center">
-                                        Open your authenticator app and enter the 6-digit code shown there. This code refreshes every 30 seconds.
-                                    </p>
-                                </div>
-                                
-                                <input type="text" wire:model="code" maxlength="6" placeholder="000000"
-                                       class="w-full text-center text-2xl tracking-widest px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
-                                       autofocus>
-                                @error('code') <p class="text-sm text-red-600 text-center">{{ $message }}</p> @enderror
-
-                                <div class="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                                    <p class="text-xs font-medium text-amber-800 dark:text-amber-200 text-center">
-                                        ⚠️ Remember: On your next login, you will be required to enter a code from your authenticator app to access your account.
-                                    </p>
-                                </div>
-
-                                <div class="flex gap-3">
-                                    <button type="button" wire:click="resetVerification"
-                                            class="flex-1 px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
-                                        {{ __('Back') }}
-                                    </button>
-                                    <button type="button" wire:click="confirmTwoFactor"
-                                            class="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium">
-                                        {{ __('Confirm') }}
-                                    </button>
-                                </div>
-                            </div>
-                        @else
                             {{-- Instructions Section --}}
                             <div class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-4">
                                 <div class="space-y-3">
@@ -656,6 +624,7 @@ new class extends Component {
                                 <code class="text-sm font-mono bg-zinc-100 dark:bg-zinc-700 px-3 py-1 rounded">{{ $manualSetupKey }}</code>
                             </div>
 
+                            @if (!$showVerificationStep)
                             <button type="button" 
                                     wire:click="showVerificationIfNecessary"
                                     wire:loading.attr="disabled"
@@ -664,6 +633,7 @@ new class extends Component {
                                 <span wire:loading.remove wire:target="showVerificationIfNecessary">{{ __('Continue') }}</span>
                                 <span wire:loading wire:target="showVerificationIfNecessary">{{ __('Loading...') }}</span>
                             </button>
+                            @endif
 
                             {{-- Verification Input - Shows below QR code after clicking Continue --}}
                             @if ($showVerificationStep)
