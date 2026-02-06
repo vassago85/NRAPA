@@ -146,11 +146,56 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             'user_agent' => request()->userAgent(),
         ]);
 
-        $message = $this->isFullyCompliant 
-            ? 'Endorsement request approved. You can now generate the letter.'
-            : 'Endorsement request approved despite non-compliance. You can now generate the letter.';
-        
-        session()->flash('success', $message);
+        // When compliant, auto-generate and issue the endorsement letter
+        if ($this->isFullyCompliant) {
+            $status = $this->memberDedicatedStatus;
+            $category = $this->selectedDedicatedCategory ?: $status['category'] ?? null;
+            if ($category && $status['compliant']) {
+                try {
+                    $letterReference = EndorsementRequest::generateLetterReference();
+                    $renderer = app(\App\Contracts\DocumentRenderer::class);
+                    $letterPath = $renderer->renderEndorsementLetter($this->request, 'documents.letters.endorsement');
+                    $this->request->issue(
+                        auth()->user(),
+                        $letterReference,
+                        $letterPath,
+                        $status['compliant'],
+                        $category
+                    );
+                    AuditLog::create([
+                        'user_id' => auth()->id(),
+                        'event' => 'endorsement_issued',
+                        'auditable_type' => EndorsementRequest::class,
+                        'auditable_id' => $this->request->id,
+                        'old_values' => ['status' => 'approved'],
+                        'new_values' => [
+                            'status' => 'issued',
+                            'letter_reference' => $letterReference,
+                            'dedicated_status_compliant' => $status['compliant'],
+                            'dedicated_category' => $category,
+                        ],
+                        'ip_address' => request()->ip(),
+                        'user_agent' => request()->userAgent(),
+                    ]);
+                    session()->flash('success', 'Endorsement approved and letter issued successfully. Reference: ' . $letterReference);
+                } catch (\Exception $e) {
+                    Log::error('Auto-issue endorsement letter after approval failed', [
+                        'request_id' => $this->request->id,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                    session()->flash('success', 'Endorsement request approved. Letter could not be generated automatically: ' . $e->getMessage());
+                }
+            } else {
+                $message = $category
+                    ? 'Endorsement request approved. You can now generate the letter.'
+                    : 'Endorsement request approved. Set dedicated category and generate the letter.';
+                session()->flash('success', $message);
+            }
+        } else {
+            session()->flash('success', 'Endorsement request approved despite non-compliance. You can now generate the letter.');
+        }
+
         $this->request->refresh();
     }
 

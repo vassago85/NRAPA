@@ -270,80 +270,13 @@
                             </div>
                         </div>
 
-                        {{-- Serial Numbers Section - At least one required --}}
-                        <div class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                            <h4 class="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-3">
-                                Serial Numbers <span class="text-red-500">*</span>
-                                <span class="font-normal text-amber-700 dark:text-amber-300">(At least one required)</span>
-                            </h4>
-                            
-                            {{-- 1.7 & 1.8 Barrel --}}
-                            <div class="grid gap-4 md:grid-cols-2 mb-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                        Barrel Serial Number
-                                        <span class="text-xs text-zinc-500">(1.7)</span>
-                                    </label>
-                                    <input type="text" wire:model.live="barrelSerialNumber" placeholder="Barrel serial" 
-                                        class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                        Barrel Make
-                                        <span class="text-xs text-zinc-500">(1.8)</span>
-                                    </label>
-                                    <input type="text" wire:model="barrelMake" placeholder="Barrel manufacturer" 
-                                        class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                </div>
-                            </div>
-
-                            {{-- 1.9 & 1.10 Frame --}}
-                            <div class="grid gap-4 md:grid-cols-2 mb-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                        Frame Serial Number
-                                        <span class="text-xs text-zinc-500">(1.9)</span>
-                                    </label>
-                                    <input type="text" wire:model.live="frameSerialNumber" placeholder="Frame serial" 
-                                        class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                        Frame Make
-                                        <span class="text-xs text-zinc-500">(1.10)</span>
-                                    </label>
-                                    <input type="text" wire:model="frameMake" placeholder="Frame manufacturer" 
-                                        class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                </div>
-                            </div>
-
-                            {{-- 1.11 & 1.12 Receiver --}}
-                            <div class="grid gap-4 md:grid-cols-2">
-                                <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                        Receiver Serial Number
-                                        <span class="text-xs text-zinc-500">(1.11)</span>
-                                    </label>
-                                    <input type="text" wire:model.live="receiverSerialNumber" placeholder="Receiver serial" 
-                                        class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                        Receiver Make
-                                        <span class="text-xs text-zinc-500">(1.12)</span>
-                                    </label>
-                                    <input type="text" wire:model="receiverMake" placeholder="Receiver manufacturer" 
-                                        class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                </div>
-                            </div>
-
-                            @if(!$this->hasAtLeastOneSerial)
-                                <p class="mt-3 text-sm text-red-600 dark:text-red-400">
-                                    Please provide at least one serial number (barrel, frame, or receiver).
-                                </p>
-                            @endif
-                            @error('serial') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
-                        </div>
+                        {{-- Serial numbers are collected in the FirearmSearchPanel above --}}
+                        @if(!$this->hasAtLeastOneSerial)
+                            <p class="text-sm text-red-600 dark:text-red-400">
+                                Please provide at least one serial number (barrel, frame, or receiver) in the firearm details above.
+                            </p>
+                        @endif
+                        @error('serial') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
 
                         {{-- Licence Information --}}
                         <div class="grid gap-6 md:grid-cols-2">
