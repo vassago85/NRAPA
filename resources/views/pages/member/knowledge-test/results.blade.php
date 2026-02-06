@@ -185,6 +185,28 @@ new #[Title('Test Results')] class extends Component {
 
         <div class="divide-y divide-zinc-200 dark:divide-zinc-700">
             @foreach($attempt->answers->sortBy('question.sort_order') as $index => $answer)
+            @php
+                $qType = $answer->question->question_type;
+                $typeColors = [
+                    'multiple_choice' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+                    'multiple_select' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                    'priority_order' => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+                    'written' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+                ];
+                $typeLabels = [
+                    'multiple_choice' => 'Single Answer',
+                    'multiple_select' => 'Multi-Select',
+                    'priority_order' => 'Priority Order',
+                    'written' => 'Written',
+                ];
+                
+                // Parse answer for multi-select and priority order
+                $memberAnswer = $answer->answer_text;
+                $memberAnswerArray = [];
+                if (!empty($memberAnswer) && str_starts_with($memberAnswer, '[')) {
+                    $memberAnswerArray = json_decode($memberAnswer, true) ?? [];
+                }
+            @endphp
             <div class="p-6">
                 <div class="flex items-start justify-between gap-4">
                     <div class="flex items-start gap-4">
@@ -193,8 +215,8 @@ new #[Title('Test Results')] class extends Component {
                         </div>
                         <div class="flex-1">
                             <div class="flex items-center gap-2">
-                                <span class="inline-flex items-center rounded-full {{ $answer->question->isMultipleChoice() ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' }} px-2 py-0.5 text-xs font-medium">
-                                    {{ $answer->question->isMultipleChoice() ? 'Multiple Choice' : 'Written' }}
+                                <span class="inline-flex items-center rounded-full {{ $typeColors[$qType] ?? '' }} px-2 py-0.5 text-xs font-medium">
+                                    {{ $typeLabels[$qType] ?? $qType }}
                                 </span>
                                 <span class="text-sm text-zinc-500 dark:text-zinc-400">
                                     {{ $answer->points_awarded ?? 0 }} / {{ $answer->question->points }} pts
@@ -209,41 +231,36 @@ new #[Title('Test Results')] class extends Component {
                             @endif
 
                             <div class="mt-3 space-y-3">
-                                {{-- Multiple Choice: Show all options --}}
-                                @if($answer->question->isMultipleChoice() && $answer->question->options && is_array($answer->question->options) && count($answer->question->options) > 0)
+                                @if($qType === 'multiple_choice')
+                                {{-- Multiple Choice: Show all options with single correct --}}
+                                @if($answer->question->options && is_array($answer->question->options) && count($answer->question->options) > 0)
                                 <div class="space-y-2">
                                     <p class="text-xs font-medium text-zinc-500 dark:text-zinc-400">Options:</p>
                                     <div class="grid gap-2">
-                                        @foreach($answer->question->options as $key => $optionText)
+                                        @foreach($answer->question->options as $optionKey => $optionText)
                                         @php
-                                            $isSelected = $answer->answer_text === $key;
-                                            $isCorrect = $answer->question->correct_answer === $key;
+                                            $isSelected = $answer->answer_text === $optionKey;
+                                            $isCorrect = $answer->question->correct_answer === $optionKey;
                                         @endphp
                                         <div class="flex items-start gap-3 rounded-lg border p-3 text-sm
                                             {{ $isCorrect ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/30' : '' }}
                                             {{ $isSelected && !$isCorrect ? 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/30' : '' }}
                                             {{ !$isSelected && !$isCorrect ? 'border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800' : '' }}">
-                                            <span class="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold
-                                                {{ $isCorrect ? 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200' : '' }}
-                                                {{ $isSelected && !$isCorrect ? 'bg-red-200 text-red-800 dark:bg-red-800 dark:text-red-200' : '' }}
-                                                {{ !$isSelected && !$isCorrect ? 'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400' : '' }}">
-                                                {{ $key }}
-                                            </span>
                                             <div class="flex-1">
                                                 <span class="{{ $isCorrect ? 'text-green-800 dark:text-green-200' : ($isSelected ? 'text-red-800 dark:text-red-200' : 'text-zinc-700 dark:text-zinc-300') }}">
-                                                    {{ $optionText ?? '' }}
+                                                    <span class="font-semibold">{{ $optionKey }}.</span> {{ $optionText }}
                                                 </span>
                                                 @if($isCorrect && $isSelected)
                                                 <span class="ml-2 inline-flex items-center rounded-full bg-green-200 px-2 py-0.5 text-xs font-semibold text-green-800 dark:bg-green-800 dark:text-green-200">
-                                                    ✓ Your Answer - Correct!
+                                                    Your Answer - Correct!
                                                 </span>
                                                 @elseif($isCorrect)
                                                 <span class="ml-2 inline-flex items-center rounded-full bg-green-200 px-2 py-0.5 text-xs font-semibold text-green-800 dark:bg-green-800 dark:text-green-200">
-                                                    ✓ Correct Answer
+                                                    Correct Answer
                                                 </span>
                                                 @elseif($isSelected)
                                                 <span class="ml-2 inline-flex items-center rounded-full bg-red-200 px-2 py-0.5 text-xs font-semibold text-red-800 dark:bg-red-800 dark:text-red-200">
-                                                    ✗ Your Answer
+                                                    Your Answer
                                                 </span>
                                                 @endif
                                             </div>
@@ -251,21 +268,92 @@ new #[Title('Test Results')] class extends Component {
                                         @endforeach
                                     </div>
                                 </div>
-                                @else
-                                {{-- Written questions or MC without options --}}
-                                <div class="rounded-lg border {{ $answer->is_correct ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' }} p-3">
-                                    <p class="text-xs font-medium {{ $answer->is_correct ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">Your Answer:</p>
-                                    <p class="mt-1 text-sm {{ $answer->is_correct ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200' }}">
+                                @endif
+
+                                @elseif($qType === 'multiple_select')
+                                {{-- Multi-Select: Show all options with multiple correct --}}
+                                @php
+                                    $correctAnswers = $answer->question->correct_answers ?? [];
+                                @endphp
+                                <div class="space-y-2">
+                                    <p class="text-xs font-medium text-zinc-500 dark:text-zinc-400">Options (multiple correct answers):</p>
+                                    <div class="grid gap-2">
+                                        @foreach($answer->question->options as $optionKey => $optionText)
+                                        @php
+                                            $isSelected = in_array($optionKey, $memberAnswerArray);
+                                            $isCorrect = in_array($optionKey, $correctAnswers);
+                                        @endphp
+                                        <div class="flex items-start gap-3 rounded-lg border p-3 text-sm
+                                            {{ $isCorrect && $isSelected ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/30' : '' }}
+                                            {{ $isCorrect && !$isSelected ? 'border-yellow-300 bg-yellow-50 dark:border-yellow-700 dark:bg-yellow-900/30' : '' }}
+                                            {{ $isSelected && !$isCorrect ? 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/30' : '' }}
+                                            {{ !$isSelected && !$isCorrect ? 'border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800' : '' }}">
+                                            <input type="checkbox" disabled {{ $isSelected ? 'checked' : '' }} class="mt-0.5 size-4 rounded border-zinc-300">
+                                            <div class="flex-1">
+                                                <span class="{{ $isCorrect ? 'text-green-800 dark:text-green-200' : ($isSelected ? 'text-red-800 dark:text-red-200' : 'text-zinc-700 dark:text-zinc-300') }}">
+                                                    <span class="font-semibold">{{ $optionKey }}.</span> {{ $optionText }}
+                                                </span>
+                                                @if($isCorrect && $isSelected)
+                                                <span class="ml-2 inline-flex items-center rounded-full bg-green-200 px-2 py-0.5 text-xs font-semibold text-green-800 dark:bg-green-800 dark:text-green-200">
+                                                    Correct!
+                                                </span>
+                                                @elseif($isCorrect)
+                                                <span class="ml-2 inline-flex items-center rounded-full bg-yellow-200 px-2 py-0.5 text-xs font-semibold text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200">
+                                                    Missed
+                                                </span>
+                                                @elseif($isSelected)
+                                                <span class="ml-2 inline-flex items-center rounded-full bg-red-200 px-2 py-0.5 text-xs font-semibold text-red-800 dark:bg-red-800 dark:text-red-200">
+                                                    Wrong
+                                                </span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+
+                                @elseif($qType === 'priority_order')
+                                {{-- Priority Order: Show member's order vs correct order --}}
+                                @php
+                                    $options = $answer->question->options ?? [];
+                                    $correctOrder = $answer->question->correct_answers ?? array_keys($options);
+                                @endphp
+                                <div class="grid gap-4 sm:grid-cols-2">
+                                    <div class="space-y-2">
+                                        <p class="text-xs font-medium text-zinc-500 dark:text-zinc-400">Your Order:</p>
+                                        @foreach($memberAnswerArray as $idx => $key)
+                                        @php
+                                            $correctPosition = array_search($key, $correctOrder);
+                                            $isCorrectPosition = $correctPosition === $idx;
+                                            $optionText = $options[$key] ?? $key;
+                                        @endphp
+                                        <div class="flex items-center gap-2 rounded-lg border p-2 text-sm
+                                            {{ $isCorrectPosition ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/30' : 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/30' }}">
+                                            <span class="flex size-5 items-center justify-center rounded-full {{ $isCorrectPosition ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800' }} text-xs font-bold">{{ $idx + 1 }}</span>
+                                            <span class="{{ $isCorrectPosition ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300' }}"><span class="font-semibold">{{ $key }}.</span> {{ $optionText }}</span>
+                                        </div>
+                                        @endforeach
+                                    </div>
+                                    <div class="space-y-2">
+                                        <p class="text-xs font-medium text-green-600 dark:text-green-400">Correct Order:</p>
+                                        @foreach($correctOrder as $idx => $key)
+                                        @php $optionText = $options[$key] ?? $key; @endphp
+                                        <div class="flex items-center gap-2 rounded-lg border border-green-300 bg-green-50 p-2 text-sm dark:border-green-700 dark:bg-green-900/30">
+                                            <span class="flex size-5 items-center justify-center rounded-full bg-green-200 text-xs font-bold text-green-800">{{ $idx + 1 }}</span>
+                                            <span class="text-green-700 dark:text-green-300"><span class="font-semibold">{{ $key }}.</span> {{ $optionText }}</span>
+                                        </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+
+                                @elseif($qType === 'written')
+                                {{-- Written answer --}}
+                                <div class="rounded-lg border {{ $answer->is_correct ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 'border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800' }} p-3">
+                                    <p class="text-xs font-medium {{ $answer->is_correct ? 'text-green-600 dark:text-green-400' : 'text-zinc-500 dark:text-zinc-400' }}">Your Answer:</p>
+                                    <p class="mt-1 text-sm {{ $answer->is_correct ? 'text-green-800 dark:text-green-200' : 'text-zinc-700 dark:text-zinc-300' }}">
                                         {{ $answer->answer_text ?: '(No answer provided)' }}
                                     </p>
                                 </div>
-
-                                @if($answer->question->isMultipleChoice() && !$answer->is_correct)
-                                <div class="rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-900/20">
-                                    <p class="text-xs font-medium text-green-600 dark:text-green-400">Correct Answer:</p>
-                                    <p class="mt-1 text-sm text-green-800 dark:text-green-200">{{ $answer->question->correct_answer }}</p>
-                                </div>
-                                @endif
                                 @endif
 
                                 @if($answer->marker_feedback)

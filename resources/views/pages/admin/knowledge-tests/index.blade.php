@@ -10,7 +10,7 @@ new #[Title('Knowledge Tests - Admin')] class extends Component {
     #[Computed]
     public function tests()
     {
-        return KnowledgeTest::withCount(['questions', 'attempts'])
+        return KnowledgeTest::withCount(['activeQuestions', 'attempts'])
             ->orderBy('name')
             ->get();
     }

@@ -20,6 +20,7 @@ class KnowledgeTestQuestion extends Model
         'image_path',
         'options',
         'correct_answer',
+        'correct_answers',
         'points',
         'sort_order',
         'is_active',
@@ -34,6 +35,7 @@ class KnowledgeTestQuestion extends Model
     {
         return [
             'options' => 'array',
+            'correct_answers' => 'array',
             'points' => 'integer',
             'sort_order' => 'integer',
             'is_active' => 'boolean',
@@ -73,6 +75,47 @@ class KnowledgeTestQuestion extends Model
     }
 
     /**
+     * Check if the question is multiple select (checkboxes - multiple answers).
+     */
+    public function isMultipleSelect(): bool
+    {
+        return $this->question_type === 'multiple_select';
+    }
+
+    /**
+     * Check if the question is priority order (drag to order).
+     */
+    public function isPriorityOrder(): bool
+    {
+        return $this->question_type === 'priority_order';
+    }
+
+    /**
+     * Check if this question can be auto-marked.
+     */
+    public function isAutoMarkable(): bool
+    {
+        return in_array($this->question_type, ['multiple_choice', 'multiple_select', 'priority_order']);
+    }
+
+    /**
+     * Get correct answers as array (for multi-select and priority questions).
+     */
+    public function getCorrectAnswersArray(): array
+    {
+        if ($this->correct_answers) {
+            return $this->correct_answers;
+        }
+
+        // Fallback for single correct_answer (multiple_choice)
+        if ($this->correct_answer) {
+            return [$this->correct_answer];
+        }
+
+        return [];
+    }
+
+    /**
      * Check if an answer is correct (for multiple choice).
      */
     public function isCorrectAnswer(string $answer): bool
@@ -82,6 +125,79 @@ class KnowledgeTestQuestion extends Model
         }
 
         return strtolower(trim($answer)) === strtolower(trim($this->correct_answer));
+    }
+
+    /**
+     * Check multi-select answers and return score info.
+     * Returns ['correct' => bool, 'partial_score' => float (0-1), 'correct_count' => int, 'total' => int]
+     */
+    public function checkMultiSelectAnswer(array $selectedAnswers): array
+    {
+        if (!$this->isMultipleSelect()) {
+            return ['correct' => false, 'partial_score' => 0, 'correct_count' => 0, 'total' => 0];
+        }
+
+        $correctAnswers = $this->getCorrectAnswersArray();
+        $normalizedCorrect = array_map(fn($a) => strtolower(trim($a)), $correctAnswers);
+        $normalizedSelected = array_map(fn($a) => strtolower(trim($a)), $selectedAnswers);
+
+        // Count correct selections
+        $correctCount = count(array_intersect($normalizedSelected, $normalizedCorrect));
+        $totalCorrect = count($correctAnswers);
+
+        // Check for wrong selections (selected but not in correct answers)
+        $wrongSelections = count(array_diff($normalizedSelected, $normalizedCorrect));
+
+        // Exact match = fully correct
+        $isExactMatch = $correctCount === $totalCorrect && $wrongSelections === 0;
+
+        // Partial score: correct selections minus penalties for wrong ones
+        $partialScore = $totalCorrect > 0 
+            ? max(0, ($correctCount - $wrongSelections) / $totalCorrect) 
+            : 0;
+
+        return [
+            'correct' => $isExactMatch,
+            'partial_score' => $partialScore,
+            'correct_count' => $correctCount,
+            'wrong_count' => $wrongSelections,
+            'total' => $totalCorrect,
+        ];
+    }
+
+    /**
+     * Check priority order answers and return score info.
+     * Returns ['correct' => bool, 'partial_score' => float (0-1), 'positions_correct' => int, 'total' => int]
+     */
+    public function checkPriorityOrderAnswer(array $orderedAnswers): array
+    {
+        if (!$this->isPriorityOrder()) {
+            return ['correct' => false, 'partial_score' => 0, 'positions_correct' => 0, 'total' => 0];
+        }
+
+        $correctOrder = $this->getCorrectAnswersArray();
+        $normalizedCorrect = array_map(fn($a) => strtolower(trim($a)), $correctOrder);
+        $normalizedOrdered = array_map(fn($a) => strtolower(trim($a)), $orderedAnswers);
+
+        $total = count($correctOrder);
+        $positionsCorrect = 0;
+
+        // Compare position by position
+        for ($i = 0; $i < $total; $i++) {
+            if (isset($normalizedOrdered[$i]) && $normalizedOrdered[$i] === $normalizedCorrect[$i]) {
+                $positionsCorrect++;
+            }
+        }
+
+        $isExactMatch = $positionsCorrect === $total;
+        $partialScore = $total > 0 ? $positionsCorrect / $total : 0;
+
+        return [
+            'correct' => $isExactMatch,
+            'partial_score' => $partialScore,
+            'positions_correct' => $positionsCorrect,
+            'total' => $total,
+        ];
     }
 
     /**
@@ -114,6 +230,30 @@ class KnowledgeTestQuestion extends Model
     public function scopeWritten($query)
     {
         return $query->where('question_type', 'written');
+    }
+
+    /**
+     * Scope to only multiple select questions.
+     */
+    public function scopeMultipleSelect($query)
+    {
+        return $query->where('question_type', 'multiple_select');
+    }
+
+    /**
+     * Scope to only priority order questions.
+     */
+    public function scopePriorityOrder($query)
+    {
+        return $query->where('question_type', 'priority_order');
+    }
+
+    /**
+     * Scope to auto-markable questions.
+     */
+    public function scopeAutoMarkable($query)
+    {
+        return $query->whereIn('question_type', ['multiple_choice', 'multiple_select', 'priority_order']);
     }
 
     /**

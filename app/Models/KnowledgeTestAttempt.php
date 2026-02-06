@@ -132,6 +132,7 @@ class KnowledgeTestAttempt extends Model
         }
 
         // Check if all written questions have been marked
+        // (multiple_choice, multiple_select, and priority_order are auto-marked)
         $writtenAnswers = $this->answers()
             ->whereHas('question', fn ($q) => $q->where('question_type', 'written'))
             ->get();
@@ -189,15 +190,60 @@ class KnowledgeTestAttempt extends Model
      */
     public function submit(): void
     {
-        // Auto-score multiple choice answers
+        // Auto-score auto-markable answers (multiple choice, multiple select, priority order)
         $autoScore = 0;
         foreach ($this->answers as $answer) {
-            if ($answer->question->isMultipleChoice()) {
-                $isCorrect = $answer->question->isCorrectAnswer($answer->answer_text ?? '');
-                $pointsAwarded = $isCorrect ? $answer->question->points : 0;
+            $question = $answer->question;
+            
+            if ($question->isMultipleChoice()) {
+                // Single answer - existing logic
+                $isCorrect = $question->isCorrectAnswer($answer->answer_text ?? '');
+                $pointsAwarded = $isCorrect ? $question->points : 0;
 
                 $answer->update([
                     'is_correct' => $isCorrect,
+                    'points_awarded' => $pointsAwarded,
+                ]);
+
+                $autoScore += $pointsAwarded;
+            } elseif ($question->isMultipleSelect()) {
+                // Multiple answers - check all selections
+                $answerText = $answer->answer_text ?? '';
+                $selectedAnswers = [];
+                
+                // Parse JSON array from answer
+                if (!empty($answerText) && str_starts_with($answerText, '[')) {
+                    $selectedAnswers = json_decode($answerText, true) ?? [];
+                }
+                
+                $result = $question->checkMultiSelectAnswer($selectedAnswers);
+                
+                // Award points based on partial_score (0-1) * total points
+                $pointsAwarded = (int) round($result['partial_score'] * $question->points);
+                
+                $answer->update([
+                    'is_correct' => $result['correct'],
+                    'points_awarded' => $pointsAwarded,
+                ]);
+
+                $autoScore += $pointsAwarded;
+            } elseif ($question->isPriorityOrder()) {
+                // Priority order - check sequence
+                $answerText = $answer->answer_text ?? '';
+                $orderedAnswers = [];
+                
+                // Parse JSON array from answer
+                if (!empty($answerText) && str_starts_with($answerText, '[')) {
+                    $orderedAnswers = json_decode($answerText, true) ?? [];
+                }
+                
+                $result = $question->checkPriorityOrderAnswer($orderedAnswers);
+                
+                // Award points based on partial_score (0-1) * total points
+                $pointsAwarded = (int) round($result['partial_score'] * $question->points);
+                
+                $answer->update([
+                    'is_correct' => $result['correct'],
                     'points_awarded' => $pointsAwarded,
                 ]);
 

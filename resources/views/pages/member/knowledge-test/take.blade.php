@@ -39,7 +39,14 @@ new #[Title('Take Test')] class extends Component {
 
         // Load saved answers
         foreach ($this->attempt->answers as $answer) {
-            $this->answers[$answer->question_id] = $answer->answer_text ?? '';
+            // Try to decode JSON for array answers (multi-select, priority order)
+            $answerText = $answer->answer_text ?? '';
+            if (!empty($answerText) && str_starts_with($answerText, '[')) {
+                $decoded = json_decode($answerText, true);
+                $this->answers[$answer->question_id] = is_array($decoded) ? $decoded : $answerText;
+            } else {
+                $this->answers[$answer->question_id] = $answerText;
+            }
         }
     }
 
@@ -64,7 +71,12 @@ new #[Title('Take Test')] class extends Component {
     #[Computed]
     public function progress()
     {
-        $answered = collect($this->answers)->filter(fn ($a) => !empty($a))->count();
+        $answered = collect($this->answers)->filter(function ($a) {
+            if (is_array($a)) {
+                return count($a) > 0;
+            }
+            return !empty($a);
+        })->count();
         return [
             'answered' => $answered,
             'total' => $this->questions->count(),
@@ -77,11 +89,44 @@ new #[Title('Take Test')] class extends Component {
         if (!$this->currentQuestion) return;
 
         $questionId = $this->currentQuestion->id;
-        $answerText = $this->answers[$questionId] ?? '';
+        $answer = $this->answers[$questionId] ?? '';
+
+        // Convert array answers to JSON for storage
+        $answerText = is_array($answer) ? json_encode($answer) : $answer;
 
         $this->attempt->answers()
             ->where('question_id', $questionId)
             ->update(['answer_text' => $answerText]);
+    }
+
+    // Toggle a multi-select option
+    public function toggleMultiSelectOption(string $option): void
+    {
+        if (!$this->currentQuestion) return;
+
+        $questionId = $this->currentQuestion->id;
+        $currentAnswers = $this->answers[$questionId] ?? [];
+
+        if (!is_array($currentAnswers)) {
+            $currentAnswers = [];
+        }
+
+        if (in_array($option, $currentAnswers)) {
+            $currentAnswers = array_values(array_diff($currentAnswers, [$option]));
+        } else {
+            $currentAnswers[] = $option;
+        }
+
+        $this->answers[$questionId] = $currentAnswers;
+    }
+
+    // Update priority order from drag-and-drop
+    public function updatePriorityOrder(array $order): void
+    {
+        if (!$this->currentQuestion) return;
+
+        $questionId = $this->currentQuestion->id;
+        $this->answers[$questionId] = $order;
     }
 
     public function previousQuestion(): void
@@ -214,9 +259,24 @@ new #[Title('Take Test')] class extends Component {
             @if($this->currentQuestion)
             <div class="mx-auto max-w-3xl">
                 <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+                    @php
+                        $typeColors = [
+                            'multiple_choice' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+                            'multiple_select' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                            'priority_order' => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+                            'written' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+                        ];
+                        $typeLabels = [
+                            'multiple_choice' => 'Select One Answer',
+                            'multiple_select' => 'Select All That Apply',
+                            'priority_order' => 'Drag to Order',
+                            'written' => 'Written Answer',
+                        ];
+                        $qType = $this->currentQuestion->question_type;
+                    @endphp
                     <div class="mb-4 flex items-center gap-2">
-                        <span class="inline-flex items-center rounded-full {{ $this->currentQuestion->isMultipleChoice() ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' }} px-2.5 py-0.5 text-xs font-medium">
-                            {{ $this->currentQuestion->isMultipleChoice() ? 'Multiple Choice' : 'Written Answer' }}
+                        <span class="inline-flex items-center rounded-full {{ $typeColors[$qType] ?? 'bg-zinc-100 text-zinc-800' }} px-2.5 py-0.5 text-xs font-medium">
+                            {{ $typeLabels[$qType] ?? $qType }}
                         </span>
                         <span class="text-sm text-zinc-500 dark:text-zinc-400">{{ $this->currentQuestion->points }} {{ Str::plural('point', $this->currentQuestion->points) }}</span>
                     </div>
@@ -231,20 +291,108 @@ new #[Title('Take Test')] class extends Component {
 
                     <div class="mt-6">
                         @if($this->currentQuestion->isMultipleChoice())
+                        {{-- Single answer - Radio buttons --}}
                         <div class="space-y-3">
-                            @foreach($this->currentQuestion->options as $option)
-                            <label class="flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors {{ ($this->answers[$this->currentQuestion->id] ?? '') === $option ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-400 dark:bg-emerald-900/20' : 'border-zinc-200 hover:border-zinc-300 dark:border-zinc-700 dark:hover:border-zinc-600' }}">
+                            @foreach($this->currentQuestion->options as $optionKey => $optionText)
+                            <label class="flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors {{ ($this->answers[$this->currentQuestion->id] ?? '') === $optionKey ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-400 dark:bg-emerald-900/20' : 'border-zinc-200 hover:border-zinc-300 dark:border-zinc-700 dark:hover:border-zinc-600' }}">
                                 <input
                                     type="radio"
                                     wire:model="answers.{{ $this->currentQuestion->id }}"
-                                    value="{{ $option }}"
+                                    value="{{ $optionKey }}"
                                     class="size-4 border-zinc-300 text-emerald-600 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700"
                                 >
-                                <span class="text-zinc-900 dark:text-white">{{ $option }}</span>
+                                <span class="text-zinc-900 dark:text-white">{{ $optionText }}</span>
                             </label>
                             @endforeach
                         </div>
-                        @else
+                        @elseif($this->currentQuestion->isMultipleSelect())
+                        {{-- Multiple answers - Checkboxes --}}
+                        @php
+                            $selectedAnswers = $this->answers[$this->currentQuestion->id] ?? [];
+                            if (!is_array($selectedAnswers)) $selectedAnswers = [];
+                        @endphp
+                        <div class="space-y-3">
+                            @foreach($this->currentQuestion->options as $optionKey => $optionText)
+                            <label class="flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors {{ in_array($optionKey, $selectedAnswers) ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-400 dark:bg-emerald-900/20' : 'border-zinc-200 hover:border-zinc-300 dark:border-zinc-700 dark:hover:border-zinc-600' }}">
+                                <input
+                                    type="checkbox"
+                                    wire:click="toggleMultiSelectOption('{{ addslashes($optionKey) }}')"
+                                    {{ in_array($optionKey, $selectedAnswers) ? 'checked' : '' }}
+                                    class="size-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700"
+                                >
+                                <span class="text-zinc-900 dark:text-white">{{ $optionText }}</span>
+                            </label>
+                            @endforeach
+                        </div>
+                        <p class="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                            {{ count($selectedAnswers) }} option(s) selected
+                        </p>
+                        @elseif($this->currentQuestion->isPriorityOrder())
+                        {{-- Priority order - Drag and drop --}}
+                        @php
+                            $options = $this->currentQuestion->options ?? [];
+                            $savedOrder = $this->answers[$this->currentQuestion->id] ?? [];
+                            // Initialize with keys in original order if no saved order
+                            if (!is_array($savedOrder) || empty($savedOrder)) {
+                                $orderedKeys = array_keys($options);
+                            } else {
+                                $orderedKeys = $savedOrder;
+                            }
+                        @endphp
+                        <div class="rounded-lg border border-purple-200 bg-purple-50 p-3 mb-4 dark:border-purple-800 dark:bg-purple-900/20">
+                            <p class="text-xs text-purple-700 dark:text-purple-300">Drag items to arrange them in the correct order. Position 1 is at the top.</p>
+                        </div>
+                        <div 
+                            x-data="{
+                                orderedKeys: @js($orderedKeys),
+                                optionsMap: @js($options),
+                                draggedIndex: null,
+                                init() {
+                                    // Initialize if empty
+                                    if (this.orderedKeys.length === 0) {
+                                        this.orderedKeys = Object.keys(this.optionsMap);
+                                    }
+                                },
+                                startDrag(index) {
+                                    this.draggedIndex = index;
+                                },
+                                dragOver(index) {
+                                    if (this.draggedIndex === null || this.draggedIndex === index) return;
+                                    
+                                    const item = this.orderedKeys[this.draggedIndex];
+                                    this.orderedKeys.splice(this.draggedIndex, 1);
+                                    this.orderedKeys.splice(index, 0, item);
+                                    this.draggedIndex = index;
+                                },
+                                endDrag() {
+                                    this.draggedIndex = null;
+                                    $wire.updatePriorityOrder(this.orderedKeys);
+                                },
+                                getOptionText(key) {
+                                    return this.optionsMap[key] || key;
+                                }
+                            }"
+                            class="space-y-2"
+                        >
+                            <template x-for="(key, index) in orderedKeys" :key="key">
+                                <div 
+                                    draggable="true"
+                                    @dragstart="startDrag(index)"
+                                    @dragover.prevent="dragOver(index)"
+                                    @dragend="endDrag()"
+                                    class="flex cursor-move items-center gap-3 rounded-lg border border-zinc-200 bg-white p-4 transition-colors hover:border-purple-300 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-purple-600"
+                                    :class="{ 'opacity-50': draggedIndex === index }"
+                                >
+                                    <span class="flex size-6 items-center justify-center rounded-full bg-purple-100 text-xs font-bold text-purple-700 dark:bg-purple-900 dark:text-purple-300" x-text="index + 1"></span>
+                                    <svg class="size-5 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                                    </svg>
+                                    <span class="text-zinc-900 dark:text-white" x-text="getOptionText(key)"></span>
+                                </div>
+                            </template>
+                        </div>
+                        @elseif($this->currentQuestion->isWritten())
+                        {{-- Written answer - Textarea --}}
                         <textarea
                             wire:model="answers.{{ $this->currentQuestion->id }}"
                             rows="6"

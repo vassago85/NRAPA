@@ -22,6 +22,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
     public bool $removeImage = false;
     public array $options = ['', '', '', ''];
     public string $correctAnswer = '';
+    public array $correctAnswers = []; // For multi-select and priority order
     public int $points = 1;
 
     // JSON Import
@@ -61,8 +62,32 @@ new #[Title('Manage Questions - Admin')] class extends Component {
         $this->existingImagePath = $question->image_path;
         $this->questionImage = null;
         $this->removeImage = false;
-        $this->options = $question->options ?? ['', '', '', ''];
-        $this->correctAnswer = $question->correct_answer ?? '';
+        
+        // Convert letter-keyed options back to flat array for editing
+        $options = $question->options ?? [];
+        if (!empty($options)) {
+            // Check if options use letter keys (associative array)
+            $firstKey = array_key_first($options);
+            if (is_string($firstKey) && preg_match('/^[A-Z]$/', $firstKey)) {
+                // Letter-keyed format: extract values and build key map
+                $this->options = array_values($options);
+                // Convert letter key to option text for correctAnswer
+                $this->correctAnswer = $options[$question->correct_answer] ?? $question->correct_answer ?? '';
+                // Convert letter keys to option texts for correctAnswers
+                $correctAnswers = $question->correct_answers ?? [];
+                $this->correctAnswers = array_map(fn($key) => $options[$key] ?? $key, $correctAnswers);
+            } else {
+                // Numeric-keyed format (legacy): use as-is
+                $this->options = array_values($options);
+                $this->correctAnswer = $question->correct_answer ?? '';
+                $this->correctAnswers = $question->correct_answers ?? [];
+            }
+        } else {
+            $this->options = ['', '', '', ''];
+            $this->correctAnswer = '';
+            $this->correctAnswers = [];
+        }
+        
         $this->points = $question->points;
     }
 
@@ -75,18 +100,38 @@ new #[Title('Manage Questions - Admin')] class extends Component {
     public function saveQuestion(): void
     {
         $this->validate([
-            'questionType' => ['required', 'in:multiple_choice,written'],
+            'questionType' => ['required', 'in:multiple_choice,multiple_select,priority_order,written'],
             'questionText' => ['required', 'string', 'max:2000'],
             'questionImage' => ['nullable', 'image', 'max:5120'], // 5MB max
             'points' => ['required', 'integer', 'min:1', 'max:100'],
         ]);
 
+        // Validate multiple choice (single answer)
         if ($this->questionType === 'multiple_choice') {
             $this->validate([
                 'options' => ['required', 'array', 'min:2'],
                 'options.*' => ['required', 'string', 'max:500'],
                 'correctAnswer' => ['required', 'string'],
             ]);
+        }
+
+        // Validate multiple select (multiple correct answers)
+        if ($this->questionType === 'multiple_select') {
+            $this->validate([
+                'options' => ['required', 'array', 'min:2'],
+                'options.*' => ['required', 'string', 'max:500'],
+                'correctAnswers' => ['required', 'array', 'min:1'],
+            ]);
+        }
+
+        // Validate priority order (all options, order matters)
+        if ($this->questionType === 'priority_order') {
+            $this->validate([
+                'options' => ['required', 'array', 'min:2'],
+                'options.*' => ['required', 'string', 'max:500'],
+            ]);
+            // For priority order, the correct order is stored in correctAnswers
+            // which is set by dragging in the UI
         }
 
         // Handle image upload
@@ -105,13 +150,45 @@ new #[Title('Manage Questions - Admin')] class extends Component {
             $imagePath = $this->questionImage->store('knowledge-test-images', 'public');
         }
 
+        // Prepare options array with letter keys (A, B, C, D, ...)
+        $filteredOptions = array_filter($this->options);
+        $letterOptions = [];
+        $optionKeyMap = []; // Map option text to letter key
+        $letterIndex = 0;
+        foreach ($filteredOptions as $option) {
+            $letter = chr(65 + $letterIndex); // A, B, C, D, ...
+            $letterOptions[$letter] = $option;
+            $optionKeyMap[$option] = $letter;
+            $letterIndex++;
+        }
+
+        // Determine correct answer(s) based on question type
+        $correctAnswer = null;
+        $correctAnswers = null;
+
+        if ($this->questionType === 'multiple_choice') {
+            // Convert option text to letter key
+            $correctAnswer = $optionKeyMap[$this->correctAnswer] ?? $this->correctAnswer;
+        } elseif ($this->questionType === 'multiple_select') {
+            // Convert option texts to letter keys
+            $correctAnswers = array_map(fn($opt) => $optionKeyMap[$opt] ?? $opt, $this->correctAnswers);
+        } elseif ($this->questionType === 'priority_order') {
+            // For priority order, store the correct order as letter keys
+            if (!empty($this->correctAnswers)) {
+                $correctAnswers = array_map(fn($opt) => $optionKeyMap[$opt] ?? $opt, $this->correctAnswers);
+            } else {
+                $correctAnswers = array_keys($letterOptions);
+            }
+        }
+
         $data = [
             'knowledge_test_id' => $this->test->id,
             'question_type' => $this->questionType,
             'question_text' => $this->questionText,
             'image_path' => $imagePath,
-            'options' => $this->questionType === 'multiple_choice' ? array_values(array_filter($this->options)) : null,
-            'correct_answer' => $this->questionType === 'multiple_choice' ? $this->correctAnswer : null,
+            'options' => in_array($this->questionType, ['multiple_choice', 'multiple_select', 'priority_order']) ? $letterOptions : null,
+            'correct_answer' => $correctAnswer,
+            'correct_answers' => $correctAnswers,
             'points' => $this->points,
             'is_active' => true,
         ];
@@ -194,7 +271,24 @@ new #[Title('Manage Questions - Admin')] class extends Component {
         $this->removeImage = false;
         $this->options = ['', '', '', ''];
         $this->correctAnswer = '';
+        $this->correctAnswers = [];
         $this->points = 1;
+    }
+
+    // Toggle correct answer for multi-select
+    public function toggleCorrectAnswer(string $option): void
+    {
+        if (in_array($option, $this->correctAnswers)) {
+            $this->correctAnswers = array_values(array_diff($this->correctAnswers, [$option]));
+        } else {
+            $this->correctAnswers[] = $option;
+        }
+    }
+
+    // Update priority order from drag-and-drop
+    public function updatePriorityOrder(array $order): void
+    {
+        $this->correctAnswers = $order;
     }
 
     // JSON Import/Export Methods
@@ -245,9 +339,9 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                     }
 
                     $questionType = $questionData['question_type'];
-                    if (!in_array($questionType, ['multiple_choice', 'written'])) {
+                    if (!in_array($questionType, ['multiple_choice', 'multiple_select', 'priority_order', 'written'])) {
                         $skipped++;
-                        $errors[] = "Question #{$index}: Invalid question_type (must be 'multiple_choice' or 'written')";
+                        $errors[] = "Question #{$index}: Invalid question_type (must be 'multiple_choice', 'multiple_select', 'priority_order', or 'written')";
                         continue;
                     }
 
@@ -265,14 +359,46 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                         }
                     }
 
+                    // Validate multiple select questions
+                    if ($questionType === 'multiple_select') {
+                        if (empty($questionData['options']) || !is_array($questionData['options']) || count($questionData['options']) < 2) {
+                            $skipped++;
+                            $errors[] = "Question #{$index}: Multiple select questions need at least 2 options";
+                            continue;
+                        }
+                        if (empty($questionData['correct_answers']) || !is_array($questionData['correct_answers'])) {
+                            $skipped++;
+                            $errors[] = "Question #{$index}: Missing correct_answers array";
+                            continue;
+                        }
+                    }
+
+                    // Validate priority order questions
+                    if ($questionType === 'priority_order') {
+                        if (empty($questionData['options']) || !is_array($questionData['options']) || count($questionData['options']) < 2) {
+                            $skipped++;
+                            $errors[] = "Question #{$index}: Priority order questions need at least 2 options";
+                            continue;
+                        }
+                    }
+
+                    // Determine options and correct answers based on type
+                    $hasOptions = in_array($questionType, ['multiple_choice', 'multiple_select', 'priority_order']);
+                    $options = $hasOptions ? $questionData['options'] : null;
+                    $correctAnswer = $questionType === 'multiple_choice' ? $questionData['correct_answer'] : null;
+                    $correctAnswers = in_array($questionType, ['multiple_select', 'priority_order']) 
+                        ? ($questionData['correct_answers'] ?? $questionData['options']) 
+                        : null;
+
                     // Create question
                     $maxSortOrder++;
                     KnowledgeTestQuestion::create([
                         'knowledge_test_id' => $this->test->id,
                         'question_type' => $questionType,
                         'question_text' => $questionData['question_text'],
-                        'options' => $questionType === 'multiple_choice' ? $questionData['options'] : null,
-                        'correct_answer' => $questionType === 'multiple_choice' ? $questionData['correct_answer'] : null,
+                        'options' => $options,
+                        'correct_answer' => $correctAnswer,
+                        'correct_answers' => $correctAnswers,
                         'points' => $questionData['points'] ?? 1,
                         'sort_order' => $questionData['sort_order'] ?? $maxSortOrder,
                         'is_active' => $questionData['is_active'] ?? true,
@@ -306,7 +432,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
 
         $data = [
             'export_date' => now()->toIso8601String(),
-            'version' => '1.0',
+            'version' => '1.1',
             'test_name' => $this->test->name,
             'questions' => $questions->map(function ($question) {
                 return [
@@ -314,6 +440,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                     'question_text' => $question->question_text,
                     'options' => $question->options,
                     'correct_answer' => $question->correct_answer,
+                    'correct_answers' => $question->correct_answers,
                     'points' => $question->points,
                     'sort_order' => $question->sort_order,
                     'is_active' => $question->is_active,
@@ -394,7 +521,9 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Question Type</label>
                     <select wire:model.live="questionType" class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
-                        <option value="multiple_choice">Multiple Choice</option>
+                        <option value="multiple_choice">Multiple Choice (Single Answer)</option>
+                        <option value="multiple_select">Multiple Select (Multiple Answers)</option>
+                        <option value="priority_order">Priority Order (Drag to Order)</option>
                         <option value="written">Written Answer</option>
                     </select>
                 </div>
@@ -480,7 +609,66 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                 <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Select the radio button next to the correct answer</p>
                 @error('correctAnswer') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
             </div>
-            @else
+            @elseif($questionType === 'multiple_select')
+            <div>
+                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Answer Options (Select All Correct Answers)</label>
+                <div class="mt-1 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
+                    <p class="text-xs text-blue-700 dark:text-blue-300">Check all options that are correct. Members will need to select all correct answers to get full points.</p>
+                </div>
+                <div class="mt-2 space-y-2">
+                    @foreach($options as $index => $option)
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" 
+                            wire:click="toggleCorrectAnswer('{{ $option }}')" 
+                            {{ in_array($option, $correctAnswers) ? 'checked' : '' }}
+                            class="size-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700" 
+                            {{ empty($option) ? 'disabled' : '' }}>
+                        <input type="text" wire:model.live="options.{{ $index }}" class="flex-1 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white" placeholder="Option {{ $index + 1 }}">
+                        @if(count($options) > 2)
+                        <button type="button" wire:click="removeOption({{ $index }})" class="text-red-500 hover:text-red-600">
+                            <svg class="size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                        @endif
+                    </div>
+                    @endforeach
+                </div>
+                <button type="button" wire:click="addOption" class="mt-2 text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400">
+                    + Add Option
+                </button>
+                @if(count($correctAnswers) > 0)
+                <p class="mt-2 text-xs text-green-600 dark:text-green-400">{{ count($correctAnswers) }} correct answer(s) selected</p>
+                @endif
+                @error('correctAnswers') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
+            </div>
+            @elseif($questionType === 'priority_order')
+            <div>
+                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Answer Options (Drag to Set Correct Order)</label>
+                <div class="mt-1 rounded-lg border border-purple-200 bg-purple-50 p-3 dark:border-purple-800 dark:bg-purple-900/20">
+                    <p class="text-xs text-purple-700 dark:text-purple-300">Drag items to set the correct order. Members will need to arrange these in the correct sequence.</p>
+                </div>
+                <div class="mt-2 space-y-2">
+                    @foreach($options as $index => $option)
+                    <div class="flex items-center gap-2">
+                        <span class="flex size-6 items-center justify-center rounded bg-purple-100 text-xs font-bold text-purple-700 dark:bg-purple-900 dark:text-purple-300">{{ $index + 1 }}</span>
+                        <input type="text" wire:model.live="options.{{ $index }}" class="flex-1 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white" placeholder="Option {{ $index + 1 }}">
+                        @if(count($options) > 2)
+                        <button type="button" wire:click="removeOption({{ $index }})" class="text-red-500 hover:text-red-600">
+                            <svg class="size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                        @endif
+                    </div>
+                    @endforeach
+                </div>
+                <button type="button" wire:click="addOption" class="mt-2 text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400">
+                    + Add Option
+                </button>
+                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">The order shown here (1, 2, 3...) is the correct order members must match.</p>
+            </div>
+            @elseif($questionType === 'written')
             <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
                 <p class="text-sm text-amber-700 dark:text-amber-300">
                     <strong>Written answers require manual marking.</strong> The member will provide a free-text response, and an administrator must review and score it.
@@ -523,8 +711,22 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                     </div>
                     <div class="flex-1">
                         <div class="flex items-center gap-2">
-                            <span class="inline-flex items-center rounded-full {{ $question->question_type === 'multiple_choice' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' }} px-2 py-0.5 text-xs font-medium">
-                                {{ $question->question_type === 'multiple_choice' ? 'Multiple Choice' : 'Written' }}
+                            @php
+                                $typeColors = [
+                                    'multiple_choice' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+                                    'multiple_select' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                                    'priority_order' => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+                                    'written' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+                                ];
+                                $typeLabels = [
+                                    'multiple_choice' => 'Multiple Choice',
+                                    'multiple_select' => 'Multiple Select',
+                                    'priority_order' => 'Priority Order',
+                                    'written' => 'Written',
+                                ];
+                            @endphp
+                            <span class="inline-flex items-center rounded-full {{ $typeColors[$question->question_type] ?? 'bg-zinc-100 text-zinc-800' }} px-2 py-0.5 text-xs font-medium">
+                                {{ $typeLabels[$question->question_type] ?? $question->question_type }}
                             </span>
                             <span class="text-sm text-zinc-500 dark:text-zinc-400">{{ $question->points }} {{ Str::plural('point', $question->points) }}</span>
                             @if($question->hasImage())
@@ -547,20 +749,41 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                         </div>
                         @endif
 
-                        @if($question->question_type === 'multiple_choice' && $question->options)
+                        @if(in_array($question->question_type, ['multiple_choice', 'multiple_select', 'priority_order']) && $question->options)
                         <div class="mt-3 space-y-1">
-                            @foreach($question->options as $option)
+                            @foreach($question->options as $optionKey => $optionText)
                             <div class="flex items-center gap-2 text-sm">
-                                @if($option === $question->correct_answer)
-                                <svg class="size-4 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                </svg>
-                                <span class="font-medium text-green-700 dark:text-green-400">{{ $option }}</span>
-                                @else
-                                <svg class="size-4 text-zinc-300 dark:text-zinc-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                </svg>
-                                <span class="text-zinc-600 dark:text-zinc-400">{{ $option }}</span>
+                                @if($question->question_type === 'multiple_choice')
+                                    {{-- Single correct answer - compare key to correct_answer --}}
+                                    @if($optionKey === $question->correct_answer)
+                                    <svg class="size-4 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                    </svg>
+                                    <span class="font-medium text-green-700 dark:text-green-400"><span class="font-bold">{{ $optionKey }}.</span> {{ $optionText }}</span>
+                                    @else
+                                    <svg class="size-4 text-zinc-300 dark:text-zinc-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                    </svg>
+                                    <span class="text-zinc-600 dark:text-zinc-400"><span class="font-semibold">{{ $optionKey }}.</span> {{ $optionText }}</span>
+                                    @endif
+                                @elseif($question->question_type === 'multiple_select')
+                                    {{-- Multiple correct answers - compare key to correct_answers array --}}
+                                    @if(in_array($optionKey, $question->correct_answers ?? []))
+                                    <svg class="size-4 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                    </svg>
+                                    <span class="font-medium text-green-700 dark:text-green-400"><span class="font-bold">{{ $optionKey }}.</span> {{ $optionText }}</span>
+                                    @else
+                                    <svg class="size-4 text-zinc-300 dark:text-zinc-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                    </svg>
+                                    <span class="text-zinc-600 dark:text-zinc-400"><span class="font-semibold">{{ $optionKey }}.</span> {{ $optionText }}</span>
+                                    @endif
+                                @elseif($question->question_type === 'priority_order')
+                                    {{-- Ordered options with position numbers --}}
+                                    @php $position = array_search($optionKey, $question->correct_answers ?? array_keys($question->options)) + 1; @endphp
+                                    <span class="flex size-5 items-center justify-center rounded bg-purple-100 text-xs font-bold text-purple-700 dark:bg-purple-900 dark:text-purple-300">{{ $position }}</span>
+                                    <span class="text-zinc-600 dark:text-zinc-400"><span class="font-semibold">{{ $optionKey }}.</span> {{ $optionText }}</span>
                                 @endif
                             </div>
                             @endforeach

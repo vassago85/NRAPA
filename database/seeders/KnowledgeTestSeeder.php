@@ -26,7 +26,7 @@ class KnowledgeTestSeeder extends Seeder
             [
                 'slug' => 'dedicated-hunter',
                 'name' => 'Dedicated Hunter Knowledge Test',
-                'description' => 'Comprehensive test (57 questions, 169 marks) covering hunting regulations, ethics, wildlife conservation, endangered species, and dedicated hunter responsibilities in South Africa.',
+                'description' => 'Comprehensive test (39 questions, 107 marks) covering hunting regulations, ethics, wildlife conservation, endangered species, and dedicated hunter responsibilities in South Africa.',
                 'passing_score' => 75,
                 'time_limit_minutes' => 90, // 1.5 hours as per official test
                 'max_attempts' => 3,
@@ -36,7 +36,7 @@ class KnowledgeTestSeeder extends Seeder
             [
                 'slug' => 'dedicated-sport-shooter',
                 'name' => 'Dedicated Sport Shooter Knowledge Test',
-                'description' => 'Comprehensive test (45 questions, 171 marks) covering sport shooting disciplines, firearm components, ammunition, safe handling, and FCA regulations.',
+                'description' => 'Comprehensive test (49 questions, 171 marks) covering sport shooting disciplines, firearm components, ammunition, safe handling, and FCA regulations.',
                 'passing_score' => 75,
                 'time_limit_minutes' => 90, // 1.5 hours as per official test
                 'max_attempts' => 3,
@@ -46,7 +46,7 @@ class KnowledgeTestSeeder extends Seeder
             [
                 'slug' => 'dedicated-both',
                 'name' => 'Dedicated Hunter & Sport Shooter Knowledge Test',
-                'description' => 'Combined comprehensive test (76 questions, 239 marks) for members seeking both Dedicated Hunter and Dedicated Sport Shooter status. Covers all topics from both individual tests.',
+                'description' => 'Combined comprehensive test (80 questions, 242 marks) for members seeking both Dedicated Hunter and Dedicated Sport Shooter status. Covers all topics from both individual tests.',
                 'passing_score' => 75,
                 'time_limit_minutes' => 120, // 2 hours as per official test
                 'max_attempts' => 3,
