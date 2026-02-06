@@ -261,6 +261,7 @@ class ExcelMemberImporter
             'approved_by' => ($autoApprove || $approvedAt) ? auth()->id() : null,
             'activated_at' => $autoActivate || $activatedAt ? $activatedAt : null,
             'expires_at' => $expiresAt,
+            'source' => 'import', // Mark as imported - NOT billable
         ]);
     }
     

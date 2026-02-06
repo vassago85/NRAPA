@@ -201,6 +201,7 @@ class TestMemberGenerator extends Component
             'membership_type_id' => $membershipType->id,
             'status' => 'applied',
             'applied_at' => now(),
+            'source' => 'web', // Test members simulate web applications
         ]);
     }
 
@@ -220,6 +221,7 @@ class TestMemberGenerator extends Component
             'applied_at' => now()->subDays(5),
             'approved_at' => now()->subDays(3),
             'approved_by' => $developer->id,
+            'source' => 'web', // Test members simulate web applications
         ]);
     }
 
@@ -244,6 +246,7 @@ class TestMemberGenerator extends Component
             'approved_by' => $developer->id,
             'activated_at' => now()->subDays(28),
             'expires_at' => now()->addYear(),
+            'source' => 'web', // Test members simulate web applications
         ]);
     }
 

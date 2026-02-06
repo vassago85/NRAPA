@@ -863,6 +863,9 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     // Email Logs
     Route::livewire('email-logs', 'pages::admin.email-logs.index')->name('email-logs.index');
 
+    // Billing Reports
+    Route::livewire('billing', 'pages::admin.billing.index')->name('billing.index');
+
     // Document Verification
     Route::livewire('documents', 'pages::admin.documents.index')->name('documents.index');
     Route::livewire('documents/{document}', 'pages::admin.documents.show')->name('documents.show');

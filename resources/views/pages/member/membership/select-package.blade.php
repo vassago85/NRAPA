@@ -39,6 +39,7 @@ new class extends Component {
             'membership_type_id' => $membershipType->id,
             'status' => 'pending_payment',
             'applied_at' => now(),
+            'source' => 'web', // Billable - member applied via website
         ]);
 
         // Redirect to payment instructions

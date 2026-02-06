@@ -106,6 +106,7 @@ new #[Title('Apply for Membership')] class extends Component {
             'membership_type_id' => $this->selectedTypeId,
             'status' => 'applied',
             'applied_at' => now(),
+            'source' => 'web', // Billable - member applied via website
         ]);
 
         // Send payment instructions email

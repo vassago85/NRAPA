@@ -124,6 +124,7 @@ new #[Title('My Membership')] class extends Component {
             'status' => 'pending_change',
             'applied_at' => now(),
             'notes' => "Change request from {$this->activeMembership->type->name} to {$newType->name}.\n\nReason: {$this->changeReason}",
+            'source' => 'web', // Billable - member requested via website
         ]);
 
         $this->showChangeModal = false;

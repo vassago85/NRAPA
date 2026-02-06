@@ -38,6 +38,7 @@ class Membership extends Model
         'revocation_reason',
         'previous_membership_id',
         'notes',
+        'source',
         'payment_email_sent_at',
     ];
 
@@ -377,5 +378,65 @@ class Membership extends Model
                 $q->whereNotNull('expires_at')
                     ->where('expires_at', '<', now());
             });
+    }
+
+    // ===== Billing Scopes =====
+
+    /**
+     * Scope to billable memberships (excludes imports).
+     * Billable sources: web, admin
+     * Non-billable: import
+     */
+    public function scopeBillable($query)
+    {
+        return $query->whereIn('source', ['web', 'admin']);
+    }
+
+    /**
+     * Scope to new memberships (not renewals) in a specific month.
+     */
+    public function scopeNewInMonth($query, int $year, int $month)
+    {
+        return $query->whereNull('previous_membership_id')
+            ->whereYear('approved_at', $year)
+            ->whereMonth('approved_at', $month)
+            ->whereNotNull('approved_at');
+    }
+
+    /**
+     * Scope to renewals in a specific month.
+     */
+    public function scopeRenewalsInMonth($query, int $year, int $month)
+    {
+        return $query->whereNotNull('previous_membership_id')
+            ->whereYear('approved_at', $year)
+            ->whereMonth('approved_at', $month)
+            ->whereNotNull('approved_at');
+    }
+
+    /**
+     * Scope to memberships approved in a specific month.
+     */
+    public function scopeApprovedInMonth($query, int $year, int $month)
+    {
+        return $query->whereYear('approved_at', $year)
+            ->whereMonth('approved_at', $month)
+            ->whereNotNull('approved_at');
+    }
+
+    /**
+     * Check if this is a renewal.
+     */
+    public function isRenewal(): bool
+    {
+        return $this->previous_membership_id !== null;
+    }
+
+    /**
+     * Check if this membership is billable.
+     */
+    public function isBillable(): bool
+    {
+        return in_array($this->source, ['web', 'admin']);
     }
 }
