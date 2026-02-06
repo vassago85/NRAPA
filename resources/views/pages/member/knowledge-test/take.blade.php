@@ -53,7 +53,7 @@ new #[Title('Take Test')] class extends Component {
     #[Computed]
     public function questions()
     {
-        return $this->test->activeQuestions;
+        return $this->test->activeQuestions->values();
     }
 
     #[Computed]
