@@ -178,11 +178,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Requests - Admin')] cl
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
                                     <div class="flex items-center justify-center w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-semibold">
-                                        {{ $request->user->initials() }}
+                                        {{ $request->user?->initials() ?? '?' }}
                                     </div>
                                     <div>
-                                        <p class="font-medium text-zinc-900 dark:text-white">{{ $request->user->name }}</p>
-                                        <p class="text-sm text-zinc-500">{{ $request->user->email }}</p>
+                                        <p class="font-medium text-zinc-900 dark:text-white">{{ $request->user?->name ?? 'Deleted User' }}</p>
+                                        <p class="text-sm text-zinc-500">{{ $request->user?->email ?? '—' }}</p>
                                     </div>
                                 </div>
                             </td>
