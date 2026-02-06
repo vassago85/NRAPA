@@ -41,6 +41,7 @@ new class extends Component {
     public ?string $province_name = null; // Manual entry when "other" is selected
     public ?string $closest_town_city = null;
     public ?string $description = null;
+    public ?int $rounds_fired = null;
     public $proof_document = null;
     public $additional_document = null;
 
@@ -65,6 +66,7 @@ new class extends Component {
             'province_id' => ['nullable', 'exists:provinces,id'],
             'province_name' => ['nullable', 'string', 'max:255'],
             'closest_town_city' => ['required', 'string', 'max:255'],
+            'rounds_fired' => ['nullable', 'integer', 'min:1', 'max:99999'],
             'description' => ['nullable', 'string', 'max:1000'],
             'proof_document' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:10240'],
             'additional_document' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:10240'],
@@ -229,6 +231,7 @@ new class extends Component {
             'province_id' => $this->country_selection === 'south_africa' ? $this->province_id : null,
             'province_name' => $this->country_selection === 'other' ? $this->province_name : null,
             'closest_town_city' => $this->closest_town_city,
+            'rounds_fired' => $this->rounds_fired,
             'description' => $this->description,
             'activity_year_month_start' => 1, // Fixed: January (activity period is 1 Jan - 30 Sep)
             'status' => 'pending',
@@ -504,7 +507,7 @@ new class extends Component {
 
 <div>
     <div class="mb-8">
-        <a href="{{ route('activities.index') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-zinc-600 dark:text-zinc-400 hover:text-emerald-600">
+        <a href="{{ route('activities.index') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-zinc-600 dark:text-zinc-400 hover:text-nrapa-blue">
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             Back to Activities
         </a>
@@ -527,7 +530,7 @@ new class extends Component {
                 <!-- Track -->
                 <div>
                     <label for="track" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Track <span class="text-red-500">*</span></label>
-                    <select id="track" wire:model.live="track" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
+                    <select id="track" wire:model.live="track" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-nrapa-blue focus:ring-nrapa-blue">
                         <option value="">Select Track</option>
                         <option value="hunting">Dedicated Hunting</option>
                         <option value="sport">Dedicated Sport Shooting</option>
@@ -538,7 +541,7 @@ new class extends Component {
                 <!-- Activity Tag (replaces Activity Type) -->
                 <div wire:key="activity-tag-{{ $track }}">
                     <label for="activity_tag_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Activity Type <span class="text-red-500">*</span></label>
-                    <select id="activity_tag_id" wire:model="activity_tag_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500" @disabled(!$track)>
+                    <select id="activity_tag_id" wire:model="activity_tag_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-nrapa-blue focus:ring-nrapa-blue" @disabled(!$track)>
                         <option value="">Select Activity Type</option>
                         @if($track)
                             @foreach($this->activityTags as $tag)
@@ -555,8 +558,16 @@ new class extends Component {
                 <!-- Activity Date -->
                 <div>
                     <label for="activity_date" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Date of Activity <span class="text-red-500">*</span></label>
-                    <input type="date" id="activity_date" wire:model="activity_date" max="{{ date('Y-m-d') }}" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
+                    <input type="date" id="activity_date" wire:model="activity_date" max="{{ date('Y-m-d') }}" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-nrapa-blue focus:ring-nrapa-blue">
                     @error('activity_date') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                </div>
+
+                <!-- Rounds Fired -->
+                <div>
+                    <label for="rounds_fired" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Rounds Fired</label>
+                    <input type="number" id="rounds_fired" wire:model="rounds_fired" min="1" max="99999" placeholder="e.g., 50" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white placeholder-zinc-400 focus:border-nrapa-blue focus:ring-nrapa-blue">
+                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Number of rounds fired during this activity (used for barrel life tracking)</p>
+                    @error('rounds_fired') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                 </div>
             </div>
         </div>
@@ -569,14 +580,14 @@ new class extends Component {
                 <!-- Location Name -->
                 <div>
                     <label for="location" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Location / Venue <span class="text-red-500">*</span></label>
-                    <input type="text" id="location" wire:model="location" placeholder="e.g., Magaliesberg Shooting Range" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white placeholder-zinc-400 focus:border-emerald-500 focus:ring-emerald-500">
+                    <input type="text" id="location" wire:model="location" placeholder="e.g., Magaliesberg Shooting Range" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white placeholder-zinc-400 focus:border-nrapa-blue focus:ring-nrapa-blue">
                     @error('location') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                 </div>
 
                 <!-- Country Selection -->
                 <div>
                     <label for="country_selection" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Country <span class="text-red-500">*</span></label>
-                    <select id="country_selection" wire:model.live="country_selection" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
+                    <select id="country_selection" wire:model.live="country_selection" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-nrapa-blue focus:ring-nrapa-blue">
                         <option value="south_africa">South Africa</option>
                         <option value="other">Other</option>
                     </select>
@@ -587,7 +598,7 @@ new class extends Component {
                     <!-- Province (only show for South Africa) -->
                     <div>
                         <label for="province_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Province</label>
-                        <select id="province_id" wire:model="province_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
+                        <select id="province_id" wire:model="province_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-nrapa-blue focus:ring-nrapa-blue">
                             <option value="">Select Province</option>
                             @foreach($this->provinces as $province)
                                 <option value="{{ $province->id }}">{{ $province->name }}</option>
@@ -599,14 +610,14 @@ new class extends Component {
                     <!-- Manual Country Entry -->
                     <div>
                         <label for="country_name" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Country Name <span class="text-red-500">*</span></label>
-                        <input type="text" id="country_name" wire:model="country_name" placeholder="e.g., Mozambique, Namibia, Botswana" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white placeholder-zinc-400 focus:border-emerald-500 focus:ring-emerald-500">
+                        <input type="text" id="country_name" wire:model="country_name" placeholder="e.g., Mozambique, Namibia, Botswana" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white placeholder-zinc-400 focus:border-nrapa-blue focus:ring-nrapa-blue">
                         @error('country_name') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                     </div>
 
                     <!-- Manual Province/State Entry -->
                     <div>
                         <label for="province_name" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Province/State/Region</label>
-                        <input type="text" id="province_name" wire:model="province_name" placeholder="e.g., Maputo Province, Khomas Region" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white placeholder-zinc-400 focus:border-emerald-500 focus:ring-emerald-500">
+                        <input type="text" id="province_name" wire:model="province_name" placeholder="e.g., Maputo Province, Khomas Region" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white placeholder-zinc-400 focus:border-nrapa-blue focus:ring-nrapa-blue">
                         @error('province_name') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                     </div>
                 @endif
@@ -614,7 +625,7 @@ new class extends Component {
                 <!-- Closest Town/City -->
                 <div>
                     <label for="closest_town_city" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Closest Town/City <span class="text-red-500">*</span></label>
-                    <input type="text" id="closest_town_city" wire:model="closest_town_city" placeholder="e.g., Pretoria" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white placeholder-zinc-400 focus:border-emerald-500 focus:ring-emerald-500">
+                    <input type="text" id="closest_town_city" wire:model="closest_town_city" placeholder="e.g., Pretoria" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white placeholder-zinc-400 focus:border-nrapa-blue focus:ring-nrapa-blue">
                     @error('closest_town_city') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                 </div>
             </div>
@@ -628,10 +639,10 @@ new class extends Component {
             <div class="mb-6">
                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">Select Firearm From</label>
                 <div class="flex flex-wrap gap-4">
-                    <label class="flex items-center gap-2 cursor-pointer p-3 rounded-lg border-2 transition-colors {{ $firearm_source === 'armoury' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-zinc-300 dark:border-zinc-600 hover:border-emerald-400' }}">
-                        <input type="radio" wire:model.live="firearm_source" value="armoury" class="text-emerald-600 focus:ring-emerald-500">
+                    <label class="flex items-center gap-2 cursor-pointer p-3 rounded-lg border-2 transition-colors {{ $firearm_source === 'armoury' ? 'border-nrapa-blue bg-nrapa-blue-light dark:bg-nrapa-blue/20' : 'border-zinc-300 dark:border-zinc-600 hover:border-nrapa-blue' }}">
+                        <input type="radio" wire:model.live="firearm_source" value="armoury" class="text-nrapa-blue focus:ring-nrapa-blue">
                         <div class="flex items-center gap-2">
-                            <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5 text-nrapa-blue dark:text-nrapa-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
                             </svg>
                             <div>
@@ -640,8 +651,8 @@ new class extends Component {
                             </div>
                         </div>
                     </label>
-                    <label class="flex items-center gap-2 cursor-pointer p-3 rounded-lg border-2 transition-colors {{ $firearm_source === 'manual' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-zinc-300 dark:border-zinc-600 hover:border-emerald-400' }}">
-                        <input type="radio" wire:model.live="firearm_source" value="manual" class="text-emerald-600 focus:ring-emerald-500">
+                    <label class="flex items-center gap-2 cursor-pointer p-3 rounded-lg border-2 transition-colors {{ $firearm_source === 'manual' ? 'border-nrapa-blue bg-nrapa-blue-light dark:bg-nrapa-blue/20' : 'border-zinc-300 dark:border-zinc-600 hover:border-nrapa-blue' }}">
+                        <input type="radio" wire:model.live="firearm_source" value="manual" class="text-nrapa-blue focus:ring-nrapa-blue">
                         <div class="flex items-center gap-2">
                             <svg class="w-5 h-5 text-zinc-600 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
@@ -661,7 +672,7 @@ new class extends Component {
                     <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                         <div>
                             <label for="user_firearm_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Select Firearm from Virtual Safe <span class="text-red-500">*</span></label>
-                            <select id="user_firearm_id" wire:model.live="user_firearm_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
+                            <select id="user_firearm_id" wire:model.live="user_firearm_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-nrapa-blue focus:ring-nrapa-blue">
                                 <option value="">Select a Firearm from Your Virtual Safe</option>
                                 @foreach($this->userFirearms as $firearm)
                                     <option value="{{ $firearm->id }}">
@@ -673,11 +684,11 @@ new class extends Component {
                             </select>
                             @error('user_firearm_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                             <div class="mt-2 flex items-center gap-2">
-                                <a href="{{ route('armoury.index') }}" wire:navigate class="text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+                                <a href="{{ route('armoury.index') }}" wire:navigate class="text-sm text-nrapa-blue hover:text-nrapa-blue-dark dark:text-nrapa-blue dark:hover:text-nrapa-blue">
                                     View Virtual Safe
                                 </a>
                                 <span class="text-zinc-400">•</span>
-                                <a href="{{ route('armoury.create') }}" wire:navigate class="text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+                                <a href="{{ route('armoury.create') }}" wire:navigate class="text-sm text-nrapa-blue hover:text-nrapa-blue-dark dark:text-nrapa-blue dark:hover:text-nrapa-blue">
                                     + Add New Firearm
                                 </a>
                             </div>
@@ -686,7 +697,7 @@ new class extends Component {
                         @if(count($loadDataOptions) > 0)
                             <div>
                                 <label for="load_data_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Load Data (Optional)</label>
-                                <select id="load_data_id" wire:model="load_data_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
+                                <select id="load_data_id" wire:model="load_data_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-nrapa-blue focus:ring-nrapa-blue">
                                     <option value="">No specific load</option>
                                     @foreach($loadDataOptions as $load)
                                         <option value="{{ $load['id'] }}">{{ $load['name'] }} - {{ $load['description'] }}</option>
@@ -700,9 +711,9 @@ new class extends Component {
                 @if($user_firearm_id)
                     @php $selectedFirearm = $this->userFirearms->firstWhere('id', $user_firearm_id); @endphp
                     @if($selectedFirearm)
-                        <div class="mt-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4">
-                            <p class="text-sm font-medium text-emerald-800 dark:text-emerald-200">Selected Firearm Details</p>
-                            <div class="mt-2 grid grid-cols-2 gap-2 text-sm text-emerald-700 dark:text-emerald-300">
+                        <div class="mt-4 rounded-lg bg-nrapa-blue-light dark:bg-nrapa-blue/20 border border-nrapa-blue/20 dark:border-nrapa-blue/30 p-4">
+                            <p class="text-sm font-medium text-nrapa-blue dark:text-nrapa-blue">Selected Firearm Details</p>
+                            <div class="mt-2 grid grid-cols-2 gap-2 text-sm text-nrapa-blue/80 dark:text-nrapa-blue/80">
                                 <div><span class="font-medium">Make/Model:</span> {{ $selectedFirearm->make }} {{ $selectedFirearm->model }}</div>
                                 <div><span class="font-medium">Type:</span> {{ $selectedFirearm->firearmType?->name ?? 'N/A' }}</div>
                                 <div><span class="font-medium">Calibre:</span> {{ $selectedFirearm->calibre_display ?? 'N/A' }}</div>
@@ -728,7 +739,7 @@ new class extends Component {
                                     Add firearms to your Virtual Safe to quickly select them when submitting activities. This helps track which firearms you use for each activity.
                                 </p>
                                 <div class="flex gap-3">
-                                    <a href="{{ route('armoury.create') }}" wire:navigate class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors">
+                                    <a href="{{ route('armoury.create') }}" wire:navigate class="inline-flex items-center gap-2 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white text-sm font-medium rounded-lg transition-colors">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                                         </svg>
@@ -748,7 +759,7 @@ new class extends Component {
                     <!-- Firearm Type -->
                     <div>
                         <label for="firearm_type_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Type of Firearm Used <span class="text-red-500">*</span></label>
-                        <select id="firearm_type_id" wire:model="firearm_type_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500">
+                        <select id="firearm_type_id" wire:model="firearm_type_id" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-nrapa-blue focus:ring-nrapa-blue">
                             <option value="">Select a Firearm Type</option>
                             @foreach($this->firearmTypes as $type)
                                 <option value="{{ $type->id }}">{{ $type->name }}</option>
@@ -767,7 +778,7 @@ new class extends Component {
                                 wire:model.live.debounce.250ms="calibreSearch"
                                 x-on:focus="open = true"
                                 placeholder="Type to search calibre (e.g., 6.5 Creedmoor, .308 Win, 9mm)..."
-                                class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500"
+                                class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-nrapa-blue focus:ring-nrapa-blue"
                                 autocomplete="off"
                             />
                             @if($calibre_id)
@@ -819,7 +830,7 @@ new class extends Component {
 
             <div>
                 <label for="description" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Description (Optional)</label>
-                <textarea id="description" wire:model="description" rows="4" placeholder="Add any additional details about your activity..." class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white placeholder-zinc-400 focus:border-emerald-500 focus:ring-emerald-500"></textarea>
+                <textarea id="description" wire:model="description" rows="4" placeholder="Add any additional details about your activity..." class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white placeholder-zinc-400 focus:border-nrapa-blue focus:ring-nrapa-blue"></textarea>
                 @error('description') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
             </div>
         </div>
@@ -850,8 +861,8 @@ new class extends Component {
                         x-on:dragover.prevent="dragging = true"
                         x-on:dragleave.prevent="dragging = false"
                         x-on:drop.prevent="handleDrop($event)"
-                        :class="{ 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20': dragging }"
-                        class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-zinc-300 dark:border-zinc-600 border-dashed rounded-lg hover:border-emerald-400 transition-colors cursor-pointer"
+                        :class="{ 'border-nrapa-blue bg-nrapa-blue-light dark:bg-nrapa-blue/20': dragging }"
+                        class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-zinc-300 dark:border-zinc-600 border-dashed rounded-lg hover:border-nrapa-blue transition-colors cursor-pointer"
                         x-on:click="$refs.proofDocumentInput.click()"
                     >
                         <div class="space-y-1 text-center">
@@ -859,15 +870,15 @@ new class extends Component {
                                 <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                             </svg>
                             <div class="flex text-sm text-zinc-600 dark:text-zinc-400 justify-center">
-                                <span class="font-medium text-emerald-600 hover:text-emerald-500 dark:text-emerald-400">Click to Upload</span>
+                                <span class="font-medium text-nrapa-blue hover:text-nrapa-blue-dark dark:text-nrapa-blue">Click to Upload</span>
                                 <span class="pl-1">or drag and drop</span>
                             </div>
                             <p class="text-xs text-zinc-500 dark:text-zinc-400">Allowed formats: PNG, JPG, JPEG and PDF (max 10MB)</p>
                             @if($proof_document)
-                                <p class="text-sm text-emerald-600 dark:text-emerald-400 mt-2">{{ $proof_document->getClientOriginalName() }}</p>
+                                <p class="text-sm text-nrapa-blue dark:text-nrapa-blue mt-2">{{ $proof_document->getClientOriginalName() }}</p>
                             @endif
                             <div wire:loading wire:target="proof_document" class="mt-2">
-                                <div class="flex items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400">
+                                <div class="flex items-center justify-center gap-2 text-nrapa-blue dark:text-nrapa-blue">
                                     <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -902,8 +913,8 @@ new class extends Component {
                         x-on:dragover.prevent="dragging = true"
                         x-on:dragleave.prevent="dragging = false"
                         x-on:drop.prevent="handleDrop($event)"
-                        :class="{ 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20': dragging }"
-                        class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-zinc-300 dark:border-zinc-600 border-dashed rounded-lg hover:border-emerald-400 transition-colors cursor-pointer"
+                        :class="{ 'border-nrapa-blue bg-nrapa-blue-light dark:bg-nrapa-blue/20': dragging }"
+                        class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-zinc-300 dark:border-zinc-600 border-dashed rounded-lg hover:border-nrapa-blue transition-colors cursor-pointer"
                         x-on:click="$refs.additionalDocumentInput.click()"
                     >
                         <div class="space-y-1 text-center">
@@ -911,15 +922,15 @@ new class extends Component {
                                 <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                             </svg>
                             <div class="flex text-sm text-zinc-600 dark:text-zinc-400 justify-center">
-                                <span class="font-medium text-emerald-600 hover:text-emerald-500 dark:text-emerald-400">Click to Upload</span>
+                                <span class="font-medium text-nrapa-blue hover:text-nrapa-blue-dark dark:text-nrapa-blue">Click to Upload</span>
                                 <span class="pl-1">or drag and drop</span>
                             </div>
                             <p class="text-xs text-zinc-500 dark:text-zinc-400">Allowed formats: PNG, JPG, JPEG and PDF (max 10MB)</p>
                             @if($additional_document)
-                                <p class="text-sm text-emerald-600 dark:text-emerald-400 mt-2">{{ $additional_document->getClientOriginalName() }}</p>
+                                <p class="text-sm text-nrapa-blue dark:text-nrapa-blue mt-2">{{ $additional_document->getClientOriginalName() }}</p>
                             @endif
                             <div wire:loading wire:target="additional_document" class="mt-2">
-                                <div class="flex items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400">
+                                <div class="flex items-center justify-center gap-2 text-nrapa-blue dark:text-nrapa-blue">
                                     <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -940,7 +951,7 @@ new class extends Component {
             <a href="{{ route('activities.index') }}" wire:navigate class="rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-6 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                 Cancel
             </a>
-            <button type="submit" class="rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" wire:loading.attr="disabled">
+            <button type="submit" class="rounded-lg bg-nrapa-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed" wire:loading.attr="disabled">
                 <span wire:loading.remove>Submit Activity</span>
                 <span wire:loading>Submitting...</span>
             </button>

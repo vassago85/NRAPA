@@ -301,6 +301,10 @@ Route::middleware(['auth', 'verified', 'membership.required', 'terms.accepted'])
     // Virtual Loading Bench (Reloading)
     Route::livewire('load-data', 'pages::member.load-data.index')->name('load-data.index');
     Route::livewire('load-data/create', 'pages::member.load-data.create')->name('load-data.create');
+    Route::livewire('load-data/inventory', 'pages::member.load-data.inventory')->name('load-data.inventory');
+    Route::livewire('load-data/ladder-tests', 'pages::member.load-data.ladder-test.index')->name('ladder-test.index');
+    Route::livewire('load-data/ladder-tests/create', 'pages::member.load-data.ladder-test.create')->name('ladder-test.create');
+    Route::livewire('load-data/ladder-tests/{test}', 'pages::member.load-data.ladder-test.show')->name('ladder-test.show');
     Route::livewire('load-data/{load}', 'pages::member.load-data.show')->name('load-data.show');
     Route::livewire('load-data/{load}/edit', 'pages::member.load-data.edit')->name('load-data.edit');
 

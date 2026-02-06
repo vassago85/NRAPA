@@ -29,6 +29,7 @@ class ShootingActivity extends Model
         'calibre_id',
         'user_firearm_id',
         'load_data_id',
+        'rounds_fired',
         'location',
         'country_id',
         'country_name',
@@ -53,6 +54,7 @@ class ShootingActivity extends Model
         return [
             'activity_date' => 'date',
             'verified_at' => 'datetime',
+            'rounds_fired' => 'integer',
         ];
     }
 

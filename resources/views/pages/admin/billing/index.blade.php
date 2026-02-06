@@ -598,7 +598,7 @@ new class extends Component {
             {{ count($selected) }} item(s) selected
         </div>
         <div class="flex items-center gap-3 flex-1">
-            <select wire:model="bulkAction" class="px-3 py-1.5 text-sm border border-indigo-300 dark:border-indigo-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white">
+            <select wire:model.live="bulkAction" class="px-3 py-1.5 text-sm border border-indigo-300 dark:border-indigo-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white">
                 <option value="">Choose action...</option>
                 <option value="remove_from_billing">Remove from billing (mark as import)</option>
                 <option value="delete">Permanently delete memberships</option>

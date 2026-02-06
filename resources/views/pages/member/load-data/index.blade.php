@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\LoadData;
-use App\Models\Calibre;
+use App\Models\FirearmCalibre;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -87,13 +87,23 @@ new class extends Component {
                 <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Load Data</h1>
                 <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Store and manage your reloading recipes and load development data</p>
             </div>
-            <a href="{{ route('load-data.create') }}" wire:navigate
-               class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                </svg>
-                New Load
-            </a>
+            <div class="flex items-center gap-2">
+                <a href="{{ route('load-data.inventory') }}" wire:navigate
+                   class="inline-flex items-center gap-2 rounded-lg border border-nrapa-blue text-nrapa-blue px-4 py-2 text-sm font-medium hover:bg-nrapa-blue-light dark:hover:bg-nrapa-blue/10">
+                    Inventory
+                </a>
+                <a href="{{ route('ladder-test.index') }}" wire:navigate
+                   class="inline-flex items-center gap-2 rounded-lg border border-nrapa-orange text-nrapa-orange px-4 py-2 text-sm font-medium hover:bg-nrapa-orange-light dark:hover:bg-nrapa-orange/10">
+                    Ladder Tests
+                </a>
+                <a href="{{ route('load-data.create') }}" wire:navigate
+                   class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    New Load
+                </a>
+            </div>
         </div>
     </x-slot>
 
@@ -188,7 +198,7 @@ new class extends Component {
                             View
                         </a>
                         <a href="{{ route('load-data.edit', $load) }}" wire:navigate
-                           class="flex-1 rounded-lg bg-emerald-600 px-3 py-2 text-center text-sm font-medium text-white hover:bg-emerald-700">
+                           class="flex-1 rounded-lg bg-nrapa-blue px-3 py-2 text-center text-sm font-medium text-white hover:bg-nrapa-blue-dark">
                             Edit
                         </a>
                     </div>
@@ -207,7 +217,7 @@ new class extends Component {
             <h3 class="mt-4 text-lg font-semibold text-zinc-900 dark:text-white">No load data yet</h3>
             <p class="mt-2 text-zinc-600 dark:text-zinc-400">Start documenting your reloading recipes and load development.</p>
             <a href="{{ route('load-data.create') }}" wire:navigate
-               class="mt-6 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+               class="mt-6 inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>

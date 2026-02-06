@@ -1,10 +1,19 @@
 <?php
 
+use App\Models\RoundLog;
+use App\Models\ShootingActivity;
 use App\Models\UserFirearm;
+use Livewire\Attributes\Computed;
 use Livewire\Component;
 
 new class extends Component {
     public UserFirearm $firearm;
+
+    // Quick round log form
+    public ?string $log_date = null;
+    public ?int $log_rounds = null;
+    public string $log_note = '';
+    public bool $showLogForm = false;
 
     public function mount(UserFirearm $firearm): void
     {
@@ -13,6 +22,68 @@ new class extends Component {
         }
 
         $this->firearm = $firearm->load(['firearmType', 'firearmCalibre', 'firearmMake', 'firearmModel', 'loadData']);
+        $this->log_date = now()->format('Y-m-d');
+    }
+
+    #[Computed]
+    public function totalRoundsFired(): int
+    {
+        $activityRounds = (int) ShootingActivity::where('user_firearm_id', $this->firearm->id)
+            ->where('status', 'approved')
+            ->sum('rounds_fired');
+
+        $logRounds = (int) RoundLog::where('user_firearm_id', $this->firearm->id)
+            ->sum('rounds_fired');
+
+        return $activityRounds + $logRounds;
+    }
+
+    #[Computed]
+    public function recentRoundLogs()
+    {
+        return RoundLog::where('user_firearm_id', $this->firearm->id)
+            ->orderByDesc('logged_date')
+            ->limit(10)
+            ->get();
+    }
+
+    public function saveRoundLog(): void
+    {
+        $this->validate([
+            'log_date' => ['required', 'date', 'before_or_equal:today'],
+            'log_rounds' => ['required', 'integer', 'min:1', 'max:10000'],
+            'log_note' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        RoundLog::create([
+            'user_id' => auth()->id(),
+            'user_firearm_id' => $this->firearm->id,
+            'rounds_fired' => $this->log_rounds,
+            'logged_date' => $this->log_date,
+            'note' => $this->log_note ?: null,
+        ]);
+
+        $this->log_rounds = null;
+        $this->log_note = '';
+        $this->log_date = now()->format('Y-m-d');
+        $this->showLogForm = false;
+
+        unset($this->totalRoundsFired);
+        unset($this->recentRoundLogs);
+
+        session()->flash('round_log_success', 'Rounds logged successfully.');
+    }
+
+    public function deleteRoundLog(int $id): void
+    {
+        $log = RoundLog::where('id', $id)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+
+        $log->delete();
+
+        unset($this->totalRoundsFired);
+        unset($this->recentRoundLogs);
     }
 
     public function deleteFirearm(): void
@@ -39,7 +110,7 @@ new class extends Component {
             </div>
             <div class="flex items-center gap-2">
                 <a href="{{ route('armoury.edit', $firearm) }}" wire:navigate
-                   class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                   class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                     </svg>
@@ -184,7 +255,7 @@ new class extends Component {
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Load Data</h2>
                     <a href="{{ route('load-data.create') }}?firearm={{ $firearm->uuid }}" wire:navigate
-                       class="text-sm font-medium text-emerald-600 hover:text-emerald-700">
+                       class="text-sm font-medium text-nrapa-blue hover:text-nrapa-blue-dark">
                         + Add Load
                     </a>
                 </div>
@@ -268,6 +339,85 @@ new class extends Component {
                     @endif
                 </dl>
             </div>
+
+            <!-- Barrel Life -->
+            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Barrel Life</h2>
+                <div class="text-center">
+                    <p class="text-3xl font-extrabold text-nrapa-blue">{{ number_format($this->totalRoundsFired) }}</p>
+                    <p class="mt-1 text-sm text-zinc-500">rounds through barrel</p>
+                </div>
+                <p class="mt-4 text-xs text-zinc-400 text-center">Based on approved activities and manual logs</p>
+
+                <!-- Quick Log Rounds Toggle -->
+                <div class="mt-4 border-t border-zinc-200 dark:border-zinc-700 pt-4">
+                    @if(session('round_log_success'))
+                        <div class="mb-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-3 py-2 text-sm text-green-700 dark:text-green-300">
+                            {{ session('round_log_success') }}
+                        </div>
+                    @endif
+
+                    @if(!$showLogForm)
+                        <button wire:click="$set('showLogForm', true)"
+                                class="w-full rounded-lg bg-nrapa-orange px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-orange-dark">
+                            + Log Rounds
+                        </button>
+                    @else
+                        <form wire:submit="saveRoundLog" class="space-y-3">
+                            <div>
+                                <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">Date</label>
+                                <input type="date" wire:model="log_date"
+                                       class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                                @error('log_date') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">Rounds Fired</label>
+                                <input type="number" wire:model="log_rounds" min="1" placeholder="e.g., 50"
+                                       class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                                @error('log_rounds') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">Note (optional)</label>
+                                <input type="text" wire:model="log_note" placeholder="e.g., Range practice"
+                                       class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                            </div>
+                            <div class="flex gap-2">
+                                <button type="submit"
+                                        class="flex-1 rounded-lg bg-nrapa-blue px-3 py-1.5 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
+                                    Save
+                                </button>
+                                <button type="button" wire:click="$set('showLogForm', false)"
+                                        class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-3 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    @endif
+                </div>
+            </div>
+
+            <!-- Recent Round Logs -->
+            @if($this->recentRoundLogs->count() > 0)
+                <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+                    <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Recent Round Logs</h2>
+                    <div class="space-y-2">
+                        @foreach($this->recentRoundLogs as $log)
+                            <div class="flex items-center justify-between rounded-lg border border-zinc-100 dark:border-zinc-700 p-2">
+                                <div>
+                                    <p class="text-sm font-medium text-zinc-900 dark:text-white">{{ $log->rounds_fired }} rounds</p>
+                                    <p class="text-xs text-zinc-500">{{ $log->logged_date->format('d M Y') }}@if($log->note) &mdash; {{ $log->note }}@endif</p>
+                                </div>
+                                <button wire:click="deleteRoundLog({{ $log->id }})" wire:confirm="Delete this round log?"
+                                        class="text-zinc-400 hover:text-red-500">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
 
             <!-- Firearm Image -->
             @if($firearm->image_path)

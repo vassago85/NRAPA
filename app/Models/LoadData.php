@@ -50,6 +50,10 @@ class LoadData extends Model
         'is_favorite',
         'notes',
         'is_max_load',
+        'powder_price_per_kg',
+        'primer_price_per_unit',
+        'bullet_price_per_unit',
+        'brass_price_per_unit',
         'safety_notes',
     ];
 
@@ -66,6 +70,10 @@ class LoadData extends Model
         'brass_annealed' => 'boolean',
         'is_favorite' => 'boolean',
         'is_max_load' => 'boolean',
+        'powder_price_per_kg' => 'decimal:2',
+        'primer_price_per_unit' => 'decimal:2',
+        'bullet_price_per_unit' => 'decimal:2',
+        'brass_price_per_unit' => 'decimal:2',
     ];
 
     protected static function boot()
@@ -97,6 +105,16 @@ class LoadData extends Model
     public function userFirearm(): BelongsTo
     {
         return $this->belongsTo(UserFirearm::class);
+    }
+
+    public function loadingSessions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(LoadingSession::class);
+    }
+
+    public function ladderTests(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(LadderTest::class);
     }
 
     // Legacy calibre relationship removed - LoadData uses calibre_id for legacy data only
@@ -147,6 +165,40 @@ class LoadData extends Model
         ]);
 
         return implode(' ', $parts) ?: 'Not specified';
+    }
+
+    /**
+     * Calculate cost per round based on component prices and charge weight.
+     */
+    public function getCostPerRoundAttribute(): ?float
+    {
+        $cost = 0;
+        $hasAny = false;
+
+        // Powder cost: price_per_kg / 1000 * charge_weight_grams (1 grain = 0.0648g)
+        if ($this->powder_price_per_kg && $this->powder_charge) {
+            $gramsPerCharge = $this->powder_charge * 0.0648;
+            $cost += ($this->powder_price_per_kg / 1000) * $gramsPerCharge;
+            $hasAny = true;
+        }
+
+        if ($this->primer_price_per_unit) {
+            $cost += $this->primer_price_per_unit;
+            $hasAny = true;
+        }
+
+        if ($this->bullet_price_per_unit) {
+            $cost += $this->bullet_price_per_unit;
+            $hasAny = true;
+        }
+
+        if ($this->brass_price_per_unit) {
+            $brassFireings = max($this->brass_firings ?: 1, 1);
+            $cost += $this->brass_price_per_unit / $brassFireings;
+            $hasAny = true;
+        }
+
+        return $hasAny ? round($cost, 2) : null;
     }
 
     public function getPerformanceSummaryAttribute(): string

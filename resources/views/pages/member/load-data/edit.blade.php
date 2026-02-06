@@ -2,7 +2,7 @@
 
 use App\Models\LoadData;
 use App\Models\UserFirearm;
-use App\Models\Calibre;
+use App\Models\FirearmCalibre;
 use Livewire\Component;
 
 new class extends Component {
@@ -54,6 +54,12 @@ new class extends Component {
     public ?float $tested_temperature = null;
     public ?int $tested_altitude = null;
 
+    // Cost tracking
+    public ?float $powder_price_per_kg = null;
+    public ?float $primer_price_per_unit = null;
+    public ?float $bullet_price_per_unit = null;
+    public ?float $brass_price_per_unit = null;
+
     // Flags
     public bool $is_favorite = false;
     public bool $is_max_load = false;
@@ -97,6 +103,10 @@ new class extends Component {
         $this->tested_distance_unit = $load->tested_distance_unit ?? 'meters';
         $this->tested_temperature = $load->tested_temperature;
         $this->tested_altitude = $load->tested_altitude;
+        $this->powder_price_per_kg = $load->powder_price_per_kg;
+        $this->primer_price_per_unit = $load->primer_price_per_unit;
+        $this->bullet_price_per_unit = $load->bullet_price_per_unit;
+        $this->brass_price_per_unit = $load->brass_price_per_unit;
         $this->is_favorite = $load->is_favorite;
         $this->is_max_load = $load->is_max_load;
         $this->notes = $load->notes ?? '';
@@ -143,6 +153,10 @@ new class extends Component {
             'tested_distance_unit' => $this->tested_distance_unit,
             'tested_temperature' => $this->tested_temperature,
             'tested_altitude' => $this->tested_altitude,
+            'powder_price_per_kg' => $this->powder_price_per_kg,
+            'primer_price_per_unit' => $this->primer_price_per_unit,
+            'bullet_price_per_unit' => $this->bullet_price_per_unit,
+            'brass_price_per_unit' => $this->brass_price_per_unit,
             'is_favorite' => $this->is_favorite,
             'is_max_load' => $this->is_max_load,
             'notes' => $this->notes ?: null,
@@ -328,6 +342,34 @@ new class extends Component {
             </div>
         </div>
 
+        <!-- Cost Tracking -->
+        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Cost Tracking (Optional)</h2>
+            <p class="text-sm text-zinc-500 mb-4">Add component prices to calculate your cost per round.</p>
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div>
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Powder Price (R/kg)</label>
+                    <input type="number" wire:model="powder_price_per_kg" step="0.01" placeholder="e.g., 850.00"
+                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Primer Price (R/unit)</label>
+                    <input type="number" wire:model="primer_price_per_unit" step="0.01" placeholder="e.g., 1.50"
+                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Bullet Price (R/unit)</label>
+                    <input type="number" wire:model="bullet_price_per_unit" step="0.01" placeholder="e.g., 12.50"
+                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Brass Price (R/unit)</label>
+                    <input type="number" wire:model="brass_price_per_unit" step="0.01" placeholder="e.g., 25.00"
+                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                </div>
+            </div>
+        </div>
+
         <!-- Flags & Notes -->
         <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Flags & Notes</h2>
@@ -366,7 +408,7 @@ new class extends Component {
                 Cancel
             </a>
             <button type="submit"
-                    class="rounded-lg bg-emerald-600 px-6 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                    class="rounded-lg bg-nrapa-blue px-6 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
                 Save Changes
             </button>
         </div>
