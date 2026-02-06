@@ -1,5 +1,6 @@
 # NRAPA Docker Stack for Portainer
 # Deploy via Portainer > Stacks > Add Stack
+# R2 and Mail credentials are optional here — they can be configured via Owner Settings in the UI.
 
 services:
   app:
@@ -26,12 +27,12 @@ services:
       - CACHE_DRIVER=redis
       - SESSION_DRIVER=redis
       - QUEUE_CONNECTION=redis
-      # Mail Settings
+      # Mail Settings (optional — can be configured via Owner Settings)
       - MAIL_MAILER=${MAIL_MAILER:-smtp}
-      - MAIL_HOST=${MAIL_HOST}
+      - MAIL_HOST=${MAIL_HOST:-}
       - MAIL_PORT=${MAIL_PORT:-587}
-      - MAIL_USERNAME=${MAIL_USERNAME}
-      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_USERNAME=${MAIL_USERNAME:-}
+      - MAIL_PASSWORD=${MAIL_PASSWORD:-}
       - MAIL_ENCRYPTION=${MAIL_ENCRYPTION:-tls}
       - MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS:-noreply@nrapa.co.za}
       - MAIL_FROM_NAME=${MAIL_FROM_NAME:-NRAPA}
@@ -43,16 +44,16 @@ services:
       - AWS_BUCKET=${MINIO_BUCKET:-nrapa}
       - AWS_ENDPOINT=http://minio:9000
       - AWS_USE_PATH_STYLE_ENDPOINT=true
-      # Cloudflare R2 Storage (documents + backups)
-      - CLOUDFLARE_R2_ACCESS_KEY_ID=${CLOUDFLARE_R2_ACCESS_KEY_ID}
-      - CLOUDFLARE_R2_SECRET_ACCESS_KEY=${CLOUDFLARE_R2_SECRET_ACCESS_KEY}
-      - CLOUDFLARE_R2_BUCKET=${CLOUDFLARE_R2_BUCKET}
-      - CLOUDFLARE_R2_BACKUP_BUCKET=${CLOUDFLARE_R2_BACKUP_BUCKET}
-      - CLOUDFLARE_R2_ENDPOINT=${CLOUDFLARE_R2_ENDPOINT}
+      # Cloudflare R2 Storage (optional — can be configured via Owner Settings)
+      - CLOUDFLARE_R2_ACCESS_KEY_ID=${CLOUDFLARE_R2_ACCESS_KEY_ID:-}
+      - CLOUDFLARE_R2_SECRET_ACCESS_KEY=${CLOUDFLARE_R2_SECRET_ACCESS_KEY:-}
+      - CLOUDFLARE_R2_BUCKET=${CLOUDFLARE_R2_BUCKET:-}
+      - CLOUDFLARE_R2_BACKUP_BUCKET=${CLOUDFLARE_R2_BACKUP_BUCKET:-}
+      - CLOUDFLARE_R2_ENDPOINT=${CLOUDFLARE_R2_ENDPOINT:-}
       - CLOUDFLARE_R2_REGION=${CLOUDFLARE_R2_REGION:-auto}
       # NTFY Notifications
       - NTFY_URL=${NTFY_URL:-https://ntfy.sh}
-      - NTFY_DEVELOPER_TOPIC=${NTFY_DEVELOPER_TOPIC}
+      - NTFY_DEVELOPER_TOPIC=${NTFY_DEVELOPER_TOPIC:-}
       # Livewire temp uploads go to public disk (avoids CORS issues with S3/R2)
       - LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK=public
     volumes:
@@ -164,16 +165,16 @@ services:
       - AWS_BUCKET=${MINIO_BUCKET:-nrapa}
       - AWS_ENDPOINT=http://minio:9000
       - AWS_USE_PATH_STYLE_ENDPOINT=true
-      # Cloudflare R2 Storage (documents + backups)
-      - CLOUDFLARE_R2_ACCESS_KEY_ID=${CLOUDFLARE_R2_ACCESS_KEY_ID}
-      - CLOUDFLARE_R2_SECRET_ACCESS_KEY=${CLOUDFLARE_R2_SECRET_ACCESS_KEY}
-      - CLOUDFLARE_R2_BUCKET=${CLOUDFLARE_R2_BUCKET}
-      - CLOUDFLARE_R2_BACKUP_BUCKET=${CLOUDFLARE_R2_BACKUP_BUCKET}
-      - CLOUDFLARE_R2_ENDPOINT=${CLOUDFLARE_R2_ENDPOINT}
+      # Cloudflare R2 Storage (optional — loaded from database at runtime)
+      - CLOUDFLARE_R2_ACCESS_KEY_ID=${CLOUDFLARE_R2_ACCESS_KEY_ID:-}
+      - CLOUDFLARE_R2_SECRET_ACCESS_KEY=${CLOUDFLARE_R2_SECRET_ACCESS_KEY:-}
+      - CLOUDFLARE_R2_BUCKET=${CLOUDFLARE_R2_BUCKET:-}
+      - CLOUDFLARE_R2_BACKUP_BUCKET=${CLOUDFLARE_R2_BACKUP_BUCKET:-}
+      - CLOUDFLARE_R2_ENDPOINT=${CLOUDFLARE_R2_ENDPOINT:-}
       - CLOUDFLARE_R2_REGION=${CLOUDFLARE_R2_REGION:-auto}
       # NTFY Notifications
       - NTFY_URL=${NTFY_URL:-https://ntfy.sh}
-      - NTFY_DEVELOPER_TOPIC=${NTFY_DEVELOPER_TOPIC}
+      - NTFY_DEVELOPER_TOPIC=${NTFY_DEVELOPER_TOPIC:-}
       - LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK=public
     volumes:
       - app-logs:/var/www/html/storage/logs
@@ -213,19 +214,19 @@ services:
       - AWS_BUCKET=${MINIO_BUCKET:-nrapa}
       - AWS_ENDPOINT=http://minio:9000
       - AWS_USE_PATH_STYLE_ENDPOINT=true
-      # Cloudflare R2 Storage (documents + backups)
-      - CLOUDFLARE_R2_ACCESS_KEY_ID=${CLOUDFLARE_R2_ACCESS_KEY_ID}
-      - CLOUDFLARE_R2_SECRET_ACCESS_KEY=${CLOUDFLARE_R2_SECRET_ACCESS_KEY}
-      - CLOUDFLARE_R2_BUCKET=${CLOUDFLARE_R2_BUCKET}
-      - CLOUDFLARE_R2_BACKUP_BUCKET=${CLOUDFLARE_R2_BACKUP_BUCKET}
-      - CLOUDFLARE_R2_ENDPOINT=${CLOUDFLARE_R2_ENDPOINT}
+      # Cloudflare R2 Storage (optional — loaded from database at runtime)
+      - CLOUDFLARE_R2_ACCESS_KEY_ID=${CLOUDFLARE_R2_ACCESS_KEY_ID:-}
+      - CLOUDFLARE_R2_SECRET_ACCESS_KEY=${CLOUDFLARE_R2_SECRET_ACCESS_KEY:-}
+      - CLOUDFLARE_R2_BUCKET=${CLOUDFLARE_R2_BUCKET:-}
+      - CLOUDFLARE_R2_BACKUP_BUCKET=${CLOUDFLARE_R2_BACKUP_BUCKET:-}
+      - CLOUDFLARE_R2_ENDPOINT=${CLOUDFLARE_R2_ENDPOINT:-}
       - CLOUDFLARE_R2_REGION=${CLOUDFLARE_R2_REGION:-auto}
-      # Mail Settings
+      # Mail Settings (optional — can be configured via Owner Settings)
       - MAIL_MAILER=${MAIL_MAILER:-smtp}
-      - MAIL_HOST=${MAIL_HOST}
+      - MAIL_HOST=${MAIL_HOST:-}
       - MAIL_PORT=${MAIL_PORT:-587}
-      - MAIL_USERNAME=${MAIL_USERNAME}
-      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_USERNAME=${MAIL_USERNAME:-}
+      - MAIL_PASSWORD=${MAIL_PASSWORD:-}
       - MAIL_ENCRYPTION=${MAIL_ENCRYPTION:-tls}
       - MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS:-noreply@nrapa.co.za}
       - MAIL_FROM_NAME=${MAIL_FROM_NAME:-NRAPA}
