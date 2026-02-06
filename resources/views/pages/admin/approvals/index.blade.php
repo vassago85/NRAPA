@@ -89,11 +89,13 @@ new #[Title('All Approvals - Admin')] class extends Component {
             });
 
         // Combine all (excluding activities - approve those via Activities only) and sort by date
+        // Filter out items where user was deleted to prevent null errors
         return $approvals
             ->merge($pendingDocuments)
             ->merge($pendingMemberships)
             ->merge($pendingCalibres)
             ->merge($pendingEndorsements)
+            ->filter(fn ($item) => $item['user'] !== null)
             ->sortBy('date')
             ->values();
     }
