@@ -93,22 +93,37 @@ new class extends Component {
             session()->flash('success', "{$count} item(s) removed from billing (marked as import).");
         } elseif ($this->bulkAction === 'delete') {
             // Permanently delete memberships (for test data cleanup)
+            $deleted = 0;
+            $errors = 0;
             $memberships = Membership::whereIn('id', $ids)->get();
             foreach ($memberships as $m) {
-                // Delete related certificates
-                try { $m->certificates()->delete(); } catch (\Exception $e) {}
-                $m->forceDelete();
+                try {
+                    // Clean up related records to avoid FK constraint failures
+                    try { $m->certificates()->delete(); } catch (\Exception $e) {}
+                    try { $m->dedicatedStatusApplications()->delete(); } catch (\Exception $e) {}
+                    // Unlink any renewal that references this membership
+                    try { Membership::where('previous_membership_id', $m->id)->update(['previous_membership_id' => null]); } catch (\Exception $e) {}
+                    $m->forceDelete();
+                    $deleted++;
+                } catch (\Exception $e) {
+                    $errors++;
+                    \Illuminate\Support\Facades\Log::warning('Billing delete failed for membership ' . $m->id, ['error' => $e->getMessage()]);
+                }
             }
 
             AuditLog::log(
                 'billing_bulk_delete',
                 null,
-                ['membership_ids' => $ids, 'count' => $count],
+                ['membership_ids' => $ids, 'count' => $deleted],
                 [],
                 Auth::user()
             );
 
-            session()->flash('success', "{$count} membership(s) permanently deleted.");
+            if ($errors > 0) {
+                session()->flash('success', "{$deleted} membership(s) deleted. {$errors} could not be deleted (check logs).");
+            } else {
+                session()->flash('success', "{$deleted} membership(s) permanently deleted.");
+            }
         } else {
             session()->flash('error', 'Please select an action.');
             return;
