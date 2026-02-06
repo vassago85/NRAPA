@@ -53,7 +53,7 @@ new #[Title('My Digital Card')] #[Layout('components.layouts.card')] class exten
             return null;
         }
         
-        $verificationUrl = $this->membershipCard->verification_url;
+        $verificationUrl = $this->membershipCard->getVerificationUrl();
         return QrCodeHelper::generateUrl($verificationUrl, 250);
     }
 
