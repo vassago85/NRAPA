@@ -13,6 +13,7 @@
                     <!-- Header -->
                     <tr>
                         <td style="padding: 30px; background: linear-gradient(135deg, #0B4EA2 0%, #F58220 100%); border-radius: 8px 8px 0 0;">
+                            <img src="{{ config('app.url') }}/nrapa-logo.png" alt="NRAPA" style="width: 60px; height: 60px; object-fit: contain; margin-bottom: 12px;" />
                             <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">Action Required</h1>
                         </td>
                     </tr>

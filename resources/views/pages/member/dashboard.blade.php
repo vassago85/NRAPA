@@ -264,21 +264,21 @@ new #[Title('Dashboard')] class extends Component {
                 {{-- Bank Account Details --}}
                 <div class="mt-4 bg-white/50 dark:bg-zinc-800/50 rounded-lg p-4">
                     <h4 class="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-3">Bank Account Details</h4>
-                    <dl class="grid gap-x-4 gap-y-2 text-sm sm:grid-cols-2">
-                        <div class="flex justify-between sm:flex-col sm:gap-0.5">
-                            <dt class="text-amber-600 dark:text-amber-400">Bank:</dt>
+                    <dl class="grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
+                        <div class="flex items-baseline gap-2">
+                            <dt class="text-amber-600 dark:text-amber-400 whitespace-nowrap">Bank:</dt>
                             <dd class="font-medium text-amber-800 dark:text-amber-200">{{ $this->bankAccount['bank_name'] ?: 'To be confirmed' }}</dd>
                         </div>
-                        <div class="flex justify-between sm:flex-col sm:gap-0.5">
-                            <dt class="text-amber-600 dark:text-amber-400">Account Name:</dt>
+                        <div class="flex items-baseline gap-2">
+                            <dt class="text-amber-600 dark:text-amber-400 whitespace-nowrap">Account Name:</dt>
                             <dd class="font-medium text-amber-800 dark:text-amber-200">{{ $this->bankAccount['account_name'] ?: 'To be confirmed' }}</dd>
                         </div>
-                        <div class="flex justify-between sm:flex-col sm:gap-0.5">
-                            <dt class="text-amber-600 dark:text-amber-400">Account Number:</dt>
+                        <div class="flex items-baseline gap-2">
+                            <dt class="text-amber-600 dark:text-amber-400 whitespace-nowrap">Account Number:</dt>
                             <dd class="font-mono font-medium text-amber-800 dark:text-amber-200">{{ $this->bankAccount['account_number'] ?: 'To be confirmed' }}</dd>
                         </div>
-                        <div class="flex justify-between sm:flex-col sm:gap-0.5">
-                            <dt class="text-amber-600 dark:text-amber-400">Branch Code:</dt>
+                        <div class="flex items-baseline gap-2">
+                            <dt class="text-amber-600 dark:text-amber-400 whitespace-nowrap">Branch Code:</dt>
                             <dd class="font-mono font-medium text-amber-800 dark:text-amber-200">{{ $this->bankAccount['branch_code'] ?: 'To be confirmed' }}</dd>
                         </div>
                     </dl>

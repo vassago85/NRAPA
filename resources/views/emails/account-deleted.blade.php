@@ -7,9 +7,7 @@
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
     <div style="text-align: center; margin-bottom: 30px;">
-        <div style="display: inline-block; background: linear-gradient(135deg, #10b981, #047857); width: 60px; height: 60px; border-radius: 12px; line-height: 60px;">
-            <span style="color: white; font-size: 30px; font-weight: bold;">N</span>
-        </div>
+        <img src="{{ config('app.url') }}/nrapa-logo.png" alt="NRAPA" style="width: 80px; height: 80px; object-fit: contain;" />
         <h1 style="color: #1f2937; margin-top: 15px; margin-bottom: 5px;">NRAPA</h1>
         <p style="color: #6b7280; margin: 0;">Account Notification</p>
     </div>
