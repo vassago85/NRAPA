@@ -86,7 +86,8 @@ Write-Host ""
 # Step 5: Verify
 Write-Host "Step 5: Verifying deployment..." -ForegroundColor Yellow
 Write-Host "Checking document types..." -ForegroundColor Gray
-$result = & $phpPath artisan tinker --execute="echo App\Models\DocumentType::active()->count() . ' active document types';"
+$tinkerCode = 'echo App\Models\DocumentType::active()->count() . '' active document types'';'
+$result = & $phpPath artisan tinker --execute=$tinkerCode
 Write-Host $result -ForegroundColor Cyan
 
 Write-Host ""
