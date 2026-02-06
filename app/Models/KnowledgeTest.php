@@ -21,6 +21,7 @@ class KnowledgeTest extends Model
         'time_limit_minutes',
         'max_attempts',
         'is_active',
+        'archived_at',
         'dedicated_type',
     ];
 
@@ -36,7 +37,37 @@ class KnowledgeTest extends Model
             'time_limit_minutes' => 'integer',
             'max_attempts' => 'integer',
             'is_active' => 'boolean',
+            'archived_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Check if the test is archived.
+     */
+    public function isArchived(): bool
+    {
+        return $this->archived_at !== null;
+    }
+
+    /**
+     * Archive the test.
+     */
+    public function archive(): void
+    {
+        $this->update([
+            'archived_at' => now(),
+            'is_active' => false,
+        ]);
+    }
+
+    /**
+     * Restore the test from archive.
+     */
+    public function restore(): void
+    {
+        $this->update([
+            'archived_at' => null,
+        ]);
     }
 
     /**
@@ -76,7 +107,23 @@ class KnowledgeTest extends Model
      */
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
+        return $query->where('is_active', true)->whereNull('archived_at');
+    }
+
+    /**
+     * Scope to exclude archived tests.
+     */
+    public function scopeNotArchived($query)
+    {
+        return $query->whereNull('archived_at');
+    }
+
+    /**
+     * Scope to only archived tests.
+     */
+    public function scopeArchived($query)
+    {
+        return $query->whereNotNull('archived_at');
     }
 
     /**

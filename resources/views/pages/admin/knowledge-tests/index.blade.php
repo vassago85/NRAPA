@@ -7,22 +7,32 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Title('Knowledge Tests - Admin')] class extends Component {
+    public bool $showArchived = false;
+
     #[Computed]
     public function tests()
     {
-        return KnowledgeTest::withCount(['activeQuestions', 'attempts'])
-            ->orderBy('name')
-            ->get();
+        $query = KnowledgeTest::withCount(['activeQuestions', 'attempts'])
+            ->orderBy('name');
+
+        if ($this->showArchived) {
+            $query->archived();
+        } else {
+            $query->notArchived();
+        }
+
+        return $query->get();
     }
 
     #[Computed]
     public function stats()
     {
         return [
-            'total_tests' => KnowledgeTest::count(),
-            'active_tests' => KnowledgeTest::where('is_active', true)->count(),
+            'total_tests' => KnowledgeTest::notArchived()->count(),
+            'active_tests' => KnowledgeTest::where('is_active', true)->notArchived()->count(),
             'pending_marking' => KnowledgeTestAttempt::needsMarking()->count(),
             'total_attempts' => KnowledgeTestAttempt::submitted()->count(),
+            'archived_tests' => KnowledgeTest::archived()->count(),
         ];
     }
 
@@ -32,20 +42,40 @@ new #[Title('Knowledge Tests - Admin')] class extends Component {
         $test->update(['is_active' => !$test->is_active]);
     }
 
+    public function archiveTest(int $id): void
+    {
+        $test = KnowledgeTest::findOrFail($id);
+        $test->archive();
+        session()->flash('success', 'Test archived successfully. It will no longer appear to members.');
+    }
+
+    public function restoreTest(int $id): void
+    {
+        $test = KnowledgeTest::findOrFail($id);
+        $test->restore();
+        session()->flash('success', 'Test restored from archive.');
+    }
+
     public function deleteTest(int $id): void
     {
         $test = KnowledgeTest::findOrFail($id);
 
-        // Only delete if no attempts exist
-        if ($test->attempts()->count() > 0) {
-            session()->flash('error', 'Cannot delete a test that has attempts. Deactivate it instead.');
+        // Only allow deletion of tests with no attempts, or archived tests
+        if ($test->attempts()->count() > 0 && !$test->isArchived()) {
+            session()->flash('error', 'Cannot delete a test with attempts. Archive it first, then delete from the archive.');
             return;
         }
 
         $test->questions()->delete();
+        $test->attempts()->delete(); // Also delete attempts if archived
         $test->delete();
 
-        session()->flash('success', 'Test deleted successfully.');
+        session()->flash('success', 'Test and all associated data deleted permanently.');
+    }
+
+    public function toggleShowArchived(): void
+    {
+        $this->showArchived = !$this->showArchived;
     }
 }; ?>
 
@@ -90,7 +120,7 @@ new #[Title('Knowledge Tests - Admin')] class extends Component {
     @endif
 
     {{-- Stats --}}
-    <div class="grid gap-4 sm:grid-cols-4">
+    <div class="grid gap-4 sm:grid-cols-5">
         <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Total Tests</p>
             <p class="mt-1 text-2xl font-bold text-zinc-900 dark:text-white">{{ $this->stats['total_tests'] }}</p>
@@ -107,10 +137,25 @@ new #[Title('Knowledge Tests - Admin')] class extends Component {
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Total Attempts</p>
             <p class="mt-1 text-2xl font-bold text-zinc-900 dark:text-white">{{ $this->stats['total_attempts'] }}</p>
         </div>
+        <button wire:click="toggleShowArchived" class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-left">
+            <p class="text-sm text-zinc-500 dark:text-zinc-400">Archived Tests</p>
+            <p class="mt-1 text-2xl font-bold text-zinc-500 dark:text-zinc-400">{{ $this->stats['archived_tests'] }}</p>
+            <p class="text-xs text-blue-600 dark:text-blue-400 mt-1">{{ $showArchived ? 'View Active' : 'View Archived' }}</p>
+        </button>
     </div>
 
     {{-- Tests List --}}
     <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        @if($showArchived)
+        <div class="border-b border-zinc-200 bg-amber-50 px-6 py-3 dark:border-zinc-700 dark:bg-amber-900/20">
+            <p class="text-sm font-medium text-amber-800 dark:text-amber-200">
+                <svg class="inline-block size-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0-3-3m3 3 3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
+                </svg>
+                Viewing Archived Tests - These tests are hidden from members
+            </p>
+        </div>
+        @endif
         <div class="overflow-x-auto">
             <table class="w-full">
                 <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
@@ -151,26 +196,45 @@ new #[Title('Knowledge Tests - Admin')] class extends Component {
                             <p class="text-xs text-zinc-500">{{ $test->max_attempts }} max per user</p>
                         </td>
                         <td class="whitespace-nowrap px-6 py-4">
+                            @if($test->isArchived())
+                            <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Archived</span>
+                            @elseif($test->is_active)
                             <button wire:click="toggleActive({{ $test->id }})">
-                                @if($test->is_active)
                                 <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Active</span>
-                                @else
-                                <span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200">Inactive</span>
-                                @endif
                             </button>
+                            @else
+                            <button wire:click="toggleActive({{ $test->id }})">
+                                <span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200">Inactive</span>
+                            </button>
+                            @endif
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-right text-sm">
                             <div class="flex items-center justify-end gap-3">
-                                <a href="{{ route('admin.knowledge-tests.questions', $test) }}" wire:navigate class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-                                    Questions
-                                </a>
-                                <a href="{{ route('admin.knowledge-tests.edit', $test) }}" wire:navigate class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
-                                    Edit
-                                </a>
-                                @if($test->attempts_count === 0)
-                                <button wire:click="deleteTest({{ $test->id }})" wire:confirm="Are you sure you want to delete this test?" class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
-                                    Delete
-                                </button>
+                                @if($test->isArchived())
+                                    {{-- Archived test actions --}}
+                                    <button wire:click="restoreTest({{ $test->id }})" class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+                                        Restore
+                                    </button>
+                                    <button wire:click="deleteTest({{ $test->id }})" wire:confirm="Are you sure you want to PERMANENTLY delete this test? This will delete all questions and {{ $test->attempts_count }} attempt(s). This cannot be undone!" class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+                                        Delete Forever
+                                    </button>
+                                @else
+                                    {{-- Active/Inactive test actions --}}
+                                    <a href="{{ route('admin.knowledge-tests.questions', $test) }}" wire:navigate class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                                        Questions
+                                    </a>
+                                    <a href="{{ route('admin.knowledge-tests.edit', $test) }}" wire:navigate class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+                                        Edit
+                                    </a>
+                                    @if($test->attempts_count === 0)
+                                    <button wire:click="deleteTest({{ $test->id }})" wire:confirm="Are you sure you want to delete this test?" class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+                                        Delete
+                                    </button>
+                                    @else
+                                    <button wire:click="archiveTest({{ $test->id }})" wire:confirm="Archive this test? It will be hidden from members but attempts will be preserved. You can restore or permanently delete it later." class="text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300">
+                                        Archive
+                                    </button>
+                                    @endif
                                 @endif
                             </div>
                         </td>
