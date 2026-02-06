@@ -53,6 +53,51 @@ new #[Title('Knowledge Tests')] class extends Component {
             ->first();
     }
 
+    /**
+     * Get the dedicated status requirements and completion status.
+     */
+    #[Computed]
+    public function dedicatedStatusRequirements(): array
+    {
+        $passedAttempts = $this->myAttempts->where('passed', true);
+        
+        // Check which test types have been passed
+        $passedHunter = $passedAttempts->contains(fn($a) => $a->knowledgeTest->dedicated_type === 'hunter');
+        $passedSport = $passedAttempts->contains(fn($a) => in_array($a->knowledgeTest->dedicated_type, ['sport', 'sport_shooter']));
+        $passedBoth = $passedAttempts->contains(fn($a) => $a->knowledgeTest->dedicated_type === 'both');
+
+        return [
+            'hunter' => [
+                'label' => 'Dedicated Hunter',
+                'passed' => $passedHunter || $passedBoth,
+                'description' => 'Pass the Dedicated Hunter test OR the Combined test',
+            ],
+            'sport' => [
+                'label' => 'Dedicated Sport Shooter', 
+                'passed' => $passedSport || $passedBoth,
+                'description' => 'Pass the Dedicated Sport Shooter test OR the Combined test',
+            ],
+            'both' => [
+                'label' => 'Both (Hunter & Sport Shooter)',
+                'passed' => $passedBoth || ($passedHunter && $passedSport),
+                'description' => 'Pass the Combined test OR pass both individual tests',
+            ],
+        ];
+    }
+
+    /**
+     * Determine which test type a test satisfies.
+     */
+    public function getTestSatisfies(KnowledgeTest $test): array
+    {
+        return match($test->dedicated_type) {
+            'hunter' => ['hunter'],
+            'sport', 'sport_shooter' => ['sport'],
+            'both' => ['hunter', 'sport', 'both'],
+            default => [],
+        };
+    }
+
     public function getTestStatus(KnowledgeTest $test): array
     {
         $attempts = $this->myAttempts->where('knowledge_test_id', $test->id);
@@ -141,7 +186,40 @@ new #[Title('Knowledge Tests')] class extends Component {
         <p class="text-zinc-600 dark:text-zinc-400">Complete required knowledge tests to apply for Dedicated Status.</p>
     </div>
 
-    {{-- Dedicated Status Info --}}
+    {{-- Requirements Status --}}
+    @if($this->canApplyForDedicatedStatus)
+    <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Your Dedicated Status Requirements</h2>
+        <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+            Pass the required tests to qualify for Dedicated Status. You can take the <strong>Combined test</strong> to qualify for both, 
+            or take <strong>individual tests</strong> for each status.
+        </p>
+        
+        <div class="grid gap-3 sm:grid-cols-3">
+            @foreach($this->dedicatedStatusRequirements as $key => $req)
+            <div class="rounded-lg border p-4 {{ $req['passed'] ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 'border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900' }}">
+                <div class="flex items-center gap-2 mb-2">
+                    @if($req['passed'])
+                    <svg class="size-5 text-green-600 dark:text-green-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    </svg>
+                    @else
+                    <svg class="size-5 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    </svg>
+                    @endif
+                    <span class="font-medium {{ $req['passed'] ? 'text-green-800 dark:text-green-200' : 'text-zinc-900 dark:text-white' }}">{{ $req['label'] }}</span>
+                </div>
+                <p class="text-xs {{ $req['passed'] ? 'text-green-700 dark:text-green-300' : 'text-zinc-500 dark:text-zinc-400' }}">{{ $req['description'] }}</p>
+                @if($req['passed'])
+                <span class="mt-2 inline-block text-xs font-medium text-green-600 dark:text-green-400">✓ Qualified</span>
+                @endif
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @else
+    {{-- Dedicated Status Info for non-eligible members --}}
     <div class="rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
         <div class="flex items-start gap-3">
             <svg class="mt-0.5 size-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -156,6 +234,7 @@ new #[Title('Knowledge Tests')] class extends Component {
             </div>
         </div>
     </div>
+    @endif
 
     @if(!$this->canApplyForDedicatedStatus)
     <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
@@ -217,18 +296,41 @@ new #[Title('Knowledge Tests')] class extends Component {
             <div class="p-6">
                 <div class="flex items-start justify-between">
                     <div>
-                        <div class="mb-2 flex items-center gap-2">
+                        <div class="mb-2 flex flex-wrap items-center gap-2">
                             @if($test->dedicated_type === 'hunter')
                             <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">
                                 🎯 Dedicated Hunter
                             </span>
-                            @elseif($test->dedicated_type === 'sport_shooter')
+                            @elseif($test->dedicated_type === 'sport' || $test->dedicated_type === 'sport_shooter')
                             <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                                 🎯 Dedicated Sport Shooter
                             </span>
-                            @else
+                            @elseif($test->dedicated_type === 'both')
                             <span class="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-                                🎯 Hunter & Sport Shooter
+                                🎯 Hunter & Sport Shooter Combined
+                            </span>
+                            @endif
+                            
+                            @if($test->dedicated_type === 'both')
+                            <span class="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
+                                Qualifies for both statuses
+                            </span>
+                            @endif
+                            
+                            @php
+                                $satisfies = $this->getTestSatisfies($test);
+                                $reqs = $this->dedicatedStatusRequirements;
+                                $wouldHelp = false;
+                                foreach ($satisfies as $s) {
+                                    if (isset($reqs[$s]) && !$reqs[$s]['passed']) {
+                                        $wouldHelp = true;
+                                        break;
+                                    }
+                                }
+                            @endphp
+                            @if($wouldHelp && $status['status'] !== 'passed')
+                            <span class="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700 dark:bg-orange-900 dark:text-orange-300">
+                                ★ Recommended
                             </span>
                             @endif
                         </div>
