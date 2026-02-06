@@ -92,8 +92,19 @@ class PurgeDeletedUsers extends Command
                 $this->safeDelete(fn() => $user->accountResetLogs()->forceDelete());
                 $this->safeDelete(fn() => $user->notificationPreference()?->forceDelete());
                 
-                // Delete endorsement requests (no direct relationship)
-                $this->safeDelete(fn() => \App\Models\EndorsementRequest::where('user_id', $user->id)->forceDelete());
+                // Delete endorsement requests and their children (firearm, components, documents)
+                $this->safeDelete(function () use ($user) {
+                    $endorsementIds = \App\Models\EndorsementRequest::withTrashed()->where('user_id', $user->id)->pluck('id');
+                    if ($endorsementIds->isNotEmpty()) {
+                        \App\Models\EndorsementDocument::whereIn('endorsement_request_id', $endorsementIds)->forceDelete();
+                        \App\Models\EndorsementFirearm::whereIn('endorsement_request_id', $endorsementIds)->forceDelete();
+                        \App\Models\EndorsementComponent::whereIn('endorsement_request_id', $endorsementIds)->forceDelete();
+                        \App\Models\EndorsementRequest::withTrashed()->where('user_id', $user->id)->forceDelete();
+                    }
+                });
+
+                // Delete calibre requests
+                $this->safeDelete(fn() => \App\Models\CalibreRequest::where('user_id', $user->id)->forceDelete());
                 
                 // Force delete the user
                 $user->forceDelete();

@@ -227,6 +227,7 @@ class User extends Authenticatable implements MustVerifyEmail
         });
 
         // When soft-deleting, modify email and id_number to free them up for reuse
+        // and clean up pending/draft endorsement requests and other orphaned data
         static::deleting(function (User $user) {
             if (!$user->isForceDeleting()) {
                 $timestamp = now()->timestamp;
@@ -235,6 +236,28 @@ class User extends Authenticatable implements MustVerifyEmail
                     $user->id_number = "deleted_{$timestamp}_{$user->id_number}";
                 }
                 $user->saveQuietly();
+
+                // Clean up endorsement requests and their children
+                try {
+                    $endorsementIds = \App\Models\EndorsementRequest::where('user_id', $user->id)->pluck('id');
+                    if ($endorsementIds->isNotEmpty()) {
+                        \App\Models\EndorsementDocument::whereIn('endorsement_request_id', $endorsementIds)->delete();
+                        \App\Models\EndorsementFirearm::whereIn('endorsement_request_id', $endorsementIds)->delete();
+                        \App\Models\EndorsementComponent::whereIn('endorsement_request_id', $endorsementIds)->delete();
+                        \App\Models\EndorsementRequest::where('user_id', $user->id)->delete();
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::warning('Failed to clean up endorsement data on user delete', [
+                        'user_id' => $user->id, 'error' => $e->getMessage(),
+                    ]);
+                }
+
+                // Clean up calibre requests
+                try {
+                    \App\Models\CalibreRequest::where('user_id', $user->id)->delete();
+                } catch (\Exception $e) {
+                    // table may not exist
+                }
             }
         });
     }

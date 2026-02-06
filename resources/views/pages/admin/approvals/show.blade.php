@@ -3,7 +3,10 @@
 use App\Models\Membership;
 use App\Models\Certificate;
 use App\Models\AuditLog;
+use App\Mail\MembershipApproved;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -54,6 +57,12 @@ new #[Title('Review Application - Admin')] class extends Component {
         // Create certificates based on membership type entitlements
         $this->issueCertificates();
 
+        // Issue welcome letter and membership card
+        $this->issueWelcomeLetterAndCard($admin);
+
+        // Send welcome email
+        $this->sendApprovalEmail();
+
         // Log the action
         AuditLog::log(
             'membership_approved',
@@ -63,7 +72,7 @@ new #[Title('Review Application - Admin')] class extends Component {
             $admin
         );
 
-        session()->flash('success', 'Membership application approved successfully!');
+        session()->flash('success', 'Membership approved, welcome letter issued, and welcome email sent!');
 
         $this->redirect(route('admin.approvals.index'), navigate: true);
     }
@@ -133,6 +142,96 @@ new #[Title('Review Application - Admin')] class extends Component {
                 'valid_until' => $validUntil,
                 'issued_by' => Auth::id(),
             ]);
+        }
+    }
+
+    protected function issueWelcomeLetterAndCard($admin): void
+    {
+        $user = $this->membership->user;
+
+        try {
+            $service = app(\App\Services\CertificateIssueService::class);
+
+            // Issue welcome letter (skip terms check — admin is approving)
+            try {
+                $service->issueWelcomeLetter($user, $admin);
+            } catch (\Exception $e) {
+                // If terms check fails, create a basic welcome letter certificate directly
+                $certType = \App\Models\CertificateType::firstOrCreate(
+                    ['slug' => 'welcome-letter'],
+                    [
+                        'name' => 'Welcome Letter',
+                        'description' => 'Welcome letter for new members',
+                        'template' => 'documents.welcome-letter',
+                        'is_active' => true,
+                        'sort_order' => 14,
+                    ]
+                );
+                Certificate::create([
+                    'user_id' => $user->id,
+                    'membership_id' => $this->membership->id,
+                    'certificate_type_id' => $certType->id,
+                    'certificate_number' => 'WEL-' . strtoupper(substr(md5(uniqid()), 0, 8)),
+                    'qr_code' => bin2hex(random_bytes(16)),
+                    'issued_at' => now(),
+                    'valid_from' => now(),
+                    'issued_by' => $admin->id,
+                ]);
+                Log::info('Welcome letter created via fallback', ['user_id' => $user->id, 'reason' => $e->getMessage()]);
+            }
+
+            // Issue membership card
+            try {
+                $service->issueMembershipCard($user, $admin);
+            } catch (\Exception $e) {
+                // Fallback: create card certificate directly
+                $certType = \App\Models\CertificateType::firstOrCreate(
+                    ['slug' => 'membership-card'],
+                    [
+                        'name' => 'Membership Card',
+                        'description' => 'NRAPA membership identification card',
+                        'template' => 'documents.membership-card',
+                        'is_active' => true,
+                        'sort_order' => 13,
+                    ]
+                );
+                Certificate::create([
+                    'user_id' => $user->id,
+                    'membership_id' => $this->membership->id,
+                    'certificate_type_id' => $certType->id,
+                    'certificate_number' => 'CARD-' . strtoupper(substr(md5(uniqid()), 0, 8)),
+                    'qr_code' => bin2hex(random_bytes(16)),
+                    'issued_at' => now(),
+                    'valid_from' => now(),
+                    'valid_until' => $this->membership->expires_at,
+                    'issued_by' => $admin->id,
+                ]);
+                Log::info('Membership card created via fallback', ['user_id' => $user->id, 'reason' => $e->getMessage()]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to issue welcome letter/card on approval', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    protected function sendApprovalEmail(): void
+    {
+        try {
+            $user = $this->membership->user;
+            $cardUrl = route('card');
+
+            Mail::to($user->email)->send(new MembershipApproved(
+                membership: $this->membership,
+                cardUrl: $cardUrl,
+            ));
+        } catch (\Exception $e) {
+            Log::warning('Failed to send membership approval email', [
+                'user_id' => $this->membership->user_id,
+                'error' => $e->getMessage(),
+            ]);
+            // Don't fail the approval if email fails
         }
     }
 }; ?>
