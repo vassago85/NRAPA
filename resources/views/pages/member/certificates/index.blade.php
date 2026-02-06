@@ -11,7 +11,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
     #[Computed]
     public function user()
     {
-        return Auth::user();
+        $user = Auth::user();
+        // #region agent log
+        file_put_contents(base_path('.cursor/debug.log'), json_encode(['location'=>'certificates/index.blade.php:user','message'=>'Index page user computed','data'=>['userId'=>$user->id,'role'=>$user->role,'isDev'=>$user->isDeveloper(),'isOwner'=>$user->isOwner(),'isAdmin'=>$user->isAdmin()],'hypothesisId'=>'H2','timestamp'=>now()->timestamp])."\n", FILE_APPEND);
+        // #endregion
+        return $user;
     }
 
     #[Computed]
@@ -177,9 +181,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
                                 // Set view route based on user role
                                 if ($this->user->isDeveloper()) {
                                     $showRoute = 'developer.endorsements.show';
-                                } elseif ($this->user->isOwner()) {
-                                    $showRoute = 'owner.endorsements.show';
-                                } elseif ($this->user->isAdmin()) {
+                                } elseif ($this->user->isOwner() || $this->user->isAdmin()) {
                                     $showRoute = 'admin.endorsements.show';
                                 } else {
                                     $showRoute = 'member.endorsements.show';
@@ -214,9 +216,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
                                 $showRoute = 'certificates.show';
                                 if ($this->user->isDeveloper()) {
                                     $showRoute = 'developer.certificates.show';
-                                } elseif ($this->user->isOwner()) {
-                                    $showRoute = 'owner.certificates.show';
-                                } elseif ($this->user->isAdmin()) {
+                                } elseif ($this->user->isOwner() || $this->user->isAdmin()) {
                                     $showRoute = 'admin.certificates.show';
                                 }
                                 $isMembershipCard = $certificate->certificateType->slug === 'membership-card';
@@ -360,9 +360,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
                                 $showRoute = 'certificates.show';
                                 if ($this->user->isDeveloper()) {
                                     $showRoute = 'developer.certificates.show';
-                                } elseif ($this->user->isOwner()) {
-                                    $showRoute = 'owner.certificates.show';
-                                } elseif ($this->user->isAdmin()) {
+                                } elseif ($this->user->isOwner() || $this->user->isAdmin()) {
                                     $showRoute = 'admin.certificates.show';
                                 }
                             @endphp

@@ -12,6 +12,9 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     public function mount(Certificate $certificate): void
     {
         $user = Auth::user();
+        // #region agent log
+        file_put_contents(base_path('.cursor/debug.log'), json_encode(['location'=>'certificates/show.blade.php:mount','message'=>'Certificate show mount','data'=>['userId'=>$user->id,'role'=>$user->role,'isDev'=>$user->isDeveloper(),'isOwner'=>$user->isOwner(),'isAdmin'=>$user->isAdmin(),'certId'=>$certificate->id],'hypothesisId'=>'H1','timestamp'=>now()->timestamp])."\n", FILE_APPEND);
+        // #endregion
         
         // Allow dev, owner, and admin to view any certificate
         // Members can only view their own certificates
@@ -175,11 +178,12 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                     $backRoute = 'certificates.index';
                     if (auth()->user()->isDeveloper()) {
                         $backRoute = 'developer.certificates.index';
-                    } elseif (auth()->user()->isOwner()) {
-                        $backRoute = 'owner.certificates.index';
-                    } elseif (auth()->user()->isAdmin()) {
+                    } elseif (auth()->user()->isOwner() || auth()->user()->isAdmin()) {
                         $backRoute = 'admin.certificates.index';
                     }
+                    // #region agent log
+                    file_put_contents(base_path('.cursor/debug.log'), json_encode(['location'=>'certificates/show.blade.php:backRoute','message'=>'Resolving back route','data'=>['backRoute'=>$backRoute,'isDev'=>auth()->user()->isDeveloper(),'isOwner'=>auth()->user()->isOwner(),'isAdmin'=>auth()->user()->isAdmin()],'hypothesisId'=>'H1','timestamp'=>now()->timestamp])."\n", FILE_APPEND);
+                    // #endregion
                 @endphp
                 <a href="{{ route($backRoute) }}" wire:navigate
                    class="inline-flex items-center gap-1 text-sm text-zinc-600 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200">
