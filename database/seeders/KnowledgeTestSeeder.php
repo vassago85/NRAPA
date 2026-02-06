@@ -26,9 +26,9 @@ class KnowledgeTestSeeder extends Seeder
             [
                 'slug' => 'dedicated-hunter',
                 'name' => 'Dedicated Hunter Knowledge Test',
-                'description' => 'Comprehensive test covering hunting regulations, ethics, wildlife conservation, and dedicated hunter responsibilities in South Africa.',
+                'description' => 'Comprehensive test (57 questions, 169 marks) covering hunting regulations, ethics, wildlife conservation, endangered species, and dedicated hunter responsibilities in South Africa.',
                 'passing_score' => 75,
-                'time_limit_minutes' => 45,
+                'time_limit_minutes' => 90, // 1.5 hours as per official test
                 'max_attempts' => 3,
                 'is_active' => true,
                 'dedicated_type' => 'hunter',
@@ -36,12 +36,22 @@ class KnowledgeTestSeeder extends Seeder
             [
                 'slug' => 'dedicated-sport-shooter',
                 'name' => 'Dedicated Sport Shooter Knowledge Test',
-                'description' => 'Comprehensive test covering sport shooting disciplines, competition rules, range safety, and dedicated sport shooter responsibilities.',
+                'description' => 'Comprehensive test (45 questions, 171 marks) covering sport shooting disciplines, firearm components, ammunition, safe handling, and FCA regulations.',
                 'passing_score' => 75,
-                'time_limit_minutes' => 45,
+                'time_limit_minutes' => 90, // 1.5 hours as per official test
                 'max_attempts' => 3,
                 'is_active' => true,
                 'dedicated_type' => 'sport',
+            ],
+            [
+                'slug' => 'dedicated-both',
+                'name' => 'Dedicated Hunter & Sport Shooter Knowledge Test',
+                'description' => 'Combined comprehensive test (76 questions, 239 marks) for members seeking both Dedicated Hunter and Dedicated Sport Shooter status. Covers all topics from both individual tests.',
+                'passing_score' => 75,
+                'time_limit_minutes' => 120, // 2 hours as per official test
+                'max_attempts' => 3,
+                'is_active' => true,
+                'dedicated_type' => 'both',
             ],
             [
                 'slug' => 'firearm-safety',
