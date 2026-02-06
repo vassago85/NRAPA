@@ -75,7 +75,7 @@
     </div>
 </section>
 
-<div style="height:14px"></div>
+<div style="height:6px"></div>
 
 @php
     // Check activities and documents status
@@ -115,7 +115,7 @@
     </div>
 </section>
 
-<div style="height:14px"></div>
+<div style="height:6px"></div>
 
 <section class="notice">
     I, the undersigned, <b>{{ $signatory['name'] }}</b>, in my capacity as <b>{{ $signatory['title'] }}</b> of the National Rifle &amp; Pistol Association (NRAPA),
@@ -125,7 +125,7 @@
     This certificate confirms that at the time of issue, the member's required documents are valid and their activity requirements are up to date. Continued validity of Dedicated Status is subject to the member maintaining membership in good standing and meeting the ongoing activity requirements applicable to their Dedicated Status.
 </section>
 
-<div style="height:14px"></div>
+<div style="height:6px"></div>
 
 <div class="sig-grid">
     <section class="sig">

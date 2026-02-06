@@ -61,14 +61,14 @@
     </section>
 </div>
 
-<div style="height:14px"></div>
+<div style="height:8px"></div>
 
 <section class="notice">
     This is to certify that <b>{{ $certificate->user->getIdName() }}</b> (ID: {{ $certificate->user->id_number ?? 'N/A' }}) is a <b>member in good standing</b> of the National Rifle &amp; Pistol Association of South Africa (NRAPA).
     This confirms that the member&apos;s membership is valid, current, and compliant with the Association&apos;s requirements at the date of issue.
 </section>
 
-<div style="height:14px"></div>
+<div style="height:8px"></div>
 
 <div class="sig-grid">
     <section class="sig">

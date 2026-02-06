@@ -80,7 +80,7 @@
     </section>
 </div>
 
-<div style="height:14px"></div>
+<div style="height:6px"></div>
 
 @if($firearm)
 <section class="card">
@@ -108,7 +108,7 @@
     </div>
 </section>
 
-<div style="height:14px"></div>
+<div style="height:6px"></div>
 @endif
 
 @if($request->components && $request->components->isNotEmpty())
@@ -142,7 +142,7 @@
     </div>
 </section>
 
-<div style="height:14px"></div>
+<div style="height:6px"></div>
 @endif
 
 <section class="notice">
@@ -157,7 +157,7 @@
     The Association supports the member&apos;s application for the firearm described above, issued under the member&apos;s compliant dedicated status, subject to compliance with the Firearms Control Act (Act 60 of 2000, as amended) and relevant Regulations.
 </section>
 
-<div style="height:14px"></div>
+<div style="height:6px"></div>
 
 <div class="sig-grid">
     <section class="sig">
@@ -189,7 +189,7 @@
     </section>
 </div>
 
-<div style="height:14px"></div>
+<div style="height:6px"></div>
 
 <section class="sig">
     <div class="h2">Commissioner of Oaths (Scan Upload - Optional)</div>
