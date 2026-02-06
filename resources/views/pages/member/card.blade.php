@@ -12,10 +12,27 @@ use Livewire\Component;
 new #[Title('My Digital Card')] #[Layout('components.layouts.card')] class extends Component {
     public bool $showAddToHomeInstructions = true;
 
+    /** Set in mount so the card body has data on first paint. */
+    public $cardUser = null;
+    public $cardMembership = null;
+    public $cardMembershipCard = null;
+
     public function mount(): void
     {
-        // Check if user has dismissed the add-to-home instructions
         $this->showAddToHomeInstructions = !session()->get('card_add_to_home_dismissed', false);
+        $user = Auth::user();
+        if ($user) {
+            $this->cardUser = $user;
+            $this->cardMembership = $user->activeMembership;
+            if ($this->cardMembership) {
+                $this->cardMembership->loadMissing('type');
+            }
+            $this->cardMembershipCard = Certificate::where('user_id', $user->id)
+                ->whereHas('certificateType', fn($q) => $q->where('slug', 'membership-card'))
+                ->valid()
+                ->latest()
+                ->first();
+        }
     }
 
     public function dismissInstructions(): void
@@ -27,24 +44,26 @@ new #[Title('My Digital Card')] #[Layout('components.layouts.card')] class exten
     #[Computed]
     public function user()
     {
-        return Auth::user();
+        return $this->cardUser ?? Auth::user();
     }
 
     #[Computed]
     public function membership()
     {
-        $m = $this->user->activeMembership;
-        if ($m) {
-            $m->loadMissing('type');
-        }
-        return $m;
+        return $this->cardMembership ?? $this->user?->activeMembership;
     }
 
     #[Computed]
     public function membershipCard()
     {
-        // Get the membership card certificate for this user
-        return Certificate::where('user_id', $this->user->id)
+        if ($this->cardMembershipCard !== null) {
+            return $this->cardMembershipCard;
+        }
+        $u = $this->user;
+        if (!$u) {
+            return null;
+        }
+        return Certificate::where('user_id', $u->id)
             ->whereHas('certificateType', fn($q) => $q->where('slug', 'membership-card'))
             ->valid()
             ->latest()
@@ -146,21 +165,27 @@ new #[Title('My Digital Card')] #[Layout('components.layouts.card')] class exten
                 </div>
 
                 {{-- Card Body - explicit dark bg so value text is visible --}}
+                @php
+                    $memberName = $this->user?->name ?? '';
+                    $membershipNo = $this->membership?->membership_number ?? '';
+                    $membershipTypeName = $this->membership?->type?->name ?? 'Member';
+                    $validUntilLabel = $this->isLifetime ? 'Lifetime' : ($this->membership?->expires_at?->format('d M Y') ?? 'N/A');
+                @endphp
                 <div class="px-6 py-6 space-y-6 bg-zinc-800/80">
                     {{-- Member Info --}}
                     <div class="space-y-4">
                         <div>
                             <p class="text-zinc-500 text-xs uppercase tracking-wider">Member Name</p>
-                            <p class="text-white text-xl font-semibold">{{ $this->user->name ?? '—' }}</p>
+                            <p class="text-white text-xl font-semibold">{{ $memberName ?: '—' }}</p>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <p class="text-zinc-500 text-xs uppercase tracking-wider">Membership No.</p>
-                                <p class="text-white font-mono text-sm">{{ $this->membership->membership_number ?? '—' }}</p>
+                                <p class="text-white font-mono text-sm">{{ $membershipNo ?: '—' }}</p>
                             </div>
                             <div>
                                 <p class="text-zinc-500 text-xs uppercase tracking-wider">Type</p>
-                                <p class="text-white text-sm">{{ $this->membership->type?->name ?? 'Member' }}</p>
+                                <p class="text-white text-sm">{{ $membershipTypeName }}</p>
                             </div>
                         </div>
                         <div>
@@ -169,7 +194,7 @@ new #[Title('My Digital Card')] #[Layout('components.layouts.card')] class exten
                             <p class="text-emerald-400 font-semibold">Lifetime</p>
                             @else
                             <p class="text-white {{ $this->isExpired ? 'text-red-400' : '' }}">
-                                {{ $this->membership->expires_at?->format('d M Y') ?? 'N/A' }}
+                                {{ $validUntilLabel }}
                             </p>
                             @endif
                         </div>

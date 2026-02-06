@@ -366,8 +366,9 @@ class EndorsementRequest extends Model
 
         // Check if user's membership type indicates hunter
         $membership = $user->activeMembership;
-        if ($membership && $membership->type) {
-            $dedicatedType = $membership->type->dedicated_type ?? null;
+        $membershipType = $membership?->type;
+        if ($membership && $membershipType) {
+            $dedicatedType = $membershipType->dedicated_type ?? null;
             if ($dedicatedType === 'hunter') {
                 $required = $minActivitiesHunter;
                 $activityPeriodMonths = SystemSetting::get('endorsement_hunter_activity_period_months', 24);

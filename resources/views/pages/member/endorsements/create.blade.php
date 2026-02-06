@@ -92,8 +92,29 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             return;
         }
         $user = auth()->user();
+        if (!$user) {
+            $this->redirect(route('login'), navigate: true);
+            return;
+        }
         // Get eligibility summary for display (not for blocking)
-        $this->eligibility = EndorsementRequest::getEligibilitySummary($user);
+        try {
+            $this->eligibility = EndorsementRequest::getEligibilitySummary($user);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Endorsement create: getEligibilitySummary failed', [
+                'user_id' => $user->id,
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            $this->eligibility = [
+                'eligible' => false,
+                'knowledge_test_passed' => false,
+                'documents_complete' => false,
+                'activities_met' => false,
+                'activity_details' => ['met' => false, 'approved_count' => 0, 'required' => 2, 'period_months' => 12, 'message' => 'Unable to load eligibility.'],
+                'missing_documents' => [],
+                'errors' => [['type' => 'system', 'message' => 'Eligibility could not be loaded. Please try again or contact support.']],
+            ];
+        }
 
         if ($request && $request->exists && $request->user_id === $user->id) {
             $this->editingRequest = $request->load(['firearm', 'components']);

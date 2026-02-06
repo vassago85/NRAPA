@@ -133,7 +133,19 @@ new #[Title('Knowledge Tests')] class extends Component {
         $passedAttempt = $attempts->first(fn ($a) => $this->attemptCountsAsPassed($a));
         $remainingAttempts = $test->remainingAttempts(auth()->user());
 
+        // Show passed if user passed this test, or already satisfied this test’s requirement (e.g. via Combined)
         if ($passedAttempt) {
+            return [
+                'status' => 'passed',
+                'label' => 'Passed',
+                'class' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                'canAttempt' => false,
+            ];
+        }
+        $satisfies = $this->getTestSatisfies($test);
+        $reqs = $this->dedicatedStatusRequirements;
+        $requirementAlreadyMet = !empty($satisfies) && array_reduce($satisfies, fn ($met, $key) => $met || (isset($reqs[$key]) && $reqs[$key]['passed']), false);
+        if ($requirementAlreadyMet) {
             return [
                 'status' => 'passed',
                 'label' => 'Passed',
