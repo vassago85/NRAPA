@@ -55,34 +55,54 @@ new #[Title('Knowledge Tests')] class extends Component {
 
     /**
      * Get the dedicated status requirements and completion status.
+     * Only returns requirements relevant to the user's membership type.
      */
     #[Computed]
     public function dedicatedStatusRequirements(): array
     {
         $passedAttempts = $this->myAttempts->where('passed', true);
+        $userType = $this->userDedicatedType;
         
         // Check which test types have been passed
         $passedHunter = $passedAttempts->contains(fn($a) => $a->knowledgeTest->dedicated_type === 'hunter');
         $passedSport = $passedAttempts->contains(fn($a) => in_array($a->knowledgeTest->dedicated_type, ['sport', 'sport_shooter']));
         $passedBoth = $passedAttempts->contains(fn($a) => $a->knowledgeTest->dedicated_type === 'both');
 
-        return [
-            'hunter' => [
+        $requirements = [];
+
+        // Only show relevant requirements based on membership type
+        if ($userType === 'hunter') {
+            $requirements['hunter'] = [
+                'label' => 'Dedicated Hunter',
+                'passed' => $passedHunter,
+                'description' => 'Pass the Dedicated Hunter Knowledge Test',
+            ];
+        } elseif ($userType === 'sport' || $userType === 'sport_shooter') {
+            $requirements['sport'] = [
+                'label' => 'Dedicated Sport Shooter', 
+                'passed' => $passedSport,
+                'description' => 'Pass the Dedicated Sport Shooter Knowledge Test',
+            ];
+        } elseif ($userType === 'both') {
+            // For "both" membership, show all three options
+            $requirements['hunter'] = [
                 'label' => 'Dedicated Hunter',
                 'passed' => $passedHunter || $passedBoth,
-                'description' => 'Pass the Dedicated Hunter test OR the Combined test',
-            ],
-            'sport' => [
+                'description' => 'Pass the Hunter test OR Combined test',
+            ];
+            $requirements['sport'] = [
                 'label' => 'Dedicated Sport Shooter', 
                 'passed' => $passedSport || $passedBoth,
-                'description' => 'Pass the Dedicated Sport Shooter test OR the Combined test',
-            ],
-            'both' => [
-                'label' => 'Both (Hunter & Sport Shooter)',
+                'description' => 'Pass the Sport Shooter test OR Combined test',
+            ];
+            $requirements['both'] = [
+                'label' => 'Both Statuses',
                 'passed' => $passedBoth || ($passedHunter && $passedSport),
-                'description' => 'Pass the Combined test OR pass both individual tests',
-            ],
-        ];
+                'description' => 'Pass Combined test OR both individual tests',
+            ];
+        }
+
+        return $requirements;
     }
 
     /**
@@ -187,15 +207,22 @@ new #[Title('Knowledge Tests')] class extends Component {
     </div>
 
     {{-- Requirements Status --}}
-    @if($this->canApplyForDedicatedStatus)
+    @if($this->canApplyForDedicatedStatus && count($this->dedicatedStatusRequirements) > 0)
     <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
         <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Your Dedicated Status Requirements</h2>
-        <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
-            Pass the required tests to qualify for Dedicated Status. You can take the <strong>Combined test</strong> to qualify for both, 
-            or take <strong>individual tests</strong> for each status.
-        </p>
         
-        <div class="grid gap-3 sm:grid-cols-3">
+        @if($this->userDedicatedType === 'both')
+        <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+            Pass the required tests to qualify for Dedicated Status. You can take the <strong>Combined test</strong> to qualify for both statuses at once, 
+            or take <strong>individual tests</strong> separately.
+        </p>
+        @else
+        <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+            Pass the required knowledge test to qualify for your Dedicated Status.
+        </p>
+        @endif
+        
+        <div class="grid gap-3 {{ count($this->dedicatedStatusRequirements) === 1 ? 'sm:grid-cols-1 max-w-md' : (count($this->dedicatedStatusRequirements) === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-3') }}">
             @foreach($this->dedicatedStatusRequirements as $key => $req)
             <div class="rounded-lg border p-4 {{ $req['passed'] ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 'border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900' }}">
                 <div class="flex items-center gap-2 mb-2">
@@ -218,7 +245,7 @@ new #[Title('Knowledge Tests')] class extends Component {
             @endforeach
         </div>
     </div>
-    @else
+    @elseif(!$this->canApplyForDedicatedStatus)
     {{-- Dedicated Status Info for non-eligible members --}}
     <div class="rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
         <div class="flex items-start gap-3">

@@ -134,16 +134,34 @@ class KnowledgeTest extends Model
     public function scopeForDedicatedType($query, ?string $userDedicatedType)
     {
         if ($userDedicatedType === 'both') {
-            // Users with "both" can see all tests
-            return $query;
+            // Users with "both" membership see all 3 tests: Hunter, Sport, and Combined
+            return $query->where(function ($q) {
+                $q->whereNull('dedicated_type')
+                    ->orWhereIn('dedicated_type', ['hunter', 'sport', 'sport_shooter', 'both']);
+            });
+        }
+
+        if ($userDedicatedType === 'hunter') {
+            // Hunter membership: only see Hunter test (and general tests)
+            return $query->where(function ($q) {
+                $q->whereNull('dedicated_type')
+                    ->orWhere('dedicated_type', 'hunter');
+            });
+        }
+
+        if ($userDedicatedType === 'sport' || $userDedicatedType === 'sport_shooter') {
+            // Sport Shooter membership: only see Sport Shooter test (and general tests)
+            return $query->where(function ($q) {
+                $q->whereNull('dedicated_type')
+                    ->orWhereIn('dedicated_type', ['sport', 'sport_shooter']);
+            });
         }
 
         if ($userDedicatedType) {
-            // Users with a specific type see: general + their type + both
+            // Fallback for any other type: show general + their type only
             return $query->where(function ($q) use ($userDedicatedType) {
                 $q->whereNull('dedicated_type')
-                    ->orWhere('dedicated_type', $userDedicatedType)
-                    ->orWhere('dedicated_type', 'both');
+                    ->orWhere('dedicated_type', $userDedicatedType);
             });
         }
 
