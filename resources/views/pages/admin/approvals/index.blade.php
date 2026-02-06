@@ -42,7 +42,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
                 return [
                     'type' => 'membership',
                     'id' => $membership->id,
-                    'title' => $membership->type->name . ' Membership',
+                    'title' => ($membership->type?->name ?? 'Membership') . ' Membership',
                     'user' => $membership->user,
                     'date' => $membership->applied_at,
                     'route' => route('admin.approvals.show', $membership),

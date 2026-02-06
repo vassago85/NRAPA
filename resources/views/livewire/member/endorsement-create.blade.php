@@ -128,7 +128,7 @@
                             <label class="relative cursor-pointer">
                                 <input type="radio" wire:model.live="endorsementEntryType" value="{{ $value }}" class="peer sr-only">
                                 <div class="p-4 text-center border-2 rounded-lg transition-all peer-checked:border-emerald-600 peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:shadow-lg peer-checked:shadow-emerald-200/50 dark:peer-checked:bg-emerald-600 dark:peer-checked:text-white dark:peer-checked:shadow-emerald-900/50 border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 bg-white dark:bg-zinc-800">
-                                    <span class="text-sm font-medium text-zinc-900 dark:text-white peer-checked:text-white">{{ $label }}</span>
+                                    <span class="text-sm font-medium">{{ $label }}</span>
                                 </div>
                             </label>
                         @endforeach

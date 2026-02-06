@@ -25,6 +25,11 @@ new #[Title('Review Application - Admin')] class extends Component {
             return;
         }
 
+        if (!$this->membership->type) {
+            session()->flash('error', 'Cannot approve: membership type is missing.');
+            return;
+        }
+
         $admin = Auth::user();
 
         // Calculate expiry date based on membership type
@@ -102,7 +107,8 @@ new #[Title('Review Application - Admin')] class extends Component {
 
     protected function issueCertificates(): void
     {
-        $certificateEntitlements = $this->membership->type->certificate_entitlements ?? [];
+        $entitlements = $this->membership->type->certificate_entitlements ?? [];
+        $certificateEntitlements = is_array($entitlements) ? $entitlements : (array) json_decode($entitlements ?: '[]', true);
 
         foreach ($certificateEntitlements as $certificateTypeId) {
             $certificateType = \App\Models\CertificateType::find($certificateTypeId);
@@ -123,6 +129,7 @@ new #[Title('Review Application - Admin')] class extends Component {
                 'certificate_number' => 'CERT-' . strtoupper(substr(md5(uniqid()), 0, 8)),
                 'qr_code' => bin2hex(random_bytes(16)),
                 'issued_at' => now(),
+                'valid_from' => now(),
                 'valid_until' => $validUntil,
                 'issued_by' => Auth::id(),
             ]);

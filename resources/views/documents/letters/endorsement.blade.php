@@ -124,25 +124,25 @@
                 @endif
                 @if($component->component_type === 'barrel')
                     @if($component->diameter)
-                        <span class="block text-xs text-zinc-500 dark:text-zinc-400 mt-1">Diameter: {{ $component->diameter }}</span>
+                        <span style="display:block; font-size:11px; color:var(--muted); margin-top:4px;">Diameter: {{ $component->diameter }}</span>
                     @elseif($component->calibre_display)
-                        <span class="block text-xs text-zinc-500 dark:text-zinc-400 mt-1">Calibre: {{ $component->calibre_display }}</span>
+                        <span style="display:block; font-size:11px; color:var(--muted); margin-top:4px;">Calibre: {{ $component->calibre_display }}</span>
                     @endif
                 @elseif($component->component_type === 'action')
                     @if($component->bolt_face_label ?? $component->bolt_face)
-                        <span class="block text-xs text-zinc-500 dark:text-zinc-400 mt-1">Bolt face: {{ $component->bolt_face_label ?? $component->bolt_face }}</span>
+                        <span style="display:block; font-size:11px; color:var(--muted); margin-top:4px;">Bolt face: {{ $component->bolt_face_label ?? $component->bolt_face }}</span>
                     @endif
                     @if($component->action_type_label ?? $component->action_type)
-                        <span class="block text-xs text-zinc-500 dark:text-zinc-400 mt-1">Action type: {{ $component->action_type_label ?? $component->action_type }}</span>
+                        <span style="display:block; font-size:11px; color:var(--muted); margin-top:4px;">Action type: {{ $component->action_type_label ?? $component->action_type }}</span>
                     @endif
                 @elseif($component->calibre_display)
-                    <span class="block text-xs text-zinc-500 dark:text-zinc-400 mt-1">Calibre: {{ $component->calibre_display }}</span>
+                    <span style="display:block; font-size:11px; color:var(--muted); margin-top:4px;">Calibre: {{ $component->calibre_display }}</span>
                 @endif
                 @if($component->component_serial)
-                    <span class="block text-xs text-zinc-500 dark:text-zinc-400 mt-1">Serial: {{ $component->component_serial }}</span>
+                    <span style="display:block; font-size:11px; color:var(--muted); margin-top:4px;">Serial: {{ $component->component_serial }}</span>
                 @endif
                 @if($component->component_description)
-                    <span class="block text-xs text-zinc-500 dark:text-zinc-400 mt-1">{{ $component->component_description }}</span>
+                    <span style="display:block; font-size:11px; color:var(--muted); margin-top:4px;">{{ $component->component_description }}</span>
                 @endif
             </div>
         @endforeach

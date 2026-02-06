@@ -940,7 +940,7 @@ class EndorsementCreate extends Component
                 ]);
                 $comp->save();
             } elseif ($entry === 'action') {
-                $comp = $request->components()->where('component_type', EndorsementComponent::TYPE_ACTION)->first() ?? new EndorsementComponent();
+                $comp = new EndorsementComponent();
                 $comp->fill([
                     'endorsement_request_id' => $request->id,
                     'component_type' => EndorsementComponent::TYPE_ACTION,
