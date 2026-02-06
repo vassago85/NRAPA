@@ -144,6 +144,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 // Member Portal Routes - Requires ACTIVE membership (paid members only)
 Route::middleware(['auth', 'verified', 'membership.required', 'terms.accepted'])->group(function () {
+    // Digital Membership Card (mobile-optimized)
+    Route::livewire('card', 'pages::member.card')->name('card');
+
     // Certificates (members only - requires active membership)
     Route::livewire('certificates', 'pages::member.certificates.index')->name('certificates.index');
     Route::livewire('certificates/{certificate}', 'pages::member.certificates.show')->name('certificates.show');

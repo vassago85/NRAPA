@@ -33,6 +33,9 @@ new #[Title('Member Details - Admin')] class extends Component {
     public ?int $selectedKnowledgeTestId = null;
     public string $knowledgeTestNotes = '';
     
+    // Reset test attempts
+    public ?int $testToResetId = null;
+    
     // 2FA verification for members
     public array $securityAnswers = [];
     public bool $verificationPassed = false;
@@ -474,6 +477,63 @@ new #[Title('Member Details - Admin')] class extends Component {
         $this->selectedKnowledgeTestId = null;
 
         session()->flash('success', 'Knowledge test marked as complete successfully.');
+    }
+
+    public function resetTestAttempts(int $testId): void
+    {
+        // Get test name for logging
+        $test = KnowledgeTest::find($testId);
+        $testName = $test?->name ?? 'Unknown';
+
+        // Delete all attempts for this user and test
+        $deletedCount = KnowledgeTestAttempt::where('user_id', $this->user->id)
+            ->where('knowledge_test_id', $testId)
+            ->delete();
+
+        // Log the action
+        \App\Models\AuditLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'reset_test_attempts',
+            'subject_type' => User::class,
+            'subject_id' => $this->user->id,
+            'changes' => [
+                'test_id' => $testId,
+                'test_name' => $testName,
+                'attempts_deleted' => $deletedCount,
+                'reason' => 'Admin reset test attempts',
+            ],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+
+        // Refresh user data
+        $this->user->refresh();
+        $this->user->load(['knowledgeTestAttempts.knowledgeTest']);
+
+        session()->flash('success', "Reset {$deletedCount} attempt(s) for {$testName}. Member can now retake the test.");
+    }
+
+    #[Computed]
+    public function testAttemptSummary()
+    {
+        // Group attempts by test and count them
+        $summary = [];
+        foreach ($this->user->knowledgeTestAttempts as $attempt) {
+            $testId = $attempt->knowledge_test_id;
+            if (!isset($summary[$testId])) {
+                $summary[$testId] = [
+                    'test' => $attempt->knowledgeTest,
+                    'count' => 0,
+                    'max' => $attempt->knowledgeTest->max_attempts ?? 3,
+                    'passed' => false,
+                ];
+            }
+            $summary[$testId]['count']++;
+            if ($attempt->passed) {
+                $summary[$testId]['passed'] = true;
+            }
+        }
+        return $summary;
     }
 
     #[Computed]
@@ -1083,53 +1143,96 @@ new #[Title('Member Details - Admin')] class extends Component {
         </div>
     </div>
 
-    {{-- Knowledge Test Attempts --}}
-    @if($this->user->knowledgeTestAttempts->count() > 0)
+    {{-- Knowledge Test Attempts Summary --}}
+    @if(count($this->testAttemptSummary) > 0)
     <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
         <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Knowledge Test Attempts</h2>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400">Overview of test attempts by test type</p>
         </div>
 
-        <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Test</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Started</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Score</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Result</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
-                    @foreach($this->user->knowledgeTestAttempts as $attempt)
-                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
-                        <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-900 dark:text-white">{{ $attempt->knowledgeTest->name ?? 'N/A' }}</td>
-                        <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">{{ $attempt->started_at->format('d M Y H:i') }}</td>
-                        <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-900 dark:text-white">
-                            @if($attempt->total_score !== null && $attempt->knowledgeTest)
-                                @php
-                                    $percentage = $attempt->knowledgeTest->total_points > 0 
-                                        ? round(($attempt->total_score / $attempt->knowledgeTest->total_points) * 100, 1)
-                                        : 0;
-                                @endphp
-                                {{ $percentage }}% ({{ $attempt->total_score }}/{{ $attempt->knowledgeTest->total_points }})
-                            @else
-                                —
-                            @endif
-                        </td>
-                        <td class="whitespace-nowrap px-6 py-4">
-                            @if($attempt->passed === true)
-                                <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Passed</span>
-                            @elseif($attempt->passed === false)
-                                <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">Failed</span>
-                            @else
-                                <span class="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">In Progress</span>
-                            @endif
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
+        {{-- Summary Cards --}}
+        <div class="p-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            @foreach($this->testAttemptSummary as $testId => $summary)
+            <div class="rounded-lg border {{ $summary['passed'] ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : ($summary['count'] >= $summary['max'] ? 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' : 'border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800') }} p-4">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <h3 class="font-medium text-zinc-900 dark:text-white">{{ $summary['test']->name ?? 'Unknown Test' }}</h3>
+                        <p class="mt-1 text-sm">
+                            <span class="{{ $summary['count'] >= $summary['max'] && !$summary['passed'] ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-zinc-600 dark:text-zinc-400' }}">
+                                {{ $summary['count'] }} / {{ $summary['max'] }} attempts used
+                            </span>
+                        </p>
+                        @if($summary['passed'])
+                        <span class="mt-2 inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-800 dark:text-green-200">
+                            <svg class="mr-1 size-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                            Passed
+                        </span>
+                        @elseif($summary['count'] >= $summary['max'])
+                        <span class="mt-2 inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-800 dark:text-red-200">
+                            Max attempts reached
+                        </span>
+                        @endif
+                    </div>
+                    <button 
+                        wire:click="openResetAttemptsModal({{ $testId }}, '{{ addslashes($summary['test']->name ?? 'Unknown') }}')"
+                        wire:confirm="Are you sure you want to reset all attempts for this test? The member will be able to retake the test."
+                        class="text-xs text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium"
+                        title="Reset all attempts for this test"
+                    >
+                        Reset
+                    </button>
+                </div>
+            </div>
+            @endforeach
+        </div>
+
+        {{-- Detailed Attempts Table --}}
+        <div class="border-t border-zinc-200 dark:border-zinc-700">
+            <div class="px-6 py-3 bg-zinc-50 dark:bg-zinc-900/50">
+                <h3 class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Attempt History</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Test</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Started</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Score</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Result</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                        @foreach($this->user->knowledgeTestAttempts->sortByDesc('started_at') as $attempt)
+                        <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
+                            <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-900 dark:text-white">{{ $attempt->knowledgeTest->name ?? 'N/A' }}</td>
+                            <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">{{ $attempt->started_at->format('d M Y H:i') }}</td>
+                            <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-900 dark:text-white">
+                                @if($attempt->total_score !== null && $attempt->knowledgeTest)
+                                    @php
+                                        $percentage = $attempt->knowledgeTest->total_points > 0 
+                                            ? round(($attempt->total_score / $attempt->knowledgeTest->total_points) * 100, 1)
+                                            : 0;
+                                    @endphp
+                                    {{ $percentage }}% ({{ $attempt->total_score }}/{{ $attempt->knowledgeTest->total_points }})
+                                @else
+                                    —
+                                @endif
+                            </td>
+                            <td class="whitespace-nowrap px-6 py-4">
+                                @if($attempt->passed === true)
+                                    <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Passed</span>
+                                @elseif($attempt->passed === false)
+                                    <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">Failed</span>
+                                @else
+                                    <span class="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">In Progress</span>
+                                @endif
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     @endif

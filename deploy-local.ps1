@@ -4,19 +4,22 @@
 Write-Host "=== NRAPA Local Deployment ===" -ForegroundColor Cyan
 Write-Host ""
 
-# Find PHP executable
+# Find PHP executable (Laragon versioned folders: php-8.3.28-Win32-..., php-8.4.12-nts-..., etc.)
 $phpPath = $null
+$phpDir = "C:\laragon\bin\php"
+if (Test-Path $phpDir) {
+    $found = Get-ChildItem -Path $phpDir -Filter "php.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($found) { $phpPath = $found.FullName }
+}
 $possiblePaths = @(
     "C:\laragon\bin\php\php-8.3\php.exe",
     "C:\laragon\bin\php\php-8.2\php.exe",
     "C:\laragon\bin\php\php-8.1\php.exe",
     "C:\laragon\bin\php\php-8.0\php.exe"
 )
-
-foreach ($path in $possiblePaths) {
-    if (Test-Path $path) {
-        $phpPath = $path
-        break
+if (-not $phpPath) {
+    foreach ($path in $possiblePaths) {
+        if (Test-Path $path) { $phpPath = $path; break }
     }
 }
 
@@ -32,6 +35,15 @@ Write-Host ""
 # Change to project directory
 $projectDir = "c:\laragon\www\NRAPA"
 Set-Location $projectDir
+
+# Step 0: Ensure .env exists and has key
+if (-not (Test-Path ".env")) {
+    Write-Host "Step 0: Creating .env from .env.example..." -ForegroundColor Yellow
+    Copy-Item ".env.example" ".env"
+    & $phpPath artisan key:generate --no-interaction
+    Write-Host "✓ .env created and key generated" -ForegroundColor Green
+    Write-Host ""
+}
 
 # Step 1: Run Migrations
 Write-Host "Step 1: Running migrations..." -ForegroundColor Yellow
@@ -80,8 +92,21 @@ Write-Host $result -ForegroundColor Cyan
 Write-Host ""
 Write-Host "=== Deployment Complete ===" -ForegroundColor Green
 Write-Host ""
+
+# Step 6: Start development server (if Laragon isn't serving nrapa.test)
+$startServer = $env:NRAPA_START_SERVER -eq "1"
+if ($startServer) {
+    Write-Host "Step 6: Starting development server..." -ForegroundColor Yellow
+    Start-Process -FilePath $phpPath -ArgumentList "artisan","serve" -WorkingDirectory $projectDir -NoNewWindow
+    Write-Host "✓ Server starting at http://127.0.0.1:8000" -ForegroundColor Green
+} else {
+    Write-Host "To start the dev server run: php artisan serve" -ForegroundColor Gray
+    Write-Host "Or use Laragon: ensure NRAPA is in www and open http://nrapa.test" -ForegroundColor Gray
+}
+
+Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Yellow
-Write-Host "1. Visit http://nrapa.test/member/documents to verify document types" -ForegroundColor White
-Write-Host "2. Visit http://nrapa.test/member/endorsements/create to test calibre requests" -ForegroundColor White
-Write-Host "3. Check member dashboard for rejected documents feature" -ForegroundColor White
+Write-Host "1. Visit http://nrapa.test or http://127.0.0.1:8000" -ForegroundColor White
+Write-Host "2. Visit http://nrapa.test/member/documents to verify document types" -ForegroundColor White
+Write-Host "3. Visit http://nrapa.test/member/endorsements/create to test calibre requests" -ForegroundColor White
 Write-Host ""

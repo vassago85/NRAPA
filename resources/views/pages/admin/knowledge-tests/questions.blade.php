@@ -23,8 +23,14 @@ new #[Title('Manage Questions - Admin')] class extends Component {
     public array $options = ['', '', '', ''];
     public string $correctAnswer = '';
     public array $correctAnswers = []; // For multi-select and priority order
-    public array $matchingPairs = []; // For matching questions [{item: '', answer: ''}, ...]
-    public array $matchingDistractors = []; // Extra wrong answers for matching questions
+    public array $matchingPairs = []; // Legacy: kept for backward compatibility when loading
+    public array $matchingDistractors = []; // Legacy
+    /** Items (left side) - what members match from */
+    public array $matchingItems = [];
+    /** Answer pool (right side) - all options shown, can be more than items; includes correct + distractors */
+    public array $matchingAnswerPool = [];
+    /** For each item index, the correct answer text from the pool */
+    public array $matchingCorrectMap = [];
     public int $points = 1;
 
     // JSON Import
@@ -65,8 +71,44 @@ new #[Title('Manage Questions - Admin')] class extends Component {
         if (count($this->matchingPairs) > 2) {
             unset($this->matchingPairs[$index]);
             $this->matchingPairs = array_values($this->matchingPairs);
-            // Update points to match number of pairs
             $this->points = count($this->matchingPairs);
+        }
+    }
+
+    public function addMatchingItem(): void
+    {
+        $this->matchingItems[] = '';
+        $this->matchingCorrectMap[] = '';
+    }
+
+    public function removeMatchingItem(int $index): void
+    {
+        if (count($this->matchingItems) > 2) {
+            unset($this->matchingItems[$index]);
+            unset($this->matchingCorrectMap[$index]);
+            $this->matchingItems = array_values($this->matchingItems);
+            $this->matchingCorrectMap = array_values($this->matchingCorrectMap);
+            $this->points = count($this->matchingItems);
+        }
+    }
+
+    public function addMatchingPoolAnswer(): void
+    {
+        $this->matchingAnswerPool[] = '';
+    }
+
+    public function removeMatchingPoolAnswer(int $index): void
+    {
+        unset($this->matchingAnswerPool[$index]);
+        $this->matchingAnswerPool = array_values($this->matchingAnswerPool);
+    }
+
+    public function updatedQuestionType($value): void
+    {
+        if ($value === 'matching' && empty($this->matchingItems)) {
+            $this->matchingItems = ['', ''];
+            $this->matchingAnswerPool = ['', ''];
+            $this->matchingCorrectMap = ['', ''];
         }
     }
 
@@ -91,27 +133,35 @@ new #[Title('Manage Questions - Admin')] class extends Component {
         $this->questionImage = null;
         $this->removeImage = false;
         
-        // Handle matching questions separately
+        // Handle matching questions separately: items (left) + answer pool (right) + correct map
         if ($question->question_type === 'matching') {
             $options = $question->options ?? [];
             $correctAnswers = $question->correct_answers ?? [];
-            $this->matchingPairs = [];
-            foreach ($options as $key => $item) {
-                if ($key !== '_distractors') {
-                    $this->matchingPairs[] = [
-                        'item' => $item,
-                        'answer' => $correctAnswers[$key] ?? '',
-                    ];
+            $this->matchingItems = [];
+            $this->matchingCorrectMap = [];
+            $poolOrdered = [];
+            foreach ($options as $letter => $item) {
+                if ($letter === '_distractors') {
+                    continue;
+                }
+                $this->matchingItems[] = $item;
+                $correctText = $correctAnswers[$letter] ?? '';
+                $this->matchingCorrectMap[] = $correctText;
+                if ($correctText !== '') {
+                    $poolOrdered[] = $correctText;
                 }
             }
-            if (empty($this->matchingPairs)) {
-                $this->matchingPairs = [
-                    ['item' => '', 'answer' => ''],
-                    ['item' => '', 'answer' => ''],
-                ];
+            $distractors = $correctAnswers['_distractors'] ?? [];
+            $this->matchingAnswerPool = array_values(array_unique(array_merge($poolOrdered, $distractors)));
+            if (empty($this->matchingItems)) {
+                $this->matchingItems = ['', ''];
+                $this->matchingCorrectMap = ['', ''];
             }
-            // Load distractors
-            $this->matchingDistractors = $correctAnswers['_distractors'] ?? [];
+            if (empty($this->matchingAnswerPool)) {
+                $this->matchingAnswerPool = ['', ''];
+            }
+            $this->matchingPairs = [];
+            $this->matchingDistractors = [];
             $this->options = ['', '', '', ''];
             $this->correctAnswer = '';
             $this->correctAnswers = [];
@@ -145,6 +195,9 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                 ['item' => '', 'answer' => ''],
             ];
             $this->matchingDistractors = [];
+            $this->matchingItems = [];
+            $this->matchingAnswerPool = [];
+            $this->matchingCorrectMap = [];
         }
 
         $this->points = $question->points;
@@ -193,15 +246,32 @@ new #[Title('Manage Questions - Admin')] class extends Component {
             // which is set by dragging in the UI
         }
 
-        // Validate matching (pairs of items and answers)
+        // Validate matching: items (left) + answer pool (right) + correct map
         if ($this->questionType === 'matching') {
+            $filteredItems = array_filter($this->matchingItems, fn($i) => is_string($i) && trim($i) !== '');
+            $filteredPool = array_filter($this->matchingAnswerPool, fn($a) => is_string($a) && trim($a) !== '');
             $this->validate([
-                'matchingPairs' => ['required', 'array', 'min:2'],
-                'matchingPairs.*.item' => ['required', 'string', 'max:500'],
-                'matchingPairs.*.answer' => ['required', 'string', 'max:500'],
+                'matchingItems' => ['required', 'array', 'min:2'],
+                'matchingItems.*' => ['required', 'string', 'max:500'],
+                'matchingAnswerPool' => ['required', 'array', 'min:2'],
+                'matchingAnswerPool.*' => ['nullable', 'string', 'max:500'],
+                'matchingCorrectMap' => ['required', 'array'],
             ]);
-            // Points should equal number of pairs (1 point per correct match)
-            $this->points = count($this->matchingPairs);
+            if (count($filteredPool) < count($filteredItems)) {
+                $this->addError('matchingAnswerPool', 'The answer pool must have at least as many answers as items (so each item can have a correct match). Add more answers to the pool.');
+                return;
+            }
+            foreach ($this->matchingCorrectMap as $i => $correctText) {
+                if (trim((string) $correctText) === '') {
+                    $this->addError('matchingCorrectMap.'.$i, 'Each item must have a correct answer selected from the pool.');
+                    return;
+                }
+                if (!in_array($correctText, $filteredPool, true)) {
+                    $this->addError('matchingCorrectMap.'.$i, 'The selected correct answer must be in the answer pool.');
+                    return;
+                }
+            }
+            $this->points = count($filteredItems);
         }
 
         // Handle image upload
@@ -254,18 +324,25 @@ new #[Title('Manage Questions - Admin')] class extends Component {
             }
             $optionsToStore = $letterOptions;
         } elseif ($this->questionType === 'matching') {
-            // For matching, options = items (left side), correct_answers = matching answers (right side)
+            // options = items (left side), correct_answers = letter => correct answer text, _distractors = pool answers not assigned to any item
             $matchingOptions = [];
             $matchingCorrectAnswers = [];
-            foreach ($this->matchingPairs as $index => $pair) {
-                $letter = chr(65 + $index); // A, B, C, ...
-                $matchingOptions[$letter] = $pair['item'];
-                $matchingCorrectAnswers[$letter] = $pair['answer'];
+            $correctTextsUsed = [];
+            foreach ($this->matchingItems as $index => $item) {
+                $item = trim((string) $item);
+                if ($item === '') {
+                    continue;
+                }
+                $letter = chr(65 + count($matchingOptions)); // A, B, C, ...
+                $matchingOptions[$letter] = $item;
+                $correctText = trim((string) ($this->matchingCorrectMap[$index] ?? ''));
+                $matchingCorrectAnswers[$letter] = $correctText;
+                $correctTextsUsed[$correctText] = true;
             }
-            // Add distractors (extra wrong answers)
-            $filteredDistractors = array_filter($this->matchingDistractors, fn($d) => !empty(trim($d)));
-            if (!empty($filteredDistractors)) {
-                $matchingCorrectAnswers['_distractors'] = array_values($filteredDistractors);
+            $filteredPool = array_filter($this->matchingAnswerPool, fn($a) => is_string($a) && trim($a) !== '');
+            $distractors = array_values(array_filter($filteredPool, fn($a) => !isset($correctTextsUsed[trim($a)])));
+            if (!empty($distractors)) {
+                $matchingCorrectAnswers['_distractors'] = $distractors;
             }
             $optionsToStore = $matchingOptions;
             $correctAnswers = $matchingCorrectAnswers;
@@ -362,6 +439,14 @@ new #[Title('Manage Questions - Admin')] class extends Component {
         $this->options = ['', '', '', ''];
         $this->correctAnswer = '';
         $this->correctAnswers = [];
+        $this->matchingPairs = [
+            ['item' => '', 'answer' => ''],
+            ['item' => '', 'answer' => ''],
+        ];
+        $this->matchingDistractors = [];
+        $this->matchingItems = ['', ''];
+        $this->matchingAnswerPool = ['', ''];
+        $this->matchingCorrectMap = ['', ''];
         $this->points = 1;
     }
 
@@ -761,51 +846,44 @@ new #[Title('Manage Questions - Admin')] class extends Component {
             </div>
             @elseif($questionType === 'matching')
             <div>
-                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Matching Pairs</label>
                 <div class="mt-1 rounded-lg border border-orange-200 bg-orange-50 p-3 dark:border-orange-800 dark:bg-orange-900/20">
-                    <p class="text-xs text-orange-700 dark:text-orange-300">Enter items on the left and their matching answers on the right. The pairs are set in correct order here - answers will be shuffled when members take the test.</p>
+                    <p class="text-xs text-orange-700 dark:text-orange-300">Define <strong>items</strong> (left side) and an <strong>answer pool</strong> (right side). The pool can have more answers than items (distractors). For each item, choose which pool answer is correct. Members will see items on the left and shuffled answers on the right to drag and match.</p>
                 </div>
-                <div class="mt-3 space-y-2">
-                    <div class="grid grid-cols-2 gap-4 text-sm font-medium text-zinc-600 dark:text-zinc-400">
-                        <div>Items (Left side - shown in order)</div>
-                        <div>Correct Matches (Right side - shuffled)</div>
-                    </div>
-                    @foreach($matchingPairs as $index => $pair)
-                    <div class="grid grid-cols-2 gap-4">
+
+                {{-- Items (left side) --}}
+                <div class="mt-4">
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Items (left side)</label>
+                    <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">These are the prompts members will match from. Add at least 2.</p>
+                    <div class="mt-2 space-y-2">
+                        @foreach($matchingItems as $index => $item)
                         <div class="flex items-center gap-2">
-                            <span class="flex size-6 items-center justify-center rounded bg-orange-100 text-xs font-bold text-orange-700 dark:bg-orange-900 dark:text-orange-300">{{ chr(65 + $index) }}</span>
-                            <input type="text" wire:model.live="matchingPairs.{{ $index }}.item" class="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white" placeholder="Item {{ chr(65 + $index) }}">
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <input type="text" wire:model.live="matchingPairs.{{ $index }}.answer" class="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white" placeholder="Matching answer for {{ chr(65 + $index) }}">
-                            @if(count($matchingPairs) > 2)
-                            <button type="button" wire:click="removeMatchingPair({{ $index }})" class="text-red-500 hover:text-red-600">
+                            <span class="flex size-7 shrink-0 items-center justify-center rounded bg-orange-100 text-xs font-bold text-orange-700 dark:bg-orange-900 dark:text-orange-300">{{ chr(65 + $index) }}</span>
+                            <input type="text" wire:model.live="matchingItems.{{ $index }}" class="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white" placeholder="Item {{ chr(65 + $index) }}">
+                            @if(count($matchingItems) > 2)
+                            <button type="button" wire:click="removeMatchingItem({{ $index }})" class="text-red-500 hover:text-red-600">
                                 <svg class="size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
                                 </svg>
                             </button>
                             @endif
                         </div>
+                        @endforeach
                     </div>
-                    @endforeach
+                    <button type="button" wire:click="addMatchingItem" class="mt-2 text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400">
+                        + Add Item
+                    </button>
                 </div>
-                <button type="button" wire:click="addMatchingPair" class="mt-2 text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400">
-                    + Add Pair
-                </button>
-                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Points will be automatically set to the number of pairs (1 point per correct match).</p>
 
-                {{-- Distractor Answers --}}
-                <div class="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-700">
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Extra Wrong Answers (Optional)</label>
-                    <div class="mt-1 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20">
-                        <p class="text-xs text-red-700 dark:text-red-300">Add extra answers that don't match any item. This makes the question harder by giving members more choices than correct matches.</p>
-                    </div>
-                    <div class="mt-3 space-y-2">
-                        @foreach($matchingDistractors as $index => $distractor)
+                {{-- Answer pool (right side) --}}
+                <div class="mt-6">
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Answer pool (right side)</label>
+                    <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">All possible answers shown to members (shuffled). Include the correct match for each item plus optional wrong answers (distractors). You can have more answers than items.</p>
+                    <div class="mt-2 space-y-2">
+                        @foreach($matchingAnswerPool as $index => $poolAnswer)
                         <div class="flex items-center gap-2">
-                            <span class="flex size-6 items-center justify-center rounded bg-red-100 text-xs font-bold text-red-700 dark:bg-red-900 dark:text-red-300">✗</span>
-                            <input type="text" wire:model.live="matchingDistractors.{{ $index }}" class="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white" placeholder="Wrong answer {{ $index + 1 }}">
-                            <button type="button" wire:click="removeMatchingDistractor({{ $index }})" class="text-red-500 hover:text-red-600">
+                            <span class="flex size-7 shrink-0 items-center justify-center rounded bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-900 dark:text-blue-300">{{ $index + 1 }}</span>
+                            <input type="text" wire:model.live="matchingAnswerPool.{{ $index }}" class="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white" placeholder="Answer option {{ $index + 1 }}">
+                            <button type="button" wire:click="removeMatchingPoolAnswer({{ $index }})" class="text-red-500 hover:text-red-600">
                                 <svg class="size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
                                 </svg>
@@ -813,10 +891,39 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                         </div>
                         @endforeach
                     </div>
-                    <button type="button" wire:click="addMatchingDistractor" class="mt-2 text-sm text-red-600 hover:text-red-700 dark:text-red-400">
-                        + Add Wrong Answer
+                    <button type="button" wire:click="addMatchingPoolAnswer" class="mt-2 text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400">
+                        + Add Answer to Pool
                     </button>
                 </div>
+
+                {{-- Correct match per item --}}
+                @if(count($matchingItems) > 0 && count(array_filter($matchingAnswerPool)) > 0)
+                <div class="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Correct match for each item</label>
+                    <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">Select which answer from the pool is the correct match for each item.</p>
+                    <div class="mt-3 space-y-3">
+                        @foreach($matchingItems as $index => $item)
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="flex size-7 shrink-0 items-center justify-center rounded bg-orange-100 text-xs font-bold text-orange-700 dark:bg-orange-900 dark:text-orange-300">{{ chr(65 + $index) }}</span>
+                            <span class="text-sm text-zinc-600 dark:text-zinc-400 max-w-[200px] truncate" title="{{ $item }}">{{ $item ?: '(empty)' }}</span>
+                            <span class="text-zinc-400 dark:text-zinc-500">→</span>
+                            <select wire:model.live="matchingCorrectMap.{{ $index }}" class="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white min-w-[180px]">
+                                <option value="">— Select correct answer —</option>
+                                @foreach($matchingAnswerPool as $poolOption)
+                                    @if(trim((string) $poolOption) !== '')
+                                    <option value="{{ $poolOption }}">{{ $poolOption }}</option>
+                                    @endif
+                                @endforeach
+                            </select>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+
+                <p class="mt-4 text-xs text-zinc-500 dark:text-zinc-400">Points are set to the number of items (1 point per correct match).</p>
+                @error('matchingAnswerPool') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
+                @error('matchingCorrectMap.0') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
             </div>
             @elseif($questionType === 'written')
             <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
@@ -866,12 +973,14 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                                     'multiple_choice' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
                                     'multiple_select' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
                                     'priority_order' => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+                                    'matching' => 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200',
                                     'written' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
                                 ];
                                 $typeLabels = [
                                     'multiple_choice' => 'Multiple Choice',
                                     'multiple_select' => 'Multiple Select',
                                     'priority_order' => 'Priority Order',
+                                    'matching' => 'Matching',
                                     'written' => 'Written',
                                 ];
                             @endphp

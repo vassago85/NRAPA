@@ -220,7 +220,11 @@ class KnowledgeTestQuestion extends Model
             return ['correct' => false, 'partial_score' => 0, 'matches_correct' => 0, 'total' => 0];
         }
 
-        $correctMatches = $this->correct_answers ?? [];
+        $allCorrect = $this->correct_answers ?? [];
+        // Only letter-keyed pairs (A, B, C, ...) count; exclude _distractors (extra wrong answers)
+        $correctMatches = array_filter($allCorrect, function ($value, $key) {
+            return $key !== '_distractors' && is_string($value);
+        }, ARRAY_FILTER_USE_BOTH);
         $total = count($correctMatches);
         $matchesCorrect = 0;
 

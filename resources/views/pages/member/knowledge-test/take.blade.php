@@ -39,9 +39,17 @@ new #[Title('Take Test')] class extends Component {
 
         // Load saved answers
         foreach ($this->attempt->answers as $answer) {
-            // Try to decode JSON for array answers (multi-select, priority order)
             $answerText = $answer->answer_text ?? '';
-            if (!empty($answerText) && str_starts_with($answerText, '[')) {
+            if (empty($answerText)) {
+                $this->answers[$answer->question_id] = '';
+                continue;
+            }
+            // Decode JSON array (multi-select, priority order)
+            if (str_starts_with($answerText, '[')) {
+                $decoded = json_decode($answerText, true);
+                $this->answers[$answer->question_id] = is_array($decoded) ? $decoded : $answerText;
+            } elseif (str_starts_with($answerText, '{')) {
+                // Decode JSON object (matching question: {"A": "answer1", "B": "answer2"})
                 $decoded = json_decode($answerText, true);
                 $this->answers[$answer->question_id] = is_array($decoded) ? $decoded : $answerText;
             } else {
@@ -402,11 +410,15 @@ new #[Title('Take Test')] class extends Component {
                         @elseif($this->currentQuestion->isMatching())
                         {{-- Matching - Drag answers to match with definitions --}}
                         @php
-                            $options = $this->currentQuestion->options ?? []; // Left side (definitions)
-                            $correctAnswers = $this->currentQuestion->correct_answers ?? []; // Correct pairs
-                            $shuffledAnswers = $this->currentQuestion->getShuffledMatchingAnswers($this->attempt->id);
+                            $options = $this->currentQuestion->options ?? []; // Left side (items)
+                            $shuffledAnswers = $this->currentQuestion->getShuffledMatchingAnswers($this->attempt->id); // Correct answers + distractors, shuffled
                             $savedMatches = $this->answers[$this->currentQuestion->id] ?? [];
-                            if (!is_array($savedMatches)) $savedMatches = [];
+                            if (is_string($savedMatches) && str_starts_with($savedMatches, '{')) {
+                                $savedMatches = json_decode($savedMatches, true) ?? [];
+                            }
+                            if (!is_array($savedMatches)) {
+                                $savedMatches = [];
+                            }
                         @endphp
                         <div class="rounded-lg border border-blue-200 bg-blue-50 p-3 mb-4 dark:border-blue-800 dark:bg-blue-900/20">
                             <p class="text-xs text-blue-700 dark:text-blue-300">Drag answers from the right to match with the items on the left.</p>
