@@ -347,24 +347,10 @@ new class extends Component {
                     $firearmPanelData = [];
                 }
             @endphp
-            @try
-                <livewire:firearm-search-panel 
-                    wire:key="armoury-create-firearm-panel"
-                    :initial-data="$firearmPanelData"
-                />
-            @catch(\Exception $e)
-                <div class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                    <p class="text-sm text-red-800 dark:text-red-200 font-semibold mb-2">
-                        Error loading firearm form
-                    </p>
-                    <p class="text-xs text-red-600 dark:text-red-400 mb-2">
-                        {{ $e->getMessage() }}
-                    </p>
-                    <p class="text-xs text-red-600 dark:text-red-400">
-                        Please ensure all migrations have been run. If the issue persists, contact support.
-                    </p>
-                </div>
-            @endtry
+            <livewire:firearm-search-panel 
+                wire:key="armoury-create-firearm-panel"
+                :initial-data="$firearmPanelData"
+            />
         </div>
 
         <!-- Barrel & Stock Details -->

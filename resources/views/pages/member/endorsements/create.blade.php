@@ -1191,21 +1191,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                         $firearmPanelData = [];
                     }
                 @endphp
-                @try
-                    <livewire:firearm-search-panel 
-                        wire:key="endorsement-firearm-panel-{{ $editingRequest?->id ?? 'new' }}"
-                        :initial-data="$firearmPanelData"
-                    />
-                @catch(\Exception $e)
-                    <div class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                        <p class="text-sm text-red-800 dark:text-red-200">
-                            Error loading firearm form: {{ $e->getMessage() }}
-                        </p>
-                        <p class="text-xs text-red-600 dark:text-red-400 mt-2">
-                            Please refresh the page or contact support if the issue persists.
-                        </p>
-                    </div>
-                @endtry
+                <livewire:firearm-search-panel 
+                    wire:key="endorsement-firearm-panel-{{ $editingRequest?->id ?? 'new' }}"
+                    :initial-data="$firearmPanelData"
+                />
 
                 @if($this->userFirearms->count() > 0)
                     <div class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
