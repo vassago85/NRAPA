@@ -24,9 +24,9 @@
             <span class="accreditation-dot"></span>
             <span>FAR Accredited | SAPS Recognised</span>
         </div>
-        <div class="far-numbers" style="margin-top: 8px; font-size: 11px; color: var(--text);">
-            <span><b>FAR Sport Shooting:</b> {{ $farNumbers['sport'] }}</span>
-            <span style="margin-left: 12px;"><b>FAR Hunting:</b> {{ $farNumbers['hunting'] }}</span>
+        <div class="far-numbers" style="margin-top: 4px; font-size: 10px; color: var(--text);">
+            <span><b>FAR Sport:</b> {{ $farNumbers['sport'] }}</span>
+            <span style="margin-left: 10px;"><b>FAR Hunting:</b> {{ $farNumbers['hunting'] }}</span>
         </div>
     </div>
 </div>
@@ -40,67 +40,60 @@
 <div class="grid">
     <section class="card">
         <div class="h2">Member Details</div>
-        <div style="height:10px"></div>
+        <div style="height:6px"></div>
         <div class="kv">
             <div class="k">Member Name</div><div class="v">{{ $certificate->user->getIdName() }}</div>
             <div class="k">ID Number</div><div class="v">{{ $certificate->user->id_number ?? 'N/A' }}</div>
-            <div class="k">Membership Number</div><div class="v">{{ $certificate->membership->membership_number ?? 'N/A' }}</div>
+            <div class="k">Membership No.</div><div class="v">{{ $certificate->membership->membership_number ?? 'N/A' }}</div>
             <div class="k">Membership Type</div><div class="v">{{ $certificate->membership->type->name ?? 'N/A' }}</div>
         </div>
     </section>
 
     <section class="card">
         <div class="h2">Certificate Details</div>
-        <div style="height:10px"></div>
+        <div style="height:6px"></div>
         <div class="kv">
-            <div class="k">Certificate Number</div><div class="v">{{ $certificate->certificate_number }}</div>
+            <div class="k">Certificate No.</div><div class="v">{{ $certificate->certificate_number }}</div>
             <div class="k">Issued Date</div><div class="v">{{ $certificate->issued_at->format('d F Y') }}</div>
             <div class="k">Valid Until</div><div class="v">{{ $certificate->valid_until ? $certificate->valid_until->format('d F Y') : 'Lifetime' }}</div>
-            <div class="k">Verification Link</div><div class="v"><a href="{{ $verifyUrl }}">{{ $verifyUrl }}</a></div>
         </div>
     </section>
 </div>
 
-<div style="height:8px"></div>
+<div style="height:6px"></div>
 
 <section class="notice">
     This is to certify that <b>{{ $certificate->user->getIdName() }}</b> (ID: {{ $certificate->user->id_number ?? 'N/A' }}) is a <b>member in good standing</b> of the National Rifle &amp; Pistol Association of South Africa (NRAPA).
-    This confirms that the member&apos;s membership is valid, current, and compliant with the Association&apos;s requirements at the date of issue.
+    This confirms that the member's membership is valid, current, and compliant with the Association's requirements at the date of issue.
 </section>
 
-<div style="height:8px"></div>
+<div style="height:6px"></div>
 
 <div class="sig-grid">
     <section class="sig">
         <div class="h2">Verification</div>
-        <div style="height:8px"></div>
-        <div style="display:flex; gap:12px; align-items:center;">
+        <div style="height:6px"></div>
+        <div style="display:flex; gap:10px; align-items:center;">
             <div class="qr">
                 <img src="{{ $qrCodeUrl }}" alt="QR Code" />
             </div>
             <div>
-                <div style="font-size:12px; font-weight:700;">Verify this certificate</div>
-                <div class="small">Scan the QR code or visit the verification link shown above.</div>
-                <div style="height:8px"></div>
-                <div class="small">If scanning fails, type the verification URL into your browser.</div>
+                <div style="font-size:11px; font-weight:700;">Verify this certificate</div>
+                <div class="small">Scan QR code or visit:</div>
+                <div class="small" style="word-break:break-all;"><a href="{{ $verifyUrl }}">{{ $verifyUrl }}</a></div>
             </div>
         </div>
     </section>
 
     <section class="sig">
         <div class="h2">Authorised Signatory</div>
-
-        <div style="height:10px"></div>
-
+        <div style="height:6px"></div>
         <div class="placeholder-white signature-box">
             {!! $signatureHtml !!}
         </div>
-        <div class="small" style="margin-top:6px;">Signature placeholder must remain white.</div>
-
         <div class="line"></div>
-        <div style="font-weight:700; font-size:13px;">{{ $signatory['name'] }}</div>
+        <div style="font-weight:700; font-size:12px;">{{ $signatory['name'] }}</div>
         <div class="small">{{ $signatory['title'] }}</div>
-        <div class="small" style="margin-top:6px;">Issued by NRAPA Administration</div>
     </section>
 </div>
 
@@ -108,13 +101,9 @@
     <div style="flex: 1;">
         <div class="footer-contact">
             <span class="footer-contact-item"><b>TEL:</b> {{ $contact['tel'] }}</span>
-            @if($contact['fax'])
-            <span class="footer-contact-item"><b>FAX:</b> {{ $contact['fax'] }}</span>
-            @endif
             <span class="footer-contact-item"><b>E-MAIL:</b> {{ $contact['email'] }}</span>
-            <span class="footer-contact-item"><b>ADDRESS:</b> {{ $contact['physical_address'] }}</span>
         </div>
-        <div style="margin-top: 8px; font-size: 10px; color: var(--muted);">
+        <div style="margin-top: 4px; font-size: 9px; color: var(--muted);">
             This document is generated electronically and is valid without a physical signature when verified via QR code.
         </div>
     </div>

@@ -48,9 +48,9 @@
             <span class="accreditation-dot"></span>
             <span>FAR Accredited | SAPS Recognised</span>
         </div>
-        <div class="far-numbers" style="margin-top: 8px; font-size: 11px; color: var(--text);">
-            <span><b>FAR Sport Shooting:</b> {{ $farNumbers['sport'] }}</span>
-            <span style="margin-left: 12px;"><b>FAR Hunting:</b> {{ $farNumbers['hunting'] }}</span>
+        <div class="far-numbers" style="margin-top: 4px; font-size: 10px; color: var(--text);">
+            <span><b>FAR Sport:</b> {{ $farNumbers['sport'] }}</span>
+            <span style="margin-left: 10px;"><b>FAR Hunting:</b> {{ $farNumbers['hunting'] }}</span>
         </div>
     </div>
 </div>
@@ -61,22 +61,6 @@
 
 <hr class="sep"/>
 
-<section class="card">
-    <div class="h2">Member</div>
-    <div style="height:10px"></div>
-    <div class="kv">
-        <div class="k">Full Name</div><div class="v">{{ $certificate->user->getIdName() }}</div>
-        <div class="k">ID / Passport</div><div class="v">{{ $certificate->user->id_number ?? 'N/A' }}</div>
-        <div class="k">Member Number</div><div class="v">{{ $membership->membership_number ?? 'N/A' }}</div>
-        <div class="k">Membership Type</div><div class="v">{{ $membership->type->name ?? 'N/A' }}</div>
-        <div class="k">Status Effective Date</div><div class="v">{{ $statusEffectiveDate }}</div>
-        <div class="k">Membership Valid Until</div><div class="v">{{ $membership->expires_at ? $membership->expires_at->format('d F Y') : 'Lifetime' }}</div>
-        <div class="k">Verification Link</div><div class="v"><a href="{{ $verifyUrl }}">{{ $verifyUrl }}</a></div>
-    </div>
-</section>
-
-<div style="height:6px"></div>
-
 @php
     // Check activities and documents status
     $activityCheck = \App\Models\EndorsementRequest::checkActivityRequirements($certificate->user);
@@ -85,80 +69,66 @@
     $hasValidActivities = $activityCheck['met'];
 @endphp
 
-<section class="card">
-    <div class="h2">Compliance Status</div>
-    <div style="height:10px"></div>
-    <div class="kv">
-        <div class="k">Required Documents</div>
-        <div class="v">
-            @if($hasValidDocs)
-                <span style="color: var(--emerald); font-weight: 600;">✓ Valid</span>
-            @else
-                <span style="color: var(--red); font-weight: 600;">✗ Missing</span>
-            @endif
+<div class="grid">
+    <section class="card">
+        <div class="h2">Member Details</div>
+        <div style="height:4px"></div>
+        <div class="kv">
+            <div class="k">Full Name</div><div class="v">{{ $certificate->user->getIdName() }}</div>
+            <div class="k">ID / Passport</div><div class="v">{{ $certificate->user->id_number ?? 'N/A' }}</div>
+            <div class="k">Member No.</div><div class="v">{{ $membership->membership_number ?? 'N/A' }}</div>
+            <div class="k">Membership Type</div><div class="v">{{ $membership->type->name ?? 'N/A' }}</div>
+            <div class="k">Valid Until</div><div class="v">{{ $membership->expires_at ? $membership->expires_at->format('d F Y') : 'Lifetime' }}</div>
         </div>
-        <div class="k">Activity Requirements</div>
-        <div class="v">
-            @if($hasValidActivities)
-                <span style="color: var(--emerald); font-weight: 600;">✓ Met</span>
-                <div class="small" style="margin-top: 2px;">{{ $activityCheck['approved_count'] }} approved activities ({{ $activityCheck['required'] }} required)</div>
-            @else
-                <span style="color: var(--red); font-weight: 600;">✗ Not Met</span>
-                <div class="small" style="margin-top: 2px;">{{ $activityCheck['approved_count'] }} of {{ $activityCheck['required'] }} required</div>
-            @endif
+    </section>
+
+    <section class="card">
+        <div class="h2">Compliance Status</div>
+        <div style="height:4px"></div>
+        <div class="kv">
+            <div class="k">Documents</div>
+            <div class="v">@if($hasValidDocs)<span style="color: var(--emerald);">✓ Valid</span>@else<span style="color: var(--red);">✗ Missing</span>@endif</div>
+            <div class="k">Activities</div>
+            <div class="v">@if($hasValidActivities)<span style="color: var(--emerald);">✓ Met ({{ $activityCheck['approved_count'] }}/{{ $activityCheck['required'] }})</span>@else<span style="color: var(--red);">✗ {{ $activityCheck['approved_count'] }}/{{ $activityCheck['required'] }}</span>@endif</div>
+            <div class="k">Dedicated Status</div>
+            <div class="v"><span style="color: var(--emerald);">✓ {{ $dedicatedTitle }}</span></div>
+            <div class="k">Effective Date</div><div class="v">{{ $statusEffectiveDate }}</div>
         </div>
-        <div class="k">Dedicated Status</div>
-        <div class="v">
-            <span style="color: var(--emerald); font-weight: 600;">✓ Approved</span>
-            <div class="small" style="margin-top: 2px;">{{ strtoupper($dedicatedTitle) }}</div>
-        </div>
-    </div>
+    </section>
+</div>
+
+<div style="height:4px"></div>
+
+<section class="notice" style="font-size:9px; line-height:1.3;">
+    I, <b>{{ $signatory['name'] }}</b>, {{ $signatory['title'] }} of NRAPA, declare that the above member is a <b>Dedicated Member in good standing</b>.
+    Dedicated Status has been awarded in accordance with the Firearms Control Act (Act 60 of 2000, as amended).
+    This certificate confirms that at the time of issue, the member's documents are valid and activity requirements are up to date.
 </section>
 
-<div style="height:6px"></div>
-
-<section class="notice">
-    I, the undersigned, <b>{{ $signatory['name'] }}</b>, in my capacity as <b>{{ $signatory['title'] }}</b> of the National Rifle &amp; Pistol Association (NRAPA),
-    hereby declare that the above member is a <b>Dedicated Member in good standing</b> of this Association.
-    Dedicated Status has been awarded to the holder of this certificate in accordance with the Firearms Control Act (Act 60 of 2000, as amended) and relevant Regulations.
-    <br/><br/>
-    This certificate confirms that at the time of issue, the member's required documents are valid and their activity requirements are up to date. Continued validity of Dedicated Status is subject to the member maintaining membership in good standing and meeting the ongoing activity requirements applicable to their Dedicated Status.
-</section>
-
-<div style="height:6px"></div>
+<div style="height:4px"></div>
 
 <div class="sig-grid">
     <section class="sig">
-        <div class="h2">Commissioner of Oaths (Scan Upload)</div>
-        <div class="small" style="margin-top:6px;">Dashboard upload should place the scan here. Placeholder must remain white.</div>
-        <div style="height:10px"></div>
-        <div class="placeholder-white oaths-scan">
+        <div class="h2" style="font-size:10px;">Commissioner of Oaths</div>
+        <div style="height:4px"></div>
+        <div class="placeholder-white oaths-scan" style="height:80px;">
             {!! $commissionerHtml !!}
         </div>
     </section>
 
     <section class="sig">
-        <div class="h2">Authorised NRAPA Signatory</div>
-        <div style="height:10px"></div>
-
+        <div class="h2" style="font-size:10px;">Authorised Signatory</div>
+        <div style="height:4px"></div>
         <div class="placeholder-white signature-box">
             {!! $signatureHtml !!}
         </div>
-        <div class="small" style="margin-top:6px;">Signature placeholder must remain white.</div>
-
         <div class="line"></div>
-
-        <div style="font-weight:700; font-size:13px;">{{ $signatory['name'] }}</div>
-        <div class="small">{{ $signatory['title'] }}</div>
-        <div class="small" style="margin-top:8px;">Issued: {{ $certificate->issued_at->format('d F Y') }}</div>
-
-        <div style="height:10px"></div>
-
-        <div class="h2">Verification QR</div>
-        <div style="height:8px"></div>
-        <div style="display:flex; gap:12px; align-items:center;">
-            <div class="qr"><img src="{{ $qrCodeUrl }}" alt="QR Code"/></div>
-            <div class="small">Scan to verify the member and certificate status.</div>
+        <div style="font-weight:700; font-size:11px;">{{ $signatory['name'] }}</div>
+        <div class="small">{{ $signatory['title'] }} | Issued: {{ $certificate->issued_at->format('d M Y') }}</div>
+        <div style="height:6px"></div>
+        <div style="display:flex; gap:8px; align-items:center;">
+            <div class="qr" style="width:50px; height:50px;"><img src="{{ $qrCodeUrl }}" alt="QR"/></div>
+            <div class="small">Scan to verify</div>
         </div>
     </section>
 </div>
@@ -167,13 +137,9 @@
     <div style="flex: 1;">
         <div class="footer-contact">
             <span class="footer-contact-item"><b>TEL:</b> {{ $contact['tel'] }}</span>
-            @if($contact['fax'])
-            <span class="footer-contact-item"><b>FAX:</b> {{ $contact['fax'] }}</span>
-            @endif
             <span class="footer-contact-item"><b>E-MAIL:</b> {{ $contact['email'] }}</span>
-            <span class="footer-contact-item"><b>ADDRESS:</b> {{ $contact['physical_address'] }}</span>
         </div>
-        <div style="margin-top: 8px; font-size: 10px; color: var(--muted);">
+        <div style="margin-top: 4px; font-size: 9px; color: var(--muted);">
             This document is generated electronically and is valid without a physical signature when verified via QR code.
         </div>
     </div>

@@ -38,11 +38,15 @@ html, body {
   line-height: 1.25;
 }
 body {
-  background: var(--soft);
+  background: #fff; /* Clean white background for PDF */
   color: var(--text);
   font-family: var(--font);
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100%;
 }
 
 /* Page break prevention - CRITICAL for single page PDF */
@@ -64,19 +68,19 @@ hr.sep { border: 0; border-top: 1px solid var(--line); margin: 8px 0; }
 /* Page container */
 .page {
   width: 210mm;
-  height: 297mm;
+  min-height: 297mm;
   max-height: 297mm;
   margin: 0 auto;
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(0,0,0,.10);
+  background: #fff;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
   overflow: hidden;
   position: relative;
 }
 .page-inner { 
-  padding: 14mm 16mm 12mm 16mm;
-  max-height: calc(297mm - 26mm);
+  padding: 18mm 20mm 15mm 20mm;
+  max-height: calc(297mm - 33mm);
   overflow: hidden;
 }
 
@@ -342,9 +346,11 @@ div[style*="height:8px"] { height: 4px !important; }
   html, body {
     width: 210mm;
     height: 297mm;
+    background: #fff !important;
   }
   body { 
-    background: #fff; 
+    background: #fff !important;
+    display: block;
   }
   .page {
     margin: 0;
@@ -355,10 +361,11 @@ div[style*="height:8px"] { height: 4px !important; }
     height: 297mm;
     max-height: 297mm;
     overflow: hidden;
+    background: #fff !important;
   }
   .page-inner { 
-    padding: 14mm 16mm 12mm 16mm;
-    max-height: calc(297mm - 26mm);
+    padding: 18mm 20mm 15mm 20mm;
+    max-height: calc(297mm - 33mm);
     overflow: hidden;
   }
   .footer-contact-item::before {
