@@ -43,6 +43,12 @@ services:
       - AWS_BUCKET=${MINIO_BUCKET:-nrapa}
       - AWS_ENDPOINT=http://minio:9000
       - AWS_USE_PATH_STYLE_ENDPOINT=true
+      # Cloudflare R2 Storage (for offsite backups)
+      - CLOUDFLARE_R2_ACCESS_KEY_ID=${CLOUDFLARE_R2_ACCESS_KEY_ID}
+      - CLOUDFLARE_R2_SECRET_ACCESS_KEY=${CLOUDFLARE_R2_SECRET_ACCESS_KEY}
+      - CLOUDFLARE_R2_BUCKET=${CLOUDFLARE_R2_BUCKET}
+      - CLOUDFLARE_R2_ENDPOINT=${CLOUDFLARE_R2_ENDPOINT}
+      - CLOUDFLARE_R2_REGION=${CLOUDFLARE_R2_REGION:-auto}
       # NTFY Notifications
       - NTFY_URL=${NTFY_URL:-https://ntfy.sh}
       - NTFY_DEVELOPER_TOPIC=${NTFY_DEVELOPER_TOPIC}
@@ -129,7 +135,7 @@ services:
       - MINIO_BUCKET=${MINIO_BUCKET:-nrapa}
     entrypoint: /bin/sh -c "mc alias set myminio http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD && mc mb myminio/$$MINIO_BUCKET --ignore-existing && mc anonymous set download myminio/$$MINIO_BUCKET/public && exit 0"
 
-  # Scheduler for cron jobs
+  # Scheduler for cron jobs (runs daily backups at 02:00 SAST, license expiry notifications, etc.)
   scheduler:
     build:
       context: .
@@ -149,12 +155,21 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      # S3/MinIO Storage
+      - FILESYSTEM_DISK=s3
       - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER:-nrapa}
       - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
       - AWS_DEFAULT_REGION=us-east-1
       - AWS_BUCKET=${MINIO_BUCKET:-nrapa}
       - AWS_ENDPOINT=http://minio:9000
       - AWS_USE_PATH_STYLE_ENDPOINT=true
+      # Cloudflare R2 Storage (for offsite backups)
+      - CLOUDFLARE_R2_ACCESS_KEY_ID=${CLOUDFLARE_R2_ACCESS_KEY_ID}
+      - CLOUDFLARE_R2_SECRET_ACCESS_KEY=${CLOUDFLARE_R2_SECRET_ACCESS_KEY}
+      - CLOUDFLARE_R2_BUCKET=${CLOUDFLARE_R2_BUCKET}
+      - CLOUDFLARE_R2_ENDPOINT=${CLOUDFLARE_R2_ENDPOINT}
+      - CLOUDFLARE_R2_REGION=${CLOUDFLARE_R2_REGION:-auto}
+      # NTFY Notifications
       - NTFY_URL=${NTFY_URL:-https://ntfy.sh}
       - NTFY_DEVELOPER_TOPIC=${NTFY_DEVELOPER_TOPIC}
       - LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK=public
@@ -188,12 +203,21 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - QUEUE_CONNECTION=redis
+      # S3/MinIO Storage
+      - FILESYSTEM_DISK=s3
       - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER:-nrapa}
       - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
       - AWS_DEFAULT_REGION=us-east-1
       - AWS_BUCKET=${MINIO_BUCKET:-nrapa}
       - AWS_ENDPOINT=http://minio:9000
       - AWS_USE_PATH_STYLE_ENDPOINT=true
+      # Cloudflare R2 Storage (for offsite backups)
+      - CLOUDFLARE_R2_ACCESS_KEY_ID=${CLOUDFLARE_R2_ACCESS_KEY_ID}
+      - CLOUDFLARE_R2_SECRET_ACCESS_KEY=${CLOUDFLARE_R2_SECRET_ACCESS_KEY}
+      - CLOUDFLARE_R2_BUCKET=${CLOUDFLARE_R2_BUCKET}
+      - CLOUDFLARE_R2_ENDPOINT=${CLOUDFLARE_R2_ENDPOINT}
+      - CLOUDFLARE_R2_REGION=${CLOUDFLARE_R2_REGION:-auto}
+      # Mail Settings
       - MAIL_MAILER=${MAIL_MAILER:-smtp}
       - MAIL_HOST=${MAIL_HOST}
       - MAIL_PORT=${MAIL_PORT:-587}

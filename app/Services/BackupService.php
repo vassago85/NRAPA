@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\File;
 use ZipArchive;
@@ -286,29 +287,68 @@ class BackupService
     }
     
     /**
+     * Resolve the best available cloud disk for backups.
+     *
+     * Priority: r2 > s3 > default filesystem > local
+     * Returns the disk name string, or null if only local is available.
+     */
+    protected function getBackupDisk(): ?string
+    {
+        // 1. Try R2 (preferred offsite backup target)
+        if (config('filesystems.disks.r2.key') && config('filesystems.disks.r2.bucket')) {
+            try {
+                Storage::disk('r2')->path(''); // Quick connectivity check
+                return 'r2';
+            } catch (Exception $e) {
+                Log::warning('Backup: R2 disk unavailable, trying fallback', ['error' => $e->getMessage()]);
+            }
+        }
+        
+        // 2. Try S3/MinIO
+        if (config('filesystems.disks.s3.key') && config('filesystems.disks.s3.bucket')) {
+            try {
+                Storage::disk('s3')->path('');
+                return 's3';
+            } catch (Exception $e) {
+                Log::warning('Backup: S3 disk unavailable, falling back to local', ['error' => $e->getMessage()]);
+            }
+        }
+        
+        // 3. No cloud disk available
+        return null;
+    }
+    
+    /**
      * Upload backup to cloud storage (R2/S3).
      */
     protected function uploadToStorage(string $zipPath, string $backupName, string $storagePassword): string
     {
-        $storageDriver = config('filesystems.default');
+        $diskName = $this->getBackupDisk();
         
-        // If using local storage, just return the local path
-        if ($storageDriver === 'local') {
+        // If no cloud disk available, keep the local file
+        if ($diskName === null) {
+            Log::info('Backup: No cloud disk configured, backup stored locally', ['path' => $zipPath]);
             return $zipPath;
         }
         
         // Upload to R2/S3
-        $disk = Storage::disk($storageDriver);
+        $disk = Storage::disk($diskName);
         $remotePath = "backups/{$backupName}.zip";
         
         // Read file and upload
         $fileContents = File::get($zipPath);
         $disk->put($remotePath, $fileContents);
         
-        // Generate signed URL for download (valid for 1 hour)
-        $url = $disk->temporaryUrl($remotePath, now()->addHour());
+        Log::info("Backup: Full backup uploaded to {$diskName}", ['path' => $remotePath]);
         
-        return $url;
+        // Generate signed URL for download (valid for 1 hour)
+        try {
+            $url = $disk->temporaryUrl($remotePath, now()->addHour());
+            return $url;
+        } catch (Exception $e) {
+            // R2 doesn't support temporaryUrl without custom domain — return the path
+            return $remotePath;
+        }
     }
     
     /**
@@ -465,20 +505,23 @@ class BackupService
      */
     protected function uploadDatabaseBackupToStorage(string $backupPath, string $backupName): string
     {
-        $storageDriver = config('filesystems.default');
+        $diskName = $this->getBackupDisk();
         
-        // If using local storage, store in backups directory
-        if ($storageDriver === 'local') {
+        // If no cloud disk available, keep the local file
+        if ($diskName === null) {
+            Log::info('Backup: No cloud disk configured, DB backup stored locally', ['path' => $backupPath]);
             return $backupPath;
         }
         
         // Upload to R2/S3
-        $disk = Storage::disk($storageDriver);
+        $disk = Storage::disk($diskName);
         $remotePath = "backups/database/{$backupName}.sql.gz";
         
         // Read file and upload
         $fileContents = File::get($backupPath);
         $disk->put($remotePath, $fileContents);
+        
+        Log::info("Backup: Database backup uploaded to {$diskName}", ['path' => $remotePath]);
         
         return $remotePath;
     }
@@ -488,38 +531,42 @@ class BackupService
      */
     public function cleanupOldBackups(): void
     {
-        $storageDriver = config('filesystems.default');
         $cutoffDate = now()->subDays(30);
         
-        if ($storageDriver === 'local') {
-            // Cleanup local backups
-            $backupDir = storage_path('app/backups');
-            if (File::exists($backupDir)) {
-                $files = File::glob("{$backupDir}/nrapa_db_backup_*.sql.gz");
-                foreach ($files as $file) {
-                    $fileTime = File::lastModified($file);
-                    if ($fileTime < $cutoffDate->timestamp) {
-                        File::delete($file);
-                    }
+        // Always cleanup local backups
+        $backupDir = storage_path('app/backups');
+        if (File::exists($backupDir)) {
+            $files = File::glob("{$backupDir}/nrapa_db_backup_*.sql.gz");
+            foreach ($files as $file) {
+                $fileTime = File::lastModified($file);
+                if ($fileTime < $cutoffDate->timestamp) {
+                    File::delete($file);
                 }
             }
-        } else {
-            // Cleanup cloud storage backups
-            $disk = Storage::disk($storageDriver);
-            $backupPath = 'backups/database/';
-            
-            if ($disk->exists($backupPath)) {
-                $files = $disk->files($backupPath);
-                foreach ($files as $file) {
-                    if (strpos($file, 'nrapa_db_backup_') === false) {
-                        continue; // Skip non-database backups
-                    }
-                    
-                    $lastModified = $disk->lastModified($file);
-                    if ($lastModified < $cutoffDate->timestamp) {
-                        $disk->delete($file);
+        }
+        
+        // Also cleanup cloud storage backups
+        $diskName = $this->getBackupDisk();
+        if ($diskName !== null) {
+            try {
+                $disk = Storage::disk($diskName);
+                $backupPath = 'backups/database/';
+                
+                if ($disk->exists($backupPath)) {
+                    $files = $disk->files($backupPath);
+                    foreach ($files as $file) {
+                        if (strpos($file, 'nrapa_db_backup_') === false) {
+                            continue; // Skip non-database backups
+                        }
+                        
+                        $lastModified = $disk->lastModified($file);
+                        if ($lastModified < $cutoffDate->timestamp) {
+                            $disk->delete($file);
+                        }
                     }
                 }
+            } catch (Exception $e) {
+                Log::warning('Backup cleanup: Failed to cleanup cloud backups', ['disk' => $diskName, 'error' => $e->getMessage()]);
             }
         }
     }
