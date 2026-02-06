@@ -179,10 +179,16 @@ new #[Title('Knowledge Tests - Admin')] class extends Component {
                         <td class="whitespace-nowrap px-6 py-4">
                             @if($test->dedicated_type === 'hunter')
                             <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Hunter</span>
-                            @elseif($test->dedicated_type === 'sport_shooter')
-                            <span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">Sport Shooter</span>
-                            @else
+                            <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700 dark:bg-red-900 dark:text-red-300 ml-1">Required</span>
+                            @elseif($test->dedicated_type === 'sport' || $test->dedicated_type === 'sport_shooter')
+                            <span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">Sport</span>
+                            <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700 dark:bg-red-900 dark:text-red-300 ml-1">Required</span>
+                            @elseif($test->dedicated_type === 'both')
                             <span class="inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800 dark:bg-purple-900 dark:text-purple-200">Both</span>
+                            <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700 dark:bg-red-900 dark:text-red-300 ml-1">Required</span>
+                            @else
+                            <span class="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200">All Members</span>
+                            <span class="inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-xs text-sky-700 dark:bg-sky-900 dark:text-sky-300 ml-1">Optional</span>
                             @endif
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-zinc-900 dark:text-white">

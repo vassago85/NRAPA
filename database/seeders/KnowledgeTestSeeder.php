@@ -63,6 +63,16 @@ class KnowledgeTestSeeder extends Seeder
                 'is_active' => true,
                 'dedicated_type' => null,
             ],
+            [
+                'slug' => 'reloading-safety',
+                'name' => 'Reloading Safety Course',
+                'description' => 'Optional training course covering ammunition reloading safety, equipment, powder handling, and best practices for handloading ammunition.',
+                'passing_score' => 70,
+                'time_limit_minutes' => 45,
+                'max_attempts' => 5,
+                'is_active' => false, // Not active until questions are added
+                'dedicated_type' => null, // Available to all members
+            ],
         ];
 
         $count = 0;
