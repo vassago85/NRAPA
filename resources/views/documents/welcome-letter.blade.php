@@ -36,7 +36,7 @@
 <div class="doc-block">
     <div style="margin-bottom:16px;">
         <p class="doc-label" style="font-size:10pt; margin-bottom:4px;">{{ now()->format('d F Y') }}</p>
-        <p class="doc-value" style="font-size:11pt; margin-bottom:4px;">{{ $user->name }}</p>
+        <p class="doc-value" style="font-size:11pt; margin-bottom:4px;">{{ $user->getIdName() }}</p>
         @if($user->physical_address)
             <p class="doc-label" style="font-size:9.5pt; line-height:1.4;">{{ $user->physical_address }}</p>
         @endif
@@ -48,7 +48,7 @@
 
 <div class="doc-block">
     <p class="doc-para">
-        <strong>Dear {{ explode(' ', $user->name)[0] }},</strong>
+        <strong>Dear {{ $user->getIdFirstNames() }},</strong>
     </p>
     
     <p class="doc-para" style="margin-top:12px;">

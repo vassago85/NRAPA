@@ -42,11 +42,9 @@
     
     <div style="text-align:center; margin:20px 0;">
         <p style="font-size:22pt; font-weight:700; color:#0b1320; margin-bottom:6px;">
-            {{ $certificate->user->name }}
+            {{ $certificate->user->getIdName() }}
         </p>
-        @if($certificate->user->id_number)
-            <p class="doc-label" style="font-size:10pt;">ID Number: {{ $certificate->user->id_number }}</p>
-        @endif
+        <p class="doc-label" style="font-size:10pt;">ID Number: {{ $certificate->user->id_number ?? 'N/A' }}</p>
     </div>
     
     <div class="doc-row" style="margin-top:16px;">

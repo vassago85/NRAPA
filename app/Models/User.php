@@ -811,6 +811,77 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get the verified ID document for this user.
+     */
+    public function getVerifiedIdDocument(): ?MemberDocument
+    {
+        return $this->documents()
+            ->verified()
+            ->whereHas('documentType', function ($query) {
+                $query->whereIn('slug', MemberDocument::ID_DOCUMENT_SLUGS);
+            })
+            ->latest('verified_at')
+            ->first();
+    }
+
+    /**
+     * Get the official name from ID document (surname + names).
+     * Falls back to user's display name if no verified ID document.
+     */
+    public function getIdName(): string
+    {
+        $idDoc = $this->getVerifiedIdDocument();
+        
+        if ($idDoc && $idDoc->metadata) {
+            $surname = $idDoc->metadata['surname'] ?? '';
+            $names = $idDoc->metadata['names'] ?? '';
+            
+            if ($surname || $names) {
+                // Format as "SURNAME, Names" for official documents
+                return trim(strtoupper($surname) . ', ' . $names);
+            }
+        }
+        
+        // Fallback to display name
+        return $this->name;
+    }
+
+    /**
+     * Get just the surname from ID document.
+     * Falls back to last word of display name.
+     */
+    public function getIdSurname(): string
+    {
+        $idDoc = $this->getVerifiedIdDocument();
+        
+        if ($idDoc && $idDoc->metadata && !empty($idDoc->metadata['surname'])) {
+            return strtoupper($idDoc->metadata['surname']);
+        }
+        
+        // Fallback to last word of display name
+        $parts = explode(' ', $this->name);
+        return strtoupper(end($parts));
+    }
+
+    /**
+     * Get just the first names from ID document.
+     * Falls back to first words of display name.
+     */
+    public function getIdFirstNames(): string
+    {
+        $idDoc = $this->getVerifiedIdDocument();
+        
+        if ($idDoc && $idDoc->metadata && !empty($idDoc->metadata['names'])) {
+            return $idDoc->metadata['names'];
+        }
+        
+        // Fallback to all but last word of display name
+        $parts = explode(' ', $this->name);
+        array_pop($parts);
+        return implode(' ', $parts) ?: $this->name;
+    }
+
+    /**
      * Check if user can enable 2FA.
      * Regular members must have security questions set up OR have a verified ID document.
      * Admins and owners can always enable 2FA (they need it for security).

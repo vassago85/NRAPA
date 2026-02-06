@@ -65,7 +65,7 @@
     <div class="h2">Member</div>
     <div style="height:10px"></div>
     <div class="kv">
-        <div class="k">Full Name</div><div class="v">{{ $certificate->user->name }}</div>
+        <div class="k">Full Name</div><div class="v">{{ $certificate->user->getIdName() }}</div>
         <div class="k">ID / Passport</div><div class="v">{{ $certificate->user->id_number ?? 'N/A' }}</div>
         <div class="k">Member Number</div><div class="v">{{ $membership->membership_number ?? 'N/A' }}</div>
         <div class="k">Membership Type</div><div class="v">{{ $membership->type->name ?? 'N/A' }}</div>

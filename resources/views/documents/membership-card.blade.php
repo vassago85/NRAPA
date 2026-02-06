@@ -39,7 +39,10 @@
     
     <div class="doc-card-row">
         <div>
-            <div class="doc-card-name">{{ $certificate->user->name }}</div>
+            <div class="doc-card-name">{{ $certificate->user->getIdName() }}</div>
+            <div class="doc-card-small" style="margin-top:2px;">
+                ID: {{ $certificate->user->id_number ?? 'N/A' }}
+            </div>
             <div class="doc-card-small" style="margin-top:2px;">
                 #{{ $certificate->membership->membership_number ?? 'N/A' }}
             </div>

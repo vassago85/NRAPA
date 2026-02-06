@@ -60,7 +60,7 @@
         <div class="h2">Applicant / Member</div>
         <div style="height:10px"></div>
         <div class="kv">
-            <div class="k">Full Name</div><div class="v">{{ $user->name }}</div>
+            <div class="k">Full Name</div><div class="v">{{ $user->getIdName() }}</div>
             <div class="k">ID / Passport</div><div class="v">{{ $user->id_number ?? 'N/A' }}</div>
             <div class="k">Membership Number</div><div class="v">{{ $membership->membership_number ?? 'N/A' }}</div>
             <div class="k">Membership Status</div><div class="v">Member in Good Standing</div>
@@ -147,7 +147,7 @@
 
 <section class="notice">
     To whom it may concern,<br/><br/>
-    This letter serves to confirm that <b>{{ $user->name }}</b>@if($user->id_number) (ID/Passport: <b>{{ $user->id_number }}</b>)@endif is a
+    This letter serves to confirm that <b>{{ $user->getIdName() }}</b> (ID/Passport: <b>{{ $user->id_number ?? 'N/A' }}</b>) is a
     <b>member in good standing</b> of the National Rifle &amp; Pistol Association of South Africa (NRAPA).
     <br/><br/>
     <b>This endorsement is issued for the following purpose(s):</b><br/>
