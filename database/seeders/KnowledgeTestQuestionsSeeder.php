@@ -1573,14 +1573,21 @@ class KnowledgeTestQuestionsSeeder extends Seeder
      */
     protected function seedQuestions(KnowledgeTest $test, array $questions, string $testName): void
     {
+        // Disable foreign key checks to allow deletion
+        \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        
         // First, delete any answers that reference questions for this test
         $questionIds = KnowledgeTestQuestion::where('knowledge_test_id', $test->id)->pluck('id');
         if ($questionIds->count() > 0) {
             \App\Models\KnowledgeTestAnswer::whereIn('question_id', $questionIds)->delete();
+            $this->command->info("Deleted answers for {$questionIds->count()} questions.");
         }
         
         // Clear existing questions for this test
         KnowledgeTestQuestion::where('knowledge_test_id', $test->id)->delete();
+        
+        // Re-enable foreign key checks
+        \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
         $count = 0;
         $totalPoints = 0;
