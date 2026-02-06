@@ -53,23 +53,28 @@ new class extends Component {
             'signature_file.max' => 'Signature file must not exceed 2MB.',
         ]);
 
-        $disk = app()->environment(['local', 'development', 'testing']) ? 'public' : 'r2_public';
-        $path = $this->signature_file->store('signatures', $disk);
-        
-        // Delete old signature if exists
-        if ($this->current_signature_path) {
-            try {
-                Storage::disk($disk)->delete($this->current_signature_path);
-            } catch (\Exception $e) {
-                // Ignore deletion errors
+        try {
+            $disk = $this->resolveDocumentDisk();
+            $path = $this->signature_file->store('signatures', $disk);
+            
+            // Delete old signature if exists
+            if ($this->current_signature_path) {
+                try {
+                    Storage::disk($disk)->delete($this->current_signature_path);
+                } catch (\Exception $e) {
+                    // Ignore deletion errors
+                }
             }
+
+            SystemSetting::set('default_signatory_signature_path', $path, 'string', 'documents', 'Default signatory signature path');
+            SystemSetting::set('document_assets_disk', $disk, 'string', 'documents', 'Disk used for document assets');
+            $this->current_signature_path = $path;
+            $this->signature_file = null;
+
+            session()->flash('success', 'Signature uploaded successfully.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'Upload failed: ' . $e->getMessage());
         }
-
-        SystemSetting::set('default_signatory_signature_path', $path, 'string', 'documents', 'Default signatory signature path');
-        $this->current_signature_path = $path;
-        $this->signature_file = null;
-
-        session()->flash('success', 'Signature uploaded successfully.');
     }
 
     public function uploadCommissionerScan(): void
@@ -82,29 +87,34 @@ new class extends Component {
             'commissioner_file.max' => 'Commissioner scan file must not exceed 10MB.',
         ]);
 
-        $disk = app()->environment(['local', 'development', 'testing']) ? 'public' : 'r2_public';
-        $path = $this->commissioner_file->store('commissioner-scans', $disk);
-        
-        // Delete old scan if exists
-        if ($this->current_commissioner_path) {
-            try {
-                Storage::disk($disk)->delete($this->current_commissioner_path);
-            } catch (\Exception $e) {
-                // Ignore deletion errors
+        try {
+            $disk = $this->resolveDocumentDisk();
+            $path = $this->commissioner_file->store('commissioner-scans', $disk);
+            
+            // Delete old scan if exists
+            if ($this->current_commissioner_path) {
+                try {
+                    Storage::disk($disk)->delete($this->current_commissioner_path);
+                } catch (\Exception $e) {
+                    // Ignore deletion errors
+                }
             }
+
+            SystemSetting::set('default_commissioner_oaths_scan_path', $path, 'string', 'documents', 'Default commissioner of oaths scan path');
+            SystemSetting::set('document_assets_disk', $disk, 'string', 'documents', 'Disk used for document assets');
+            $this->current_commissioner_path = $path;
+            $this->commissioner_file = null;
+
+            session()->flash('success', 'Commissioner of Oaths scan uploaded successfully.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'Upload failed: ' . $e->getMessage());
         }
-
-        SystemSetting::set('default_commissioner_oaths_scan_path', $path, 'string', 'documents', 'Default commissioner of oaths scan path');
-        $this->current_commissioner_path = $path;
-        $this->commissioner_file = null;
-
-        session()->flash('success', 'Commissioner of Oaths scan uploaded successfully.');
     }
 
     public function deleteSignature(): void
     {
         if ($this->current_signature_path) {
-            $disk = app()->environment(['local', 'development', 'testing']) ? 'public' : 'r2_public';
+            $disk = $this->resolveDocumentDisk();
             try {
                 Storage::disk($disk)->delete($this->current_signature_path);
             } catch (\Exception $e) {
@@ -121,7 +131,7 @@ new class extends Component {
     public function deleteCommissionerScan(): void
     {
         if ($this->current_commissioner_path) {
-            $disk = app()->environment(['local', 'development', 'testing']) ? 'public' : 'r2_public';
+            $disk = $this->resolveDocumentDisk();
             try {
                 Storage::disk($disk)->delete($this->current_commissioner_path);
             } catch (\Exception $e) {
@@ -133,6 +143,27 @@ new class extends Component {
         $this->current_commissioner_path = null;
 
         session()->flash('success', 'Commissioner of Oaths scan deleted successfully.');
+    }
+    
+    /**
+     * Resolve the best storage disk for document assets.
+     * Priority: previously used disk > default filesystem > public (local fallback)
+     */
+    protected function resolveDocumentDisk(): string
+    {
+        // If we previously stored to a specific disk, keep using it
+        $savedDisk = SystemSetting::get('document_assets_disk');
+        if ($savedDisk && config("filesystems.disks.{$savedDisk}")) {
+            return $savedDisk;
+        }
+        
+        // Use the default filesystem disk (s3/MinIO in Docker, local otherwise)
+        $default = config('filesystems.default', 'local');
+        if ($default !== 'local') {
+            return $default;
+        }
+        
+        return 'public';
     }
 
     public function getSignatureUrlProperty(): ?string
