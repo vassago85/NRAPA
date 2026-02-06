@@ -19,6 +19,28 @@ new #[Title('Review Application - Admin')] class extends Component {
     public function mount(Membership $membership): void
     {
         $this->membership = $membership->load(['user', 'type']);
+
+        // If the user has been deleted, show error and allow dismissal
+        if (!$this->membership->user) {
+            session()->flash('error', 'The member associated with this application has been deleted.');
+        }
+    }
+
+    public function dismiss(): void
+    {
+        // Delete an orphaned membership application (user deleted)
+        $this->membership->update(['status' => 'revoked', 'suspension_reason' => 'Member account deleted']);
+
+        AuditLog::log(
+            'membership_dismissed',
+            $this->membership,
+            ['status' => $this->membership->getOriginal('status')],
+            ['status' => 'revoked', 'reason' => 'Member account deleted'],
+            Auth::user()
+        );
+
+        session()->flash('success', 'Orphaned application dismissed.');
+        $this->redirect(route('admin.approvals.index'), navigate: true);
     }
 
     public function approve(): void
@@ -266,6 +288,51 @@ new #[Title('Review Application - Admin')] class extends Component {
         </div>
     </div>
     @endif
+
+    @if(session('success'))
+    <div class="rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+        <div class="flex items-center gap-3">
+            <svg class="size-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m4.5 12.75 6 6 9-13.5" />
+            </svg>
+            <p class="text-sm text-green-700 dark:text-green-300">{{ session('success') }}</p>
+        </div>
+    </div>
+    @endif
+
+    {{-- Deleted user: show dismiss option --}}
+    @if(!$this->membership->user)
+    <div class="rounded-xl border-2 border-red-300 bg-red-50 p-8 dark:border-red-700 dark:bg-red-900/20">
+        <div class="flex flex-col items-center gap-4 text-center">
+            <div class="flex size-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+                <svg class="size-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                </svg>
+            </div>
+            <h2 class="text-xl font-semibold text-red-800 dark:text-red-200">Member Account Deleted</h2>
+            <p class="text-sm text-red-700 dark:text-red-300 max-w-md">
+                The member associated with this application (ID: {{ $this->membership->user_id }}) has been deleted. 
+                This application can no longer be processed. You can dismiss it to remove it from the pending list.
+            </p>
+            <div class="flex gap-3 mt-2">
+                <button
+                    wire:click="dismiss"
+                    wire:confirm="Dismiss this orphaned application? It will be marked as revoked."
+                    class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-red-700 transition-colors"
+                >
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    Dismiss Application
+                </button>
+                <a href="{{ route('admin.approvals.index') }}" wire:navigate
+                    class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-6 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
+                    Back to Approvals
+                </a>
+            </div>
+        </div>
+    </div>
+    @else
 
     <div class="grid gap-6 lg:grid-cols-2">
         {{-- Applicant Information --}}
@@ -519,4 +586,6 @@ new #[Title('Review Application - Admin')] class extends Component {
         @endif
     </div>
     @endif
+
+    @endif {{-- end @else for user exists --}}
 </div>
