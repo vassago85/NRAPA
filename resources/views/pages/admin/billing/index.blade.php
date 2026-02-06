@@ -162,11 +162,17 @@ new class extends Component {
         // Get annual summary
         $annualSummary = $this->getAnnualSummary();
         
+        // Get comparisons
+        $monthComparison = $this->getMonthComparison();
+        $yearComparison = $this->getYearComparison();
+        
         return [
             'memberships' => $memberships,
             'years' => $years,
             'months' => $months,
             'annualSummary' => $annualSummary,
+            'monthComparison' => $monthComparison,
+            'yearComparison' => $yearComparison,
         ];
     }
     
@@ -195,6 +201,91 @@ new class extends Component {
         }
         
         return $summary;
+    }
+    
+    protected function getMonthComparison(): array
+    {
+        try {
+            // Previous month calculation
+            $prevMonth = $this->selectedMonth - 1;
+            $prevYear = $this->selectedYear;
+            if ($prevMonth < 1) {
+                $prevMonth = 12;
+                $prevYear--;
+            }
+            
+            $prevNew = Membership::billable()->newInMonth($prevYear, $prevMonth)->count();
+            $prevRenewals = Membership::billable()->renewalsInMonth($prevYear, $prevMonth)->count();
+            $prevTotal = $prevNew + $prevRenewals;
+            
+            return [
+                'prev_month_name' => date('F', mktime(0, 0, 0, $prevMonth, 1)),
+                'prev_year' => $prevYear,
+                'current' => ['new' => $this->newMembers, 'renewals' => $this->renewals, 'total' => $this->totalBillable],
+                'previous' => ['new' => $prevNew, 'renewals' => $prevRenewals, 'total' => $prevTotal],
+                'change' => [
+                    'new' => $this->newMembers - $prevNew,
+                    'renewals' => $this->renewals - $prevRenewals,
+                    'total' => $this->totalBillable - $prevTotal,
+                ],
+            ];
+        } catch (\Exception $e) {
+            return [
+                'prev_month_name' => '',
+                'prev_year' => $this->selectedYear,
+                'current' => ['new' => 0, 'renewals' => 0, 'total' => 0],
+                'previous' => ['new' => 0, 'renewals' => 0, 'total' => 0],
+                'change' => ['new' => 0, 'renewals' => 0, 'total' => 0],
+            ];
+        }
+    }
+    
+    protected function getYearComparison(): array
+    {
+        try {
+            $prevYear = $this->selectedYear - 1;
+            
+            // Cumulative totals up to the selected month for both years
+            $currentYtdNew = 0;
+            $currentYtdRenewals = 0;
+            $prevYtdNew = 0;
+            $prevYtdRenewals = 0;
+            
+            for ($m = 1; $m <= $this->selectedMonth; $m++) {
+                $currentYtdNew += Membership::billable()->newInMonth($this->selectedYear, $m)->count();
+                $currentYtdRenewals += Membership::billable()->renewalsInMonth($this->selectedYear, $m)->count();
+                $prevYtdNew += Membership::billable()->newInMonth($prevYear, $m)->count();
+                $prevYtdRenewals += Membership::billable()->renewalsInMonth($prevYear, $m)->count();
+            }
+            
+            $currentYtdTotal = $currentYtdNew + $currentYtdRenewals;
+            $prevYtdTotal = $prevYtdNew + $prevYtdRenewals;
+            
+            // Period label e.g. "Jan-Feb"
+            $startMonth = date('M', mktime(0, 0, 0, 1, 1));
+            $endMonth = date('M', mktime(0, 0, 0, $this->selectedMonth, 1));
+            $periodLabel = $this->selectedMonth === 1 ? $startMonth : "{$startMonth}-{$endMonth}";
+            
+            return [
+                'prev_year' => $prevYear,
+                'period_label' => $periodLabel,
+                'current' => ['new' => $currentYtdNew, 'renewals' => $currentYtdRenewals, 'total' => $currentYtdTotal],
+                'previous' => ['new' => $prevYtdNew, 'renewals' => $prevYtdRenewals, 'total' => $prevYtdTotal],
+                'change' => [
+                    'new' => $currentYtdNew - $prevYtdNew,
+                    'renewals' => $currentYtdRenewals - $prevYtdRenewals,
+                    'total' => $currentYtdTotal - $prevYtdTotal,
+                ],
+            ];
+        } catch (\Exception $e) {
+            return [
+                'prev_year' => $this->selectedYear - 1,
+                'period_label' => '',
+                'current' => ['new' => 0, 'renewals' => 0, 'total' => 0],
+                'previous' => ['new' => 0, 'renewals' => 0, 'total' => 0],
+                'change' => ['new' => 0, 'renewals' => 0, 'total' => 0],
+            ];
+        }
     }
     
     public function exportCsv(): void
@@ -291,8 +382,8 @@ new class extends Component {
 }" @download-csv.window="downloadCsv($event)">
     <div class="mb-8 flex items-center justify-between">
         <div>
-            <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Billing Reports</h1>
-            <p class="mt-2 text-zinc-600 dark:text-zinc-400">Track new members and renewals for NRAPA invoicing.</p>
+            <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Billing & Stats</h1>
+            <p class="mt-2 text-zinc-600 dark:text-zinc-400">Track new members, renewals, and billing trends.</p>
         </div>
         <a href="{{ route('admin.dashboard') }}" wire:navigate class="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white">
             ← Back to Dashboard
@@ -367,8 +458,75 @@ new class extends Component {
                 <div>
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">Total Billable</p>
                     <p class="text-3xl font-bold text-zinc-900 dark:text-white">{{ $totalBillable }}</p>
-                    <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">For NRAPA invoicing</p>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Total billable for {{ $months[$selectedMonth] }}</p>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Month-on-Month & Year-on-Year Comparisons --}}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        {{-- Month-on-Month --}}
+        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6">
+            <div class="flex items-center gap-2 mb-4">
+                <svg class="w-5 h-5 text-zinc-500 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                </svg>
+                <h3 class="text-sm font-semibold text-zinc-900 dark:text-white">Month-on-Month</h3>
+                <span class="text-xs text-zinc-500 dark:text-zinc-400">{{ $months[$selectedMonth] }} vs {{ $monthComparison['prev_month_name'] }}{{ $monthComparison['prev_year'] != $selectedYear ? ' ' . $monthComparison['prev_year'] : '' }}</span>
+            </div>
+            <div class="space-y-3">
+                @foreach(['new' => 'New Members', 'renewals' => 'Renewals', 'total' => 'Total'] as $key => $label)
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-zinc-600 dark:text-zinc-400">{{ $label }}</span>
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-zinc-400 dark:text-zinc-500">{{ $monthComparison['previous'][$key] }}</span>
+                        <svg class="w-4 h-4 text-zinc-300 dark:text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                        </svg>
+                        <span class="text-sm font-semibold text-zinc-900 dark:text-white">{{ $monthComparison['current'][$key] }}</span>
+                        @if($monthComparison['change'][$key] > 0)
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">+{{ $monthComparison['change'][$key] }}</span>
+                        @elseif($monthComparison['change'][$key] < 0)
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">{{ $monthComparison['change'][$key] }}</span>
+                        @else
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-zinc-100 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400">0</span>
+                        @endif
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+
+        {{-- Year-on-Year --}}
+        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6">
+            <div class="flex items-center gap-2 mb-4">
+                <svg class="w-5 h-5 text-zinc-500 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                </svg>
+                <h3 class="text-sm font-semibold text-zinc-900 dark:text-white">Year-on-Year</h3>
+                <span class="text-xs text-zinc-500 dark:text-zinc-400">{{ $yearComparison['period_label'] }} {{ $selectedYear }} vs {{ $yearComparison['period_label'] }} {{ $yearComparison['prev_year'] }}</span>
+            </div>
+            <div class="space-y-3">
+                @foreach(['new' => 'New Members', 'renewals' => 'Renewals', 'total' => 'Total'] as $key => $label)
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-zinc-600 dark:text-zinc-400">{{ $label }}</span>
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-zinc-400 dark:text-zinc-500">{{ $yearComparison['previous'][$key] }}</span>
+                        <svg class="w-4 h-4 text-zinc-300 dark:text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                        </svg>
+                        <span class="text-sm font-semibold text-zinc-900 dark:text-white">{{ $yearComparison['current'][$key] }}</span>
+                        @if($yearComparison['change'][$key] > 0)
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">+{{ $yearComparison['change'][$key] }}</span>
+                        @elseif($yearComparison['change'][$key] < 0)
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">{{ $yearComparison['change'][$key] }}</span>
+                        @else
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-zinc-100 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400">0</span>
+                        @endif
+                    </div>
+                </div>
+                @endforeach
             </div>
         </div>
     </div>

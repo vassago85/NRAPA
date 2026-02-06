@@ -18,12 +18,6 @@ new class extends Component {
     public int $pendingEndorsements = 0;
     public int $totalOutstandingApprovals = 0;
     
-    // Billing stats
-    public int $newMembersThisMonth = 0;
-    public int $renewalsThisMonth = 0;
-    public int $totalBillableThisMonth = 0;
-    public string $currentMonth = '';
-    
     public function mount(): void
     {
         $this->loadStats();
@@ -57,40 +51,12 @@ new class extends Component {
             // Tables might not exist yet
         }
         
-        // Document/membership/calibre/endorsement approvals only (activities approved via Activities)
+        // All pending approvals combined
         $this->totalOutstandingApprovals = $this->pendingDocuments
             + $this->pendingMemberships
+            + $this->pendingActivities
             + $this->pendingCalibres
             + $this->pendingEndorsements;
-        
-        // Billing stats for current month
-        $this->loadBillingStats();
-    }
-    
-    protected function loadBillingStats(): void
-    {
-        $year = now()->year;
-        $month = now()->month;
-        $this->currentMonth = now()->format('F Y');
-        
-        try {
-            // New members this month (billable, no previous membership)
-            $this->newMembersThisMonth = Membership::billable()
-                ->newInMonth($year, $month)
-                ->count();
-            
-            // Renewals this month (billable, has previous membership)
-            $this->renewalsThisMonth = Membership::billable()
-                ->renewalsInMonth($year, $month)
-                ->count();
-            
-            $this->totalBillableThisMonth = $this->newMembersThisMonth + $this->renewalsThisMonth;
-        } catch (\Exception $e) {
-            // source column might not exist yet
-            $this->newMembersThisMonth = 0;
-            $this->renewalsThisMonth = 0;
-            $this->totalBillableThisMonth = 0;
-        }
     }
     
     public function refresh(): void
@@ -197,10 +163,10 @@ new class extends Component {
             </a>
         </div>
 
-        {{-- Pending Breakdown --}}
-        <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
+        {{-- Pending Breakdown (clickable) --}}
+        <a href="{{ route('admin.approvals.index') }}" wire:navigate class="block bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 hover:border-purple-300 dark:hover:border-purple-600 hover:shadow-md transition-all group">
             <div class="flex items-center gap-4">
-                <div class="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                <div class="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg group-hover:bg-purple-200 dark:group-hover:bg-purple-900/50 transition-colors">
                     <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
                     </svg>
@@ -230,45 +196,11 @@ new class extends Component {
                         </div>
                     </div>
                 </div>
+                <svg class="w-5 h-5 text-zinc-400 group-hover:text-purple-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
             </div>
-        </div>
-    </div>
-
-    {{-- Billing Summary --}}
-    <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 mb-8">
-        <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-3">
-                <div class="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
-                    <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                    </svg>
-                </div>
-                <div>
-                    <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Billing Summary</h2>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ $currentMonth }}</p>
-                </div>
-            </div>
-            <a href="{{ route('admin.billing.index') }}" wire:navigate class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium">
-                View Full Report →
-            </a>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="bg-zinc-50 dark:bg-zinc-700/50 rounded-lg p-4">
-                <p class="text-sm text-zinc-500 dark:text-zinc-400">New Members</p>
-                <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ $newMembersThisMonth }}</p>
-                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">First-time memberships</p>
-            </div>
-            <div class="bg-zinc-50 dark:bg-zinc-700/50 rounded-lg p-4">
-                <p class="text-sm text-zinc-500 dark:text-zinc-400">Renewals</p>
-                <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $renewalsThisMonth }}</p>
-                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Membership renewals</p>
-            </div>
-            <div class="bg-zinc-50 dark:bg-zinc-700/50 rounded-lg p-4">
-                <p class="text-sm text-zinc-500 dark:text-zinc-400">Total Billable</p>
-                <p class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{{ $totalBillableThisMonth }}</p>
-                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">For NRAPA invoicing</p>
-            </div>
-        </div>
+        </a>
     </div>
 
     {{-- Quick Actions --}}
