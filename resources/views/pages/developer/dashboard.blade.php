@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use App\Models\Membership;
+use App\Models\SystemSetting;
 use Livewire\Component;
 
 new class extends Component {
@@ -10,6 +11,8 @@ new class extends Component {
     public int $totalAdmins = 0;
     public int $totalMembers = 0;
     public int $activeMemberships = 0;
+    
+    public bool $dailyBackupEnabled = false;
     
     public string $userSearch = '';
     public ?int $selectedUserId = null;
@@ -21,6 +24,13 @@ new class extends Component {
         $this->totalAdmins = User::where('role', User::ROLE_ADMIN)->count();
         $this->totalMembers = User::where('role', User::ROLE_MEMBER)->count();
         $this->activeMemberships = Membership::where('status', 'active')->count();
+        $this->dailyBackupEnabled = (bool) SystemSetting::get('daily_backup_enabled', false);
+    }
+    
+    public function toggleDailyBackup(): void
+    {
+        $this->dailyBackupEnabled = !$this->dailyBackupEnabled;
+        SystemSetting::set('daily_backup_enabled', $this->dailyBackupEnabled ? '1' : '0', 'boolean', 'backup', 'Enable daily database backup to R2 at 02:00 SAST');
     }
 
     public function getSearchResultsProperty()
@@ -75,6 +85,33 @@ new class extends Component {
         <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-green-200 dark:border-green-700 p-4">
             <p class="text-sm text-green-600 dark:text-green-400">Active Memberships</p>
             <p class="text-2xl font-bold text-green-700 dark:text-green-300">{{ $activeMemberships }}</p>
+        </div>
+    </div>
+
+    {{-- System Toggles --}}
+    <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 mb-8">
+        <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">System Toggles</h2>
+        <div class="space-y-4">
+            {{-- Daily R2 Backup Toggle --}}
+            <div class="flex items-center justify-between p-4 rounded-lg bg-zinc-50 dark:bg-zinc-700/50 border border-zinc-200 dark:border-zinc-700">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 rounded-lg {{ $dailyBackupEnabled ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-zinc-200 dark:bg-zinc-600' }}">
+                        <svg class="w-5 h-5 {{ $dailyBackupEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-500 dark:text-zinc-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="font-medium text-zinc-900 dark:text-white">Daily R2 Backup</p>
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400">Database backup to Cloudflare R2 every day at 02:00 SAST</p>
+                    </div>
+                </div>
+                <button wire:click="toggleDailyBackup" 
+                        class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 {{ $dailyBackupEnabled ? 'bg-emerald-600' : 'bg-zinc-300 dark:bg-zinc-600' }}"
+                        role="switch"
+                        aria-checked="{{ $dailyBackupEnabled ? 'true' : 'false' }}">
+                    <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $dailyBackupEnabled ? 'translate-x-5' : 'translate-x-0' }}"></span>
+                </button>
+            </div>
         </div>
     </div>
 

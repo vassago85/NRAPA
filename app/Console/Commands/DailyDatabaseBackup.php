@@ -28,6 +28,13 @@ class DailyDatabaseBackup extends Command
      */
     public function handle(BackupService $backupService): int
     {
+        // Check if daily backups are enabled (default: off)
+        if (!SystemSetting::get('daily_backup_enabled', false)) {
+            $this->info('Daily database backup is disabled. Enable it in Developer Dashboard.');
+            Log::info('Daily database backup skipped: disabled via system setting');
+            return Command::SUCCESS;
+        }
+        
         $this->info('Starting daily database backup...');
         
         // Get stored database password (encrypted)
