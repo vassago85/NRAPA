@@ -244,7 +244,7 @@ class KnowledgeTestQuestion extends Model
 
     /**
      * Get matching answers (the right-side options) for display.
-     * Returns array of answer values from correct_answers.
+     * Returns array of answer values from correct_answers (excluding distractors).
      */
     public function getMatchingAnswerOptions(): array
     {
@@ -252,16 +252,47 @@ class KnowledgeTestQuestion extends Model
             return [];
         }
 
-        return array_values($this->correct_answers);
+        // Filter out the _distractors key
+        $answers = [];
+        foreach ($this->correct_answers as $key => $value) {
+            if ($key !== '_distractors') {
+                $answers[] = $value;
+            }
+        }
+        return $answers;
+    }
+
+    /**
+     * Get distractor answers (extra wrong answers).
+     */
+    public function getMatchingDistractors(): array
+    {
+        if (!$this->isMatching() || !$this->correct_answers) {
+            return [];
+        }
+
+        return $this->correct_answers['_distractors'] ?? [];
+    }
+
+    /**
+     * Get all possible matching answers including distractors.
+     */
+    public function getAllMatchingAnswers(): array
+    {
+        $answers = $this->getMatchingAnswerOptions();
+        $distractors = $this->getMatchingDistractors();
+        
+        return array_merge($answers, $distractors);
     }
 
     /**
      * Get shuffled matching answers for test-taking.
      * Uses a seed to ensure consistent shuffle per attempt.
+     * Includes distractors (extra wrong answers).
      */
     public function getShuffledMatchingAnswers(int $seed): array
     {
-        $answers = $this->getMatchingAnswerOptions();
+        $answers = $this->getAllMatchingAnswers();
         
         // Seed the random number generator for consistent shuffle
         mt_srand($seed + $this->id);

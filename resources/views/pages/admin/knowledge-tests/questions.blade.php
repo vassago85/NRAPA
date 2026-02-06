@@ -24,6 +24,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
     public string $correctAnswer = '';
     public array $correctAnswers = []; // For multi-select and priority order
     public array $matchingPairs = []; // For matching questions [{item: '', answer: ''}, ...]
+    public array $matchingDistractors = []; // Extra wrong answers for matching questions
     public int $points = 1;
 
     // JSON Import
@@ -69,6 +70,17 @@ new #[Title('Manage Questions - Admin')] class extends Component {
         }
     }
 
+    public function addMatchingDistractor(): void
+    {
+        $this->matchingDistractors[] = '';
+    }
+
+    public function removeMatchingDistractor(int $index): void
+    {
+        unset($this->matchingDistractors[$index]);
+        $this->matchingDistractors = array_values($this->matchingDistractors);
+    }
+
     public function editQuestion(int $id): void
     {
         $question = KnowledgeTestQuestion::findOrFail($id);
@@ -85,10 +97,12 @@ new #[Title('Manage Questions - Admin')] class extends Component {
             $correctAnswers = $question->correct_answers ?? [];
             $this->matchingPairs = [];
             foreach ($options as $key => $item) {
-                $this->matchingPairs[] = [
-                    'item' => $item,
-                    'answer' => $correctAnswers[$key] ?? '',
-                ];
+                if ($key !== '_distractors') {
+                    $this->matchingPairs[] = [
+                        'item' => $item,
+                        'answer' => $correctAnswers[$key] ?? '',
+                    ];
+                }
             }
             if (empty($this->matchingPairs)) {
                 $this->matchingPairs = [
@@ -96,6 +110,8 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                     ['item' => '', 'answer' => ''],
                 ];
             }
+            // Load distractors
+            $this->matchingDistractors = $correctAnswers['_distractors'] ?? [];
             $this->options = ['', '', '', ''];
             $this->correctAnswer = '';
             $this->correctAnswers = [];
@@ -128,8 +144,9 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                 ['item' => '', 'answer' => ''],
                 ['item' => '', 'answer' => ''],
             ];
+            $this->matchingDistractors = [];
         }
-        
+
         $this->points = $question->points;
     }
 
@@ -244,6 +261,11 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                 $letter = chr(65 + $index); // A, B, C, ...
                 $matchingOptions[$letter] = $pair['item'];
                 $matchingCorrectAnswers[$letter] = $pair['answer'];
+            }
+            // Add distractors (extra wrong answers)
+            $filteredDistractors = array_filter($this->matchingDistractors, fn($d) => !empty(trim($d)));
+            if (!empty($filteredDistractors)) {
+                $matchingCorrectAnswers['_distractors'] = array_values($filteredDistractors);
             }
             $optionsToStore = $matchingOptions;
             $correctAnswers = $matchingCorrectAnswers;
@@ -771,6 +793,30 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                     + Add Pair
                 </button>
                 <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Points will be automatically set to the number of pairs (1 point per correct match).</p>
+
+                {{-- Distractor Answers --}}
+                <div class="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Extra Wrong Answers (Optional)</label>
+                    <div class="mt-1 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20">
+                        <p class="text-xs text-red-700 dark:text-red-300">Add extra answers that don't match any item. This makes the question harder by giving members more choices than correct matches.</p>
+                    </div>
+                    <div class="mt-3 space-y-2">
+                        @foreach($matchingDistractors as $index => $distractor)
+                        <div class="flex items-center gap-2">
+                            <span class="flex size-6 items-center justify-center rounded bg-red-100 text-xs font-bold text-red-700 dark:bg-red-900 dark:text-red-300">✗</span>
+                            <input type="text" wire:model.live="matchingDistractors.{{ $index }}" class="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white" placeholder="Wrong answer {{ $index + 1 }}">
+                            <button type="button" wire:click="removeMatchingDistractor({{ $index }})" class="text-red-500 hover:text-red-600">
+                                <svg class="size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        @endforeach
+                    </div>
+                    <button type="button" wire:click="addMatchingDistractor" class="mt-2 text-sm text-red-600 hover:text-red-700 dark:text-red-400">
+                        + Add Wrong Answer
+                    </button>
+                </div>
             </div>
             @elseif($questionType === 'written')
             <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
