@@ -289,22 +289,35 @@ class BackupService
     /**
      * Resolve the best available cloud disk for backups.
      *
-     * Priority: r2 > s3 > default filesystem > local
+     * Priority: r2_backup (dedicated bucket) > r2 > s3 > local
      * Returns the disk name string, or null if only local is available.
      */
     protected function getBackupDisk(): ?string
     {
-        // 1. Try R2 (preferred offsite backup target)
+        // Apply any database-stored backup bucket config at runtime
+        $this->applyBackupBucketConfig();
+        
+        // 1. Try dedicated R2 backup bucket (preferred)
+        if (config('filesystems.disks.r2_backup.key') && config('filesystems.disks.r2_backup.bucket')) {
+            try {
+                Storage::disk('r2_backup')->path('');
+                return 'r2_backup';
+            } catch (Exception $e) {
+                Log::warning('Backup: R2 backup disk unavailable, trying fallback', ['error' => $e->getMessage()]);
+            }
+        }
+        
+        // 2. Try main R2 bucket
         if (config('filesystems.disks.r2.key') && config('filesystems.disks.r2.bucket')) {
             try {
-                Storage::disk('r2')->path(''); // Quick connectivity check
+                Storage::disk('r2')->path('');
                 return 'r2';
             } catch (Exception $e) {
                 Log::warning('Backup: R2 disk unavailable, trying fallback', ['error' => $e->getMessage()]);
             }
         }
         
-        // 2. Try S3/MinIO
+        // 3. Try S3/MinIO
         if (config('filesystems.disks.s3.key') && config('filesystems.disks.s3.bucket')) {
             try {
                 Storage::disk('s3')->path('');
@@ -314,8 +327,43 @@ class BackupService
             }
         }
         
-        // 3. No cloud disk available
+        // 4. No cloud disk available
         return null;
+    }
+    
+    /**
+     * Apply backup bucket configuration from database SystemSettings.
+     *
+     * Allows the owner to configure a dedicated backup bucket via the UI.
+     * Falls back to env vars if no database config exists.
+     */
+    protected function applyBackupBucketConfig(): void
+    {
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('system_settings')) {
+                return;
+            }
+            
+            $backupBucket = \App\Models\SystemSetting::get('backup_r2_bucket');
+            
+            if ($backupBucket) {
+                // Use shared R2 credentials with the dedicated backup bucket
+                $key = \App\Models\SystemSetting::get('r2_access_key_id') ?: config('filesystems.disks.r2.key');
+                $secret = \App\Models\SystemSetting::get('r2_secret_access_key') ?: config('filesystems.disks.r2.secret');
+                $endpoint = \App\Models\SystemSetting::get('r2_endpoint') ?: config('filesystems.disks.r2.endpoint');
+                $region = \App\Models\SystemSetting::get('r2_region', 'auto') ?: config('filesystems.disks.r2.region');
+                
+                config([
+                    'filesystems.disks.r2_backup.key' => $key,
+                    'filesystems.disks.r2_backup.secret' => $secret,
+                    'filesystems.disks.r2_backup.bucket' => $backupBucket,
+                    'filesystems.disks.r2_backup.endpoint' => $endpoint,
+                    'filesystems.disks.r2_backup.region' => $region,
+                ]);
+            }
+        } catch (Exception $e) {
+            // Silently fail - database might not be available
+        }
     }
     
     /**

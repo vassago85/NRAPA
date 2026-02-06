@@ -13,6 +13,7 @@ new class extends Component {
     public int $activeMemberships = 0;
     
     public bool $dailyBackupEnabled = false;
+    public bool $storageSettingsLocked = false;
     
     public string $userSearch = '';
     public ?int $selectedUserId = null;
@@ -25,12 +26,19 @@ new class extends Component {
         $this->totalMembers = User::where('role', User::ROLE_MEMBER)->count();
         $this->activeMemberships = Membership::where('status', 'active')->count();
         $this->dailyBackupEnabled = (bool) SystemSetting::get('daily_backup_enabled', false);
+        $this->storageSettingsLocked = (bool) SystemSetting::get('storage_settings_locked', false);
     }
     
     public function toggleDailyBackup(): void
     {
         $this->dailyBackupEnabled = !$this->dailyBackupEnabled;
         SystemSetting::set('daily_backup_enabled', $this->dailyBackupEnabled ? '1' : '0', 'boolean', 'backup', 'Enable daily database backup to R2 at 02:00 SAST');
+    }
+    
+    public function toggleStorageSettingsLock(): void
+    {
+        $this->storageSettingsLocked = !$this->storageSettingsLocked;
+        SystemSetting::set('storage_settings_locked', $this->storageSettingsLocked ? '1' : '0', 'boolean', 'system', 'Lock storage settings from owner changes (requires developer approval)');
     }
 
     public function getSearchResultsProperty()
@@ -110,6 +118,31 @@ new class extends Component {
                         role="switch"
                         aria-checked="{{ $dailyBackupEnabled ? 'true' : 'false' }}">
                     <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $dailyBackupEnabled ? 'translate-x-5' : 'translate-x-0' }}"></span>
+                </button>
+            </div>
+
+            {{-- Lock Storage Settings Toggle --}}
+            <div class="flex items-center justify-between p-4 rounded-lg bg-zinc-50 dark:bg-zinc-700/50 border border-zinc-200 dark:border-zinc-700">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 rounded-lg {{ $storageSettingsLocked ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-zinc-200 dark:bg-zinc-600' }}">
+                        <svg class="w-5 h-5 {{ $storageSettingsLocked ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-500 dark:text-zinc-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            @if($storageSettingsLocked)
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            @else
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/>
+                            @endif
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="font-medium text-zinc-900 dark:text-white">Lock Storage Settings</p>
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400">When locked, owners cannot change storage or backup bucket settings without developer approval</p>
+                    </div>
+                </div>
+                <button wire:click="toggleStorageSettingsLock" 
+                        class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 {{ $storageSettingsLocked ? 'bg-amber-600' : 'bg-zinc-300 dark:bg-zinc-600' }}"
+                        role="switch"
+                        aria-checked="{{ $storageSettingsLocked ? 'true' : 'false' }}">
+                    <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $storageSettingsLocked ? 'translate-x-5' : 'translate-x-0' }}"></span>
                 </button>
             </div>
         </div>

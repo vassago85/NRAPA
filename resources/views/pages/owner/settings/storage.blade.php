@@ -32,6 +32,12 @@ new class extends Component {
 
     public function saveStorageSettings(): void
     {
+        // Check if storage settings are locked (developer approval required)
+        if (SystemSetting::get('storage_settings_locked', false) && !auth()->user()->hasRoleLevel(\App\Models\User::ROLE_DEVELOPER)) {
+            session()->flash('error', 'Storage settings are locked. Please contact the developer to make changes.');
+            return;
+        }
+        
         // Validate based on selected storage driver
         if ($this->storage_driver === 'r2') {
             $this->validate([
@@ -129,6 +135,22 @@ new class extends Component {
         <div class="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
             <p class="text-red-700 dark:text-red-300">{{ session('error') }}</p>
         </div>
+    @endif
+
+    @php
+        $isLocked = \App\Models\SystemSetting::get('storage_settings_locked', false) && !auth()->user()->hasRoleLevel(\App\Models\User::ROLE_DEVELOPER);
+    @endphp
+
+    @if($isLocked)
+    <div class="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+        <div class="flex items-center gap-3">
+            <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+            <div>
+                <p class="text-sm font-medium text-amber-800 dark:text-amber-200">Storage Settings Locked</p>
+                <p class="text-sm text-amber-700 dark:text-amber-300">These settings have been locked by the developer. Contact them to make changes.</p>
+            </div>
+        </div>
+    </div>
     @endif
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -301,7 +323,7 @@ new class extends Component {
                     @endif
 
                     <div class="pt-4 border-t border-zinc-200 dark:border-zinc-700 flex flex-wrap gap-3">
-                        <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors">
+                        <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" {{ $isLocked ? 'disabled' : '' }}>
                             Save Storage Settings
                         </button>
                         @if($storage_driver === 'r2')

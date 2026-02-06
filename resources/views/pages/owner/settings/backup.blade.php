@@ -17,6 +17,9 @@ new class extends Component {
     // Automatic backup settings
     public string $databaseBackupPassword = '';
     public bool $showPassword = false;
+    
+    // Backup bucket settings
+    public string $backupBucket = '';
 
     public function mount(): void
     {
@@ -24,6 +27,9 @@ new class extends Component {
         // Password is stored encrypted, so we show empty if it exists (for security)
         $storedPassword = SystemSetting::get('database_backup_password', '');
         $this->databaseBackupPassword = $storedPassword ? '••••••••' : ''; // Show dots if password is set
+        
+        // Load backup bucket name
+        $this->backupBucket = SystemSetting::get('backup_r2_bucket', '');
     }
 
     public function createBackup(): void
@@ -67,24 +73,36 @@ new class extends Component {
 
     public function saveAutomaticBackupSettings(): void
     {
-        // Don't update if user entered the placeholder dots
-        if ($this->databaseBackupPassword === '••••••••' || empty($this->databaseBackupPassword)) {
-            session()->flash('info', 'Please enter a password to configure automatic backups.');
+        // Check if storage settings are locked
+        if (SystemSetting::get('storage_settings_locked', false) && !auth()->user()->hasRoleLevel(\App\Models\User::ROLE_DEVELOPER)) {
+            session()->flash('error', 'Storage settings are locked. Please contact the developer to make changes.');
             return;
         }
-
+        
         $this->validate([
-            'databaseBackupPassword' => 'required|string|min:1',
+            'backupBucket' => 'nullable|string|max:255',
         ]);
+        
+        // Save backup bucket
+        if ($this->backupBucket) {
+            SystemSetting::set('backup_r2_bucket', $this->backupBucket, 'string', 'backup', 'Dedicated R2 bucket for backups');
+        }
 
-        // Encrypt and store the password securely
-        $encryptedPassword = Crypt::encryptString($this->databaseBackupPassword);
-        SystemSetting::set('database_backup_password', $encryptedPassword, 'string', 'backup', 'Database Backup Password (for automatic daily backups)');
+        // Only update password if user entered a real password (not placeholder dots)
+        if ($this->databaseBackupPassword && $this->databaseBackupPassword !== '••••••••') {
+            $this->validate([
+                'databaseBackupPassword' => 'required|string|min:1',
+            ]);
+            
+            // Encrypt and store the password securely
+            $encryptedPassword = Crypt::encryptString($this->databaseBackupPassword);
+            SystemSetting::set('database_backup_password', $encryptedPassword, 'string', 'backup', 'Database Backup Password (for automatic daily backups)');
 
-        // Reset to show dots
-        $this->databaseBackupPassword = '••••••••';
+            // Reset to show dots
+            $this->databaseBackupPassword = '••••••••';
+        }
 
-        session()->flash('success', 'Automatic backup settings saved successfully. Daily backups will run at 2:00 AM.');
+        session()->flash('success', 'Automatic backup settings saved successfully.');
     }
 
     public function togglePasswordVisibility(): void
@@ -297,7 +315,32 @@ new class extends Component {
                         </div>
                     </div>
 
+                    @if(\App\Models\SystemSetting::get('storage_settings_locked', false) && !auth()->user()->hasRoleLevel(\App\Models\User::ROLE_DEVELOPER))
+                    <div class="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                            <p class="text-sm font-medium text-amber-800 dark:text-amber-200">Storage settings are locked. Contact the developer to make changes.</p>
+                        </div>
+                    </div>
+                    @endif
+
                     <form wire:submit="saveAutomaticBackupSettings" class="space-y-4">
+                        {{-- Backup Bucket --}}
+                        <div>
+                            <label for="backupBucket" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                Backup R2 Bucket Name
+                            </label>
+                            <input 
+                                type="text" 
+                                id="backupBucket" 
+                                wire:model="backupBucket" 
+                                placeholder="e.g. nrapa-backups"
+                                class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                {{ \App\Models\SystemSetting::get('storage_settings_locked', false) && !auth()->user()->hasRoleLevel(\App\Models\User::ROLE_DEVELOPER) ? 'disabled' : '' }}>
+                            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">A separate R2 bucket dedicated to backups. Uses the same R2 API credentials as your main storage. Create this bucket in the Cloudflare R2 dashboard first.</p>
+                            @error('backupBucket') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                        </div>
+
                         <div>
                             <label for="databaseBackupPassword" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                                 Database Password for Automatic Backups <span class="text-red-500">*</span>

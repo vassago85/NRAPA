@@ -85,6 +85,28 @@ return [
 
         /*
         |--------------------------------------------------------------------------
+        | Cloudflare R2 Backup Storage (separate bucket for offsite backups)
+        |--------------------------------------------------------------------------
+        |
+        | Dedicated R2 bucket for database and system backups.
+        | Uses same API credentials as the main R2 disk but a different bucket.
+        | Can be overridden at runtime via SystemSetting (backup_r2_bucket).
+        |
+        */
+        'r2_backup' => [
+            'driver' => 's3',
+            'key' => env('CLOUDFLARE_R2_ACCESS_KEY_ID'),
+            'secret' => env('CLOUDFLARE_R2_SECRET_ACCESS_KEY'),
+            'region' => env('CLOUDFLARE_R2_REGION', 'auto'),
+            'bucket' => env('CLOUDFLARE_R2_BACKUP_BUCKET'),
+            'endpoint' => env('CLOUDFLARE_R2_ENDPOINT'),
+            'use_path_style_endpoint' => env('CLOUDFLARE_R2_USE_PATH_STYLE_ENDPOINT', true),
+            'throw' => false,
+            'report' => false,
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
         | Cloudflare R2 Public Storage (for learning images, etc.)
         |--------------------------------------------------------------------------
         |
