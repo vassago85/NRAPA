@@ -169,8 +169,26 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             // Prepare FirearmSearchPanel data
             $this->firearmPanelData = $this->getFirearmPanelInitialData();
         }
+
+        // Load components (must stay inside loadFromRequest for Volt class structure)
+        if ($request->components->count() > 0) {
+            $this->requestComponent = true;
+            foreach ($request->components as $comp) {
+                $this->components[] = [
+                    'id' => $comp->id,
+                    'component_type' => $comp->component_type,
+                    'component_description' => $comp->component_description ?? '',
+                    'component_serial' => $comp->component_serial ?? '',
+                    'component_make' => $comp->component_make ?? '',
+                    'component_model' => $comp->component_model ?? '',
+                    'calibre_id' => $comp->calibre_id ?? null,
+                    'calibre_manual' => $comp->calibre_manual ?? '',
+                    'diameter' => $comp->diameter ?? '',
+                ];
+            }
+        }
     }
-    
+
     /**
      * Get initial data for FirearmSearchPanel component.
      */
@@ -268,25 +286,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         }
         if ($this->modelTextOverride) {
             $this->model = $this->modelTextOverride;
-        }
-    }
-
-        // Load components
-        if ($request->components->count() > 0) {
-            $this->requestComponent = true;
-            foreach ($request->components as $comp) {
-                $this->components[] = [
-                    'id' => $comp->id,
-                    'component_type' => $comp->component_type,
-                    'component_description' => $comp->component_description ?? '',
-                    'component_serial' => $comp->component_serial ?? '',
-                    'component_make' => $comp->component_make ?? '',
-                    'component_model' => $comp->component_model ?? '',
-                    'calibre_id' => $comp->calibre_id ?? null,
-                    'calibre_manual' => $comp->calibre_manual ?? '',
-                    'diameter' => $comp->diameter ?? '',
-                ];
-            }
         }
     }
 
@@ -1207,10 +1206,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                 
                 {{-- Use new FirearmSearchPanel component --}}
                 @php
-                    // Ensure firearmPanelData is initialized
-                    if (!isset($firearmPanelData) || $firearmPanelData === null) {
-                        $firearmPanelData = [];
-                    }
+                    $firearmPanelData = $this->firearmPanelData ?? [];
                 @endphp
                 <livewire:firearm-search-panel 
                     wire:key="endorsement-firearm-panel-{{ $editingRequest?->id ?? 'new' }}"
