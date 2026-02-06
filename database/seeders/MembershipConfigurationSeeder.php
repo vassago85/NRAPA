@@ -74,14 +74,15 @@ class MembershipConfigurationSeeder extends Seeder
     /**
      * Seed document types.
      * 
-     * Simplified to only core member documents:
+     * Simplified to only 3 core member documents:
      * - ID (Identity Document)
      * - Proof of Address
-     * - Competency (Firearm Competency Certificate)
-     * - Firearm Licence (for Virtual Safe/Armoury)
+     * - Competency (Firearm Competency Certificate with issue date)
      * 
-     * Other document types (safe photos, character references, SAPS forms, activity evidence, etc.)
-     * are handled through activities or endorsement requests, not general member documents.
+     * Other document types are handled elsewhere:
+     * - Firearm Licence → Virtual Safe
+     * - Activity Evidence → Activities page
+     * - Safe photos, character references, SAPS forms → Endorsement requests
      */
     protected function seedDocumentTypes(): void
     {
@@ -114,15 +115,16 @@ class MembershipConfigurationSeeder extends Seeder
                 'is_active' => true,
                 'sort_order' => 3,
             ],
-            [
-                'slug' => 'firearm-licence',
-                'name' => 'Firearm Licence',
-                'description' => 'Current SAPS firearm licence card (for Virtual Safe)',
-                'expiry_months' => 60, // 5 years typical
-                'archive_months' => 24,
-                'is_active' => true,
-                'sort_order' => 4,
-            ],
+            // Firearm Licence is handled via Virtual Safe, not general documents
+            // [
+            //     'slug' => 'firearm-licence',
+            //     'name' => 'Firearm Licence',
+            //     'description' => 'Current SAPS firearm licence card (for Virtual Safe)',
+            //     'expiry_months' => 60, // 5 years typical
+            //     'archive_months' => 24,
+            //     'is_active' => false,
+            //     'sort_order' => 4,
+            // ],
         ];
 
         $activeSlugs = array_column($documentTypes, 'slug');
@@ -134,8 +136,9 @@ class MembershipConfigurationSeeder extends Seeder
             );
         }
 
-        // Deactivate ALL document types except the 4 core ones
-        // This ensures any document types not in our list are also deactivated
+        // Deactivate ALL document types except the 3 core ones (ID, POA, Competency)
+        // Firearm licences are handled via Virtual Safe, not general documents
+        // Activities evidence is uploaded through the Activities feature
         DocumentType::whereNotIn('slug', $activeSlugs)->update(['is_active' => false]);
     }
 

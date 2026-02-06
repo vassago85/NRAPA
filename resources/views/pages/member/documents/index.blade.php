@@ -30,6 +30,9 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     public string $addressProvince = '';
     public string $addressPostalCode = '';
 
+    // Competency metadata fields
+    public string $competencyIssueDate = '';
+
     protected function rules(): array
     {
         $rules = [
@@ -53,6 +56,9 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                     $rules['addressCity'] = 'required|string|max:100';
                     $rules['addressProvince'] = 'required|string|max:100';
                     $rules['addressPostalCode'] = 'required|string|max:10';
+                }
+                if (in_array($docType->slug, MemberDocument::COMPETENCY_DOCUMENT_SLUGS)) {
+                    $rules['competencyIssueDate'] = 'required|date|before_or_equal:today';
                 }
             }
         }
@@ -96,6 +102,16 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         return $docType && in_array($docType->slug, MemberDocument::ADDRESS_DOCUMENT_SLUGS);
     }
 
+    /**
+     * Check if selected document type requires competency metadata.
+     */
+    public function requiresCompetencyMetadata(): bool
+    {
+        if (!$this->selectedDocumentType) return false;
+        $docType = DocumentType::find($this->selectedDocumentType);
+        return $docType && in_array($docType->slug, MemberDocument::COMPETENCY_DOCUMENT_SLUGS);
+    }
+
     public function with(): array
     {
         $user = auth()->user();
@@ -125,6 +141,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         $this->reset([
             'idSurname', 'idNames', 'idSex', 'idNumber', 'idDateOfBirth',
             'addressStreet', 'addressSuburb', 'addressCity', 'addressProvince', 'addressPostalCode',
+            'competencyIssueDate',
         ]);
         $this->showUploadModal = true;
     }
@@ -175,6 +192,12 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                 'province' => $this->addressProvince,
                 'postal_code' => $this->addressPostalCode,
             ];
+        } elseif (in_array($documentType->slug, MemberDocument::COMPETENCY_DOCUMENT_SLUGS)) {
+            $metadata = [
+                'issue_date' => $this->competencyIssueDate,
+                // Calculate expiry date (10 years from issue date)
+                'expiry_date' => \Carbon\Carbon::parse($this->competencyIssueDate)->addYears(10)->format('Y-m-d'),
+            ];
         }
 
         // Create the document record
@@ -194,6 +217,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             'selectedDocumentType', 'uploadFile', 'showUploadModal',
             'idSurname', 'idNames', 'idSex', 'idNumber', 'idDateOfBirth',
             'addressStreet', 'addressSuburb', 'addressCity', 'addressProvince', 'addressPostalCode',
+            'competencyIssueDate',
         ]);
         session()->flash('success', 'Document uploaded successfully. It will be reviewed by an administrator.');
     }
@@ -488,6 +512,26 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                                             class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
                                         @error('addressPostalCode') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                                     </div>
+                                </div>
+                            </div>
+                        @endif
+
+                        {{-- Competency Metadata Fields --}}
+                        @if($this->requiresCompetencyMetadata())
+                            <div class="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800 space-y-4">
+                                <h3 class="text-sm font-semibold text-purple-800 dark:text-purple-200 flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                                    Competency Certificate Details
+                                </h3>
+                                <p class="text-xs text-purple-700 dark:text-purple-300">Please enter the date your competency certificate was issued.</p>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Issue Date <span class="text-red-500">*</span></label>
+                                    <input type="date" wire:model="competencyIssueDate" 
+                                        max="{{ date('Y-m-d') }}"
+                                        class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                    @error('competencyIssueDate') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">The date shown on your competency certificate. Competency is valid for 10 years from this date.</p>
                                 </div>
                             </div>
                         @endif

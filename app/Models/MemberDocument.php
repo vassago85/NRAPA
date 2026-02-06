@@ -64,6 +64,11 @@ class MemberDocument extends Model
     public const ADDRESS_DOCUMENT_SLUGS = ['proof-of-address', 'proof-of-residence', 'address-proof'];
 
     /**
+     * Document type slugs that require competency information.
+     */
+    public const COMPETENCY_DOCUMENT_SLUGS = ['firearm-competency', 'competency-certificate', 'competency'];
+
+    /**
      * Check if this document type requires ID metadata.
      */
     public function requiresIdMetadata(): bool
@@ -77,6 +82,14 @@ class MemberDocument extends Model
     public function requiresAddressMetadata(): bool
     {
         return $this->documentType && in_array($this->documentType->slug, self::ADDRESS_DOCUMENT_SLUGS);
+    }
+
+    /**
+     * Check if this document type requires competency metadata.
+     */
+    public function requiresCompetencyMetadata(): bool
+    {
+        return $this->documentType && in_array($this->documentType->slug, self::COMPETENCY_DOCUMENT_SLUGS);
     }
 
     /**
