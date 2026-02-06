@@ -4,7 +4,6 @@ use App\Models\SystemSetting;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Storage;
-use App\Helpers\StorageHelper;
 
 new class extends Component {
     use WithFileUploads;
@@ -166,20 +165,41 @@ new class extends Component {
         return 'public';
     }
 
-    public function getSignatureUrlProperty(): ?string
+    /**
+     * Get a browser-accessible URL for a file stored on any disk.
+     * Returns a base64 data URI since S3/MinIO internal URLs aren't reachable from the browser.
+     */
+    protected function getPreviewDataUri(?string $path): ?string
     {
-        if (!$this->current_signature_path) {
+        if (empty($path)) {
             return null;
         }
-        return StorageHelper::getUrl($this->current_signature_path);
+
+        $disk = $this->resolveDocumentDisk();
+
+        try {
+            if (!Storage::disk($disk)->exists($path)) {
+                return null;
+            }
+
+            $contents = Storage::disk($disk)->get($path);
+            $mimeType = Storage::disk($disk)->mimeType($path) ?: 'application/octet-stream';
+
+            return 'data:' . $mimeType . ';base64,' . base64_encode($contents);
+        } catch (\Exception $e) {
+            \Log::error('Document asset preview failed', ['path' => $path, 'disk' => $disk, 'error' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    public function getSignatureUrlProperty(): ?string
+    {
+        return $this->getPreviewDataUri($this->current_signature_path);
     }
 
     public function getCommissionerUrlProperty(): ?string
     {
-        if (!$this->current_commissioner_path) {
-            return null;
-        }
-        return StorageHelper::getUrl($this->current_commissioner_path);
+        return $this->getPreviewDataUri($this->current_commissioner_path);
     }
 }; ?>
 
@@ -342,7 +362,7 @@ new class extends Component {
                             </button>
                         </div>
                         <div class="bg-white p-4 rounded border border-zinc-200 dark:border-zinc-700">
-                            @if(str_ends_with(strtolower($this->commissionerUrl), '.pdf'))
+                            @if($current_commissioner_path && str_ends_with(strtolower($current_commissioner_path), '.pdf'))
                                 <iframe src="{{ $this->commissionerUrl }}" class="w-full h-64 border-0 rounded"></iframe>
                             @else
                                 <img src="{{ $this->commissionerUrl }}" alt="Commissioner Scan" class="max-h-64 mx-auto object-contain">
