@@ -628,7 +628,7 @@ Route::middleware(['auth', 'verified', 'developer'])->prefix('developer')->name(
         return \Illuminate\Support\Facades\Storage::disk($disk)->download($filePath, 'nrapa-membership-card.pkpass', [
             'Content-Type' => 'application/vnd.apple.pkpass',
         ]);
-    })->name('developer.certificates.wallet.apple');
+    })->name('certificates.wallet.apple');
     
     Route::get('certificates/{certificate}/wallet/google', function (\App\Models\Certificate $certificate) {
         // Only membership cards support wallet passes
@@ -644,7 +644,7 @@ Route::middleware(['auth', 'verified', 'developer'])->prefix('developer')->name(
         }
         
         return redirect($saveUrl);
-    })->name('developer.certificates.wallet.google');
+    })->name('certificates.wallet.google');
     
     // Certificate PDF download (developer)
     Route::get('certificates/{certificate}/download', function (\App\Models\Certificate $certificate) {
@@ -663,7 +663,7 @@ Route::middleware(['auth', 'verified', 'developer'])->prefix('developer')->name(
         return \Illuminate\Support\Facades\Storage::disk($disk)->download($certificate->file_path, $filename, [
             'Content-Type' => 'application/pdf',
         ]);
-    })->name('developer.certificates.download');
+    })->name('certificates.download');
     
     // Certificate preview (renders the document template)
     Route::get('certificates/{certificate}/preview', function (\App\Models\Certificate $certificate) {
