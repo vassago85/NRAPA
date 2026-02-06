@@ -119,7 +119,7 @@ new #[Title('Knowledge Tests - Admin')] class extends Component {
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">For</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Questions</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Pass Mark</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Attempts</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Total Attempts</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Status</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400"></th>
                     </tr>
@@ -141,14 +141,14 @@ new #[Title('Knowledge Tests - Admin')] class extends Component {
                             @endif
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-zinc-900 dark:text-white">
-                            {{ $test->questions_count }}
+                            {{ $test->active_questions_count }}
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-zinc-900 dark:text-white">
                             {{ $test->passing_score }}%
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-zinc-900 dark:text-white">
-                            {{ $test->attempts_count }}
-                            <span class="text-zinc-500">/ {{ $test->max_attempts }} max</span>
+                            {{ $test->attempts_count }} <span class="text-zinc-500">total</span>
+                            <p class="text-xs text-zinc-500">{{ $test->max_attempts }} max per user</p>
                         </td>
                         <td class="whitespace-nowrap px-6 py-4">
                             <button wire:click="toggleActive({{ $test->id }})">
