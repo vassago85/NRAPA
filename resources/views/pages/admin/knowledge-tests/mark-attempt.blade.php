@@ -188,18 +188,27 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
                     'multiple_choice' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
                     'multiple_select' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
                     'priority_order' => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+                    'matching' => 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200',
+                    'written' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
                 ];
                 $typeLabels = [
                     'multiple_choice' => 'Single Answer',
                     'multiple_select' => 'Multi-Select',
                     'priority_order' => 'Priority Order',
+                    'matching' => 'Matching',
+                    'written' => 'Written',
                 ];
                 
-                // Parse answer for multi-select and priority order
+                // Parse answer for multi-select and priority order (array)
                 $memberAnswer = $answer->answer_text;
                 $memberAnswerArray = [];
                 if (!empty($memberAnswer) && str_starts_with($memberAnswer, '[')) {
                     $memberAnswerArray = json_decode($memberAnswer, true) ?? [];
+                }
+                // Parse answer for matching (object)
+                $memberMatchesObj = [];
+                if (!empty($memberAnswer) && str_starts_with($memberAnswer, '{')) {
+                    $memberMatchesObj = json_decode($memberAnswer, true) ?? [];
                 }
             @endphp
             <div class="p-6">
@@ -324,6 +333,47 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
                                 </div>
                                 @endforeach
                             </div>
+                        </div>
+
+                        @elseif($qType === 'matching')
+                        {{-- Matching display --}}
+                        @php
+                            $matchOptions = $answer->question->options ?? [];
+                            $correctMatches = $answer->question->correct_answers ?? [];
+                        @endphp
+                        <div class="mt-3 space-y-3">
+                            <p class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Matching Results:</p>
+                            @foreach($matchOptions as $key => $itemText)
+                            @php
+                                $memberMatch = $memberMatchesObj[$key] ?? null;
+                                $correctMatch = $correctMatches[$key] ?? null;
+                                $isCorrect = $memberMatch === $correctMatch;
+                            @endphp
+                            <div class="flex items-start gap-3 rounded-lg border p-3 text-sm
+                                {{ $isCorrect ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/30' : 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/30' }}">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="flex size-5 items-center justify-center rounded-full bg-zinc-200 text-xs font-bold text-zinc-700 dark:bg-zinc-600 dark:text-zinc-200">{{ $key }}</span>
+                                        <span class="font-medium text-zinc-800 dark:text-zinc-200">{{ $itemText }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 pl-7 text-xs">
+                                        <span class="text-zinc-500 dark:text-zinc-400">Member:</span>
+                                        @if($memberMatch)
+                                        <span class="{{ $isCorrect ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300' }}">{{ $memberMatch }}</span>
+                                        @else
+                                        <span class="text-zinc-400 italic">Not matched</span>
+                                        @endif
+                                        @if(!$isCorrect && $correctMatch)
+                                        <span class="text-zinc-400">→</span>
+                                        <span class="text-green-600 dark:text-green-400">Correct: {{ $correctMatch }}</span>
+                                        @endif
+                                        @if($isCorrect)
+                                        <span class="text-green-600 dark:text-green-400 font-semibold">✓</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                            @endforeach
                         </div>
                         @endif
                     </div>

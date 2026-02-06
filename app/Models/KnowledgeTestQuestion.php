@@ -91,11 +91,19 @@ class KnowledgeTestQuestion extends Model
     }
 
     /**
+     * Check if the question is matching (drag to match pairs).
+     */
+    public function isMatching(): bool
+    {
+        return $this->question_type === 'matching';
+    }
+
+    /**
      * Check if this question can be auto-marked.
      */
     public function isAutoMarkable(): bool
     {
-        return in_array($this->question_type, ['multiple_choice', 'multiple_select', 'priority_order']);
+        return in_array($this->question_type, ['multiple_choice', 'multiple_select', 'priority_order', 'matching']);
     }
 
     /**
@@ -201,6 +209,69 @@ class KnowledgeTestQuestion extends Model
     }
 
     /**
+     * Check matching answers and return score info.
+     * Member answer format: {"A": "Answer text they matched", "B": "Another answer", ...}
+     * Correct answers format: {"A": "Correct answer for A", "B": "Correct answer for B", ...}
+     * Returns ['correct' => bool, 'partial_score' => float (0-1), 'matches_correct' => int, 'total' => int]
+     */
+    public function checkMatchingAnswer(array $memberMatches): array
+    {
+        if (!$this->isMatching()) {
+            return ['correct' => false, 'partial_score' => 0, 'matches_correct' => 0, 'total' => 0];
+        }
+
+        $correctMatches = $this->correct_answers ?? [];
+        $total = count($correctMatches);
+        $matchesCorrect = 0;
+
+        foreach ($correctMatches as $key => $correctAnswer) {
+            $memberAnswer = $memberMatches[$key] ?? null;
+            if ($memberAnswer !== null && strtolower(trim($memberAnswer)) === strtolower(trim($correctAnswer))) {
+                $matchesCorrect++;
+            }
+        }
+
+        $isExactMatch = $matchesCorrect === $total;
+        $partialScore = $total > 0 ? $matchesCorrect / $total : 0;
+
+        return [
+            'correct' => $isExactMatch,
+            'partial_score' => $partialScore,
+            'matches_correct' => $matchesCorrect,
+            'total' => $total,
+        ];
+    }
+
+    /**
+     * Get matching answers (the right-side options) for display.
+     * Returns array of answer values from correct_answers.
+     */
+    public function getMatchingAnswerOptions(): array
+    {
+        if (!$this->isMatching() || !$this->correct_answers) {
+            return [];
+        }
+
+        return array_values($this->correct_answers);
+    }
+
+    /**
+     * Get shuffled matching answers for test-taking.
+     * Uses a seed to ensure consistent shuffle per attempt.
+     */
+    public function getShuffledMatchingAnswers(int $seed): array
+    {
+        $answers = $this->getMatchingAnswerOptions();
+        
+        // Seed the random number generator for consistent shuffle
+        mt_srand($seed + $this->id);
+        shuffle($answers);
+        mt_srand(); // Reset to true random
+        
+        return $answers;
+    }
+
+    /**
      * Scope to only active questions.
      */
     public function scopeActive($query)
@@ -249,11 +320,19 @@ class KnowledgeTestQuestion extends Model
     }
 
     /**
+     * Scope to only matching questions.
+     */
+    public function scopeMatching($query)
+    {
+        return $query->where('question_type', 'matching');
+    }
+
+    /**
      * Scope to auto-markable questions.
      */
     public function scopeAutoMarkable($query)
     {
-        return $query->whereIn('question_type', ['multiple_choice', 'multiple_select', 'priority_order']);
+        return $query->whereIn('question_type', ['multiple_choice', 'multiple_select', 'priority_order', 'matching']);
     }
 
     /**

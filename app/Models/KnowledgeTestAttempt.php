@@ -248,6 +248,27 @@ class KnowledgeTestAttempt extends Model
                 ]);
 
                 $autoScore += $pointsAwarded;
+            } elseif ($question->isMatching()) {
+                // Matching - check paired answers
+                $answerText = $answer->answer_text ?? '';
+                $memberMatches = [];
+                
+                // Parse JSON object from answer {"A": "Answer1", "B": "Answer2", ...}
+                if (!empty($answerText) && str_starts_with($answerText, '{')) {
+                    $memberMatches = json_decode($answerText, true) ?? [];
+                }
+                
+                $result = $question->checkMatchingAnswer($memberMatches);
+                
+                // Award points based on partial_score (0-1) * total points
+                $pointsAwarded = (int) round($result['partial_score'] * $question->points);
+                
+                $answer->update([
+                    'is_correct' => $result['correct'],
+                    'points_awarded' => $pointsAwarded,
+                ]);
+
+                $autoScore += $pointsAwarded;
             }
         }
 

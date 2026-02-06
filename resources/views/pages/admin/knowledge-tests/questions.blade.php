@@ -23,6 +23,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
     public array $options = ['', '', '', ''];
     public string $correctAnswer = '';
     public array $correctAnswers = []; // For multi-select and priority order
+    public array $matchingPairs = []; // For matching questions [{item: '', answer: ''}, ...]
     public int $points = 1;
 
     // JSON Import
@@ -53,6 +54,21 @@ new #[Title('Manage Questions - Admin')] class extends Component {
         }
     }
 
+    public function addMatchingPair(): void
+    {
+        $this->matchingPairs[] = ['item' => '', 'answer' => ''];
+    }
+
+    public function removeMatchingPair(int $index): void
+    {
+        if (count($this->matchingPairs) > 2) {
+            unset($this->matchingPairs[$index]);
+            $this->matchingPairs = array_values($this->matchingPairs);
+            // Update points to match number of pairs
+            $this->points = count($this->matchingPairs);
+        }
+    }
+
     public function editQuestion(int $id): void
     {
         $question = KnowledgeTestQuestion::findOrFail($id);
@@ -63,29 +79,55 @@ new #[Title('Manage Questions - Admin')] class extends Component {
         $this->questionImage = null;
         $this->removeImage = false;
         
-        // Convert letter-keyed options back to flat array for editing
-        $options = $question->options ?? [];
-        if (!empty($options)) {
-            // Check if options use letter keys (associative array)
-            $firstKey = array_key_first($options);
-            if (is_string($firstKey) && preg_match('/^[A-Z]$/', $firstKey)) {
-                // Letter-keyed format: extract values and build key map
-                $this->options = array_values($options);
-                // Convert letter key to option text for correctAnswer
-                $this->correctAnswer = $options[$question->correct_answer] ?? $question->correct_answer ?? '';
-                // Convert letter keys to option texts for correctAnswers
-                $correctAnswers = $question->correct_answers ?? [];
-                $this->correctAnswers = array_map(fn($key) => $options[$key] ?? $key, $correctAnswers);
-            } else {
-                // Numeric-keyed format (legacy): use as-is
-                $this->options = array_values($options);
-                $this->correctAnswer = $question->correct_answer ?? '';
-                $this->correctAnswers = $question->correct_answers ?? [];
+        // Handle matching questions separately
+        if ($question->question_type === 'matching') {
+            $options = $question->options ?? [];
+            $correctAnswers = $question->correct_answers ?? [];
+            $this->matchingPairs = [];
+            foreach ($options as $key => $item) {
+                $this->matchingPairs[] = [
+                    'item' => $item,
+                    'answer' => $correctAnswers[$key] ?? '',
+                ];
             }
-        } else {
+            if (empty($this->matchingPairs)) {
+                $this->matchingPairs = [
+                    ['item' => '', 'answer' => ''],
+                    ['item' => '', 'answer' => ''],
+                ];
+            }
             $this->options = ['', '', '', ''];
             $this->correctAnswer = '';
             $this->correctAnswers = [];
+        } else {
+            // Convert letter-keyed options back to flat array for editing
+            $options = $question->options ?? [];
+            if (!empty($options)) {
+                // Check if options use letter keys (associative array)
+                $firstKey = array_key_first($options);
+                if (is_string($firstKey) && preg_match('/^[A-Z]$/', $firstKey)) {
+                    // Letter-keyed format: extract values and build key map
+                    $this->options = array_values($options);
+                    // Convert letter key to option text for correctAnswer
+                    $this->correctAnswer = $options[$question->correct_answer] ?? $question->correct_answer ?? '';
+                    // Convert letter keys to option texts for correctAnswers
+                    $correctAnswers = $question->correct_answers ?? [];
+                    $this->correctAnswers = array_map(fn($key) => $options[$key] ?? $key, $correctAnswers);
+                } else {
+                    // Numeric-keyed format (legacy): use as-is
+                    $this->options = array_values($options);
+                    $this->correctAnswer = $question->correct_answer ?? '';
+                    $this->correctAnswers = $question->correct_answers ?? [];
+                }
+            } else {
+                $this->options = ['', '', '', ''];
+                $this->correctAnswer = '';
+                $this->correctAnswers = [];
+            }
+            $this->matchingPairs = [
+                ['item' => '', 'answer' => ''],
+                ['item' => '', 'answer' => ''],
+            ];
         }
         
         $this->points = $question->points;
@@ -100,7 +142,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
     public function saveQuestion(): void
     {
         $this->validate([
-            'questionType' => ['required', 'in:multiple_choice,multiple_select,priority_order,written'],
+            'questionType' => ['required', 'in:multiple_choice,multiple_select,priority_order,matching,written'],
             'questionText' => ['required', 'string', 'max:2000'],
             'questionImage' => ['nullable', 'image', 'max:5120'], // 5MB max
             'points' => ['required', 'integer', 'min:1', 'max:100'],
@@ -134,6 +176,17 @@ new #[Title('Manage Questions - Admin')] class extends Component {
             // which is set by dragging in the UI
         }
 
+        // Validate matching (pairs of items and answers)
+        if ($this->questionType === 'matching') {
+            $this->validate([
+                'matchingPairs' => ['required', 'array', 'min:2'],
+                'matchingPairs.*.item' => ['required', 'string', 'max:500'],
+                'matchingPairs.*.answer' => ['required', 'string', 'max:500'],
+            ]);
+            // Points should equal number of pairs (1 point per correct match)
+            $this->points = count($this->matchingPairs);
+        }
+
         // Handle image upload
         $imagePath = $this->existingImagePath;
         
@@ -165,13 +218,16 @@ new #[Title('Manage Questions - Admin')] class extends Component {
         // Determine correct answer(s) based on question type
         $correctAnswer = null;
         $correctAnswers = null;
+        $optionsToStore = null;
 
         if ($this->questionType === 'multiple_choice') {
             // Convert option text to letter key
             $correctAnswer = $optionKeyMap[$this->correctAnswer] ?? $this->correctAnswer;
+            $optionsToStore = $letterOptions;
         } elseif ($this->questionType === 'multiple_select') {
             // Convert option texts to letter keys
             $correctAnswers = array_map(fn($opt) => $optionKeyMap[$opt] ?? $opt, $this->correctAnswers);
+            $optionsToStore = $letterOptions;
         } elseif ($this->questionType === 'priority_order') {
             // For priority order, store the correct order as letter keys
             if (!empty($this->correctAnswers)) {
@@ -179,6 +235,18 @@ new #[Title('Manage Questions - Admin')] class extends Component {
             } else {
                 $correctAnswers = array_keys($letterOptions);
             }
+            $optionsToStore = $letterOptions;
+        } elseif ($this->questionType === 'matching') {
+            // For matching, options = items (left side), correct_answers = matching answers (right side)
+            $matchingOptions = [];
+            $matchingCorrectAnswers = [];
+            foreach ($this->matchingPairs as $index => $pair) {
+                $letter = chr(65 + $index); // A, B, C, ...
+                $matchingOptions[$letter] = $pair['item'];
+                $matchingCorrectAnswers[$letter] = $pair['answer'];
+            }
+            $optionsToStore = $matchingOptions;
+            $correctAnswers = $matchingCorrectAnswers;
         }
 
         $data = [
@@ -186,7 +254,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
             'question_type' => $this->questionType,
             'question_text' => $this->questionText,
             'image_path' => $imagePath,
-            'options' => in_array($this->questionType, ['multiple_choice', 'multiple_select', 'priority_order']) ? $letterOptions : null,
+            'options' => $optionsToStore,
             'correct_answer' => $correctAnswer,
             'correct_answers' => $correctAnswers,
             'points' => $this->points,
@@ -511,7 +579,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
 
     {{-- Question Form --}}
     @if($editingQuestionId !== null)
-    <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+    <div id="question-form" class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
         <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">
             {{ $editingQuestionId ? 'Edit Question' : 'Add Question' }}
         </h2>
@@ -524,6 +592,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                         <option value="multiple_choice">Multiple Choice (Single Answer)</option>
                         <option value="multiple_select">Multiple Select (Multiple Answers)</option>
                         <option value="priority_order">Priority Order (Drag to Order)</option>
+                        <option value="matching">Matching (Drag to Match Pairs)</option>
                         <option value="written">Written Answer</option>
                     </select>
                 </div>
@@ -668,6 +737,41 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                 </button>
                 <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">The order shown here (1, 2, 3...) is the correct order members must match.</p>
             </div>
+            @elseif($questionType === 'matching')
+            <div>
+                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Matching Pairs</label>
+                <div class="mt-1 rounded-lg border border-orange-200 bg-orange-50 p-3 dark:border-orange-800 dark:bg-orange-900/20">
+                    <p class="text-xs text-orange-700 dark:text-orange-300">Enter items on the left and their matching answers on the right. The pairs are set in correct order here - answers will be shuffled when members take the test.</p>
+                </div>
+                <div class="mt-3 space-y-2">
+                    <div class="grid grid-cols-2 gap-4 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                        <div>Items (Left side - shown in order)</div>
+                        <div>Correct Matches (Right side - shuffled)</div>
+                    </div>
+                    @foreach($matchingPairs as $index => $pair)
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="flex items-center gap-2">
+                            <span class="flex size-6 items-center justify-center rounded bg-orange-100 text-xs font-bold text-orange-700 dark:bg-orange-900 dark:text-orange-300">{{ chr(65 + $index) }}</span>
+                            <input type="text" wire:model.live="matchingPairs.{{ $index }}.item" class="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white" placeholder="Item {{ chr(65 + $index) }}">
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="text" wire:model.live="matchingPairs.{{ $index }}.answer" class="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white" placeholder="Matching answer for {{ chr(65 + $index) }}">
+                            @if(count($matchingPairs) > 2)
+                            <button type="button" wire:click="removeMatchingPair({{ $index }})" class="text-red-500 hover:text-red-600">
+                                <svg class="size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                            @endif
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+                <button type="button" wire:click="addMatchingPair" class="mt-2 text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400">
+                    + Add Pair
+                </button>
+                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Points will be automatically set to the number of pairs (1 point per correct match).</p>
+            </div>
             @elseif($questionType === 'written')
             <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
                 <p class="text-sm text-amber-700 dark:text-amber-300">
@@ -795,7 +899,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                     <button wire:click="toggleQuestionActive({{ $question->id }})" class="text-sm {{ $question->is_active ? 'text-amber-600 hover:text-amber-700 dark:text-amber-400' : 'text-green-600 hover:text-green-700 dark:text-green-400' }}">
                         {{ $question->is_active ? 'Deactivate' : 'Activate' }}
                     </button>
-                    <button wire:click="editQuestion({{ $question->id }})" class="text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+                    <button wire:click="editQuestion({{ $question->id }})" x-on:click="setTimeout(() => document.getElementById('question-form')?.scrollIntoView({behavior: 'smooth', block: 'start'}), 100)" class="text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
                         Edit
                     </button>
                     @if($question->answers()->count() === 0)
