@@ -344,8 +344,8 @@ Route::middleware(['auth', 'verified', 'membership.required', 'terms.accepted'])
 
     // Endorsement Letters
     Route::livewire('endorsements', 'pages::member.endorsements.index')->name('member.endorsements.index');
-    Route::livewire('endorsements/create', 'pages::member.endorsements.create')->name('member.endorsements.create');
-    Route::livewire('endorsements/{request}/edit', 'pages::member.endorsements.create')->name('member.endorsements.edit');
+    Route::livewire('endorsements/create', \App\Livewire\Member\EndorsementCreate::class)->name('member.endorsements.create');
+    Route::livewire('endorsements/{request}/edit', \App\Livewire\Member\EndorsementCreate::class)->name('member.endorsements.edit');
     Route::livewire('endorsements/{request}', 'pages::member.endorsements.show')->name('member.endorsements.show');
     
     // Member endorsement letter preview (renders template)

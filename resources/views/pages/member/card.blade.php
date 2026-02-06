@@ -164,36 +164,36 @@ new #[Title('My Digital Card')] #[Layout('components.layouts.card')] class exten
                     </div>
                 </div>
 
-                {{-- Card Body - light bg and dark text for readability everywhere (PWA, wallet, browser) --}}
+                {{-- Card Body - force light bg and dark text so readable in dark layout (PWA, wallet, browser) --}}
                 @php
                     $memberName = $this->user?->name ?? '';
                     $membershipNo = $this->membership?->membership_number ?? '';
                     $membershipTypeName = $this->membership?->type?->name ?? 'Member';
                     $validUntilLabel = $this->isLifetime ? 'Lifetime' : ($this->membership?->expires_at?->format('d M Y') ?? 'N/A');
                 @endphp
-                <div class="px-6 py-6 space-y-6 bg-white">
+                <div class="px-6 py-6 space-y-6 bg-white text-zinc-900 dark:bg-white dark:text-zinc-900">
                     {{-- Member Info --}}
                     <div class="space-y-4">
                         <div>
-                            <p class="text-zinc-500 text-xs uppercase tracking-wider">Member Name</p>
-                            <p class="text-zinc-900 text-xl font-semibold">{{ $memberName ?: '—' }}</p>
+                            <p class="text-zinc-600 dark:text-zinc-600 text-xs uppercase tracking-wider">Member Name</p>
+                            <p class="text-zinc-900 dark:text-zinc-900 text-xl font-semibold">{{ $memberName ?: '—' }}</p>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <p class="text-zinc-500 text-xs uppercase tracking-wider">Membership No.</p>
-                                <p class="text-zinc-900 font-mono text-sm font-medium">{{ $membershipNo ?: '—' }}</p>
+                                <p class="text-zinc-600 dark:text-zinc-600 text-xs uppercase tracking-wider">Membership No.</p>
+                                <p class="text-zinc-900 dark:text-zinc-900 font-mono text-sm font-medium">{{ $membershipNo ?: '—' }}</p>
                             </div>
                             <div>
-                                <p class="text-zinc-500 text-xs uppercase tracking-wider">Type</p>
-                                <p class="text-zinc-900 text-sm font-medium">{{ $membershipTypeName }}</p>
+                                <p class="text-zinc-600 dark:text-zinc-600 text-xs uppercase tracking-wider">Type</p>
+                                <p class="text-zinc-900 dark:text-zinc-900 text-sm font-medium">{{ $membershipTypeName }}</p>
                             </div>
                         </div>
                         <div>
-                            <p class="text-zinc-500 text-xs uppercase tracking-wider">Valid Until</p>
+                            <p class="text-zinc-600 dark:text-zinc-600 text-xs uppercase tracking-wider">Valid Until</p>
                             @if($this->isLifetime)
-                            <p class="text-emerald-700 font-semibold">Lifetime</p>
+                            <p class="text-emerald-700 dark:text-emerald-700 font-semibold">Lifetime</p>
                             @else
-                            <p class="text-zinc-900 font-medium {{ $this->isExpired ? 'text-red-600' : '' }}">
+                            <p class="text-zinc-900 dark:text-zinc-900 font-medium {{ $this->isExpired ? 'text-red-600 dark:text-red-600' : '' }}">
                                 {{ $validUntilLabel }}
                             </p>
                             @endif
@@ -202,16 +202,16 @@ new #[Title('My Digital Card')] #[Layout('components.layouts.card')] class exten
 
                     {{-- QR Code --}}
                     <div class="flex flex-col items-center">
-                        <div class="bg-zinc-100 p-3 rounded-2xl shadow-lg border border-zinc-200">
+                        <div class="bg-zinc-100 dark:bg-zinc-100 p-3 rounded-2xl shadow-lg border border-zinc-200 dark:border-zinc-200">
                             <img src="{{ $this->qrCodeUrl }}" alt="Verification QR Code" class="w-48 h-48" loading="lazy">
                         </div>
-                        <p class="text-zinc-500 text-xs mt-3 text-center">Scan to verify membership</p>
+                        <p class="text-zinc-600 dark:text-zinc-600 text-xs mt-3 text-center">Scan to verify membership</p>
                     </div>
                 </div>
 
                 {{-- Card Footer --}}
-                <div class="px-6 py-3 bg-zinc-100 border-t border-zinc-200">
-                    <p class="text-zinc-600 text-xs text-center font-medium">
+                <div class="px-6 py-3 bg-zinc-100 dark:bg-zinc-100 border-t border-zinc-200 dark:border-zinc-200">
+                    <p class="text-zinc-700 dark:text-zinc-700 text-xs text-center font-medium">
                         Certificate: {{ $this->membershipCard->certificate_number ?? '—' }}
                     </p>
                 </div>

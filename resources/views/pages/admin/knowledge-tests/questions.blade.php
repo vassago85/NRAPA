@@ -201,6 +201,15 @@ new #[Title('Manage Questions - Admin')] class extends Component {
         }
 
         $this->points = $question->points;
+
+        $this->dispatch('scroll-to-question-form');
+    }
+
+    public function openAddQuestion(): void
+    {
+        $this->editingQuestionId = 0;
+        $this->resetForm();
+        $this->dispatch('scroll-to-question-form');
     }
 
     public function cancelEdit(): void
@@ -633,7 +642,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
     }
 }; ?>
 
-<div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
+<div class="flex h-full w-full flex-1 flex-col gap-6 p-6" x-data x-init="$wire.on('scroll-to-question-form', () => $nextTick(() => document.getElementById('question-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })))">
     {{-- Header --}}
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-4">
@@ -662,7 +671,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                 </svg>
                 Export JSON
             </button>
-            <button wire:click="$set('editingQuestionId', 0)" class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">
+            <button wire:click="openAddQuestion" class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">
                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
@@ -1054,7 +1063,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                     <button wire:click="toggleQuestionActive({{ $question->id }})" class="text-sm {{ $question->is_active ? 'text-amber-600 hover:text-amber-700 dark:text-amber-400' : 'text-green-600 hover:text-green-700 dark:text-green-400' }}">
                         {{ $question->is_active ? 'Deactivate' : 'Activate' }}
                     </button>
-                    <button wire:click="editQuestion({{ $question->id }})" x-on:click="setTimeout(() => document.getElementById('question-form')?.scrollIntoView({behavior: 'smooth', block: 'start'}), 100)" class="text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+                    <button wire:click="editQuestion({{ $question->id }})" class="text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
                         Edit
                     </button>
                     @if($question->answers()->count() === 0)
@@ -1072,7 +1081,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
             </svg>
             <h3 class="mt-4 font-semibold text-zinc-900 dark:text-white">No questions yet</h3>
             <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Add questions to your test to get started.</p>
-            <button wire:click="$set('editingQuestionId', 0)" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+            <button wire:click="openAddQuestion" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
