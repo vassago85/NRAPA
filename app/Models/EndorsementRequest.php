@@ -604,8 +604,10 @@ class EndorsementRequest extends Model
             return false;
         }
 
-        // Must have firearm details
-        if (!$this->firearm) {
+        // Must have either firearm or at least one component (component-only requests allowed)
+        $hasFirearm = (bool) $this->firearm;
+        $hasComponents = $this->components()->exists();
+        if (!$hasFirearm && !$hasComponents) {
             return false;
         }
 
@@ -614,10 +616,7 @@ class EndorsementRequest extends Model
             return false;
         }
 
-        // Must have purpose selected
-        if (!$this->purpose) {
-            return false;
-        }
+        // Purpose is defaulted on save if not set (Section 16 dedicated) – not required for canSubmit
 
         // Note: Documents are checked but not blocking submission
         // Admin can request documents after submission if needed
@@ -643,16 +642,14 @@ class EndorsementRequest extends Model
             $errors[] = 'Request is not in draft status.';
         }
 
-        if (!$this->firearm) {
-            $errors[] = 'Firearm details are required.';
+        $hasFirearm = (bool) $this->firearm;
+        $hasComponents = $this->components()->exists();
+        if (!$hasFirearm && !$hasComponents) {
+            $errors[] = 'Either firearm details or at least one component is required.';
         }
 
         if (!$this->hasDeclaration()) {
             $errors[] = 'You must accept the declaration.';
-        }
-
-        if (!$this->purpose) {
-            $errors[] = 'Purpose is required.';
         }
 
         // Note: Missing documents are warnings, not blockers
@@ -743,10 +740,13 @@ class EndorsementRequest extends Model
             $ntfyService = app(\App\Services\NtfyService::class);
             
             $title = 'New Endorsement Request Submitted';
+            $subject = $this->firearm
+                ? (trim(($this->firearm->make ?? '') . ' ' . ($this->firearm->model ?? '')) ?: 'a firearm')
+                : ($this->components->first()?->summary ?? 'a component');
             $message = sprintf(
                 '%s has submitted an endorsement request for %s. Review and approve at: %s',
                 $this->user->name,
-                $this->firearm ? ($this->firearm->make . ' ' . $this->firearm->model) : 'a firearm',
+                $subject,
                 route('admin.endorsements.show', $this->uuid)
             );
 

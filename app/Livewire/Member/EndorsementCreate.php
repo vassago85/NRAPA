@@ -23,12 +23,23 @@ class EndorsementCreate extends Component
 {
 
 
-    // Wizard state
+    // Wizard state (3 steps: Type, Firearm/Component, Review)
     public int $currentStep = 1;
-    public int $totalSteps = 5;
+    public int $totalSteps = 3;
 
     // Step 1: Request type
     public string $requestType = '';
+
+    // Step 2: Entry type = rifle | shotgun | handgun | barrel | action (type of firearm or component)
+    public string $endorsementEntryType = '';
+
+    // Component-only data (when entry type is barrel or action)
+    public string $componentBarrelDiameter = '';
+    public string $componentBarrelMake = '';
+    public string $componentBarrelSerial = '';
+    public string $componentActionBoltFace = '';
+    public string $componentActionType = '';
+    public string $componentActionSerial = '';
 
     // Step 2: Firearm details (SAPS 271 Form Section E)
     // New reference system fields
@@ -65,16 +76,16 @@ class EndorsementCreate extends Component
     // FirearmSearchPanel data
     public ?array $firearmPanelData = null;
 
-    // Step 3: Components (barrels, actions, etc. - available for both new and renewal)
+    // Legacy: components array kept for backward compat when loading old requests with multiple components
     public bool $requestComponent = false;
     public array $components = [];
 
-    // Step 4: Purpose & Notes
+    // Purpose defaulted to Section 16; optional notes
     public string $purpose = '';
     public string $purposeOtherText = '';
     public string $memberNotes = '';
 
-    // Step 5: Declaration & Review
+    // Step 3: Declaration & Review
     public bool $declarationAccepted = false;
 
     // Request being edited
@@ -141,6 +152,23 @@ class EndorsementCreate extends Component
         $this->purposeOtherText = $request->purpose_other_text ?? '';
         $this->memberNotes = $request->member_notes ?? '';
         $this->declarationAccepted = $request->declaration_accepted_at !== null;
+
+        // Set entry type: from firearm category or from first component (component-only request)
+        if ($request->firearm) {
+            $this->endorsementEntryType = $request->firearm->firearm_category; // rifle, shotgun, handgun, etc.
+        } elseif ($request->components->count() > 0) {
+            $first = $request->components->first();
+            $this->endorsementEntryType = $first->component_type === EndorsementComponent::TYPE_BARREL ? 'barrel' : ($first->component_type === EndorsementComponent::TYPE_ACTION ? 'action' : '');
+            if ($this->endorsementEntryType === 'barrel') {
+                $this->componentBarrelDiameter = $first->diameter ?? '';
+                $this->componentBarrelMake = $first->component_make ?? '';
+                $this->componentBarrelSerial = $first->component_serial ?? '';
+            } elseif ($this->endorsementEntryType === 'action') {
+                $this->componentActionBoltFace = $first->bolt_face ?? '';
+                $this->componentActionType = $first->action_type ?? '';
+                $this->componentActionSerial = $first->component_serial ?? '';
+            }
+        }
 
         // Load firearm (SAPS 271 fields)
         if ($request->firearm) {
@@ -374,23 +402,13 @@ class EndorsementCreate extends Component
     // Step navigation
     public function nextStep(): void
     {
-        // Validate before proceeding
         try {
             $this->validateCurrentStep();
         } catch (\Illuminate\Validation\ValidationException $e) {
-            // Validation errors will be displayed automatically by Livewire
             return;
         }
-        
         if ($this->currentStep < $this->totalSteps) {
-            // Skip component step for new requests
-            if ($this->currentStep === 2 && $this->requestType === 'new') {
-                $this->currentStep = 4; // Skip to purpose
-            } else {
-                $this->currentStep++;
-            }
-            
-            // Scroll to top of form after step change
+            $this->currentStep++;
             $this->js('window.scrollTo({ top: 0, behavior: "smooth" })');
         }
     }
@@ -398,12 +416,7 @@ class EndorsementCreate extends Component
     public function previousStep(): void
     {
         if ($this->currentStep > 1) {
-            // Skip component step for new requests
-            if ($this->currentStep === 4 && $this->requestType === 'new') {
-                $this->currentStep = 2; // Back to firearm
-            } else {
-                $this->currentStep--;
-            }
+            $this->currentStep--;
         }
     }
 
@@ -417,70 +430,80 @@ class EndorsementCreate extends Component
     protected function getMaxAllowedStep(): int
     {
         if (empty($this->requestType)) return 1;
-        if (empty($this->firearmCategory)) return 2;
-        if ($this->requestType === 'new') return 5;
-        return 5;
+        if (empty($this->endorsementEntryType)) return 2;
+        return 3;
     }
 
     protected function validateCurrentStep(): void
     {
-        $rules = match($this->currentStep) {
-            1 => ['requestType' => 'required|in:new,renewal'],
-            2 => [
-                'firearmCategory' => 'required|in:rifle,shotgun,handgun,combination,other',
-                'actionType' => 'required',
-                'make' => 'required|string|max:255',
-                'model' => 'required|string|max:255',
-            ],
-            3 => [], // Components optional
-            4 => [
-                'purpose' => 'required',
-                'purposeOtherText' => 'required_if:purpose,other|max:500',
-            ],
-            5 => [], // Declaration validated on submit
-            default => [],
-        };
-
-        // Additional validation for step 2: calibre and serial
-        if ($this->currentStep === 2) {
-            // First validate the basic rules
-            $this->validate($rules);
-            
-            // Then validate calibre (either ID or manual) - custom validation
-            if (empty($this->calibreId) && empty($this->calibreManual)) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'calibre' => 'Calibre/Gauge is required (select from list or enter manually).',
-                ]);
-            }
-            
-            // Validate at least one serial number
-            if (!$this->hasAtLeastOneSerial) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'serial' => 'At least one serial number is required (barrel, frame, or receiver).',
-                ]);
-            }
-        } else {
-            $this->validate($rules);
+        if ($this->currentStep === 1) {
+            $this->validate(['requestType' => 'required|in:new,renewal']);
+            return;
         }
+        if ($this->currentStep === 2) {
+            $this->validate(['endorsementEntryType' => 'required|in:rifle,shotgun,handgun,barrel,action']);
+            $entry = $this->endorsementEntryType;
+            if (in_array($entry, ['rifle', 'shotgun', 'handgun'], true)) {
+                $this->validate([
+                    'firearmCategory' => 'required|in:rifle,shotgun,handgun,combination,other',
+                    'actionType' => 'required',
+                    'make' => 'required|string|max:255',
+                    'model' => 'required|string|max:255',
+                ]);
+                if (empty($this->calibreId) && empty($this->calibreManual)) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'calibre' => 'Calibre/Gauge is required (select from list or enter manually).',
+                    ]);
+                }
+                if (!$this->hasAtLeastOneSerial) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'serial' => 'At least one serial number is required (barrel, frame, or receiver).',
+                    ]);
+                }
+            } elseif ($entry === 'barrel') {
+                $this->validate([
+                    'componentBarrelDiameter' => 'required|string|max:100',
+                    'componentBarrelMake' => 'required|string|max:255',
+                    'componentBarrelSerial' => 'required|string|max:255',
+                ]);
+            } elseif ($entry === 'action') {
+                $this->validate([
+                    'componentActionBoltFace' => 'required|string|max:100',
+                    'componentActionType' => 'required|string|in:bolt_action,semi_auto,single_shot,other',
+                    'componentActionSerial' => 'required|string|max:255',
+                ]);
+            }
+            return;
+        }
+        // Step 3: no validation for proceeding (declaration validated on submit)
     }
 
     #[Computed]
     public function canProceedToNextStep(): bool
     {
-        return match($this->currentStep) {
-            1 => !empty($this->requestType) && in_array($this->requestType, ['new', 'renewal']),
-            2 => !empty($this->firearmCategory) 
-                && !empty($this->actionType)
-                && (!empty($this->calibreId) || !empty($this->calibreManual))
-                && !empty($this->make)
-                && !empty($this->model)
-                && $this->hasAtLeastOneSerial,
-            3 => true, // Components are optional
-            4 => !empty($this->purpose) 
-                && ($this->purpose !== 'other' || !empty($this->purposeOtherText)),
-            5 => $this->declarationAccepted, // For submit button
-            default => false,
-        };
+        if ($this->currentStep === 1) {
+            return !empty($this->requestType) && in_array($this->requestType, ['new', 'renewal']);
+        }
+        if ($this->currentStep === 2) {
+            if (empty($this->endorsementEntryType)) return false;
+            $entry = $this->endorsementEntryType;
+            if (in_array($entry, ['rifle', 'shotgun', 'handgun'], true)) {
+                return $this->firearmCategory === $entry
+                    && !empty($this->actionType)
+                    && (!empty($this->calibreId) || !empty($this->calibreManual))
+                    && !empty($this->make)
+                    && !empty($this->model)
+                    && $this->hasAtLeastOneSerial;
+            }
+            if ($entry === 'barrel') {
+                return !empty($this->componentBarrelDiameter) && !empty($this->componentBarrelMake) && !empty($this->componentBarrelSerial);
+            }
+            if ($entry === 'action') {
+                return !empty($this->componentActionBoltFace) && !empty($this->componentActionType) && !empty($this->componentActionSerial);
+            }
+            return false;
+        }
+        return $this->currentStep === 3 && $this->declarationAccepted;
     }
 
     // Request type changed
@@ -488,6 +511,23 @@ class EndorsementCreate extends Component
     {
         $this->requestComponent = false;
         $this->components = [];
+    }
+
+    // When entry type changes, set firearm category for firearm types so existing form works
+    public function updatedEndorsementEntryType(): void
+    {
+        if (in_array($this->endorsementEntryType, ['rifle', 'shotgun', 'handgun'], true)) {
+            $this->firearmCategory = $this->endorsementEntryType;
+        } else {
+            $this->firearmCategory = '';
+        }
+        $this->actionType = '';
+        $this->componentBarrelDiameter = '';
+        $this->componentBarrelMake = '';
+        $this->componentBarrelSerial = '';
+        $this->componentActionBoltFace = '';
+        $this->componentActionType = '';
+        $this->componentActionSerial = '';
     }
 
     // Firearm category changed - reset dependent fields
@@ -678,23 +718,27 @@ class EndorsementCreate extends Component
             || !empty($this->serialNumber); // Legacy fallback
     }
 
-    // Check if can submit
+    // Check if can submit (purpose is defaulted on save)
     #[Computed]
     public function canSubmit(): bool
     {
         if (!$this->declarationAccepted) return false;
         if (empty($this->requestType)) return false;
-        if (empty($this->firearmCategory)) return false;
-        if (empty($this->actionType)) return false;
-        // Calibre is mandatory - either from dropdown or manual entry
-        if (empty($this->calibreId) && empty($this->calibreManual)) return false;
-        if (empty($this->make)) return false;
-        if (empty($this->model)) return false;
-        if (!$this->hasAtLeastOneSerial) return false;
-        if (empty($this->purpose)) return false;
-        if ($this->purpose === 'other' && empty($this->purposeOtherText)) return false;
-        // Note: SAPS code (calibreCode) is optional
-
+        if (empty($this->endorsementEntryType)) return false;
+        $entry = $this->endorsementEntryType;
+        if (in_array($entry, ['rifle', 'shotgun', 'handgun'], true)) {
+            if (empty($this->actionType)) return false;
+            if (empty($this->calibreId) && empty($this->calibreManual)) return false;
+            if (empty($this->make)) return false;
+            if (empty($this->model)) return false;
+            if (!$this->hasAtLeastOneSerial) return false;
+        } elseif ($entry === 'barrel') {
+            if (empty($this->componentBarrelDiameter) || empty($this->componentBarrelMake) || empty($this->componentBarrelSerial)) return false;
+        } elseif ($entry === 'action') {
+            if (empty($this->componentActionBoltFace) || empty($this->componentActionType) || empty($this->componentActionSerial)) return false;
+        } else {
+            return false;
+        }
         return true;
     }
 
@@ -702,36 +746,25 @@ class EndorsementCreate extends Component
     public function submissionErrors(): array
     {
         $errors = [];
-
-        if (!$this->declarationAccepted) {
-            $errors[] = 'You must accept the declaration.';
+        if (!$this->declarationAccepted) $errors[] = 'You must accept the declaration.';
+        if (empty($this->requestType)) $errors[] = 'Request type is required.';
+        if (empty($this->endorsementEntryType)) $errors[] = 'Please select what you are requesting endorsement for.';
+        $entry = $this->endorsementEntryType;
+        if (in_array($entry, ['rifle', 'shotgun', 'handgun'], true)) {
+            if (empty($this->actionType)) $errors[] = 'Action type is required.';
+            if (empty($this->calibreId) && empty($this->calibreManual)) $errors[] = 'Calibre/Gauge is required.';
+            if (empty($this->make)) $errors[] = 'Make is required.';
+            if (empty($this->model)) $errors[] = 'Model is required.';
+            if (!$this->hasAtLeastOneSerial) $errors[] = 'At least one serial number is required.';
+        } elseif ($entry === 'barrel') {
+            if (empty($this->componentBarrelDiameter)) $errors[] = 'Barrel diameter is required.';
+            if (empty($this->componentBarrelMake)) $errors[] = 'Barrel make is required.';
+            if (empty($this->componentBarrelSerial)) $errors[] = 'Barrel serial number is required.';
+        } elseif ($entry === 'action') {
+            if (empty($this->componentActionBoltFace)) $errors[] = 'Bolt face is required.';
+            if (empty($this->componentActionType)) $errors[] = 'Action type is required.';
+            if (empty($this->componentActionSerial)) $errors[] = 'Action serial number is required.';
         }
-        if (empty($this->requestType)) {
-            $errors[] = 'Request type is required.';
-        }
-        if (empty($this->firearmCategory)) {
-            $errors[] = 'Firearm type is required.';
-        }
-        if (empty($this->actionType)) {
-            $errors[] = 'Action type is required.';
-        }
-        // Calibre is mandatory
-        if (empty($this->calibreId) && empty($this->calibreManual)) {
-            $errors[] = 'Calibre/Gauge is required (select from list or enter manually).';
-        }
-        if (empty($this->make)) {
-            $errors[] = 'Firearm make is required.';
-        }
-        if (empty($this->model)) {
-            $errors[] = 'Firearm model is required.';
-        }
-        if (!$this->hasAtLeastOneSerial) {
-            $errors[] = 'At least one serial number is required (barrel, frame, or receiver).';
-        }
-        if (empty($this->purpose)) {
-            $errors[] = 'Purpose is required.';
-        }
-
         return $errors;
     }
 
@@ -826,109 +859,97 @@ class EndorsementCreate extends Component
             $this->redirect(route('member.endorsements.show', $request), navigate: true);
             return $request;
         }
+        $purpose = $this->purpose ?: EndorsementRequest::PURPOSE_SECTION_16;
         $request->fill([
             'user_id' => $user->id,
             'request_type' => $this->requestType,
             'status' => EndorsementRequest::STATUS_DRAFT,
-            'purpose' => $this->purpose ?: null,
-            'purpose_other_text' => $this->purpose === 'other' ? $this->purposeOtherText : null,
+            'purpose' => $purpose,
+            'purpose_other_text' => $purpose === 'other' ? $this->purposeOtherText : null,
             'member_notes' => $this->memberNotes ?: null,
             'declaration_accepted_at' => $this->declarationAccepted ? now() : null,
             'declaration_text' => $this->declarationAccepted ? $this->getDeclarationText() : null,
         ]);
         $request->save();
 
-        // Save firearm (SAPS 271 Form Section E fields)
-        $firearm = $request->firearm ?? new EndorsementFirearm();
-        
-        // Get data from FirearmSearchPanel if available, otherwise use legacy fields
-        $firearmData = $this->firearmPanelData ?? $this->getFirearmPanelInitialData();
-        
-        // Map FirearmSearchPanel firearm_type to SAPS 271 compliant category
-        $firearmCategory = match($firearmData['firearm_type'] ?? '') {
-            'rifle' => 'rifle',
-            'shotgun' => 'shotgun',
-            'handgun' => 'handgun',
-            'combination' => 'combination',
-            'other' => 'other',
-            default => $this->firearmCategory,
-        };
-        
-        // Map action type
-        $actionType = match($firearmData['action_type'] ?? '') {
-            'semi_automatic' => 'semi_auto',
-            'automatic' => 'automatic',
-            'manual' => 'bolt_action',
-            'other' => 'other',
-            default => $this->actionType,
-        };
-        
-        $firearm->fill([
-            'endorsement_request_id' => $request->id,
-            'firearm_category' => $firearmCategory,          // 1. Type (SAPS 271 compliant)
-            'firearm_type_other' => ($firearmCategory === 'other' && !empty($firearmData['firearm_type_other'])) 
-                ? $firearmData['firearm_type_other'] 
-                : null,
-            'ignition_type' => $this->ignitionType ?: null,
-            'action_type' => $actionType,                     // 1.1 Action
-            'action_other_specify' => $firearmData['action_type_other'] ?? $this->actionOtherSpecify ?: null,
-            'metal_engraving' => $firearmData['engraved_text'] ?? $this->metalEngraving ?: null,    // 1.2 Engraving
-            // New reference system
-            'firearm_calibre_id' => $firearmData['firearm_calibre_id'] ?? $this->firearmCalibreId,
-            'calibre_text_override' => $firearmData['calibre_text_override'] ?? $this->calibreTextOverride,
-            'firearm_make_id' => $firearmData['firearm_make_id'] ?? $this->firearmMakeId,
-            'make_text_override' => $firearmData['make_text_override'] ?? $this->makeTextOverride,
-            'firearm_model_id' => $firearmData['firearm_model_id'] ?? $this->firearmModelId,
-            'model_text_override' => $firearmData['model_text_override'] ?? $this->modelTextOverride,
-            // Legacy fields (for backward compatibility)
-            'calibre_id' => $this->calibreId,                      // 1.3 Calibre
-            'calibre_manual' => $firearmData['calibre_text_override'] ?? $this->calibreManual ?: null,
-            'calibre_code' => $firearmData['calibre_code'] ?? $this->calibreCode ?: null,          // 1.4 Calibre code
-            'make' => $firearmData['make_text_override'] ?? $this->make ?: null,                         // 1.5 Make
-            'model' => $firearmData['model_text_override'] ?? $this->model ?: null,                       // 1.6 Model
-            'serial_number' => $this->serialNumber ?: null,        // Legacy
-            'barrel_serial_number' => $firearmData['barrel_serial_number'] ?? $this->barrelSerialNumber ?: null,    // 1.7
-            'barrel_make' => $firearmData['barrel_make_text'] ?? $this->barrelMake ?: null,            // 1.8
-            'frame_serial_number' => $firearmData['frame_serial_number'] ?? $this->frameSerialNumber ?: null,      // 1.9
-            'frame_make' => $firearmData['frame_make_text'] ?? $this->frameMake ?: null,              // 1.10
-            'receiver_serial_number' => $firearmData['receiver_serial_number'] ?? $this->receiverSerialNumber ?: null, // 1.11
-            'receiver_make' => $firearmData['receiver_make_text'] ?? $this->receiverMake ?: null,        // 1.12
-            'licence_section' => $this->licenceSection ?: null,
-            'saps_reference' => $this->sapsReference ?: null,
-            'user_firearm_id' => $this->existingFirearmId,
-        ]);
-        $firearm->save();
-        
-        // Refresh the request to ensure relationships are loaded
-        $request->refresh();
+        $entry = $this->endorsementEntryType;
 
-        // Save components for both new and renewal requests
-        if ($this->requestComponent && !empty($this->components)) {
-            $existingIds = collect($this->components)->pluck('id')->filter()->toArray();
-            $request->components()->whereNotIn('id', $existingIds)->delete();
-
-            foreach ($this->components as $compData) {
-                if (empty($compData['component_type'])) continue;
-
-                $component = isset($compData['id']) 
-                    ? EndorsementComponent::find($compData['id']) 
-                    : new EndorsementComponent();
-
-                $component->fill([
-                    'endorsement_request_id' => $request->id,
-                    'component_type' => $compData['component_type'],
-                    'component_description' => $compData['component_description'] ?: null,
-                    'component_serial' => $compData['component_serial'] ?: null,
-                    'component_make' => $compData['component_make'] ?: null,
-                    'component_model' => $compData['component_model'] ?: null,
-                    'calibre_id' => $compData['calibre_id'] ?? null,
-                    'calibre_manual' => $compData['calibre_manual'] ?? null,
-                    'diameter' => $compData['diameter'] ?? null,
-                ]);
-                $component->save();
-            }
-        } else {
+        if (in_array($entry, ['rifle', 'shotgun', 'handgun'], true)) {
+            // Save firearm (SAPS 271 Form Section E fields)
+            $firearm = $request->firearm ?? new EndorsementFirearm();
+            $firearmData = $this->firearmPanelData ?? $this->getFirearmPanelInitialData();
+            $firearmCategory = match($firearmData['firearm_type'] ?? '') {
+                'rifle' => 'rifle',
+                'shotgun' => 'shotgun',
+                'handgun' => 'handgun',
+                'combination' => 'combination',
+                'other' => 'other',
+                default => $this->firearmCategory,
+            };
+            $actionType = match($firearmData['action_type'] ?? '') {
+                'semi_automatic' => 'semi_auto',
+                'automatic' => 'automatic',
+                'manual' => 'bolt_action',
+                'other' => 'other',
+                default => $this->actionType,
+            };
+            $firearm->fill([
+                'endorsement_request_id' => $request->id,
+                'firearm_category' => $firearmCategory,
+                'firearm_type_other' => ($firearmCategory === 'other' && !empty($firearmData['firearm_type_other'])) ? $firearmData['firearm_type_other'] : null,
+                'ignition_type' => $this->ignitionType ?: null,
+                'action_type' => $actionType,
+                'action_other_specify' => $firearmData['action_type_other'] ?? $this->actionOtherSpecify ?: null,
+                'metal_engraving' => $firearmData['engraved_text'] ?? $this->metalEngraving ?: null,
+                'firearm_calibre_id' => $firearmData['firearm_calibre_id'] ?? $this->firearmCalibreId,
+                'calibre_text_override' => $firearmData['calibre_text_override'] ?? $this->calibreTextOverride,
+                'firearm_make_id' => $firearmData['firearm_make_id'] ?? $this->firearmMakeId,
+                'make_text_override' => $firearmData['make_text_override'] ?? $this->makeTextOverride,
+                'firearm_model_id' => $firearmData['firearm_model_id'] ?? $this->firearmModelId,
+                'model_text_override' => $firearmData['model_text_override'] ?? $this->modelTextOverride,
+                'calibre_id' => $this->calibreId,
+                'calibre_manual' => $firearmData['calibre_text_override'] ?? $this->calibreManual ?: null,
+                'calibre_code' => $firearmData['calibre_code'] ?? $this->calibreCode ?: null,
+                'make' => $firearmData['make_text_override'] ?? $this->make ?: null,
+                'model' => $firearmData['model_text_override'] ?? $this->model ?: null,
+                'serial_number' => $this->serialNumber ?: null,
+                'barrel_serial_number' => $firearmData['barrel_serial_number'] ?? $this->barrelSerialNumber ?: null,
+                'barrel_make' => $firearmData['barrel_make_text'] ?? $this->barrelMake ?: null,
+                'frame_serial_number' => $firearmData['frame_serial_number'] ?? $this->frameSerialNumber ?: null,
+                'frame_make' => $firearmData['frame_make_text'] ?? $this->frameMake ?: null,
+                'receiver_serial_number' => $firearmData['receiver_serial_number'] ?? $this->receiverSerialNumber ?: null,
+                'receiver_make' => $firearmData['receiver_make_text'] ?? $this->receiverMake ?: null,
+                'licence_section' => $this->licenceSection ?: '16',
+                'saps_reference' => $this->sapsReference ?: null,
+                'user_firearm_id' => $this->existingFirearmId,
+            ]);
+            $firearm->save();
             $request->components()->delete();
+        } else {
+            // Component-only: no firearm
+            $request->firearm?->delete();
+            $request->components()->delete();
+            if ($entry === 'barrel') {
+                $comp = new EndorsementComponent();
+                $comp->fill([
+                    'endorsement_request_id' => $request->id,
+                    'component_type' => EndorsementComponent::TYPE_BARREL,
+                    'diameter' => $this->componentBarrelDiameter,
+                    'component_make' => $this->componentBarrelMake,
+                    'component_serial' => $this->componentBarrelSerial,
+                ]);
+                $comp->save();
+            } elseif ($entry === 'action') {
+                $comp = $request->components()->where('component_type', EndorsementComponent::TYPE_ACTION)->first() ?? new EndorsementComponent();
+                $comp->fill([
+                    'endorsement_request_id' => $request->id,
+                    'component_type' => EndorsementComponent::TYPE_ACTION,
+                    'bolt_face' => $this->componentActionBoltFace,
+                    'action_type' => $this->componentActionType,
+                    'component_serial' => $this->componentActionSerial,
+                ]);
+                $comp->save();
+            }
         }
 
         // Auto-create system-verified documents from existing member documents
@@ -1072,6 +1093,15 @@ class EndorsementCreate extends Component
             'licenceSectionOptions' => EndorsementFirearm::getLicenceSectionOptions(),
             'purposeOptions' => EndorsementRequest::getPurposeOptions(),
             'componentTypeOptions' => EndorsementComponent::getComponentTypeOptions(),
+            'entryTypeOptions' => [
+                'rifle' => 'Rifle',
+                'shotgun' => 'Shotgun',
+                'handgun' => 'Handgun',
+                'barrel' => 'Barrel (component)',
+                'action' => 'Action (component)',
+            ],
+            'componentActionTypeOptions' => EndorsementComponent::getActionTypeOptions(),
+            'boltFaceOptions' => EndorsementComponent::getBoltFaceOptions(),
         ];
     }
 }

@@ -67,12 +67,11 @@ new #[Title('All Approvals - Admin')] class extends Component {
                 ];
             });
 
-        // Pending Endorsements
+        // Pending Endorsements (exclude approved – approved items are no longer "pending approval")
         $pendingEndorsements = EndorsementRequest::whereIn('status', [
             EndorsementRequest::STATUS_SUBMITTED,
             EndorsementRequest::STATUS_UNDER_REVIEW,
             EndorsementRequest::STATUS_PENDING_DOCUMENTS,
-            EndorsementRequest::STATUS_APPROVED, // Approved but letter not yet generated
         ])
             ->with(['user', 'firearm'])
             ->orderBy('created_at', 'asc')
@@ -109,7 +108,6 @@ new #[Title('All Approvals - Admin')] class extends Component {
             EndorsementRequest::STATUS_SUBMITTED,
             EndorsementRequest::STATUS_UNDER_REVIEW,
             EndorsementRequest::STATUS_PENDING_DOCUMENTS,
-            EndorsementRequest::STATUS_APPROVED,
         ])->count();
         return [
             'documents' => $docs,

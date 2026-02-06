@@ -47,12 +47,11 @@ new class extends Component {
             $this->pendingMemberships = Membership::where('status', 'applied')->count();
             $this->pendingActivities = ShootingActivity::where('status', 'pending')->count();
             $this->pendingCalibres = CalibreRequest::where('status', 'pending')->count();
-            // Pending endorsements (submitted, under review, pending documents, or approved but not yet issued)
+            // Pending endorsements (submitted, under review, pending documents – approved are no longer "pending")
             $this->pendingEndorsements = EndorsementRequest::whereIn('status', [
                 EndorsementRequest::STATUS_SUBMITTED,
                 EndorsementRequest::STATUS_UNDER_REVIEW,
                 EndorsementRequest::STATUS_PENDING_DOCUMENTS,
-                EndorsementRequest::STATUS_APPROVED, // Approved but letter not yet generated
             ])->count();
         } catch (\Exception $e) {
             // Tables might not exist yet

@@ -27,6 +27,8 @@ class EndorsementComponent extends Model
         'calibre_id',
         'calibre_manual',
         'diameter', // Barrel diameter (required before chambering)
+        'bolt_face', // For action components
+        'action_type', // For action components: bolt_action, semi_auto, single_shot
         'relates_to_firearm',
         'notes',
     ];
@@ -107,6 +109,32 @@ class EndorsementComponent extends Model
         return $componentType === self::TYPE_BARREL;
     }
 
+    // Action type options for action components (subset of EndorsementFirearm action types)
+    public const ACTION_BOLT_ACTION = 'bolt_action';
+    public const ACTION_SEMI_AUTO = 'semi_auto';
+    public const ACTION_SINGLE_SHOT = 'single_shot';
+    public const ACTION_OTHER = 'other';
+
+    public static function getActionTypeOptions(): array
+    {
+        return [
+            self::ACTION_BOLT_ACTION => 'Bolt Action',
+            self::ACTION_SEMI_AUTO => 'Semi-Automatic',
+            self::ACTION_SINGLE_SHOT => 'Single Loading',
+            self::ACTION_OTHER => 'Other',
+        ];
+    }
+
+    public static function getBoltFaceOptions(): array
+    {
+        return [
+            'standard' => 'Standard',
+            'magnum' => 'Magnum',
+            'mini' => 'Mini',
+            'other' => 'Other',
+        ];
+    }
+
     // ===== Accessors =====
 
     /**
@@ -147,6 +175,29 @@ class EndorsementComponent extends Model
             $parts[] = '(' . $this->calibre_display . ')';
         }
 
+        if ($this->component_type === self::TYPE_ACTION && $this->action_type) {
+            $parts[] = self::getActionTypeOptions()[$this->action_type] ?? $this->action_type;
+        }
+        if ($this->component_type === self::TYPE_ACTION && $this->bolt_face) {
+            $parts[] = self::getBoltFaceOptions()[$this->bolt_face] ?? $this->bolt_face;
+        }
+
         return implode(' - ', $parts);
+    }
+
+    public function getActionTypeLabelAttribute(): ?string
+    {
+        if (!$this->action_type) {
+            return null;
+        }
+        return self::getActionTypeOptions()[$this->action_type] ?? ucfirst(str_replace('_', ' ', $this->action_type));
+    }
+
+    public function getBoltFaceLabelAttribute(): ?string
+    {
+        if (!$this->bolt_face) {
+            return null;
+        }
+        return self::getBoltFaceOptions()[$this->bolt_face] ?? ucfirst($this->bolt_face);
     }
 }

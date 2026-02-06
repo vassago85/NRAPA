@@ -128,6 +128,13 @@
                     @elseif($component->calibre_display)
                         <span class="block text-xs text-zinc-500 dark:text-zinc-400 mt-1">Calibre: {{ $component->calibre_display }}</span>
                     @endif
+                @elseif($component->component_type === 'action')
+                    @if($component->bolt_face_label ?? $component->bolt_face)
+                        <span class="block text-xs text-zinc-500 dark:text-zinc-400 mt-1">Bolt face: {{ $component->bolt_face_label ?? $component->bolt_face }}</span>
+                    @endif
+                    @if($component->action_type_label ?? $component->action_type)
+                        <span class="block text-xs text-zinc-500 dark:text-zinc-400 mt-1">Action type: {{ $component->action_type_label ?? $component->action_type }}</span>
+                    @endif
                 @elseif($component->calibre_display)
                     <span class="block text-xs text-zinc-500 dark:text-zinc-400 mt-1">Calibre: {{ $component->calibre_display }}</span>
                 @endif
@@ -154,7 +161,7 @@
     Section 16 firearm licence application<br/>
     Issued under the member&apos;s {{ $request->dedicated_category_label }} status
     <br/><br/>
-    The Association supports the member&apos;s application for the firearm described above, issued under the member&apos;s compliant dedicated status, subject to compliance with the Firearms Control Act (Act 60 of 2000, as amended) and relevant Regulations.
+    The Association supports the member&apos;s application for the {{ $firearm ? 'firearm' : 'component(s)' }} described above, issued under the member&apos;s compliant dedicated status, subject to compliance with the Firearms Control Act (Act 60 of 2000, as amended) and relevant Regulations.
 </section>
 
 <div style="height:6px"></div>

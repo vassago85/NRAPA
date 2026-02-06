@@ -710,6 +710,13 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                                             @elseif($component->calibre_display)
                                                 <p class="text-sm text-zinc-500">Calibre: {{ $component->calibre_display }}</p>
                                             @endif
+                                        @elseif($component->component_type === 'action')
+                                            @if($component->bolt_face)
+                                                <p class="text-sm text-zinc-500">Bolt face: {{ $component->bolt_face_label ?? $component->bolt_face }}</p>
+                                            @endif
+                                            @if($component->action_type)
+                                                <p class="text-sm text-zinc-500">Action type: {{ $component->action_type_label ?? $component->action_type }}</p>
+                                            @endif
                                         @elseif($component->calibre_display)
                                             <p class="text-sm text-zinc-500">Calibre: {{ $component->calibre_display }}</p>
                                         @endif
