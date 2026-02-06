@@ -204,7 +204,7 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
                         </div>
                         @endif
                         {{-- Display all options --}}
-                        @if($answer->question->options)
+                        @if($answer->question->options && is_array($answer->question->options) && count($answer->question->options) > 0)
                         <div class="mt-3 space-y-2">
                             <p class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Options:</p>
                             <div class="grid gap-2 sm:grid-cols-2">
@@ -219,7 +219,7 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
                                     {{ !$isSelected && !$isCorrect ? 'border-zinc-200 dark:border-zinc-700' : '' }}">
                                     <span class="font-semibold {{ $isCorrect ? 'text-green-700 dark:text-green-400' : ($isSelected ? 'text-red-700 dark:text-red-400' : 'text-zinc-500 dark:text-zinc-400') }}">{{ $key }}.</span>
                                     <span class="{{ $isCorrect ? 'text-green-700 dark:text-green-300' : ($isSelected ? 'text-red-700 dark:text-red-300' : 'text-zinc-600 dark:text-zinc-400') }}">
-                                        {{ $optionText }}
+                                        {{ $optionText ?? '' }}
                                         @if($isCorrect)
                                         <span class="ml-1 text-xs font-semibold text-green-600 dark:text-green-400">(Correct)</span>
                                         @endif
