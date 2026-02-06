@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Certificate;
+use App\Helpers\DocumentHelper;
 use App\Helpers\QrCodeHelper;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
@@ -32,7 +33,11 @@ new #[Title('My Digital Card')] #[Layout('components.layouts.card')] class exten
     #[Computed]
     public function membership()
     {
-        return $this->user->activeMembership;
+        $m = $this->user->activeMembership;
+        if ($m) {
+            $m->loadMissing('type');
+        }
+        return $m;
     }
 
     #[Computed]
@@ -73,6 +78,12 @@ new #[Title('My Digital Card')] #[Layout('components.layouts.card')] class exten
             return false;
         }
         return $this->membership->type?->is_lifetime ?? false;
+    }
+
+    #[Computed]
+    public function logoUrl(): ?string
+    {
+        return DocumentHelper::getLogoUrl() ?? asset('NRAPA Logo.png');
     }
 }; ?>
 
@@ -116,9 +127,9 @@ new #[Title('My Digital Card')] #[Layout('components.layouts.card')] class exten
                 <div class="bg-emerald-600 px-6 py-4">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-3">
-                            {{-- Logo --}}
-                            <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
-                                <img src="{{ asset('images/nrapa-logo.png') }}" alt="NRAPA" class="w-10 h-10 object-contain" onerror="this.style.display='none'">
+                            {{-- NRAPA Logo --}}
+                            <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center overflow-hidden">
+                                <img src="{{ $this->logoUrl }}" alt="NRAPA" class="w-10 h-10 object-contain" />
                             </div>
                             <div>
                                 <h1 class="text-white font-bold text-lg tracking-tight">NRAPA</h1>
@@ -134,18 +145,18 @@ new #[Title('My Digital Card')] #[Layout('components.layouts.card')] class exten
                     </div>
                 </div>
 
-                {{-- Card Body --}}
-                <div class="px-6 py-6 space-y-6">
+                {{-- Card Body - explicit dark bg so value text is visible --}}
+                <div class="px-6 py-6 space-y-6 bg-zinc-800/80">
                     {{-- Member Info --}}
                     <div class="space-y-4">
                         <div>
                             <p class="text-zinc-500 text-xs uppercase tracking-wider">Member Name</p>
-                            <p class="text-white text-xl font-semibold">{{ $this->user->name }}</p>
+                            <p class="text-white text-xl font-semibold">{{ $this->user->name ?? '—' }}</p>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <p class="text-zinc-500 text-xs uppercase tracking-wider">Membership No.</p>
-                                <p class="text-white font-mono text-sm">{{ $this->membership->membership_number }}</p>
+                                <p class="text-white font-mono text-sm">{{ $this->membership->membership_number ?? '—' }}</p>
                             </div>
                             <div>
                                 <p class="text-zinc-500 text-xs uppercase tracking-wider">Type</p>
@@ -176,7 +187,7 @@ new #[Title('My Digital Card')] #[Layout('components.layouts.card')] class exten
                 {{-- Card Footer --}}
                 <div class="px-6 py-3 bg-zinc-900/50 border-t border-zinc-700">
                     <p class="text-zinc-500 text-xs text-center">
-                        Certificate: {{ $this->membershipCard->certificate_number }}
+                        Certificate: {{ $this->membershipCard->certificate_number ?? '—' }}
                     </p>
                 </div>
             </div>

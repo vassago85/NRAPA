@@ -620,12 +620,14 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Check if user has passed the knowledge test.
+     * Check if user has passed the knowledge test (including manually approved by admin).
      */
     public function hasPassedKnowledgeTest(): bool
     {
         return $this->knowledgeTestAttempts()
-            ->where('passed', true)
+            ->where(function ($q) {
+                $q->where('passed', true)->orWhereNotNull('marked_by');
+            })
             ->exists();
     }
 

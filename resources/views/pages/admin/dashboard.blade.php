@@ -58,9 +58,9 @@ new class extends Component {
             // Tables might not exist yet
         }
         
-        $this->totalOutstandingApprovals = $this->pendingDocuments 
-            + $this->pendingMemberships 
-            + $this->pendingActivities 
+        // Document/membership/calibre/endorsement approvals only (activities approved via Activities)
+        $this->totalOutstandingApprovals = $this->pendingDocuments
+            + $this->pendingMemberships
             + $this->pendingCalibres
             + $this->pendingEndorsements;
         

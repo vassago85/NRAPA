@@ -16,7 +16,10 @@
     
     $user = $certificate->user ?? $user ?? null;
     $membership = $certificate->membership ?? $membership ?? null;
-    
+    if ($membership && !$membership->relationLoaded('type')) {
+        $membership->loadMissing('type');
+    }
+
     // Get active terms version for reference
     $activeTerms = \App\Models\TermsVersion::active();
     $signatory = isset($certificate) ? \App\Helpers\DocumentDataHelper::getSignatoryInfo($certificate) : [
@@ -72,31 +75,37 @@
 <hr class="sep"/>
 
 <div class="body">
-    <p><b>{{ $user->name }}</b><br/>
-    @if($user->id_number)
+    @if(!$user)
+        <p class="text-red-600">Unable to load member details for this welcome letter.</p>
+    @else
+    <p><b>{{ $user->name ?? 'Member' }}</b><br/>
+    @if(!empty($user->id_number))
     ID/Passport: {{ $user->id_number }}<br/>
     @endif
-    @if($user->email)
+    @if(!empty($user->email))
     Email: {{ $user->email }}<br/>
     @endif
-    @if($user->phone)
+    @if(!empty($user->phone))
     Phone: {{ $user->phone }}
     @endif
     </p>
 
-    <p>Dear {{ explode(' ', $user->name)[0] }},</p>
+    <p>Dear {{ $user->name ? (explode(' ', trim($user->name))[0] ?? 'Member') : 'Member' }},</p>
 
-    <p>Thank you for joining the National Rifle and Pistol Association (NRAPA). We welcome you to the Association. Your membership details are as follows:</p>
+    <p>Thank you for joining the National Rifle and Pistol Association (NRAPA). We welcome you to the Association.@if($membership) Your membership details are as follows:</p>
 
     <div class="callout">
         <div class="kv" style="grid-template-columns: 200px 1fr;">
             <div class="k">Membership Number</div><div class="v">{{ $membership->membership_number ?? 'N/A' }}</div>
-            <div class="k">Membership Type</div><div class="v">{{ $membership->type->name ?? 'N/A' }}</div>
+            <div class="k">Membership Type</div><div class="v">{{ $membership->type?->name ?? 'N/A' }}</div>
             <div class="k">Membership Status</div><div class="v">Member in Good Standing</div>
             <div class="k">Start Date of Membership</div><div class="v">{{ $membership->activated_at?->format('d F Y') ?? $membership->applied_at?->format('d F Y') ?? 'N/A' }}</div>
             <div class="k">Valid Until</div><div class="v">{{ $membership->expires_at ? $membership->expires_at->format('d F Y') : 'Lifetime' }}</div>
         </div>
     </div>
+    @else
+    </p>
+    @endif
 
     <div style="height:10px"></div>
 
@@ -138,6 +147,7 @@
 
     <div style="font-weight:800;">{{ $signatory['name'] }}</div>
     <div class="small">{{ $signatory['title'] }}</div>
+    @endif
 </div>
 
 <div class="footer">

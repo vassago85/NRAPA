@@ -235,49 +235,50 @@ class EndorsementRequest extends Model
     /**
      * Get missing required documents for endorsement.
      * For Proof of Address: requires document to be verified and not older than 3 months.
+     * ID can be satisfied by either 'identity-document' or 'id-document' slug.
      */
     public static function getMissingRequiredDocuments(User $user): array
     {
         $missing = [];
 
-        // Required document type slugs for endorsement
-        $requiredDocSlugs = [
-            'identity-document' => 'ID',
-            'proof-of-address' => 'Proof of Address',
-        ];
+        // ID: accept any of these slugs (identity-document or id-document)
+        $idSlugs = ['identity-document', 'id-document'];
+        $idTypes = DocumentType::whereIn('slug', $idSlugs)->pluck('id');
+        $hasValidId = $idTypes->isNotEmpty() && MemberDocument::where('user_id', $user->id)
+            ->whereIn('document_type_id', $idTypes)
+            ->where('status', 'verified')
+            ->where(function ($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->exists();
+        if (!$hasValidId) {
+            $missing[] = ['slug' => 'identity-document', 'name' => 'ID', 'document_type_id' => null];
+        }
 
-        foreach ($requiredDocSlugs as $slug => $name) {
-            $docType = DocumentType::where('slug', $slug)->first();
-            if (!$docType) continue;
-
-            // Check if user has a valid (verified, not expired) document of this type
-            // Get the most recent verified document
-            $validDocument = MemberDocument::where('user_id', $user->id)
-                ->where('document_type_id', $docType->id)
+        // Proof of Address: single slug, with 3-month age check
+        $poaSlug = 'proof-of-address';
+        $poaType = DocumentType::where('slug', $poaSlug)->first();
+        if ($poaType) {
+            $validPoa = MemberDocument::where('user_id', $user->id)
+                ->where('document_type_id', $poaType->id)
                 ->where('status', 'verified')
                 ->where(function ($q) {
-                    $q->whereNull('expires_at')
-                        ->orWhere('expires_at', '>', now());
+                    $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
                 })
                 ->orderBy('verified_at', 'desc')
                 ->first();
-            
-            $hasValid = $validDocument !== null;
-
-            // Special check for Proof of Address: must be verified within last 3 months for endorsement
-            if ($slug === 'proof-of-address' && $hasValid) {
+            $hasValidPoa = $validPoa !== null;
+            if ($hasValidPoa) {
                 $threeMonthsAgo = now()->subMonths(3);
-                if ($validDocument->verified_at && $validDocument->verified_at->lt($threeMonthsAgo)) {
-                    // POA exists but is older than 3 months - require new one for endorsement
-                    $hasValid = false;
+                if ($validPoa->verified_at && $validPoa->verified_at->lt($threeMonthsAgo)) {
+                    $hasValidPoa = false;
                 }
             }
-
-            if (!$hasValid) {
+            if (!$hasValidPoa) {
                 $missing[] = [
-                    'slug' => $slug,
-                    'name' => $name,
-                    'document_type_id' => $docType->id,
+                    'slug' => $poaSlug,
+                    'name' => 'Proof of Address',
+                    'document_type_id' => $poaType->id,
                 ];
             }
         }

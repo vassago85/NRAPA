@@ -187,7 +187,9 @@ class MembershipType extends Model
 
         $passedTests = KnowledgeTestAttempt::where('user_id', $user->id)
             ->whereIn('knowledge_test_id', $requiredTests)
-            ->where('passed', true)
+            ->where(function ($q) {
+                $q->where('passed', true)->orWhereNotNull('marked_by');
+            })
             ->pluck('knowledge_test_id')
             ->unique();
 
@@ -203,7 +205,9 @@ class MembershipType extends Model
         
         $passedTestIds = KnowledgeTestAttempt::where('user_id', $user->id)
             ->whereIn('knowledge_test_id', $requiredTestIds)
-            ->where('passed', true)
+            ->where(function ($q) {
+                $q->where('passed', true)->orWhereNotNull('marked_by');
+            })
             ->pluck('knowledge_test_id')
             ->unique();
 

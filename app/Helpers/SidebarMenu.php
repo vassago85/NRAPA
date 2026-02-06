@@ -140,34 +140,8 @@ class SidebarMenu
                 }
             } catch (\Exception $e) {}
             
-            $totalPending = $pendingDocs + $pendingMemberships + $pendingActivities;
-            
-            $approvalsItems = [
-                [
-                    'label' => 'All Approvals',
-                    'route' => 'admin.approvals.index',
-                    'icon' => 'check-circle',
-                ],
-                [
-                    'label' => 'Documents',
-                    'route' => 'admin.documents.index',
-                    'icon' => 'document-text',
-                    'pending_count' => $pendingDocs,
-                ],
-                [
-                    'label' => 'Memberships',
-                    'route' => 'admin.approvals.index',
-                    'route_params' => ['type' => 'memberships'],
-                    'icon' => 'badge',
-                    'pending_count' => $pendingMemberships,
-                ],
-                [
-                    'label' => 'Activities',
-                    'route' => 'admin.activities.index',
-                    'icon' => 'clipboard',
-                    'pending_count' => $pendingActivities,
-                ],
-            ];
+            // Approvals = documents + memberships only (activities approved via Activities)
+            $totalPending = $pendingDocs + $pendingMemberships;
 
             $menu[] = [
                 'section' => 'ADMINISTRATION',
@@ -184,13 +158,19 @@ class SidebarMenu
                         'icon' => 'users',
                         'roles' => ['admin', 'owner', 'developer'],
                     ],
-                    // Approvals heading (non-clickable)
+                    [
+                        'label' => 'Activities',
+                        'route' => 'admin.activities.index',
+                        'icon' => 'clipboard',
+                        'roles' => ['admin', 'owner', 'developer'],
+                        'pending_count' => $pendingActivities,
+                    ],
+                    // Approvals heading (document/membership approvals only, not activities)
                     [
                         'label' => 'Approvals',
                         'type' => 'heading',
                         'roles' => ['admin', 'owner', 'developer'],
                     ],
-                    // All Approvals sub-items listed directly
                     [
                         'label' => 'All Approvals',
                         'route' => 'admin.approvals.index',
@@ -212,13 +192,6 @@ class SidebarMenu
                         'icon' => 'badge',
                         'roles' => ['admin', 'owner', 'developer'],
                         'pending_count' => $pendingMemberships,
-                    ],
-                    [
-                        'label' => 'Activities',
-                        'route' => 'admin.activities.index',
-                        'icon' => 'clipboard',
-                        'roles' => ['admin', 'owner', 'developer'],
-                        'pending_count' => $pendingActivities,
                     ],
                     [
                         'label' => 'Endorsements',

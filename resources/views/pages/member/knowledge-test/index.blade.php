@@ -54,13 +54,22 @@ new #[Title('Knowledge Tests')] class extends Component {
     }
 
     /**
+     * Whether an attempt counts as passed (including manually approved by admin).
+     */
+    protected function attemptCountsAsPassed(KnowledgeTestAttempt $attempt): bool
+    {
+        return $attempt->passed === true || $attempt->marked_by !== null;
+    }
+
+    /**
      * Get the dedicated status requirements and completion status.
      * Only returns requirements relevant to the user's membership type.
+     * Includes attempts that were manually approved by admin (marked_by set).
      */
     #[Computed]
     public function dedicatedStatusRequirements(): array
     {
-        $passedAttempts = $this->myAttempts->where('passed', true);
+        $passedAttempts = $this->myAttempts->filter(fn ($a) => $this->attemptCountsAsPassed($a));
         $userType = $this->userDedicatedType;
         
         // Check which test types have been passed
@@ -121,7 +130,7 @@ new #[Title('Knowledge Tests')] class extends Component {
     public function getTestStatus(KnowledgeTest $test): array
     {
         $attempts = $this->myAttempts->where('knowledge_test_id', $test->id);
-        $passedAttempt = $attempts->firstWhere('passed', true);
+        $passedAttempt = $attempts->first(fn ($a) => $this->attemptCountsAsPassed($a));
         $remainingAttempts = $test->remainingAttempts(auth()->user());
 
         if ($passedAttempt) {
@@ -156,6 +165,7 @@ new #[Title('Knowledge Tests')] class extends Component {
         return [
             'status' => 'available',
             'label' => "{$remainingAttempts} attempts left",
+            'remaining_attempts' => $remainingAttempts,
             'class' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
             'canAttempt' => true,
         ];
@@ -375,9 +385,16 @@ new #[Title('Knowledge Tests')] class extends Component {
                         <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">{{ $test->name }}</h3>
                         <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ $test->description }}</p>
                     </div>
-                    <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $status['class'] }}">
+                    @if($status['status'] === 'available' && isset($status['remaining_attempts']))
+                    <div class="flex shrink-0 flex-col items-center justify-center rounded-xl border border-blue-200/60 bg-gradient-to-b from-blue-50 to-sky-50 px-4 py-2.5 text-center shadow-sm dark:border-blue-800/50 dark:from-blue-950/40 dark:to-sky-950/40">
+                        <span class="text-2xl font-bold tabular-nums tracking-tight text-blue-700 dark:text-blue-300">{{ $status['remaining_attempts'] }}</span>
+                        <span class="text-[11px] font-medium uppercase tracking-wider text-blue-600/90 dark:text-blue-400/90">attempts left</span>
+                    </div>
+                    @else
+                    <span class="inline-flex shrink-0 items-center rounded-full px-3 py-1.5 text-xs font-medium {{ $status['class'] }}">
                         {{ $status['label'] }}
                     </span>
+                    @endif
                 </div>
 
                 <div class="mt-4 grid grid-cols-3 gap-4 text-center">

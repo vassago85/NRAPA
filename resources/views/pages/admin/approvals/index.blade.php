@@ -4,7 +4,6 @@ use App\Models\CalibreRequest;
 use App\Models\EndorsementRequest;
 use App\Models\MemberDocument;
 use App\Models\Membership;
-use App\Models\ShootingActivity;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -50,21 +49,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
                 ];
             });
 
-        // Pending Activities
-        $pendingActivities = ShootingActivity::where('status', 'pending')
-            ->with(['user', 'activityType'])
-            ->orderBy('created_at', 'asc')
-            ->get()
-            ->map(function ($activity) {
-                return [
-                    'type' => 'activity',
-                    'id' => $activity->id,
-                    'title' => ($activity->activityType->name ?? 'Shooting Activity'),
-                    'user' => $activity->user,
-                    'date' => $activity->created_at,
-                    'route' => route('admin.activities.show', $activity),
-                ];
-            });
+        // Activities are approved only via Admin > Activities (not document approvals)
 
         // Pending Calibre Requests
         $pendingCalibres = CalibreRequest::where('status', 'pending')
@@ -104,11 +89,10 @@ new #[Title('All Approvals - Admin')] class extends Component {
                 ];
             });
 
-        // Combine all and sort by date
+        // Combine all (excluding activities - approve those via Activities only) and sort by date
         return $approvals
             ->merge($pendingDocuments)
             ->merge($pendingMemberships)
-            ->merge($pendingActivities)
             ->merge($pendingCalibres)
             ->merge($pendingEndorsements)
             ->sortBy('date')
@@ -118,27 +102,21 @@ new #[Title('All Approvals - Admin')] class extends Component {
     #[Computed]
     public function stats()
     {
+        $docs = MemberDocument::where('status', 'pending')->count();
+        $memberships = Membership::where('status', 'applied')->count();
+        $calibres = CalibreRequest::where('status', 'pending')->count();
+        $endorsements = EndorsementRequest::whereIn('status', [
+            EndorsementRequest::STATUS_SUBMITTED,
+            EndorsementRequest::STATUS_UNDER_REVIEW,
+            EndorsementRequest::STATUS_PENDING_DOCUMENTS,
+            EndorsementRequest::STATUS_APPROVED,
+        ])->count();
         return [
-            'documents' => MemberDocument::where('status', 'pending')->count(),
-            'memberships' => Membership::where('status', 'applied')->count(),
-            'activities' => ShootingActivity::where('status', 'pending')->count(),
-            'calibres' => CalibreRequest::where('status', 'pending')->count(),
-            'endorsements' => EndorsementRequest::whereIn('status', [
-                EndorsementRequest::STATUS_SUBMITTED,
-                EndorsementRequest::STATUS_UNDER_REVIEW,
-                EndorsementRequest::STATUS_PENDING_DOCUMENTS,
-                EndorsementRequest::STATUS_APPROVED,
-            ])->count(),
-            'total' => MemberDocument::where('status', 'pending')->count()
-                + Membership::where('status', 'applied')->count()
-                + ShootingActivity::where('status', 'pending')->count()
-                + CalibreRequest::where('status', 'pending')->count()
-                + EndorsementRequest::whereIn('status', [
-                    EndorsementRequest::STATUS_SUBMITTED,
-                    EndorsementRequest::STATUS_UNDER_REVIEW,
-                    EndorsementRequest::STATUS_PENDING_DOCUMENTS,
-                    EndorsementRequest::STATUS_APPROVED,
-                ])->count(),
+            'documents' => $docs,
+            'memberships' => $memberships,
+            'calibres' => $calibres,
+            'endorsements' => $endorsements,
+            'total' => $docs + $memberships + $calibres + $endorsements,
         ];
     }
 
@@ -198,12 +176,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
             $cleared++;
         }
 
-        // Approve all pending activities
-        $pendingActivities = ShootingActivity::where('status', 'pending')->get();
-        foreach ($pendingActivities as $activity) {
-            $activity->approve($admin);
-            $cleared++;
-        }
+        // Activities are approved only via Admin > Activities (not here)
 
         // Approve all pending calibre requests
         $pendingCalibres = CalibreRequest::where('status', 'pending')->get();
@@ -287,7 +260,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
         @endif
     </div>
 
-    {{-- Stats --}}
+    {{-- Stats (document/membership/calibre/endorsement approvals only; activities approved via Activities) --}}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Total Pending</p>
@@ -302,14 +275,10 @@ new #[Title('All Approvals - Admin')] class extends Component {
             <p class="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ $this->stats['memberships'] }}</p>
         </div>
         <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
-            <p class="text-sm text-zinc-500 dark:text-zinc-400">Activities</p>
-            <p class="mt-1 text-2xl font-bold text-purple-600 dark:text-purple-400">{{ $this->stats['activities'] }}</p>
-        </div>
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Calibres</p>
             <p class="mt-1 text-2xl font-bold text-orange-600 dark:text-orange-400">{{ $this->stats['calibres'] }}</p>
         </div>
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800 lg:col-span-5">
+        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Endorsements</p>
             <p class="mt-1 text-2xl font-bold text-amber-600 dark:text-amber-400">{{ $this->stats['endorsements'] }}</p>
         </div>
