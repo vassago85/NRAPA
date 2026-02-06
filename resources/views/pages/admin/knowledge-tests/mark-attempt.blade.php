@@ -203,6 +203,38 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
                             <img src="{{ $answer->question->image_url }}" alt="Question image" class="max-h-32 rounded-lg border border-zinc-200 dark:border-zinc-700">
                         </div>
                         @endif
+                        {{-- Display all options --}}
+                        @if($answer->question->options)
+                        <div class="mt-3 space-y-2">
+                            <p class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Options:</p>
+                            <div class="grid gap-2 sm:grid-cols-2">
+                                @foreach($answer->question->options as $key => $optionText)
+                                @php
+                                    $isSelected = $answer->answer_text === $key;
+                                    $isCorrect = $answer->question->correct_answer === $key;
+                                @endphp
+                                <div class="flex items-start gap-2 rounded-lg border p-2 text-sm
+                                    {{ $isCorrect ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/30' : '' }}
+                                    {{ $isSelected && !$isCorrect ? 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/30' : '' }}
+                                    {{ !$isSelected && !$isCorrect ? 'border-zinc-200 dark:border-zinc-700' : '' }}">
+                                    <span class="font-semibold {{ $isCorrect ? 'text-green-700 dark:text-green-400' : ($isSelected ? 'text-red-700 dark:text-red-400' : 'text-zinc-500 dark:text-zinc-400') }}">{{ $key }}.</span>
+                                    <span class="{{ $isCorrect ? 'text-green-700 dark:text-green-300' : ($isSelected ? 'text-red-700 dark:text-red-300' : 'text-zinc-600 dark:text-zinc-400') }}">
+                                        {{ $optionText }}
+                                        @if($isCorrect)
+                                        <span class="ml-1 text-xs font-semibold text-green-600 dark:text-green-400">(Correct)</span>
+                                        @endif
+                                        @if($isSelected && !$isCorrect)
+                                        <span class="ml-1 text-xs font-semibold text-red-600 dark:text-red-400">(Selected)</span>
+                                        @endif
+                                        @if($isSelected && $isCorrect)
+                                        <span class="ml-1 text-xs font-semibold text-green-600 dark:text-green-400">(Selected - Correct!)</span>
+                                        @endif
+                                    </span>
+                                </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        @else
                         <div class="mt-3 flex items-center gap-4 text-sm">
                             <span class="{{ $answer->is_correct ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
                                 <strong>Answer:</strong> {{ $answer->answer_text }}
@@ -213,6 +245,7 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
                             </span>
                             @endif
                         </div>
+                        @endif
                     </div>
                     <div class="text-right">
                         <span class="text-lg font-bold {{ $answer->is_correct ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
@@ -250,9 +283,23 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
                                 <img src="{{ $answer->question->image_url }}" alt="Question image" class="max-h-32 rounded-lg border border-zinc-200 dark:border-zinc-700">
                             </div>
                             @endif
-                            <div class="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900">
-                                <p class="text-sm text-zinc-700 dark:text-zinc-300">{{ $answer->answer_text ?: '(No answer provided)' }}</p>
+                            {{-- Member's Answer --}}
+                            <div class="mt-3">
+                                <p class="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Member's Answer:</p>
+                                <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                                    <p class="text-sm text-zinc-700 dark:text-zinc-300">{{ $answer->answer_text ?: '(No answer provided)' }}</p>
+                                </div>
                             </div>
+                            
+                            {{-- Expected Answer (Model Answer) --}}
+                            @if($answer->question->correct_answer)
+                            <div class="mt-3">
+                                <p class="text-xs font-medium text-green-600 dark:text-green-400 mb-1">Expected Answer (Reference):</p>
+                                <div class="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/30">
+                                    <p class="text-sm text-green-700 dark:text-green-300">{{ $answer->question->correct_answer }}</p>
+                                </div>
+                            </div>
+                            @endif
                         </div>
                     </div>
 
