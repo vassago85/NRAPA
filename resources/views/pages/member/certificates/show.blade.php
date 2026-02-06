@@ -180,15 +180,27 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                     }
                 @endphp
                 <a href="{{ route($backRoute) }}" wire:navigate
-                   class="inline-flex items-center gap-1 text-sm text-zinc-600 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200">
+                   class="inline-flex items-center gap-1 text-sm text-zinc-600 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 flex-shrink-0">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                     Back
                 </a>
-                <div>
-                    <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">{{ $this->certificate->certificateType->name }}</h1>
-                    <p class="font-mono text-zinc-500">{{ $this->certificate->certificate_number }}</p>
+                <div class="min-w-0">
+                    <h1 class="text-2xl font-bold text-zinc-900 dark:text-white break-words">{{ $this->certificate->certificateType->name }}</h1>
+                    <p class="font-mono text-zinc-500 text-sm break-all">{{ $this->certificate->certificate_number }}</p>
                     @if((auth()->user()->isDeveloper() || auth()->user()->isOwner() || auth()->user()->isAdmin()) && $this->certificate->user)
-                        <p class="text-sm text-zinc-600 dark:text-zinc-400 mt-1">Member: {{ $this->certificate->user->name }}</p>
+                        <div class="mt-2 space-y-1">
+                            <p class="text-sm text-zinc-600 dark:text-zinc-400">
+                                <span class="text-zinc-500">Member:</span> {{ $this->certificate->user->name }}
+                            </p>
+                            @if($this->certificate->membership)
+                                <p class="text-sm text-zinc-600 dark:text-zinc-400">
+                                    <span class="text-zinc-500">Membership:</span> {{ $this->certificate->membership->type->name ?? 'N/A' }}
+                                </p>
+                                <p class="text-sm font-mono text-zinc-600 dark:text-zinc-400">
+                                    <span class="font-sans text-zinc-500">Number:</span> {{ $this->certificate->membership->membership_number ?? 'N/A' }}
+                                </p>
+                            @endif
+                        </div>
                     @endif
                 </div>
             </div>
@@ -302,13 +314,27 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                         <dl class="space-y-4">
                             <div>
                                 <dt class="text-sm text-zinc-500">Type</dt>
-                                <dd class="font-medium text-zinc-900 dark:text-white">{{ $this->certificate->certificateType->name }}</dd>
+                                <dd class="font-medium text-zinc-900 dark:text-white break-words">{{ $this->certificate->certificateType->name }}</dd>
                             </div>
                             <div>
                                 <dt class="text-sm text-zinc-500">Certificate Number</dt>
-                                <dd class="font-mono font-medium text-zinc-900 dark:text-white">{{ $this->certificate->certificate_number }}</dd>
+                                <dd class="font-mono font-medium text-zinc-900 dark:text-white text-sm break-all">{{ $this->certificate->certificate_number }}</dd>
+                            </div>
+                            @if($this->certificate->membership)
+                            <div class="pt-2 border-t border-zinc-100 dark:border-zinc-700">
+                                <dt class="text-sm text-zinc-500">Member Name</dt>
+                                <dd class="font-medium text-zinc-900 dark:text-white break-words">{{ $this->certificate->user->name ?? 'N/A' }}</dd>
                             </div>
                             <div>
+                                <dt class="text-sm text-zinc-500">Membership Type</dt>
+                                <dd class="font-medium text-zinc-900 dark:text-white break-words">{{ $this->certificate->membership->type->name ?? 'N/A' }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm text-zinc-500">Membership Number</dt>
+                                <dd class="font-mono font-medium text-zinc-900 dark:text-white text-sm break-all">{{ $this->certificate->membership->membership_number ?? 'N/A' }}</dd>
+                            </div>
+                            @endif
+                            <div class="pt-2 border-t border-zinc-100 dark:border-zinc-700">
                                 <dt class="text-sm text-zinc-500">Issue Date</dt>
                                 <dd class="text-zinc-900 dark:text-white">{{ $this->certificate->issued_at->format('d F Y') }}</dd>
                             </div>
