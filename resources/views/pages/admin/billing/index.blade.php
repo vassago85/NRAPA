@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Membership;
+use App\Models\AuditLog;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -14,6 +16,11 @@ new class extends Component {
     public int $newMembers = 0;
     public int $renewals = 0;
     public int $totalBillable = 0;
+
+    // Bulk selection
+    public array $selected = [];
+    public bool $selectAll = false;
+    public string $bulkAction = '';
     
     public function mount(): void
     {
@@ -26,11 +33,88 @@ new class extends Component {
     {
         $this->resetPage();
         $this->loadStats();
+        $this->resetSelection();
     }
     
     public function updatedSelectedMonth(): void
     {
         $this->resetPage();
+        $this->loadStats();
+        $this->resetSelection();
+    }
+
+    public function updatedSelectAll(): void
+    {
+        if ($this->selectAll) {
+            // Select all visible membership IDs on current page
+            try {
+                $this->selected = Membership::billable()
+                    ->approvedInMonth($this->selectedYear, $this->selectedMonth)
+                    ->pluck('id')
+                    ->map(fn ($id) => (string) $id)
+                    ->toArray();
+            } catch (\Exception $e) {
+                $this->selected = [];
+            }
+        } else {
+            $this->selected = [];
+        }
+    }
+
+    protected function resetSelection(): void
+    {
+        $this->selected = [];
+        $this->selectAll = false;
+        $this->bulkAction = '';
+    }
+
+    public function executeBulkAction(): void
+    {
+        if (empty($this->selected)) {
+            session()->flash('error', 'No items selected.');
+            return;
+        }
+
+        $count = count($this->selected);
+        $ids = array_map('intval', $this->selected);
+
+        if ($this->bulkAction === 'remove_from_billing') {
+            // Mark as import so they no longer count as billable
+            Membership::whereIn('id', $ids)->update(['source' => 'import']);
+
+            AuditLog::log(
+                'billing_bulk_remove',
+                null,
+                ['membership_ids' => $ids],
+                ['source' => 'import'],
+                Auth::user()
+            );
+
+            session()->flash('success', "{$count} item(s) removed from billing (marked as import).");
+        } elseif ($this->bulkAction === 'delete') {
+            // Permanently delete memberships (for test data cleanup)
+            $memberships = Membership::whereIn('id', $ids)->get();
+            foreach ($memberships as $m) {
+                // Delete related certificates
+                try { $m->certificates()->delete(); } catch (\Exception $e) {}
+                $m->forceDelete();
+            }
+
+            AuditLog::log(
+                'billing_bulk_delete',
+                null,
+                ['membership_ids' => $ids, 'count' => $count],
+                [],
+                Auth::user()
+            );
+
+            session()->flash('success', "{$count} membership(s) permanently deleted.");
+        } else {
+            session()->flash('error', 'Please select an action.');
+            return;
+        }
+
+        $this->resetSelection();
         $this->loadStats();
     }
     
@@ -331,40 +415,82 @@ new class extends Component {
         </div>
     </div>
 
+    {{-- Bulk Action Bar --}}
+    @if(count($selected) > 0)
+    <div class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 mb-4 flex flex-col sm:flex-row sm:items-center gap-4">
+        <div class="flex items-center gap-2 text-sm font-medium text-indigo-800 dark:text-indigo-200">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            {{ count($selected) }} item(s) selected
+        </div>
+        <div class="flex items-center gap-3 flex-1">
+            <select wire:model="bulkAction" class="px-3 py-1.5 text-sm border border-indigo-300 dark:border-indigo-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white">
+                <option value="">Choose action...</option>
+                <option value="remove_from_billing">Remove from billing (mark as import)</option>
+                <option value="delete">Permanently delete memberships</option>
+            </select>
+            <button
+                wire:click="executeBulkAction"
+                wire:confirm="{{ $bulkAction === 'delete' ? 'Are you sure? This will PERMANENTLY delete the selected memberships and their certificates. This cannot be undone.' : 'Remove selected items from billing? They will be marked as imported and excluded from billing counts.' }}"
+                @disabled(empty($bulkAction))
+                class="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+                    {{ $bulkAction === 'delete' ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white' }}"
+            >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Apply
+            </button>
+            <button wire:click="$set('selected', []); $set('selectAll', false)" class="text-sm text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200">
+                Clear selection
+            </button>
+        </div>
+    </div>
+    @endif
+
     {{-- Detailed List --}}
     <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
-        <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+        <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700 flex items-center justify-between">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Billable Memberships - {{ $months[$selectedMonth] }} {{ $selectedYear }}</h2>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full">
                 <thead class="bg-zinc-50 dark:bg-zinc-700/50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Date</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Member</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Membership #</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Type</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Category</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Source</th>
+                        <th class="px-4 py-3 text-left">
+                            <input type="checkbox" wire:model.live="selectAll"
+                                class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500 dark:border-zinc-600 dark:bg-zinc-700">
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Date</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Member</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Membership #</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Type</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Category</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Source</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
                     @forelse($memberships as $membership)
-                        <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/30">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-zinc-600 dark:text-zinc-300">
+                        <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/30 {{ in_array((string) $membership->id, $selected) ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : '' }}">
+                            <td class="px-4 py-4">
+                                <input type="checkbox" wire:model.live="selected" value="{{ $membership->id }}"
+                                    class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500 dark:border-zinc-600 dark:bg-zinc-700">
+                            </td>
+                            <td class="px-4 py-4 whitespace-nowrap text-sm text-zinc-600 dark:text-zinc-300">
                                 {{ $membership->approved_at?->format('d M Y') ?? '-' }}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-medium text-zinc-900 dark:text-white">{{ $membership->user->name ?? 'Unknown' }}</div>
-                                <div class="text-sm text-zinc-500 dark:text-zinc-400">{{ $membership->user->email ?? '' }}</div>
+                            <td class="px-4 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-zinc-900 dark:text-white">{{ $membership->user?->name ?? 'Deleted User' }}</div>
+                                <div class="text-sm text-zinc-500 dark:text-zinc-400">{{ $membership->user?->email ?? '—' }}</div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-zinc-600 dark:text-zinc-300">
+                            <td class="px-4 py-4 whitespace-nowrap text-sm text-zinc-600 dark:text-zinc-300">
                                 {{ $membership->membership_number }}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-zinc-600 dark:text-zinc-300">
-                                {{ $membership->type->name ?? '-' }}
+                            <td class="px-4 py-4 whitespace-nowrap text-sm text-zinc-600 dark:text-zinc-300">
+                                {{ $membership->type?->name ?? '-' }}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
+                            <td class="px-4 py-4 whitespace-nowrap">
                                 @if($membership->isRenewal())
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
                                         Renewal
@@ -378,7 +504,7 @@ new class extends Component {
                                     </span>
                                 @endif
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
+                            <td class="px-4 py-4 whitespace-nowrap">
                                 @if($membership->source === 'web')
                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300">
                                         Web
@@ -396,7 +522,7 @@ new class extends Component {
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-6 py-12 text-center text-zinc-500 dark:text-zinc-400">
+                            <td colspan="7" class="px-6 py-12 text-center text-zinc-500 dark:text-zinc-400">
                                 No billable memberships for this period.
                             </td>
                         </tr>
