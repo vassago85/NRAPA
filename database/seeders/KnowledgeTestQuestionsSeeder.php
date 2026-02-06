@@ -1573,6 +1573,12 @@ class KnowledgeTestQuestionsSeeder extends Seeder
      */
     protected function seedQuestions(KnowledgeTest $test, array $questions, string $testName): void
     {
+        // First, delete any answers that reference questions for this test
+        $questionIds = KnowledgeTestQuestion::where('knowledge_test_id', $test->id)->pluck('id');
+        if ($questionIds->count() > 0) {
+            \App\Models\KnowledgeTestAnswer::whereIn('question_id', $questionIds)->delete();
+        }
+        
         // Clear existing questions for this test
         KnowledgeTestQuestion::where('knowledge_test_id', $test->id)->delete();
 
