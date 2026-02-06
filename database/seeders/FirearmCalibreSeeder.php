@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\FirearmCalibre;
 use App\Models\FirearmCalibreAlias;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\File;
 
 class FirearmCalibreSeeder extends Seeder
 {
@@ -12,6 +13,79 @@ class FirearmCalibreSeeder extends Seeder
      * Run the database seeds.
      */
     public function run(): void
+    {
+        // First, seed from CSV file if it exists
+        $csvPath = resource_path('data/calibres.csv');
+        if (File::exists($csvPath)) {
+            $this->seedFromCsv($csvPath);
+        }
+
+        // Then add additional calibres not in CSV
+        $this->seedAdditionalCalibres();
+    }
+
+    /**
+     * Seed calibres from CSV file.
+     */
+    protected function seedFromCsv(string $csvPath): void
+    {
+        $handle = fopen($csvPath, 'r');
+        if (!$handle) {
+            return;
+        }
+
+        // Skip header row
+        $header = fgetcsv($handle);
+        
+        $count = 0;
+        while (($row = fgetcsv($handle)) !== false) {
+            if (count($row) < 11) continue;
+            
+            $data = [
+                'name' => $row[0],
+                'normalized_name' => $row[1] ?: FirearmCalibre::normalize($row[0]),
+                'category' => $row[2] ?: 'rifle',
+                'family' => $row[3] ?: null,
+                'bullet_diameter_mm' => !empty($row[4]) ? (float)$row[4] : null,
+                'case_length_mm' => !empty($row[5]) ? (float)$row[5] : null,
+                'parent' => $row[6] ?: null,
+                'is_wildcat' => filter_var($row[7] ?? false, FILTER_VALIDATE_BOOLEAN),
+                'is_obsolete' => filter_var($row[8] ?? false, FILTER_VALIDATE_BOOLEAN),
+                'is_active' => filter_var($row[9] ?? true, FILTER_VALIDATE_BOOLEAN),
+                'tags' => !empty($row[10]) ? explode(',', $row[10]) : null,
+            ];
+
+            // Determine ignition type from category or name
+            if ($data['category'] === 'rimfire') {
+                $data['ignition'] = 'rimfire';
+                $data['category'] = 'rifle'; // rimfire is ignition type, category should be rifle/handgun
+            } else {
+                $data['ignition'] = 'centerfire';
+            }
+
+            // Fix rimfire calibres
+            if (str_contains(strtolower($data['name']), '.22 lr') || 
+                str_contains(strtolower($data['name']), '.22 wmr') ||
+                str_contains(strtolower($data['name']), '.17 hmr') ||
+                str_contains(strtolower($data['name']), '.17 wsm')) {
+                $data['ignition'] = 'rimfire';
+            }
+
+            FirearmCalibre::updateOrCreate(
+                ['normalized_name' => $data['normalized_name']],
+                $data
+            );
+            $count++;
+        }
+
+        fclose($handle);
+        $this->command->info("Seeded {$count} calibres from CSV.");
+    }
+
+    /**
+     * Seed additional calibres not in CSV.
+     */
+    protected function seedAdditionalCalibres(): void
     {
         $calibres = [
             // ===== HANDGUN - RIMFIRE =====
@@ -199,6 +273,6 @@ class FirearmCalibreSeeder extends Seeder
             $count++;
         }
 
-        $this->command->info("Seeded {$count} firearm calibres.");
+        $this->command->info("Seeded {$count} additional calibres.");
     }
 }
