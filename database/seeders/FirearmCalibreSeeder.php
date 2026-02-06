@@ -71,8 +71,9 @@ class FirearmCalibreSeeder extends Seeder
                 $data['ignition'] = 'rimfire';
             }
 
+            // Use name for lookup since it has unique constraint
             FirearmCalibre::updateOrCreate(
-                ['normalized_name' => $data['normalized_name']],
+                ['name' => $data['name']],
                 $data
             );
             $count++;
@@ -252,8 +253,9 @@ class FirearmCalibreSeeder extends Seeder
             $data['is_obsolete'] = $data['is_obsolete'] ?? false;
             $data['is_wildcat'] = $data['is_wildcat'] ?? false;
             
+            // Use name for lookup since it has unique constraint
             $calibre = FirearmCalibre::updateOrCreate(
-                ['normalized_name' => $data['normalized_name']],
+                ['name' => $data['name']],
                 $data
             );
             
