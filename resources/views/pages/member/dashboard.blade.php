@@ -6,6 +6,7 @@ use App\Models\MemberDocument;
 use App\Models\EndorsementRequest;
 use App\Models\Certificate;
 use App\Models\ShootingActivity;
+use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
@@ -91,6 +92,23 @@ new #[Title('Dashboard')] class extends Component {
     public function needsMembership(): bool
     {
         return !$this->activeMembership && !$this->latestMembership;
+    }
+
+    #[Computed]
+    public function pendingPaymentMembership()
+    {
+        // Get membership that is awaiting payment (applied status with payment reference)
+        return $this->user->memberships()
+            ->where('status', 'applied')
+            ->whereNotNull('payment_reference')
+            ->with('type')
+            ->first();
+    }
+
+    #[Computed]
+    public function bankAccount(): array
+    {
+        return SystemSetting::getBankAccount();
     }
 
     #[Computed]
@@ -194,6 +212,94 @@ new #[Title('Dashboard')] class extends Component {
         </a>
         @endif
     </div>
+
+    {{-- Payment Awaiting Confirmation Banner --}}
+    @if($this->pendingPaymentMembership)
+    <div class="rounded-xl border-2 border-amber-300 bg-amber-50 p-6 dark:border-amber-600 dark:bg-amber-900/20">
+        <div class="flex items-start gap-4">
+            <div class="flex size-12 flex-shrink-0 items-center justify-center rounded-lg bg-amber-200 dark:bg-amber-800">
+                <svg class="size-6 text-amber-700 dark:text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-lg font-semibold text-amber-800 dark:text-amber-200">Payment Awaiting Confirmation</h3>
+                <p class="mt-1 text-sm text-amber-700 dark:text-amber-300">
+                    Your {{ $this->pendingPaymentMembership->type->name }} membership application is pending payment confirmation.
+                </p>
+
+                <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                    {{-- Payment Reference --}}
+                    <div>
+                        <p class="text-xs font-medium text-amber-600 dark:text-amber-400 mb-1">YOUR PAYMENT REFERENCE</p>
+                        <div 
+                            x-data="{ copied: false }"
+                            x-on:click="navigator.clipboard.writeText('{{ $this->pendingPaymentMembership->payment_reference }}'); copied = true; setTimeout(() => copied = false, 2000)"
+                            class="cursor-pointer"
+                        >
+                            <div class="flex items-center justify-between gap-2 p-3 bg-white dark:bg-zinc-800 rounded-lg border-2 border-dashed border-amber-400 dark:border-amber-600 hover:border-amber-500 transition-colors">
+                                <span class="text-lg font-mono font-bold text-zinc-900 dark:text-white">{{ $this->pendingPaymentMembership->payment_reference }}</span>
+                                <div class="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                                    <svg x-show="!copied" class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                    </svg>
+                                    <svg x-show="copied" x-cloak class="size-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                    <span x-text="copied ? 'Copied!' : 'Copy'" class="text-xs font-medium"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Amount Due --}}
+                    <div>
+                        <p class="text-xs font-medium text-amber-600 dark:text-amber-400 mb-1">AMOUNT TO PAY</p>
+                        <div class="p-3 bg-white dark:bg-zinc-800 rounded-lg border border-amber-200 dark:border-amber-700">
+                            <span class="text-lg font-bold text-amber-800 dark:text-amber-200">R{{ number_format($this->pendingPaymentMembership->type->price, 2) }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Bank Account Details --}}
+                <div class="mt-4 bg-white/50 dark:bg-zinc-800/50 rounded-lg p-4">
+                    <h4 class="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-3">Bank Account Details</h4>
+                    <dl class="grid gap-x-4 gap-y-2 text-sm sm:grid-cols-2">
+                        <div class="flex justify-between sm:flex-col sm:gap-0.5">
+                            <dt class="text-amber-600 dark:text-amber-400">Bank:</dt>
+                            <dd class="font-medium text-amber-800 dark:text-amber-200">{{ $this->bankAccount['bank_name'] ?: 'To be confirmed' }}</dd>
+                        </div>
+                        <div class="flex justify-between sm:flex-col sm:gap-0.5">
+                            <dt class="text-amber-600 dark:text-amber-400">Account Name:</dt>
+                            <dd class="font-medium text-amber-800 dark:text-amber-200">{{ $this->bankAccount['account_name'] ?: 'To be confirmed' }}</dd>
+                        </div>
+                        <div class="flex justify-between sm:flex-col sm:gap-0.5">
+                            <dt class="text-amber-600 dark:text-amber-400">Account Number:</dt>
+                            <dd class="font-mono font-medium text-amber-800 dark:text-amber-200">{{ $this->bankAccount['account_number'] ?: 'To be confirmed' }}</dd>
+                        </div>
+                        <div class="flex justify-between sm:flex-col sm:gap-0.5">
+                            <dt class="text-amber-600 dark:text-amber-400">Branch Code:</dt>
+                            <dd class="font-mono font-medium text-amber-800 dark:text-amber-200">{{ $this->bankAccount['branch_code'] ?: 'To be confirmed' }}</dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <div class="mt-4 flex flex-wrap items-center gap-3">
+                    <a href="{{ route('membership.show', $this->pendingPaymentMembership) }}" wire:navigate 
+                       class="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 transition-colors">
+                        View Full Details
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+                    <p class="text-xs text-amber-600 dark:text-amber-400">
+                        Your membership will be activated once payment is confirmed (1-3 business days).
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
     {{-- Action Required Notifications --}}
     @if($this->pendingDocuments->count() > 0 || $this->rejectedDocuments->count() > 0 || $this->rejectedActivities->count() > 0 || $this->showEndorsementStatus)

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Membership;
+use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -17,6 +18,12 @@ new #[Title('Membership Details')] class extends Component {
         }
 
         $this->membership = $membership->load(['type', 'approver', 'certificates.certificateType']);
+    }
+
+    #[Computed]
+    public function bankAccount(): array
+    {
+        return SystemSetting::getBankAccount();
     }
 
     public function getStatusClasses(): string
@@ -105,6 +112,33 @@ new #[Title('Membership Details')] class extends Component {
         <div class="flex items-center justify-between p-3 bg-white/50 dark:bg-zinc-800/50 rounded-lg mb-4">
             <span class="text-amber-700 dark:text-amber-300 font-medium">Amount to Pay:</span>
             <span class="text-xl font-bold text-amber-800 dark:text-amber-200">R{{ number_format($this->membership->type->price, 2) }}</span>
+        </div>
+
+        {{-- Bank Account Details --}}
+        <div class="bg-white/50 dark:bg-zinc-800/50 rounded-lg p-4 mb-4">
+            <h4 class="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-3">Bank Account Details</h4>
+            <dl class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <dt class="text-amber-600 dark:text-amber-400">Bank:</dt>
+                    <dd class="font-medium text-amber-800 dark:text-amber-200">{{ $this->bankAccount['bank_name'] ?: 'To be confirmed' }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-amber-600 dark:text-amber-400">Account Name:</dt>
+                    <dd class="font-medium text-amber-800 dark:text-amber-200">{{ $this->bankAccount['account_name'] ?: 'To be confirmed' }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-amber-600 dark:text-amber-400">Account Number:</dt>
+                    <dd class="font-mono font-medium text-amber-800 dark:text-amber-200">{{ $this->bankAccount['account_number'] ?: 'To be confirmed' }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-amber-600 dark:text-amber-400">Branch Code:</dt>
+                    <dd class="font-mono font-medium text-amber-800 dark:text-amber-200">{{ $this->bankAccount['branch_code'] ?: 'To be confirmed' }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-amber-600 dark:text-amber-400">Account Type:</dt>
+                    <dd class="font-medium text-amber-800 dark:text-amber-200">{{ $this->bankAccount['account_type'] ?: 'To be confirmed' }}</dd>
+                </div>
+            </dl>
         </div>
 
         <p class="text-sm text-amber-700 dark:text-amber-300">

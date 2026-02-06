@@ -19,6 +19,9 @@ class SidebarMenu
 
         // 1. MEMBER AREA (only visible to members OR admin/owner/dev viewing as member)
         if ($showMemberArea) {
+        // Check if user has an active membership
+        $hasActiveMembership = $user->activeMembership !== null;
+        
         $memberAreaItems = [
             [
                 'label' => 'Dashboard',
@@ -34,71 +37,74 @@ class SidebarMenu
             ],
         ];
 
-        // Add active member-only items (require membership.required middleware)
-        $activeMemberItems = [
-            [
-                'label' => 'Documents',
-                'route' => 'documents.index',
-                'icon' => 'document',
-                'roles' => ['member', 'admin', 'owner', 'developer'],
-            ],
-            [
-                'label' => 'Activities',
-                'route' => 'activities.index',
-                'icon' => 'clipboard',
-                'roles' => ['member', 'admin', 'owner', 'developer'],
-            ],
-            [
-                'label' => 'Virtual Safe',
-                'route' => 'armoury.index',
-                'icon' => 'shield-check',
-                'roles' => ['member', 'admin', 'owner', 'developer'],
-            ],
-            [
-                'label' => 'Endorsements',
-                'route' => 'member.endorsements.index',
-                'icon' => 'document-check',
-                'roles' => ['member', 'admin', 'owner', 'developer'],
-            ],
-            [
-                'label' => 'Certificates',
-                'route' => $user->isDeveloper() 
-                    ? 'developer.certificates.index' 
-                    : ($user->isOwner() 
-                        ? 'owner.certificates.index' 
-                        : ($user->isAdmin() 
-                            ? 'admin.certificates.index' 
-                            : 'certificates.index')),
-                'icon' => 'badge-check',
-                'roles' => ['member', 'admin', 'owner', 'developer'],
-            ],
-        ];
+        // Only show these items if user has active membership (or is admin/owner/dev not viewing as member)
+        if ($hasActiveMembership || ($isAdminRole && !$viewingAsMember)) {
+            // Add active member-only items (require membership.required middleware)
+            $activeMemberItems = [
+                [
+                    'label' => 'Documents',
+                    'route' => 'documents.index',
+                    'icon' => 'document',
+                    'roles' => ['member', 'admin', 'owner', 'developer'],
+                ],
+                [
+                    'label' => 'Activities',
+                    'route' => 'activities.index',
+                    'icon' => 'clipboard',
+                    'roles' => ['member', 'admin', 'owner', 'developer'],
+                ],
+                [
+                    'label' => 'Virtual Safe',
+                    'route' => 'armoury.index',
+                    'icon' => 'shield-check',
+                    'roles' => ['member', 'admin', 'owner', 'developer'],
+                ],
+                [
+                    'label' => 'Endorsements',
+                    'route' => 'member.endorsements.index',
+                    'icon' => 'document-check',
+                    'roles' => ['member', 'admin', 'owner', 'developer'],
+                ],
+                [
+                    'label' => 'Certificates',
+                    'route' => $user->isDeveloper() 
+                        ? 'developer.certificates.index' 
+                        : ($user->isOwner() 
+                            ? 'owner.certificates.index' 
+                            : ($user->isAdmin() 
+                                ? 'admin.certificates.index' 
+                                : 'certificates.index')),
+                    'icon' => 'badge-check',
+                    'roles' => ['member', 'admin', 'owner', 'developer'],
+                ],
+            ];
 
-        // Learning items under collapsible group (Certificates moved above)
-        $learningItems = [
-            [
-                'label' => 'Learning Center',
+            // Learning items under collapsible group (Certificates moved above)
+            $learningItems = [
+                [
+                    'label' => 'Learning Center',
+                    'route' => 'learning.index',
+                    'icon' => 'book-open',
+                ],
+                [
+                    'label' => 'Knowledge Tests',
+                    'route' => 'knowledge-test.index',
+                    'icon' => 'academic-cap',
+                ],
+            ];
+
+            $memberAreaItems = array_merge($memberAreaItems, $activeMemberItems);
+            
+            // Add Learning group (collapsible) - after Certificates and Endorsements
+            $memberAreaItems[] = [
+                'label' => 'Learning',
                 'route' => 'learning.index',
                 'icon' => 'book-open',
-            ],
-            [
-                'label' => 'Knowledge Tests',
-                'route' => 'knowledge-test.index',
-                'icon' => 'academic-cap',
-            ],
-        ];
-
-        $memberAreaItems = array_merge($memberAreaItems, $activeMemberItems);
-        
-        // Add Learning group (collapsible) - after Certificates and Endorsements
-        $memberAreaItems[] = [
-            'label' => 'Learning',
-            'route' => 'learning.index',
-            'icon' => 'book-open',
-            'roles' => ['member', 'admin', 'owner', 'developer'],
-            'collapsible' => true,
-            'children' => $learningItems,
-        ];
+                'roles' => ['member', 'admin', 'owner', 'developer'],
+                'collapsible' => true,
+                'children' => $learningItems,
+            ];
+        }
 
             $menu[] = [
                 'section' => 'MEMBER AREA',
