@@ -259,17 +259,18 @@ class FirearmCalibreSeeder extends Seeder
                 $data
             );
             
-            // Add aliases
+            // Add aliases (skip if normalized alias already exists)
             foreach ($aliases as $alias) {
-                FirearmCalibreAlias::updateOrCreate(
-                    [
+                $normalizedAlias = FirearmCalibre::normalize($alias);
+                // Check if this normalized alias already exists for ANY calibre
+                $existingAlias = FirearmCalibreAlias::where('normalized_alias', $normalizedAlias)->first();
+                if (!$existingAlias) {
+                    FirearmCalibreAlias::create([
                         'firearm_calibre_id' => $calibre->id,
                         'alias' => $alias,
-                    ],
-                    [
-                        'normalized_alias' => FirearmCalibre::normalize($alias),
-                    ]
-                );
+                        'normalized_alias' => $normalizedAlias,
+                    ]);
+                }
             }
             
             $count++;
