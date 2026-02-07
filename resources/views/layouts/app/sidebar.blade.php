@@ -169,6 +169,15 @@
                     </a>
                 </header>
 
+                <!-- Page Header -->
+                @if(isset($header))
+                <div class="bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 px-4 sm:px-6 lg:px-8 py-4">
+                    <div class="max-w-7xl mx-auto">
+                        {{ $header }}
+                    </div>
+                </div>
+                @endif
+
                 <!-- Page Content -->
                 <main class="flex-1 p-4 sm:p-6 lg:p-8 bg-white dark:bg-zinc-800 lg:bg-zinc-100 lg:dark:bg-zinc-900">
                     <div class="max-w-7xl mx-auto">
