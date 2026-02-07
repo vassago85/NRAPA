@@ -12,14 +12,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Modify question_type enum to include new types
-        // MySQL requires recreating the enum
-        DB::statement("ALTER TABLE knowledge_test_questions MODIFY COLUMN question_type ENUM('multiple_choice', 'multiple_select', 'priority_order', 'written') DEFAULT 'multiple_choice'");
+        // Modify question_type enum to include new types (MySQL only, SQLite uses TEXT)
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE knowledge_test_questions MODIFY COLUMN question_type ENUM('multiple_choice', 'multiple_select', 'priority_order', 'written') DEFAULT 'multiple_choice'");
+        }
 
         // Add correct_answers column for multi-select and priority questions
-        Schema::table('knowledge_test_questions', function (Blueprint $table) {
-            $table->json('correct_answers')->nullable()->after('correct_answer')->comment('Array of correct answers for multi-select/priority questions');
-        });
+        if (!Schema::hasColumn('knowledge_test_questions', 'correct_answers')) {
+            Schema::table('knowledge_test_questions', function (Blueprint $table) {
+                $table->json('correct_answers')->nullable()->after('correct_answer')->comment('Array of correct answers for multi-select/priority questions');
+            });
+        }
     }
 
     /**
@@ -31,7 +34,9 @@ return new class extends Migration
             $table->dropColumn('correct_answers');
         });
 
-        // Revert enum back to original values
-        DB::statement("ALTER TABLE knowledge_test_questions MODIFY COLUMN question_type ENUM('multiple_choice', 'written') DEFAULT 'multiple_choice'");
+        // Revert enum back to original values (MySQL only)
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE knowledge_test_questions MODIFY COLUMN question_type ENUM('multiple_choice', 'written') DEFAULT 'multiple_choice'");
+        }
     }
 };

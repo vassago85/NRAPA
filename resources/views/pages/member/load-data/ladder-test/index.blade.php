@@ -76,10 +76,13 @@ new class extends Component {
                         {{ $test->name }}
                     </a>
                     <div class="mt-1 flex flex-wrap items-center gap-3 text-sm text-zinc-500">
+                        @if($test->isSeatingDepth())
+                            <span class="inline-flex items-center rounded-full bg-nrapa-orange/10 text-nrapa-orange px-2 py-0.5 text-xs font-medium">Seating Depth</span>
+                        @endif
                         @if($test->calibre)
                             <span class="font-medium text-nrapa-orange">{{ $test->calibre }}</span>
                         @endif
-                        <span>{{ $test->start_charge }}gr &rarr; {{ $test->end_charge }}gr ({{ $test->increment }}gr steps)</span>
+                        <span>{{ rtrim(rtrim($test->start_charge, '0'), '.') }}{{ $test->unit_label }} &rarr; {{ rtrim(rtrim($test->end_charge, '0'), '.') }}{{ $test->unit_label }} ({{ rtrim(rtrim($test->increment, '0'), '.') }}{{ $test->unit_label }} steps)</span>
                         <span>{{ $test->steps->count() }} steps &times; {{ $test->rounds_per_step }} = {{ $test->total_rounds }} rounds</span>
                     </div>
                     @if($test->userFirearm)
@@ -87,7 +90,7 @@ new class extends Component {
                     @endif
                     @if($test->best_step)
                         <p class="mt-1 text-xs text-green-600 dark:text-green-400">
-                            Best: Step {{ $test->best_step->step_number }} ({{ $test->best_step->charge_weight }}gr) &mdash; SD: {{ $test->best_step->sd }}
+                            Best: Step {{ $test->best_step->step_number }} ({{ rtrim(rtrim($test->best_step->charge_weight, '0'), '.') }}{{ $test->unit_label }}) &mdash; SD: {{ $test->best_step->sd }}
                         </p>
                     @endif
                 </div>

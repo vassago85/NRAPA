@@ -19,7 +19,7 @@ class LadderTestStep extends Model
     ];
 
     protected $casts = [
-        'charge_weight' => 'decimal:1',
+        'charge_weight' => 'decimal:3',
         'velocities' => 'array',
         'group_size' => 'decimal:2',
         'es' => 'integer',

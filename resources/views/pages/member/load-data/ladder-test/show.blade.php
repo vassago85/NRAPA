@@ -87,7 +87,7 @@ new class extends Component {
         foreach ($this->test->steps as $step) {
             $chartData[] = [
                 'step' => $step->step_number,
-                'charge' => (float) $step->charge_weight,
+                'charge' => floatval(rtrim(rtrim($step->charge_weight, '0'), '.')),
                 'avgVelocity' => $step->average_velocity ? (int) $step->average_velocity : null,
                 'sd' => $step->sd,
                 'es' => $step->es,
@@ -118,8 +118,11 @@ new class extends Component {
                 <div>
                     <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">{{ $test->name }}</h1>
                     <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                        {{ $test->start_charge }}gr &rarr; {{ $test->end_charge }}gr
-                        ({{ $test->increment }}gr steps)
+                        @if($test->isSeatingDepth())
+                            <span class="inline-flex items-center rounded-full bg-nrapa-orange/10 text-nrapa-orange px-2 py-0.5 text-xs font-medium mr-1">Seating Depth</span>
+                        @endif
+                        {{ rtrim(rtrim($test->start_charge, '0'), '.') }}{{ $test->unit_label }} &rarr; {{ rtrim(rtrim($test->end_charge, '0'), '.') }}{{ $test->unit_label }}
+                        ({{ rtrim(rtrim($test->increment, '0'), '.') }}{{ $test->unit_label }} steps)
                         @if($test->calibre) &mdash; {{ $test->calibre }} @endif
                     </p>
                 </div>
@@ -150,7 +153,7 @@ new class extends Component {
         </div>
         @if($test->best_step)
             <div class="rounded-lg border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20 p-4 text-center">
-                <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ $test->best_step->charge_weight }}gr</p>
+                <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ rtrim(rtrim($test->best_step->charge_weight, '0'), '.') }}{{ $test->unit_label }}</p>
                 <p class="text-xs text-green-600 dark:text-green-400">Best (SD: {{ $test->best_step->sd }})</p>
             </div>
         @else
@@ -197,7 +200,7 @@ new class extends Component {
     <!-- Velocity / SD / ES Line Graph -->
     @if($hasAnyResults)
         <div class="mb-6 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6"
-             x-data="ladderChart({{ Js::from($chartData) }})"
+             x-data="ladderChart({{ Js::from($chartData) }}, {{ Js::from($test->unit_label) }}, {{ Js::from($test->type_label) }})"
              x-init="init()"
              wire:key="ladder-chart-{{ collect($chartData)->map(fn($d) => ($d['avgVelocity'] ?? 0) . ($d['sd'] ?? 0))->implode('-') }}">
             <div class="flex items-center justify-between mb-4">
@@ -232,7 +235,7 @@ new class extends Component {
                             {{ $step->step_number }}
                         </span>
                         <div>
-                            <span class="text-lg font-bold text-zinc-900 dark:text-white">{{ $step->charge_weight }}gr</span>
+                            <span class="text-lg font-bold text-zinc-900 dark:text-white">{{ rtrim(rtrim($step->charge_weight, '0'), '.') }}{{ $test->unit_label }}</span>
                             @if($bestStepId === $step->id)
                                 <span class="ml-2 inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Best SD</span>
                             @endif
@@ -297,9 +300,11 @@ new class extends Component {
 
 @script
 <script>
-Alpine.data('ladderChart', (initialData) => ({
+Alpine.data('ladderChart', (initialData, unitLabel = 'gr', typeLabel = 'Powder Charge') => ({
     chartInstance: null,
     data: initialData,
+    unitLabel: unitLabel,
+    typeLabel: typeLabel,
 
     init() {
         this.$nextTick(() => this.renderChart());
@@ -315,7 +320,8 @@ Alpine.data('ladderChart', (initialData) => ({
             this.chartInstance = null;
         }
 
-        const labels = this.data.map(d => d.charge + 'gr');
+        const unit = this.unitLabel;
+        const labels = this.data.map(d => d.charge + unit);
 
         // Velocity data (left Y axis)
         const velocityData = this.data.map(d => d.avgVelocity);
@@ -419,7 +425,7 @@ Alpine.data('ladderChart', (initialData) => ({
 
         const scales = {
             x: {
-                title: { display: true, text: 'Charge Weight (gr)', color: textColor, font: { weight: '600' } },
+                title: { display: true, text: this.typeLabel + ' (' + this.unitLabel + ')', color: textColor, font: { weight: '600' } },
                 grid: { color: gridColor },
                 ticks: { color: textColor },
             }
@@ -471,7 +477,7 @@ Alpine.data('ladderChart', (initialData) => ({
                         padding: 12,
                         cornerRadius: 8,
                         callbacks: {
-                            title: (items) => 'Charge: ' + items[0].label,
+                            title: (items) => this.typeLabel + ': ' + items[0].label,
                         }
                     },
                 },

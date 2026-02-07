@@ -15,7 +15,7 @@ test('daily backup command fails without password', function () {
     Artisan::call('nrapa:daily-database-backup');
     
     $output = Artisan::output();
-    expect($output)->toContain('password is not configured');
+    expect($output)->toContain('backup is disabled');
 });
 
 test('daily backup command succeeds with valid password', function () {

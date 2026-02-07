@@ -21,6 +21,8 @@ class LadderTest extends Model
         'bullet_type',
         'powder_type',
         'primer_type',
+        'test_type',
+        'value_unit',
         'start_charge',
         'end_charge',
         'increment',
@@ -30,11 +32,41 @@ class LadderTest extends Model
 
     protected $casts = [
         'bullet_weight' => 'decimal:1',
-        'start_charge' => 'decimal:1',
-        'end_charge' => 'decimal:1',
-        'increment' => 'decimal:2',
+        'start_charge' => 'decimal:3',
+        'end_charge' => 'decimal:3',
+        'increment' => 'decimal:3',
         'rounds_per_step' => 'integer',
     ];
+
+    public function isPowderCharge(): bool
+    {
+        return ($this->test_type ?? 'powder_charge') === 'powder_charge';
+    }
+
+    public function isSeatingDepth(): bool
+    {
+        return $this->test_type === 'seating_depth';
+    }
+
+    /**
+     * Get a human-friendly unit label (e.g., "gr", "mm", "in").
+     */
+    public function getUnitLabelAttribute(): string
+    {
+        return match ($this->value_unit) {
+            'inches' => '"',
+            'mm' => 'mm',
+            default => 'gr',
+        };
+    }
+
+    /**
+     * Get the type label for display.
+     */
+    public function getTypeLabelAttribute(): string
+    {
+        return $this->isSeatingDepth() ? 'Seating Depth' : 'Powder Charge';
+    }
 
     protected static function boot()
     {
@@ -95,14 +127,16 @@ class LadderTest extends Model
         return $query->where('user_id', $userId);
     }
 
-    public static function generateSteps(float $startCharge, float $endCharge, float $increment): array
+    public static function generateSteps(float $startCharge, float $endCharge, float $increment, int $precision = 1): array
     {
         $steps = [];
         $stepNumber = 1;
-        for ($charge = $startCharge; $charge <= $endCharge + 0.001; $charge += $increment) {
+        // Use epsilon based on precision to avoid floating-point cutoff
+        $epsilon = pow(10, -($precision + 1));
+        for ($value = $startCharge; $value <= $endCharge + $epsilon; $value += $increment) {
             $steps[] = [
                 'step_number' => $stepNumber,
-                'charge_weight' => round($charge, 1),
+                'charge_weight' => round($value, $precision),
             ];
             $stepNumber++;
         }

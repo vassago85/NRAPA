@@ -3,6 +3,7 @@
 use App\Models\LoadData;
 use App\Models\UserFirearm;
 use App\Models\FirearmCalibre;
+use App\Models\ReloadingInventory;
 use Livewire\Component;
 
 new class extends Component {
@@ -13,6 +14,12 @@ new class extends Component {
     public ?int $user_firearm_id = null;
     public ?int $calibre_id = null;
     public string $status = 'development';
+
+    // Inventory links
+    public ?int $powder_inventory_id = null;
+    public ?int $primer_inventory_id = null;
+    public ?int $bullet_inventory_id = null;
+    public ?int $brass_inventory_id = null;
 
     // Bullet
     public string $bullet_make = '';
@@ -54,7 +61,7 @@ new class extends Component {
     public ?float $tested_temperature = null;
     public ?int $tested_altitude = null;
 
-    // Cost tracking
+    // Cost tracking (snapshot prices)
     public ?float $powder_price_per_kg = null;
     public ?float $primer_price_per_unit = null;
     public ?float $bullet_price_per_unit = null;
@@ -92,12 +99,67 @@ new class extends Component {
         }
     }
 
+    public function updatedPowderInventoryId($value): void
+    {
+        if ($value) {
+            $inv = ReloadingInventory::find($value);
+            if ($inv) {
+                $this->powder_make = $inv->make;
+                $this->powder_type = $inv->name;
+                $this->powder_price_per_kg = $inv->price_for_load;
+            }
+        } else {
+            $this->powder_price_per_kg = null;
+        }
+    }
+
+    public function updatedPrimerInventoryId($value): void
+    {
+        if ($value) {
+            $inv = ReloadingInventory::find($value);
+            if ($inv) {
+                $this->primer_make = $inv->make;
+                $this->primer_type = $inv->name;
+                $this->primer_price_per_unit = $inv->price_for_load;
+            }
+        } else {
+            $this->primer_price_per_unit = null;
+        }
+    }
+
+    public function updatedBulletInventoryId($value): void
+    {
+        if ($value) {
+            $inv = ReloadingInventory::find($value);
+            if ($inv) {
+                $this->bullet_make = $inv->make;
+                $this->bullet_model = $inv->name;
+                $this->bullet_price_per_unit = $inv->price_for_load;
+            }
+        } else {
+            $this->bullet_price_per_unit = null;
+        }
+    }
+
+    public function updatedBrassInventoryId($value): void
+    {
+        if ($value) {
+            $inv = ReloadingInventory::find($value);
+            if ($inv) {
+                $this->brass_make = $inv->make . ' ' . $inv->name;
+                $this->brass_price_per_unit = $inv->price_for_load;
+            }
+        } else {
+            $this->brass_price_per_unit = null;
+        }
+    }
+
     public function save(): void
     {
         $this->validate([
             'name' => ['required', 'string', 'max:255'],
             'user_firearm_id' => ['nullable', 'exists:user_firearms,id'],
-            'calibre_id' => ['nullable', 'exists:calibres,id'],
+            'calibre_id' => ['nullable', 'exists:firearm_calibres,id'],
             'status' => ['required', 'in:development,tested,approved,retired'],
             'bullet_weight' => ['nullable', 'numeric', 'min:0'],
             'bullet_bc' => ['nullable', 'numeric', 'min:0', 'max:1'],
@@ -145,6 +207,10 @@ new class extends Component {
             'primer_price_per_unit' => $this->primer_price_per_unit,
             'bullet_price_per_unit' => $this->bullet_price_per_unit,
             'brass_price_per_unit' => $this->brass_price_per_unit,
+            'powder_inventory_id' => $this->powder_inventory_id,
+            'primer_inventory_id' => $this->primer_inventory_id,
+            'bullet_inventory_id' => $this->bullet_inventory_id,
+            'brass_inventory_id' => $this->brass_inventory_id,
             'is_favorite' => $this->is_favorite,
             'is_max_load' => $this->is_max_load,
             'notes' => $this->notes ?: null,
@@ -157,11 +223,16 @@ new class extends Component {
 
     public function with(): array
     {
+        $userId = auth()->id();
         return [
-            'firearms' => UserFirearm::forUser(auth()->id())->active()->with(['firearmCalibre', 'firearmMake', 'firearmModel'])->get(),
+            'firearms' => UserFirearm::forUser($userId)->active()->with(['firearmCalibre', 'firearmMake', 'firearmModel'])->get(),
             'calibres' => FirearmCalibre::active()->ordered()->get(),
             'bulletTypes' => LoadData::bulletTypes(),
             'statuses' => LoadData::statuses(),
+            'powderInventory' => ReloadingInventory::forUser($userId)->ofType('powder')->orderBy('make')->orderBy('name')->get(),
+            'primerInventory' => ReloadingInventory::forUser($userId)->ofType('primer')->orderBy('make')->orderBy('name')->get(),
+            'bulletInventory' => ReloadingInventory::forUser($userId)->ofType('bullet')->orderBy('make')->orderBy('name')->get(),
+            'brassInventory' => ReloadingInventory::forUser($userId)->ofType('brass')->orderBy('make')->orderBy('name')->get(),
         ];
     }
 }; ?>
@@ -230,6 +301,18 @@ new class extends Component {
         <!-- Projectile -->
         <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Projectile / Bullet</h2>
+            @if($bulletInventory->count() > 0)
+                <div class="mb-4 p-3 bg-zinc-50 dark:bg-zinc-700/30 rounded-lg">
+                    <label class="block text-xs font-medium text-nrapa-blue mb-1">Select from inventory</label>
+                    <select wire:model.live="bullet_inventory_id"
+                            class="w-full rounded-lg border border-nrapa-blue/30 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                        <option value="">-- Manual entry --</option>
+                        @foreach($bulletInventory as $inv)
+                            <option value="{{ $inv->id }}">{{ $inv->load_dropdown_label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            @endif
             <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Make</label>
@@ -271,6 +354,34 @@ new class extends Component {
         <!-- Powder & Primer -->
         <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Powder & Primer</h2>
+
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 mb-4">
+                @if($powderInventory->count() > 0)
+                    <div class="p-3 bg-zinc-50 dark:bg-zinc-700/30 rounded-lg">
+                        <label class="block text-xs font-medium text-nrapa-blue mb-1">Powder from inventory</label>
+                        <select wire:model.live="powder_inventory_id"
+                                class="w-full rounded-lg border border-nrapa-blue/30 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                            <option value="">-- Manual entry --</option>
+                            @foreach($powderInventory as $inv)
+                                <option value="{{ $inv->id }}">{{ $inv->load_dropdown_label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                @endif
+                @if($primerInventory->count() > 0)
+                    <div class="p-3 bg-zinc-50 dark:bg-zinc-700/30 rounded-lg">
+                        <label class="block text-xs font-medium text-nrapa-blue mb-1">Primer from inventory</label>
+                        <select wire:model.live="primer_inventory_id"
+                                class="w-full rounded-lg border border-nrapa-blue/30 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                            <option value="">-- Manual entry --</option>
+                            @foreach($primerInventory as $inv)
+                                <option value="{{ $inv->id }}">{{ $inv->load_dropdown_label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                @endif
+            </div>
+
             <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Powder Make</label>
@@ -307,6 +418,18 @@ new class extends Component {
         <!-- Brass & Seating -->
         <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Brass & Seating</h2>
+            @if($brassInventory->count() > 0)
+                <div class="mb-4 p-3 bg-zinc-50 dark:bg-zinc-700/30 rounded-lg">
+                    <label class="block text-xs font-medium text-nrapa-blue mb-1">Brass from inventory</label>
+                    <select wire:model.live="brass_inventory_id"
+                            class="w-full rounded-lg border border-nrapa-blue/30 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                        <option value="">-- Manual entry --</option>
+                        @foreach($brassInventory as $inv)
+                            <option value="{{ $inv->id }}">{{ $inv->load_dropdown_label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            @endif
             <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Brass Make</label>
@@ -384,33 +507,39 @@ new class extends Component {
             </div>
         </div>
 
-        <!-- Cost Tracking -->
-        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
-            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Cost Tracking (Optional)</h2>
-            <p class="text-sm text-zinc-500 mb-4">Add component prices to calculate your cost per round.</p>
-            <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Powder Price (R/kg)</label>
-                    <input type="number" wire:model="powder_price_per_kg" step="0.01" placeholder="e.g., 850.00"
-                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Primer Price (R/unit)</label>
-                    <input type="number" wire:model="primer_price_per_unit" step="0.01" placeholder="e.g., 1.50"
-                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Bullet Price (R/unit)</label>
-                    <input type="number" wire:model="bullet_price_per_unit" step="0.01" placeholder="e.g., 12.50"
-                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Brass Price (R/unit)</label>
-                    <input type="number" wire:model="brass_price_per_unit" step="0.01" placeholder="e.g., 25.00"
-                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+        <!-- Cost Summary (auto-filled from inventory or manual) -->
+        @if($powder_price_per_kg || $primer_price_per_unit || $bullet_price_per_unit || $brass_price_per_unit)
+            <div class="rounded-lg border border-nrapa-orange/30 bg-nrapa-orange-light dark:bg-nrapa-orange/5 p-6">
+                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-2">Cost Preview</h2>
+                <p class="text-xs text-zinc-500 mb-3">Prices pulled from inventory selections above.</p>
+                <div class="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+                    @if($powder_price_per_kg)
+                        <div class="rounded-lg bg-white dark:bg-zinc-800 p-3 text-center">
+                            <p class="text-xs text-zinc-500">Powder</p>
+                            <p class="font-bold text-nrapa-orange">~R{{ number_format($powder_price_per_kg * 0.453592, 0) }}/lb</p>
+                        </div>
+                    @endif
+                    @if($primer_price_per_unit)
+                        <div class="rounded-lg bg-white dark:bg-zinc-800 p-3 text-center">
+                            <p class="text-xs text-zinc-500">Primer</p>
+                            <p class="font-bold text-nrapa-orange">R{{ number_format($primer_price_per_unit * 100, 0) }}/100</p>
+                        </div>
+                    @endif
+                    @if($bullet_price_per_unit)
+                        <div class="rounded-lg bg-white dark:bg-zinc-800 p-3 text-center">
+                            <p class="text-xs text-zinc-500">Bullet</p>
+                            <p class="font-bold text-nrapa-orange">R{{ number_format($bullet_price_per_unit * 100, 0) }}/100</p>
+                        </div>
+                    @endif
+                    @if($brass_price_per_unit)
+                        <div class="rounded-lg bg-white dark:bg-zinc-800 p-3 text-center">
+                            <p class="text-xs text-zinc-500">Brass</p>
+                            <p class="font-bold text-nrapa-orange">R{{ number_format($brass_price_per_unit * 50, 0) }}/50</p>
+                        </div>
+                    @endif
                 </div>
             </div>
-        </div>
+        @endif
 
         <!-- Safety & Notes -->
         <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">

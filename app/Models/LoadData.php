@@ -54,6 +54,10 @@ class LoadData extends Model
         'primer_price_per_unit',
         'bullet_price_per_unit',
         'brass_price_per_unit',
+        'powder_inventory_id',
+        'primer_inventory_id',
+        'bullet_inventory_id',
+        'brass_inventory_id',
         'safety_notes',
     ];
 
@@ -117,18 +121,45 @@ class LoadData extends Model
         return $this->hasMany(LadderTest::class);
     }
 
+    // Inventory relationships
+    public function powderInventory(): BelongsTo
+    {
+        return $this->belongsTo(ReloadingInventory::class, 'powder_inventory_id');
+    }
+
+    public function primerInventory(): BelongsTo
+    {
+        return $this->belongsTo(ReloadingInventory::class, 'primer_inventory_id');
+    }
+
+    public function bulletInventory(): BelongsTo
+    {
+        return $this->belongsTo(ReloadingInventory::class, 'bullet_inventory_id');
+    }
+
+    public function brassInventory(): BelongsTo
+    {
+        return $this->belongsTo(ReloadingInventory::class, 'brass_inventory_id');
+    }
+
     // Legacy calibre relationship removed - LoadData uses calibre_id for legacy data only
 
     // Accessors
 
     /**
-     * Get calibre name from user firearm if available, otherwise null.
+     * Get calibre name from user firearm if available, or from direct calibre_id.
      */
     public function getCalibreNameAttribute(): ?string
     {
         if ($this->userFirearm && $this->userFirearm->calibre_display) {
             return $this->userFirearm->calibre_display;
         }
+
+        // Standalone load (no firearm linked) — look up calibre directly
+        if ($this->calibre_id) {
+            return \App\Models\FirearmCalibre::find($this->calibre_id)?->name;
+        }
+
         return null;
     }
 

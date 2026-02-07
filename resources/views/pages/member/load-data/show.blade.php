@@ -27,7 +27,7 @@ new class extends Component {
             abort(403);
         }
 
-        $this->load = $load->load(['userFirearm', 'userFirearm.firearmCalibre']);
+        $this->load = $load->load(['userFirearm', 'userFirearm.firearmCalibre', 'powderInventory', 'primerInventory', 'bulletInventory', 'brassInventory']);
         $this->ammo_date = now()->format('Y-m-d');
     }
 
@@ -329,29 +329,72 @@ new class extends Component {
                     <dl class="grid grid-cols-2 gap-3 text-sm">
                         @if($load->bullet_price_per_unit)
                             <div class="flex justify-between col-span-2">
-                                <span class="text-zinc-500">Bullet</span>
-                                <span class="text-zinc-900 dark:text-white">R{{ number_format($load->bullet_price_per_unit, 2) }}</span>
+                                <span class="text-zinc-500">
+                                    Bullet
+                                    @if($load->bulletInventory)
+                                        <span class="text-xs text-nrapa-blue ml-1">({{ $load->bulletInventory->display_name }})</span>
+                                    @endif
+                                </span>
+                                <span class="text-zinc-900 dark:text-white">R{{ number_format($load->bullet_price_per_unit, 2) }}<span class="text-zinc-400 text-xs ml-1">(~R{{ number_format($load->bullet_price_per_unit * 100, 0) }}/100)</span></span>
                             </div>
                         @endif
                         @if($load->powder_price_per_kg && $load->powder_charge)
                             <div class="flex justify-between col-span-2">
-                                <span class="text-zinc-500">Powder ({{ $load->powder_charge }}gr)</span>
-                                <span class="text-zinc-900 dark:text-white">R{{ number_format(($load->powder_price_per_kg / 1000) * ($load->powder_charge * 0.0648), 2) }}</span>
+                                <span class="text-zinc-500">
+                                    Powder ({{ $load->powder_charge }}gr)
+                                    @if($load->powderInventory)
+                                        <span class="text-xs text-nrapa-blue ml-1">({{ $load->powderInventory->display_name }})</span>
+                                    @endif
+                                </span>
+                                <span class="text-zinc-900 dark:text-white">R{{ number_format(($load->powder_price_per_kg / 1000) * ($load->powder_charge * 0.0648), 2) }}<span class="text-zinc-400 text-xs ml-1">(~R{{ number_format($load->powder_price_per_kg * 0.453592, 0) }}/lb)</span></span>
                             </div>
                         @endif
                         @if($load->primer_price_per_unit)
                             <div class="flex justify-between col-span-2">
-                                <span class="text-zinc-500">Primer</span>
-                                <span class="text-zinc-900 dark:text-white">R{{ number_format($load->primer_price_per_unit, 2) }}</span>
+                                <span class="text-zinc-500">
+                                    Primer
+                                    @if($load->primerInventory)
+                                        <span class="text-xs text-nrapa-blue ml-1">({{ $load->primerInventory->display_name }})</span>
+                                    @endif
+                                </span>
+                                <span class="text-zinc-900 dark:text-white">R{{ number_format($load->primer_price_per_unit, 2) }}<span class="text-zinc-400 text-xs ml-1">(~R{{ number_format($load->primer_price_per_unit * 100, 0) }}/100)</span></span>
                             </div>
                         @endif
                         @if($load->brass_price_per_unit)
                             <div class="flex justify-between col-span-2">
-                                <span class="text-zinc-500">Brass (÷{{ max($load->brass_firings ?: 1, 1) }} firings)</span>
-                                <span class="text-zinc-900 dark:text-white">R{{ number_format($load->brass_price_per_unit / max($load->brass_firings ?: 1, 1), 2) }}</span>
+                                <span class="text-zinc-500">
+                                    Brass (÷{{ max($load->brass_firings ?: 1, 1) }} firings)
+                                    @if($load->brassInventory)
+                                        <span class="text-xs text-nrapa-blue ml-1">({{ $load->brassInventory->display_name }})</span>
+                                    @endif
+                                </span>
+                                <span class="text-zinc-900 dark:text-white">R{{ number_format($load->brass_price_per_unit / max($load->brass_firings ?: 1, 1), 2) }}<span class="text-zinc-400 text-xs ml-1">(R{{ number_format($load->brass_price_per_unit, 0) }}/case)</span></span>
                             </div>
                         @endif
                     </dl>
+                    @if($load->powderInventory || $load->bulletInventory || $load->primerInventory || $load->brassInventory)
+                        @php
+                            $priceChanged = false;
+                            if ($load->powderInventory && $load->powderInventory->price_for_load && $load->powder_price_per_kg) {
+                                $priceChanged = $priceChanged || abs($load->powderInventory->price_for_load - $load->powder_price_per_kg) > 0.5;
+                            }
+                            if ($load->bulletInventory && $load->bulletInventory->price_for_load && $load->bullet_price_per_unit) {
+                                $priceChanged = $priceChanged || abs($load->bulletInventory->price_for_load - $load->bullet_price_per_unit) > 0.01;
+                            }
+                            if ($load->primerInventory && $load->primerInventory->price_for_load && $load->primer_price_per_unit) {
+                                $priceChanged = $priceChanged || abs($load->primerInventory->price_for_load - $load->primer_price_per_unit) > 0.01;
+                            }
+                            if ($load->brassInventory && $load->brassInventory->price_for_load && $load->brass_price_per_unit) {
+                                $priceChanged = $priceChanged || abs($load->brassInventory->price_for_load - $load->brass_price_per_unit) > 0.01;
+                            }
+                        @endphp
+                        @if($priceChanged)
+                            <p class="mt-3 text-xs text-amber-600 dark:text-amber-400">
+                                <svg class="inline h-3.5 w-3.5 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01"></path></svg>
+                                Inventory prices have changed since this load was saved. Edit the load to update.
+                            </p>
+                        @endif
+                    @endif
                 </div>
             @endif
 
