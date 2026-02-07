@@ -44,9 +44,12 @@ new class extends Component {
         }
     }
 
-    public function addItem(): void
+    public function addItem(?string $type = null): void
     {
         $this->resetForm();
+        if ($type && in_array($type, ['powder', 'primer', 'bullet', 'brass'])) {
+            $this->form_type = $type;
+        }
         $this->showForm = true;
         $this->showRestockForm = false;
         $this->updatedFormType();
@@ -265,16 +268,34 @@ new class extends Component {
                 <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Virtual Safe</h1>
                 <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Track your powder, primers, bullets, and brass purchases</p>
             </div>
-            <button wire:click="addItem"
-                    class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                </svg>
-                New Component
-            </button>
         </div>
         <x-virtual-safe-tabs current="inventory" />
     </x-slot>
+
+    <!-- Quick-add buttons -->
+    <div class="mb-6 flex flex-wrap items-center gap-2">
+        <span class="text-sm font-medium text-zinc-500 dark:text-zinc-400 mr-1">Add:</span>
+        <button wire:click="addItem('powder')"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-nrapa-blue text-nrapa-blue px-3 py-1.5 text-sm font-medium hover:bg-nrapa-blue hover:text-white transition-colors">
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            Powder
+        </button>
+        <button wire:click="addItem('primer')"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-nrapa-blue text-nrapa-blue px-3 py-1.5 text-sm font-medium hover:bg-nrapa-blue hover:text-white transition-colors">
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            Primer
+        </button>
+        <button wire:click="addItem('bullet')"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-nrapa-blue text-nrapa-blue px-3 py-1.5 text-sm font-medium hover:bg-nrapa-blue hover:text-white transition-colors">
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            Bullet
+        </button>
+        <button wire:click="addItem('brass')"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-nrapa-blue text-nrapa-blue px-3 py-1.5 text-sm font-medium hover:bg-nrapa-blue hover:text-white transition-colors">
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            Brass
+        </button>
+    </div>
 
     @if(session('success'))
         <div class="mb-6 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-4 py-3 text-sm text-green-700 dark:text-green-300">
