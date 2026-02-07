@@ -32,21 +32,23 @@ new class extends Component {
 
 <div>
     <x-slot name="header">
-        <div class="flex items-center justify-between mb-4">
-            <div>
-                <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Virtual Safe</h1>
-                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Incremental charge testing for load development</p>
-            </div>
-            <a href="{{ route('ladder-test.create') }}" wire:navigate
-               class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                </svg>
-                New Ladder Test
-            </a>
+        <div class="mb-4">
+            <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Virtual Safe</h1>
+            <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Incremental charge testing for load development</p>
         </div>
         <x-virtual-safe-tabs current="ladder" />
     </x-slot>
+
+    <!-- Action Bar -->
+    <div class="mb-6">
+        <a href="{{ route('ladder-test.create') }}" wire:navigate
+           class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            New Ladder Test
+        </a>
+    </div>
 
     @if(session('success'))
         <div class="mb-6 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-4 py-3 text-sm text-green-700 dark:text-green-300">
