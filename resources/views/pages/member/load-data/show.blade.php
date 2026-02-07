@@ -254,7 +254,7 @@ new class extends Component {
                         <dd class="font-medium text-zinc-900 dark:text-white">{{ $load->bullet_type ?? '—' }}</dd>
                     </div>
                     <div>
-                        <dt class="text-sm text-zinc-500">BC (G1)</dt>
+                        <dt class="text-sm text-zinc-500">BC ({{ $load->bullet_bc_type ?? 'G1' }})</dt>
                         <dd class="font-medium text-zinc-900 dark:text-white">{{ $load->bullet_bc ?? '—' }}</dd>
                     </div>
                 </dl>

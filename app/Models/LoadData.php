@@ -24,6 +24,7 @@ class LoadData extends Model
         'bullet_model',
         'bullet_weight',
         'bullet_bc',
+        'bullet_bc_type',
         'bullet_type',
         'powder_make',
         'powder_type',

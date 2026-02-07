@@ -20,6 +20,7 @@ new class extends Component {
     public string $bullet_model = '';
     public ?float $bullet_weight = null;
     public ?float $bullet_bc = null;
+    public string $bullet_bc_type = 'G1';
     public string $bullet_type = '';
 
     // Powder
@@ -88,6 +89,7 @@ new class extends Component {
         $this->bullet_model = $load->bullet_model ?? '';
         $this->bullet_weight = $load->bullet_weight;
         $this->bullet_bc = $load->bullet_bc;
+        $this->bullet_bc_type = $load->bullet_bc_type ?? 'G1';
         $this->bullet_type = $load->bullet_type ?? '';
         $this->powder_make = $load->powder_make ?? '';
         $this->powder_type = $load->powder_type ?? '';
@@ -189,6 +191,7 @@ new class extends Component {
             'bullet_model' => $this->bullet_model ?: null,
             'bullet_weight' => $this->bullet_weight,
             'bullet_bc' => $this->bullet_bc,
+            'bullet_bc_type' => $this->bullet_bc_type,
             'bullet_type' => $this->bullet_type ?: null,
             'powder_make' => $this->powder_make ?: null,
             'powder_type' => $this->powder_type ?: null,
@@ -338,9 +341,16 @@ new class extends Component {
                            class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">BC (G1)</label>
-                    <input type="number" wire:model="bullet_bc" step="0.001"
-                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Ballistic Coefficient</label>
+                    <div class="flex gap-2">
+                        <input type="number" wire:model="bullet_bc" step="0.001"
+                               class="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                        <select wire:model="bullet_bc_type"
+                                class="w-20 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-2 py-2 text-sm text-zinc-900 dark:text-white">
+                            <option value="G1">G1</option>
+                            <option value="G7">G7</option>
+                        </select>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Type</label>

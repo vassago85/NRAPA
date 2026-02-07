@@ -260,17 +260,10 @@ new class extends Component {
 
 <div>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <a href="{{ route('load-data.index') }}" wire:navigate class="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                    </svg>
-                </a>
-                <div>
-                    <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Reloading Inventory</h1>
-                    <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Track your powder, primers, bullets, and brass purchases</p>
-                </div>
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Virtual Safe</h1>
+                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Track your powder, primers, bullets, and brass purchases</p>
             </div>
             <button wire:click="addItem"
                     class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
@@ -280,6 +273,7 @@ new class extends Component {
                 New Component
             </button>
         </div>
+        <x-virtual-safe-tabs current="inventory" />
     </x-slot>
 
     @if(session('success'))

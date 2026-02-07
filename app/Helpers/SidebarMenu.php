@@ -386,6 +386,20 @@ class SidebarMenu
             }
         }
         
+        // Virtual Safe sidebar item should highlight on all related pages
+        if ($route === 'armoury.index') {
+            $virtualSafeRoutes = [
+                'armoury.*',
+                'load-data.*',
+                'ladder-test.*',
+            ];
+            foreach ($virtualSafeRoutes as $vsRoute) {
+                if (request()->routeIs($vsRoute)) {
+                    return true;
+                }
+            }
+        }
+        
         // Approvals sidebar item should highlight on all approval-related pages
         if ($route === 'admin.approvals.index') {
             $approvalRoutes = [

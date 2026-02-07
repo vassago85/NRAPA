@@ -82,29 +82,20 @@ new class extends Component {
 
 <div>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between mb-4">
             <div>
-                <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Load Data</h1>
-                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Store and manage your reloading recipes and load development data</p>
+                <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Virtual Safe</h1>
+                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Reloading recipes and load development data</p>
             </div>
-            <div class="flex items-center gap-2">
-                <a href="{{ route('load-data.inventory') }}" wire:navigate
-                   class="inline-flex items-center gap-2 rounded-lg border border-nrapa-blue text-nrapa-blue px-4 py-2 text-sm font-medium hover:bg-nrapa-blue-light dark:hover:bg-nrapa-blue/10">
-                    Inventory
-                </a>
-                <a href="{{ route('ladder-test.index') }}" wire:navigate
-                   class="inline-flex items-center gap-2 rounded-lg border border-nrapa-orange text-nrapa-orange px-4 py-2 text-sm font-medium hover:bg-nrapa-orange-light dark:hover:bg-nrapa-orange/10">
-                    Ladder Tests
-                </a>
-                <a href="{{ route('load-data.create') }}" wire:navigate
-                   class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                    </svg>
-                    New Load
-                </a>
-            </div>
+            <a href="{{ route('load-data.create') }}" wire:navigate
+               class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                New Load
+            </a>
         </div>
+        <x-virtual-safe-tabs current="loads" />
     </x-slot>
 
     <!-- Filters -->
