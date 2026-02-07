@@ -18,7 +18,7 @@ class UserFirearm extends Model
         'user_id',
         'firearm_type_id', // Legacy FK, kept for backwards compatibility
         'firearm_type',    // SAPS 271 canonical: rifle|shotgun|handgun|hand_machine_carbine|combination
-        'action',          // SAPS 271: semi_automatic|automatic|manual|other
+        'action',          // semi_automatic|automatic|bolt_action|pump_action|lever_action|manual|other
         'other_action_text', // When action = 'other'
         'calibre_code',    // SAPS calibre code
         'make',
@@ -199,7 +199,10 @@ class UserFirearm extends Model
     public function getActionLabelAttribute(): ?string
     {
         return match($this->action) {
+            'bolt_action' => 'Bolt Action',
             'semi_automatic' => 'Semi-Automatic',
+            'lever_action' => 'Lever Action',
+            'pump_action' => 'Pump Action',
             'automatic' => 'Automatic',
             'manual' => 'Manual',
             'other' => $this->other_action_text ?? 'Other',

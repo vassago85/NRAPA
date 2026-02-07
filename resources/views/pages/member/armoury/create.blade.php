@@ -5,8 +5,11 @@ use App\Models\FirearmCalibre;
 use App\Models\FirearmMake;
 use App\Models\FirearmModel;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 new class extends Component {
+    use WithFileUploads;
+
     // Essential fields only
     public string $nickname = '';
     public string $firearm_type = '';
@@ -17,6 +20,7 @@ new class extends Component {
     public string $serial_number = '';
     public string $license_number = '';
     public ?string $license_expiry_date = null;
+    public $firearm_image = null;
 
     // Search helpers
     public string $calibre_search = '';
@@ -26,7 +30,7 @@ new class extends Component {
     {
         return [
             'firearm_type' => ['required', 'in:rifle,shotgun,handgun,hand_machine_carbine,combination'],
-            'action' => ['required', 'in:semi_automatic,automatic,manual,other'],
+            'action' => ['required', 'in:semi_automatic,automatic,bolt_action,pump_action,lever_action,manual,other'],
             'serial_number' => ['required', 'string', 'max:255'],
             'nickname' => ['nullable', 'string', 'max:255'],
             'firearm_calibre_id' => ['nullable', 'exists:firearm_calibres,id'],
@@ -34,6 +38,7 @@ new class extends Component {
             'firearm_model_id' => ['nullable', 'exists:firearm_models,id'],
             'license_number' => ['nullable', 'string', 'max:100'],
             'license_expiry_date' => ['nullable', 'date'],
+            'firearm_image' => ['nullable', 'image', 'max:5120'],
         ];
     }
 
@@ -61,7 +66,7 @@ new class extends Component {
         $make = $this->firearm_make_id ? FirearmMake::find($this->firearm_make_id) : null;
         $model = $this->firearm_model_id ? FirearmModel::find($this->firearm_model_id) : null;
 
-        $firearm = UserFirearm::create([
+        $data = [
             'user_id' => auth()->id(),
             'firearm_type' => $this->firearm_type,
             'action' => $this->action,
@@ -74,7 +79,13 @@ new class extends Component {
             'receiver_serial_number' => $this->serial_number,
             'license_number' => $this->license_number ?: null,
             'license_expiry_date' => $this->license_expiry_date ?: null,
-        ]);
+        ];
+
+        if ($this->firearm_image) {
+            $data['image_path'] = $this->firearm_image->store('firearms', 'public');
+        }
+
+        $firearm = UserFirearm::create($data);
 
         // Create a single receiver component for the serial
         \App\Models\FirearmComponent::create([
@@ -163,9 +174,12 @@ new class extends Component {
                         <select wire:model="action"
                                 class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
                             <option value="">Select action...</option>
+                            <option value="bolt_action">Bolt Action</option>
                             <option value="semi_automatic">Semi-Automatic</option>
+                            <option value="lever_action">Lever Action</option>
+                            <option value="pump_action">Pump Action</option>
                             <option value="automatic">Automatic</option>
-                            <option value="manual">Manual (Bolt / Pump / Lever)</option>
+                            <option value="manual">Manual (Other)</option>
                             <option value="other">Other</option>
                         </select>
                         @error('action') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
@@ -230,6 +244,19 @@ new class extends Component {
                                class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
                         <p class="mt-1 text-xs text-zinc-400">You'll get reminders before it expires.</p>
                     </div>
+                </div>
+
+                <!-- Photo -->
+                <div>
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Photo <span class="text-zinc-400 font-normal">(optional)</span></label>
+                    <input type="file" wire:model="firearm_image" accept="image/*"
+                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-nrapa-blue-light file:text-nrapa-blue">
+                    @error('firearm_image') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    @if($firearm_image)
+                        <div class="mt-2">
+                            <img src="{{ $firearm_image->temporaryUrl() }}" alt="Preview" class="h-24 w-auto rounded-lg object-cover border border-zinc-200 dark:border-zinc-600">
+                        </div>
+                    @endif
                 </div>
 
             </div>

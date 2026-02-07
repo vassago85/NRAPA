@@ -128,7 +128,7 @@ new class extends Component {
     {
         return [
             'firearm_type' => ['required', 'in:rifle,shotgun,handgun,hand_machine_carbine,combination'],
-            'action' => ['required', 'in:semi_automatic,automatic,manual,other'],
+            'action' => ['required', 'in:semi_automatic,automatic,bolt_action,pump_action,lever_action,manual,other'],
             'other_action_text' => ['required_if:action,other', 'nullable', 'string', 'max:255'],
             'serial_number' => ['required', 'string', 'max:255'],
             'nickname' => ['nullable', 'string', 'max:255'],
@@ -336,9 +336,12 @@ new class extends Component {
                         <select wire:model="action"
                                 class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
                             <option value="">Select action...</option>
+                            <option value="bolt_action">Bolt Action</option>
                             <option value="semi_automatic">Semi-Automatic</option>
+                            <option value="lever_action">Lever Action</option>
+                            <option value="pump_action">Pump Action</option>
                             <option value="automatic">Automatic</option>
-                            <option value="manual">Manual (Bolt / Pump / Lever)</option>
+                            <option value="manual">Manual (Other)</option>
                             <option value="other">Other</option>
                         </select>
                         @error('action') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
@@ -403,6 +406,24 @@ new class extends Component {
                                class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
                         <p class="mt-1 text-xs text-zinc-400">You'll get reminders before it expires.</p>
                     </div>
+                </div>
+
+                <!-- Photo -->
+                <div>
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Photo <span class="text-zinc-400 font-normal">(optional)</span></label>
+                    <input type="file" wire:model="firearm_image" accept="image/*"
+                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-nrapa-blue-light file:text-nrapa-blue">
+                    @error('firearm_image') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    @if($firearm_image && !is_string($firearm_image))
+                        <div class="mt-2">
+                            <img src="{{ $firearm_image->temporaryUrl() }}" alt="Preview" class="h-24 w-auto rounded-lg object-cover border border-zinc-200 dark:border-zinc-600">
+                        </div>
+                    @elseif($firearm->image_path)
+                        <div class="mt-2 flex items-center gap-2">
+                            <img src="{{ Storage::disk('public')->url($firearm->image_path) }}" alt="Current photo" class="h-24 w-auto rounded-lg object-cover border border-zinc-200 dark:border-zinc-600">
+                            <span class="text-xs text-zinc-400">Current photo — upload new to replace</span>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
