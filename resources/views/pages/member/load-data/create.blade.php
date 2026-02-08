@@ -85,7 +85,7 @@ new class extends Component {
             
             if ($firearm) {
                 $this->user_firearm_id = $firearm->id;
-                $this->calibre_id = $firearm->calibre_id;
+                $this->calibre_id = $firearm->firearm_calibre_id;
             }
         }
     }
@@ -94,9 +94,11 @@ new class extends Component {
     {
         if ($value) {
             $firearm = UserFirearm::find($value);
-            if ($firearm && $firearm->calibre_id) {
-                $this->calibre_id = $firearm->calibre_id;
+            if ($firearm && $firearm->firearm_calibre_id) {
+                $this->calibre_id = $firearm->firearm_calibre_id;
             }
+        } else {
+            $this->calibre_id = null;
         }
     }
 

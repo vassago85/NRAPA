@@ -126,6 +126,18 @@ new class extends Component {
         $this->safety_notes = $load->safety_notes ?? '';
     }
 
+    public function updatedUserFirearmId($value): void
+    {
+        if ($value) {
+            $firearm = UserFirearm::find($value);
+            if ($firearm && $firearm->firearm_calibre_id) {
+                $this->calibre_id = $firearm->firearm_calibre_id;
+            }
+        } else {
+            $this->calibre_id = null;
+        }
+    }
+
     public function updatedPowderInventoryId($value): void
     {
         if ($value) {
@@ -288,7 +300,7 @@ new class extends Component {
 
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Firearm</label>
-                    <select wire:model="user_firearm_id"
+                    <select wire:model.live="user_firearm_id"
                             class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
                         <option value="">Select firearm...</option>
                         @foreach($firearms as $firearm)
