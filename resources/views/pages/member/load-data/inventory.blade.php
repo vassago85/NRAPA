@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Bullet;
 use App\Models\ReloadingInventory;
 use App\Models\InventoryPurchase;
 use Livewire\Component;
@@ -15,6 +16,15 @@ new class extends Component {
     public string $form_make = '';
     public string $form_name = '';
     public string $form_notes = '';
+
+    // Bullet-specific fields
+    public ?int $bullet_library_id = null;
+    public ?float $form_bullet_weight = null;
+    public ?float $form_bullet_bc = null;
+    public ?float $form_bullet_bc_g7 = null;
+    public string $form_bullet_bc_type = 'G1';
+    public string $form_bullet_type = '';
+    public string $form_calibre = '';
 
     // Purchase form (used for both new items and restock)
     public bool $showRestockForm = false;
@@ -44,6 +54,23 @@ new class extends Component {
         }
     }
 
+    public function updatedBulletLibraryId($value): void
+    {
+        if ($value) {
+            $bullet = Bullet::find($value);
+            if ($bullet) {
+                $this->form_make = $bullet->manufacturer;
+                $this->form_name = $bullet->brand_line . ' ' . $bullet->weight_gr . 'gr';
+                $this->form_bullet_weight = $bullet->weight_gr;
+                $this->form_bullet_bc = $bullet->bc_g1;
+                $this->form_bullet_bc_g7 = $bullet->bc_g7;
+                $this->form_bullet_bc_type = $bullet->bc_g1 ? 'G1' : ($bullet->bc_g7 ? 'G7' : 'G1');
+                $this->form_bullet_type = $bullet->brand_line;
+                $this->form_calibre = $bullet->caliber_label;
+            }
+        }
+    }
+
     public function addItem(?string $type = null): void
     {
         $this->resetForm();
@@ -66,6 +93,11 @@ new class extends Component {
         $this->form_make = $item->make;
         $this->form_name = $item->name;
         $this->form_notes = $item->notes ?? '';
+        $this->form_bullet_weight = $item->bullet_weight;
+        $this->form_bullet_bc = $item->bullet_bc;
+        $this->form_bullet_bc_type = $item->bullet_bc_type ?? 'G1';
+        $this->form_bullet_type = $item->bullet_type ?? '';
+        $this->form_calibre = $item->calibre ?? '';
         $this->showForm = true;
         $this->showRestockForm = false;
     }
@@ -73,25 +105,40 @@ new class extends Component {
     public function save(): void
     {
         if ($this->editingId) {
-            // Editing existing item details (make, name, notes)
-            $this->validate([
+            // Editing existing item details (make, name, notes + bullet fields)
+            $rules = [
                 'form_make' => ['required', 'string', 'max:255'],
                 'form_name' => ['required', 'string', 'max:255'],
-            ]);
+            ];
+            if ($this->form_type === 'bullet') {
+                $rules['form_bullet_weight'] = ['required', 'numeric', 'min:1', 'max:999'];
+                $rules['form_calibre'] = ['required', 'string', 'max:50'];
+            }
+            $this->validate($rules);
+
+            $updateData = [
+                'make' => $this->form_make,
+                'name' => $this->form_name,
+                'notes' => $this->form_notes ?: null,
+            ];
+
+            if ($this->form_type === 'bullet') {
+                $updateData['bullet_weight'] = $this->form_bullet_weight;
+                $updateData['bullet_bc'] = $this->form_bullet_bc;
+                $updateData['bullet_bc_type'] = $this->form_bullet_bc_type;
+                $updateData['bullet_type'] = $this->form_bullet_type ?: null;
+                $updateData['calibre'] = $this->form_calibre ?: null;
+            }
 
             ReloadingInventory::where('id', $this->editingId)
                 ->where('user_id', auth()->id())
-                ->update([
-                    'make' => $this->form_make,
-                    'name' => $this->form_name,
-                    'notes' => $this->form_notes ?: null,
-                ]);
+                ->update($updateData);
 
             $this->showForm = false;
             session()->flash('success', 'Item updated.');
         } else {
             // Creating new item + first purchase
-            $this->validate([
+            $rules = [
                 'form_type' => ['required', 'in:powder,primer,bullet,brass'],
                 'form_make' => ['required', 'string', 'max:255'],
                 'form_name' => ['required', 'string', 'max:255'],
@@ -99,14 +146,19 @@ new class extends Component {
                 'purchase_unit_size' => ['required', 'numeric', 'min:0.01'],
                 'purchase_price' => ['required', 'numeric', 'min:0.01'],
                 'purchase_date' => ['required', 'date'],
-            ]);
+            ];
+            if ($this->form_type === 'bullet') {
+                $rules['form_bullet_weight'] = ['required', 'numeric', 'min:1', 'max:999'];
+                $rules['form_calibre'] = ['required', 'string', 'max:50'];
+            }
+            $this->validate($rules);
 
             $defaults = ReloadingInventory::defaultUnits();
             $unitSize = (float) $this->purchase_unit_size;
             $qtyAdded = $this->purchase_qty * $unitSize;
             $pricePerBase = $this->purchase_price / $qtyAdded;
 
-            $item = ReloadingInventory::create([
+            $createData = [
                 'user_id' => auth()->id(),
                 'type' => $this->form_type,
                 'make' => $this->form_make,
@@ -115,7 +167,17 @@ new class extends Component {
                 'unit' => $defaults[$this->form_type] ?? 'units',
                 'cost_per_unit' => $pricePerBase,
                 'notes' => $this->form_notes ?: null,
-            ]);
+            ];
+
+            if ($this->form_type === 'bullet') {
+                $createData['bullet_weight'] = $this->form_bullet_weight;
+                $createData['bullet_bc'] = $this->form_bullet_bc;
+                $createData['bullet_bc_type'] = $this->form_bullet_bc_type;
+                $createData['bullet_type'] = $this->form_bullet_type ?: null;
+                $createData['calibre'] = $this->form_calibre ?: null;
+            }
+
+            $item = ReloadingInventory::create($createData);
 
             InventoryPurchase::create([
                 'reloading_inventory_id' => $item->id,
@@ -227,6 +289,11 @@ new class extends Component {
         $this->form_make = '';
         $this->form_name = '';
         $this->form_notes = '';
+        $this->form_bullet_weight = null;
+        $this->form_bullet_bc = null;
+        $this->form_bullet_bc_type = 'G1';
+        $this->form_bullet_type = '';
+        $this->form_calibre = '';
         $this->purchase_qty = 1;
         $this->purchase_price = null;
         $this->purchase_date = now()->format('Y-m-d');
@@ -243,9 +310,12 @@ new class extends Component {
         }
 
         if ($this->search) {
-            $query->where(function ($q) {
-                $q->where('make', 'like', '%' . $this->search . '%')
-                  ->orWhere('name', 'like', '%' . $this->search . '%');
+            $search = $this->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('make', 'like', '%' . $search . '%')
+                  ->orWhere('name', 'like', '%' . $search . '%')
+                  ->orWhere('calibre', 'like', '%' . $search . '%')
+                  ->orWhere('bullet_type', 'like', '%' . $search . '%');
             });
         }
 
@@ -255,6 +325,7 @@ new class extends Component {
             'items' => $items,
             'groupedItems' => $items->groupBy('type'),
             'types' => ReloadingInventory::types(),
+            'bulletTypes' => ReloadingInventory::bulletTypes(),
             'purchaseUnits' => ReloadingInventory::purchaseUnits(),
             'lowStockCount' => $items->filter(fn ($i) => $i->is_low_stock)->count(),
         ];
@@ -340,11 +411,55 @@ new class extends Component {
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Name *</label>
-                        <input type="text" wire:model="form_name" placeholder="{{ match($form_type) { 'powder' => 'e.g., H4350, N555, S365', 'primer' => 'e.g., BR2, 210M, KVB-7', 'bullet' => 'e.g., MatchKing 168gr, ELD-X 143gr', 'brass' => 'e.g., .308 Win, 6.5 Creedmoor' } }}"
+                        <input type="text" wire:model="form_name" placeholder="{{ match($form_type) { 'powder' => 'e.g., H4350, N555, S365', 'primer' => 'e.g., BR2, 210M, KVB-7', 'bullet' => 'e.g., MatchKing, ELD-X, A-TIP', 'brass' => 'e.g., .308 Win, 6.5 Creedmoor' } }}"
                                class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
                         @error('form_name') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
                 </div>
+
+                <!-- Bullet Details (shown only for bullet type) -->
+                @if($form_type === 'bullet')
+                <div class="border-t border-zinc-200 dark:border-zinc-700 pt-4">
+                    <h3 class="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-3">Bullet Details</h3>
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
+                        <div>
+                            <label class="block text-xs font-medium text-zinc-500 mb-1">Calibre *</label>
+                            <input type="text" wire:model="form_calibre" placeholder="e.g., .308, 6.5mm, .223"
+                                   class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                            @error('form_calibre') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-zinc-500 mb-1">Weight (gr) *</label>
+                            <input type="number" wire:model="form_bullet_weight" step="0.1" min="1" placeholder="e.g., 168"
+                                   class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                            @error('form_bullet_weight') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-zinc-500 mb-1">Bullet Type</label>
+                            <select wire:model="form_bullet_type"
+                                    class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                                <option value="">-- Select --</option>
+                                @foreach($bulletTypes as $val => $label)
+                                    <option value="{{ $val }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-zinc-500 mb-1">BC</label>
+                            <input type="number" wire:model="form_bullet_bc" step="0.001" min="0" max="1" placeholder="e.g., 0.462"
+                                   class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-zinc-500 mb-1">BC Type</label>
+                            <select wire:model="form_bullet_bc_type"
+                                    class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                                <option value="G1">G1</option>
+                                <option value="G7">G7</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                @endif
 
                 <!-- First Purchase -->
                 <div class="border-t border-zinc-200 dark:border-zinc-700 pt-4">
@@ -425,6 +540,51 @@ new class extends Component {
                                class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
                     </div>
                 </div>
+
+                <!-- Bullet Details (edit) -->
+                @if($form_type === 'bullet')
+                <div class="border-t border-zinc-200 dark:border-zinc-700 pt-4">
+                    <h3 class="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-3">Bullet Details</h3>
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
+                        <div>
+                            <label class="block text-xs font-medium text-zinc-500 mb-1">Calibre *</label>
+                            <input type="text" wire:model="form_calibre" placeholder="e.g., .308, 6.5mm"
+                                   class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                            @error('form_calibre') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-zinc-500 mb-1">Weight (gr) *</label>
+                            <input type="number" wire:model="form_bullet_weight" step="0.1" min="1" placeholder="168"
+                                   class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                            @error('form_bullet_weight') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-zinc-500 mb-1">Bullet Type</label>
+                            <select wire:model="form_bullet_type"
+                                    class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                                <option value="">-- Select --</option>
+                                @foreach($bulletTypes as $val => $label)
+                                    <option value="{{ $val }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-zinc-500 mb-1">BC</label>
+                            <input type="number" wire:model="form_bullet_bc" step="0.001" min="0" max="1" placeholder="0.462"
+                                   class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-zinc-500 mb-1">BC Type</label>
+                            <select wire:model="form_bullet_bc_type"
+                                    class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                                <option value="G1">G1</option>
+                                <option value="G7">G7</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
                 <div class="flex gap-2">
                     <button type="submit" class="rounded-lg bg-nrapa-blue px-6 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">Update</button>
                     <button type="button" wire:click="$set('showForm', false)"
@@ -521,13 +681,19 @@ new class extends Component {
                         <div class="flex items-center justify-between px-5 py-4">
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2">
-                                    <h4 class="font-semibold text-zinc-900 dark:text-white">{{ $item->make }} {{ $item->name }}</h4>
+                                    <h4 class="font-semibold text-zinc-900 dark:text-white">{{ $item->display_name }}</h4>
                                     @if($item->is_low_stock)
                                         <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Low Stock</span>
                                     @endif
                                 </div>
-                                <div class="flex items-center gap-4 mt-1 text-sm text-zinc-500">
+                                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-zinc-500">
                                     <span class="font-medium {{ $item->is_low_stock ? 'text-amber-600' : 'text-zinc-900 dark:text-white' }}">{{ $item->stock_display }} {{ $item->unit }}</span>
+                                    @if($item->type === 'bullet' && $item->calibre)
+                                        <span>{{ $item->calibre }}</span>
+                                    @endif
+                                    @if($item->type === 'bullet' && $item->bullet_bc)
+                                        <span>BC {{ $item->bullet_bc }} ({{ $item->bullet_bc_type ?? 'G1' }})</span>
+                                    @endif
                                     @if($item->friendly_price)
                                         <span class="text-nrapa-orange font-medium">{{ $item->friendly_price }}</span>
                                     @endif

@@ -158,6 +158,17 @@ new class extends Component {
                 $this->bullet_make = $inv->make;
                 $this->bullet_model = $inv->name;
                 $this->bullet_price_per_unit = $inv->price_for_load;
+                // Auto-fill bullet details from inventory
+                if ($inv->bullet_weight) {
+                    $this->bullet_weight = $inv->bullet_weight;
+                }
+                if ($inv->bullet_bc) {
+                    $this->bullet_bc = $inv->bullet_bc;
+                    $this->bullet_bc_type = $inv->bullet_bc_type ?? 'G1';
+                }
+                if ($inv->bullet_type) {
+                    $this->bullet_type = $inv->bullet_type;
+                }
             }
         }
     }

@@ -215,6 +215,12 @@ class SidebarMenu
                         'icon' => 'cube',
                         'roles' => ['admin', 'owner', 'developer'],
                     ],
+                    [
+                        'label' => 'Bullet Database',
+                        'route' => 'admin.bullet-database.index',
+                        'icon' => 'cube',
+                        'roles' => ['admin', 'owner', 'developer'],
+                    ],
                 ],
             ];
         }

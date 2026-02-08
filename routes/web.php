@@ -961,6 +961,12 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
             'Content-Disposition' => 'inline; filename="' . $filename . '"',
         ]);
     })->name('admin.endorsements.download');
+
+    // Bullet Database
+    Route::livewire('bullet-database', 'pages::admin.bullet-database.index')->name('bullet-database.index');
+    Route::livewire('bullet-database/create', 'pages::admin.bullet-database.create')->name('bullet-database.create');
+    Route::livewire('bullet-database/{bullet}/edit', 'pages::admin.bullet-database.edit')->name('bullet-database.edit');
+    Route::livewire('bullet-database/import', 'pages::admin.bullet-database.import')->name('bullet-database.import');
 });
 
 // Public Certificate Verification

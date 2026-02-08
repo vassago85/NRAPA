@@ -15,6 +15,11 @@ class ReloadingInventory extends Model
         'type',
         'make',
         'name',
+        'bullet_weight',
+        'bullet_bc',
+        'bullet_bc_type',
+        'bullet_type',
+        'calibre',
         'quantity',
         'unit',
         'cost_per_unit',
@@ -24,6 +29,8 @@ class ReloadingInventory extends Model
     protected $casts = [
         'quantity' => 'decimal:2',
         'cost_per_unit' => 'decimal:4',
+        'bullet_weight' => 'decimal:1',
+        'bullet_bc' => 'decimal:3',
     ];
 
     public function user(): BelongsTo
@@ -38,7 +45,14 @@ class ReloadingInventory extends Model
 
     public function getDisplayNameAttribute(): string
     {
-        return "{$this->make} {$this->name}";
+        $name = "{$this->make} {$this->name}";
+        if ($this->type === 'bullet' && $this->bullet_weight) {
+            $name .= " {$this->bullet_weight}gr";
+            if ($this->bullet_type) {
+                $name .= " {$this->bullet_type}";
+            }
+        }
+        return $name;
     }
 
     /**
@@ -103,7 +117,7 @@ class ReloadingInventory extends Model
      */
     public function getLoadDropdownLabelAttribute(): string
     {
-        $label = "{$this->make} {$this->name}";
+        $label = $this->display_name;
         $stock = $this->stock_display;
         $price = $this->friendly_price;
 
@@ -143,6 +157,27 @@ class ReloadingInventory extends Model
             'primer' => 'Primer',
             'bullet' => 'Bullet',
             'brass' => 'Brass',
+        ];
+    }
+
+    public static function bulletTypes(): array
+    {
+        return [
+            'HPBT' => 'HPBT (Hollow Point Boat Tail)',
+            'HP' => 'HP (Hollow Point)',
+            'SP' => 'SP (Soft Point)',
+            'FMJ' => 'FMJ (Full Metal Jacket)',
+            'OTM' => 'OTM (Open Tip Match)',
+            'ELD-X' => 'ELD-X',
+            'ELD-M' => 'ELD-M (Match)',
+            'A-TIP' => 'A-TIP (Match)',
+            'ABLR' => 'AccuBond Long Range',
+            'AB' => 'AccuBond',
+            'PT' => 'Partition',
+            'TSX' => 'TSX (Triple Shock)',
+            'TTSX' => 'TTSX (Tipped Triple Shock)',
+            'RN' => 'RN (Round Nose)',
+            'other' => 'Other',
         ];
     }
 
