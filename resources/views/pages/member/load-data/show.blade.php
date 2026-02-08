@@ -247,7 +247,14 @@ new class extends Component {
                     </div>
                     <div>
                         <dt class="text-sm text-zinc-500">Weight</dt>
-                        <dd class="font-medium text-zinc-900 dark:text-white">{{ $load->bullet_weight ? $load->bullet_weight . ' gr' : '—' }}</dd>
+                        <dd class="font-medium text-zinc-900 dark:text-white">
+                            @if($load->bullet_weight)
+                                {{ $load->bullet_weight }} gr
+                                <span class="text-xs text-zinc-400 ml-1">({{ number_format($load->bullet_weight * 0.06479891, 2) }} g)</span>
+                            @else
+                                —
+                            @endif
+                        </dd>
                     </div>
                     <div>
                         <dt class="text-sm text-zinc-500">Type</dt>
@@ -274,7 +281,14 @@ new class extends Component {
                     </div>
                     <div>
                         <dt class="text-sm text-zinc-500">Charge</dt>
-                        <dd class="font-medium text-zinc-900 dark:text-white">{{ $load->powder_charge ? $load->powder_charge . ' gr' : '—' }}</dd>
+                        <dd class="font-medium text-zinc-900 dark:text-white">
+                            @if($load->powder_charge)
+                                {{ $load->powder_charge }} gr
+                                <span class="text-xs text-zinc-400 ml-1">({{ number_format($load->powder_charge * 0.06479891, 2) }} g)</span>
+                            @else
+                                —
+                            @endif
+                        </dd>
                     </div>
                     <div>
                         <dt class="text-sm text-zinc-500">Primer Make</dt>
@@ -305,15 +319,36 @@ new class extends Component {
                     </div>
                     <div>
                         <dt class="text-sm text-zinc-500">COAL</dt>
-                        <dd class="font-medium text-zinc-900 dark:text-white">{{ $load->coal ? $load->coal . '"' : '—' }}</dd>
+                        <dd class="font-medium text-zinc-900 dark:text-white">
+                            @if($load->coal)
+                                {{ $load->coal }}"
+                                <span class="text-xs text-zinc-400 ml-1">({{ number_format($load->coal * 25.4, 2) }} mm)</span>
+                            @else
+                                —
+                            @endif
+                        </dd>
                     </div>
                     <div>
                         <dt class="text-sm text-zinc-500">CBTO</dt>
-                        <dd class="font-medium text-zinc-900 dark:text-white">{{ $load->cbto ? $load->cbto . '"' : '—' }}</dd>
+                        <dd class="font-medium text-zinc-900 dark:text-white">
+                            @if($load->cbto)
+                                {{ $load->cbto }}"
+                                <span class="text-xs text-zinc-400 ml-1">({{ number_format($load->cbto * 25.4, 2) }} mm)</span>
+                            @else
+                                —
+                            @endif
+                        </dd>
                     </div>
                     <div>
                         <dt class="text-sm text-zinc-500">Jump to Lands</dt>
-                        <dd class="font-medium text-zinc-900 dark:text-white">{{ $load->jump_to_lands ? $load->jump_to_lands . '"' : '—' }}</dd>
+                        <dd class="font-medium text-zinc-900 dark:text-white">
+                            @if($load->jump_to_lands)
+                                {{ $load->jump_to_lands }}"
+                                <span class="text-xs text-zinc-400 ml-1">({{ number_format($load->jump_to_lands * 25.4, 2) }} mm)</span>
+                            @else
+                                —
+                            @endif
+                        </dd>
                     </div>
                 </dl>
             </div>
@@ -460,19 +495,28 @@ new class extends Component {
                         @if($load->muzzle_velocity)
                             <div>
                                 <dt class="text-sm text-zinc-500">Muzzle Velocity</dt>
-                                <dd class="text-2xl font-bold text-zinc-900 dark:text-white">{{ number_format($load->muzzle_velocity) }} fps</dd>
+                                <dd class="text-2xl font-bold text-zinc-900 dark:text-white">
+                                    {{ number_format($load->muzzle_velocity) }} fps
+                                    <span class="text-sm font-normal text-zinc-400 ml-1">({{ number_format($load->muzzle_velocity * 0.3048, 0) }} m/s)</span>
+                                </dd>
                             </div>
                         @endif
                         @if($load->velocity_es)
                             <div>
                                 <dt class="text-sm text-zinc-500">Extreme Spread</dt>
-                                <dd class="font-medium text-zinc-900 dark:text-white">{{ $load->velocity_es }} fps</dd>
+                                <dd class="font-medium text-zinc-900 dark:text-white">
+                                    {{ $load->velocity_es }} fps
+                                    <span class="text-xs text-zinc-400 ml-1">({{ number_format($load->velocity_es * 0.3048, 1) }} m/s)</span>
+                                </dd>
                             </div>
                         @endif
                         @if($load->velocity_sd)
                             <div>
                                 <dt class="text-sm text-zinc-500">Standard Deviation</dt>
-                                <dd class="font-medium text-zinc-900 dark:text-white">{{ $load->velocity_sd }} fps</dd>
+                                <dd class="font-medium text-zinc-900 dark:text-white">
+                                    {{ $load->velocity_sd }} fps
+                                    <span class="text-xs text-zinc-400 ml-1">({{ number_format($load->velocity_sd * 0.3048, 1) }} m/s)</span>
+                                </dd>
                             </div>
                         @endif
                         @if($load->group_size)
@@ -480,6 +524,9 @@ new class extends Component {
                                 <dt class="text-sm text-zinc-500">Group Size</dt>
                                 <dd class="text-2xl font-bold text-zinc-900 dark:text-white">
                                     {{ $load->group_size }} {{ $load->group_size_unit === 'moa' ? 'MOA' : '"' }}
+                                    @if($load->group_size_unit === 'inches')
+                                        <span class="text-sm font-normal text-zinc-400 ml-1">({{ number_format($load->group_size * 25.4, 1) }} mm)</span>
+                                    @endif
                                 </dd>
                             </div>
                         @endif

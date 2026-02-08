@@ -62,6 +62,11 @@ new class extends Component {
     public ?int $bullet_inventory_id = null;
     public ?int $brass_inventory_id = null;
 
+    // Unit preferences (display only — DB stores canonical: grains, inches, fps)
+    public string $weight_unit = 'gr';      // gr (grains) or g (grams)
+    public string $seating_unit = 'in';     // in (inches) or mm
+    public string $velocity_unit = 'fps';   // fps or ms (m/s)
+
     // Cost tracking (snapshot)
     public ?float $powder_price_per_kg = null;
     public ?float $primer_price_per_unit = null;
@@ -162,6 +167,51 @@ new class extends Component {
         }
     }
 
+    // --- Unit conversion helpers ---
+    private function grToG(?float $v): ?float { return $v !== null ? round($v * 0.06479891, 2) : null; }
+    private function gToGr(?float $v): ?float { return $v !== null ? round($v / 0.06479891, 1) : null; }
+    private function inToMm(?float $v): ?float { return $v !== null ? round($v * 25.4, 3) : null; }
+    private function mmToIn(?float $v): ?float { return $v !== null ? round($v / 25.4, 4) : null; }
+    private function fpsToMs($v) { return $v !== null ? round($v * 0.3048, 1) : null; }
+    private function msToFps($v) { return $v !== null ? (int) round($v / 0.3048) : null; }
+
+    public function updatedWeightUnit($value): void
+    {
+        if ($value === 'g') {
+            $this->bullet_weight = $this->grToG($this->bullet_weight);
+            $this->powder_charge = $this->grToG($this->powder_charge);
+        } else {
+            $this->bullet_weight = $this->gToGr($this->bullet_weight);
+            $this->powder_charge = $this->gToGr($this->powder_charge);
+        }
+    }
+
+    public function updatedSeatingUnit($value): void
+    {
+        if ($value === 'mm') {
+            $this->coal = $this->inToMm($this->coal);
+            $this->cbto = $this->inToMm($this->cbto);
+            $this->jump_to_lands = $this->inToMm($this->jump_to_lands);
+        } else {
+            $this->coal = $this->mmToIn($this->coal);
+            $this->cbto = $this->mmToIn($this->cbto);
+            $this->jump_to_lands = $this->mmToIn($this->jump_to_lands);
+        }
+    }
+
+    public function updatedVelocityUnit($value): void
+    {
+        if ($value === 'ms') {
+            $this->muzzle_velocity = $this->fpsToMs($this->muzzle_velocity);
+            $this->velocity_es = $this->fpsToMs($this->velocity_es);
+            $this->velocity_sd = $this->fpsToMs($this->velocity_sd);
+        } else {
+            $this->muzzle_velocity = $this->msToFps($this->muzzle_velocity);
+            $this->velocity_es = $this->msToFps($this->velocity_es);
+            $this->velocity_sd = $this->msToFps($this->velocity_sd);
+        }
+    }
+
     public function updatedBulletInventoryId($value): void
     {
         if ($value) {
@@ -170,9 +220,11 @@ new class extends Component {
                 $this->bullet_make = $inv->make;
                 $this->bullet_model = $inv->name;
                 $this->bullet_price_per_unit = $inv->price_for_load;
-                // Auto-fill bullet details from inventory
+                // Auto-fill bullet details from inventory (inventory stores grains)
                 if ($inv->bullet_weight) {
-                    $this->bullet_weight = $inv->bullet_weight;
+                    $this->bullet_weight = $this->weight_unit === 'g'
+                        ? $this->grToG($inv->bullet_weight)
+                        : $inv->bullet_weight;
                 }
                 if ($inv->bullet_bc) {
                     $this->bullet_bc = $inv->bullet_bc;
@@ -205,6 +257,40 @@ new class extends Component {
             'status' => ['required', 'in:development,tested,approved,retired'],
         ]);
 
+        // Convert display values to canonical units (grains, inches, fps) for storage
+        $bulletWeight = $this->bullet_weight;
+        $powderCharge = $this->powder_charge;
+        if ($this->weight_unit === 'g') {
+            $bulletWeight = $this->gToGr($bulletWeight);
+            $powderCharge = $this->gToGr($powderCharge);
+        }
+
+        $coal = $this->coal;
+        $cbto = $this->cbto;
+        $jumpToLands = $this->jump_to_lands;
+        if ($this->seating_unit === 'mm') {
+            $coal = $this->mmToIn($coal);
+            $cbto = $this->mmToIn($cbto);
+            $jumpToLands = $this->mmToIn($jumpToLands);
+        }
+
+        $mv = $this->muzzle_velocity;
+        $es = $this->velocity_es;
+        $sd = $this->velocity_sd;
+        if ($this->velocity_unit === 'ms') {
+            $mv = $this->msToFps($mv);
+            $es = $this->msToFps($es);
+            $sd = $this->msToFps($sd);
+        }
+
+        // Convert group size mm to inches for storage
+        $groupSize = $this->group_size;
+        $groupSizeUnit = $this->group_size_unit;
+        if ($groupSizeUnit === 'mm') {
+            $groupSize = $this->mmToIn($groupSize);
+            $groupSizeUnit = 'inches';
+        }
+
         $this->load->update([
             'user_firearm_id' => $this->user_firearm_id,
             'calibre_id' => $this->calibre_id,
@@ -212,26 +298,26 @@ new class extends Component {
             'status' => $this->status,
             'bullet_make' => $this->bullet_make ?: null,
             'bullet_model' => $this->bullet_model ?: null,
-            'bullet_weight' => $this->bullet_weight,
+            'bullet_weight' => $bulletWeight,
             'bullet_bc' => $this->bullet_bc,
             'bullet_bc_type' => $this->bullet_bc_type,
             'bullet_type' => $this->bullet_type ?: null,
             'powder_make' => $this->powder_make ?: null,
             'powder_type' => $this->powder_type ?: null,
-            'powder_charge' => $this->powder_charge,
+            'powder_charge' => $powderCharge,
             'primer_make' => $this->primer_make ?: null,
             'primer_type' => $this->primer_type ?: null,
             'brass_make' => $this->brass_make ?: null,
             'brass_firings' => $this->brass_firings,
             'brass_annealed' => $this->brass_annealed,
-            'coal' => $this->coal,
-            'cbto' => $this->cbto,
-            'jump_to_lands' => $this->jump_to_lands,
-            'muzzle_velocity' => $this->muzzle_velocity,
-            'velocity_es' => $this->velocity_es,
-            'velocity_sd' => $this->velocity_sd,
-            'group_size' => $this->group_size,
-            'group_size_unit' => $this->group_size_unit,
+            'coal' => $coal,
+            'cbto' => $cbto,
+            'jump_to_lands' => $jumpToLands,
+            'muzzle_velocity' => $mv,
+            'velocity_es' => $es,
+            'velocity_sd' => $sd,
+            'group_size' => $groupSize,
+            'group_size_unit' => $groupSizeUnit,
             'tested_date' => $this->tested_date ?: null,
             'tested_distance' => $this->tested_distance,
             'tested_distance_unit' => $this->tested_distance_unit,
@@ -359,9 +445,16 @@ new class extends Component {
                            class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Weight (gr)</label>
-                    <input type="number" wire:model="bullet_weight" step="0.1"
-                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Weight</label>
+                    <div class="flex gap-2">
+                        <input type="number" wire:model="bullet_weight" step="0.1"
+                               class="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                        <select wire:model.live="weight_unit"
+                                class="w-16 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-2 py-2 text-sm text-zinc-900 dark:text-white">
+                            <option value="gr">gr</option>
+                            <option value="g">g</option>
+                        </select>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Ballistic Coefficient</label>
@@ -429,9 +522,14 @@ new class extends Component {
                            class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Charge (gr)</label>
-                    <input type="number" wire:model="powder_charge" step="0.1"
-                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Charge</label>
+                    <div class="flex gap-2">
+                        <input type="number" wire:model="powder_charge" step="0.1"
+                               class="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                        <span class="inline-flex items-center px-3 rounded-lg border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700 text-xs text-zinc-500 dark:text-zinc-400">
+                            {{ $weight_unit === 'gr' ? 'gr' : 'g' }}
+                        </span>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Primer Make</label>
@@ -479,19 +577,36 @@ new class extends Component {
                     </label>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">COAL (inches)</label>
-                    <input type="number" wire:model="coal" step="0.001"
-                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">COAL</label>
+                    <div class="flex gap-2">
+                        <input type="number" wire:model="coal" step="{{ $seating_unit === 'mm' ? '0.01' : '0.001' }}"
+                               class="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                        <select wire:model.live="seating_unit"
+                                class="w-16 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-2 py-2 text-sm text-zinc-900 dark:text-white">
+                            <option value="in">in</option>
+                            <option value="mm">mm</option>
+                        </select>
+                    </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">CBTO (inches)</label>
-                    <input type="number" wire:model="cbto" step="0.001"
-                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">CBTO</label>
+                    <div class="flex gap-2">
+                        <input type="number" wire:model="cbto" step="{{ $seating_unit === 'mm' ? '0.01' : '0.001' }}"
+                               class="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                        <span class="inline-flex items-center px-3 rounded-lg border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700 text-xs text-zinc-500 dark:text-zinc-400">
+                            {{ $seating_unit }}
+                        </span>
+                    </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Jump to Lands (inches)</label>
-                    <input type="number" wire:model="jump_to_lands" step="0.001"
-                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Jump to Lands</label>
+                    <div class="flex gap-2">
+                        <input type="number" wire:model="jump_to_lands" step="{{ $seating_unit === 'mm' ? '0.01' : '0.001' }}"
+                               class="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                        <span class="inline-flex items-center px-3 rounded-lg border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700 text-xs text-zinc-500 dark:text-zinc-400">
+                            {{ $seating_unit }}
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -501,29 +616,47 @@ new class extends Component {
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Performance Data</h2>
             <div class="grid grid-cols-1 gap-6 md:grid-cols-4">
                 <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Velocity (fps)</label>
-                    <input type="number" wire:model="muzzle_velocity"
-                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Muzzle Velocity</label>
+                    <div class="flex gap-2">
+                        <input type="number" wire:model="muzzle_velocity" step="{{ $velocity_unit === 'ms' ? '0.1' : '1' }}"
+                               class="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                        <select wire:model.live="velocity_unit"
+                                class="w-16 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-2 py-2 text-sm text-zinc-900 dark:text-white">
+                            <option value="fps">fps</option>
+                            <option value="ms">m/s</option>
+                        </select>
+                    </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">ES (fps)</label>
-                    <input type="number" wire:model="velocity_es"
-                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">ES</label>
+                    <div class="flex gap-2">
+                        <input type="number" wire:model="velocity_es" step="{{ $velocity_unit === 'ms' ? '0.1' : '1' }}"
+                               class="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                        <span class="inline-flex items-center px-3 rounded-lg border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700 text-xs text-zinc-500 dark:text-zinc-400">
+                            {{ $velocity_unit === 'fps' ? 'fps' : 'm/s' }}
+                        </span>
+                    </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">SD (fps)</label>
-                    <input type="number" wire:model="velocity_sd"
-                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">SD</label>
+                    <div class="flex gap-2">
+                        <input type="number" wire:model="velocity_sd" step="{{ $velocity_unit === 'ms' ? '0.1' : '1' }}"
+                               class="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                        <span class="inline-flex items-center px-3 rounded-lg border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700 text-xs text-zinc-500 dark:text-zinc-400">
+                            {{ $velocity_unit === 'fps' ? 'fps' : 'm/s' }}
+                        </span>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Group Size</label>
                     <div class="flex gap-2">
                         <input type="number" wire:model="group_size" step="0.01"
-                               class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                               class="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
                         <select wire:model="group_size_unit"
-                                class="rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-2 py-2 text-sm text-zinc-900 dark:text-white">
+                                class="w-16 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-2 py-2 text-sm text-zinc-900 dark:text-white">
                             <option value="moa">MOA</option>
-                            <option value="inches">inches</option>
+                            <option value="inches">in</option>
+                            <option value="mm">mm</option>
                         </select>
                     </div>
                 </div>
