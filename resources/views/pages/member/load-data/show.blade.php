@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\InventoryLog;
 use App\Models\LoadData;
 use App\Models\LoadingSession;
 use App\Models\ReloadingInventory;
@@ -67,6 +68,9 @@ new class extends Component {
     private function deductInventory(int $rounds): void
     {
         $userId = auth()->id();
+        $loadName = $this->load->name;
+        $loadId = $this->load->id;
+        $date = $this->ammo_date;
 
         // Deduct powder (convert grains to grams: 1 grain = 0.0648g)
         if ($this->load->powder_type) {
@@ -77,6 +81,7 @@ new class extends Component {
                 ->first();
             if ($powderInv && $powderGrams > 0) {
                 $powderInv->decrement('quantity', $powderGrams);
+                InventoryLog::record($powderInv->id, $userId, 'usage', -$powderGrams, $rounds, $loadName, $loadId, LoadData::class, null, $date);
             }
         }
 
@@ -88,6 +93,7 @@ new class extends Component {
                 ->first();
             if ($primerInv) {
                 $primerInv->decrement('quantity', $rounds);
+                InventoryLog::record($primerInv->id, $userId, 'usage', -$rounds, $rounds, $loadName, $loadId, LoadData::class, null, $date);
             }
         }
 
@@ -99,6 +105,7 @@ new class extends Component {
                 ->first();
             if ($bulletInv) {
                 $bulletInv->decrement('quantity', $rounds);
+                InventoryLog::record($bulletInv->id, $userId, 'usage', -$rounds, $rounds, $loadName, $loadId, LoadData::class, null, $date);
             }
         }
 
@@ -110,6 +117,7 @@ new class extends Component {
                 ->first();
             if ($brassInv) {
                 $brassInv->decrement('quantity', $rounds);
+                InventoryLog::record($brassInv->id, $userId, 'usage', -$rounds, $rounds, $loadName, $loadId, LoadData::class, null, $date);
             }
         }
     }

@@ -2,6 +2,8 @@
 
 use App\Models\LadderTest;
 use App\Models\LadderTestStep;
+use App\Models\LoadData;
+use App\Models\UserFirearm;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -15,6 +17,7 @@ new class extends Component {
     public array $stepVelocities = [];
     public array $stepGroupSize = [];
     public array $stepNotes = [];
+    public array $editingSteps = [];  // step IDs currently in edit mode
 
     // Unit preferences (display only — DB stores fps, inches)
     public string $velocity_unit = 'fps';   // fps or ms (m/s)
@@ -26,6 +29,19 @@ new class extends Component {
     public array $importPreview = [];
     public array $importErrors = [];
     public bool $importReady = false;
+
+    // Component editing
+    public bool $editingComponents = false;
+    public ?int $edit_load_data_id = null;
+    public ?int $edit_user_firearm_id = null;
+    public string $edit_name = '';
+    public string $edit_calibre = '';
+    public string $edit_bullet_make = '';
+    public ?float $edit_bullet_weight = null;
+    public string $edit_bullet_type = '';
+    public string $edit_powder_type = '';
+    public string $edit_primer_type = '';
+    public string $edit_notes = '';
 
     public function mount(LadderTest $test): void
     {
@@ -40,6 +56,67 @@ new class extends Component {
             $this->stepGroupSize[$step->id] = $step->group_size;
             $this->stepNotes[$step->id] = $step->notes ?? '';
         }
+    }
+
+    public function editComponents(): void
+    {
+        $this->edit_load_data_id = $this->test->load_data_id;
+        $this->edit_user_firearm_id = $this->test->user_firearm_id;
+        $this->edit_name = $this->test->name;
+        $this->edit_calibre = $this->test->calibre ?? '';
+        $this->edit_bullet_make = $this->test->bullet_make ?? '';
+        $this->edit_bullet_weight = $this->test->bullet_weight ? (float) $this->test->bullet_weight : null;
+        $this->edit_bullet_type = $this->test->bullet_type ?? '';
+        $this->edit_powder_type = $this->test->powder_type ?? '';
+        $this->edit_primer_type = $this->test->primer_type ?? '';
+        $this->edit_notes = $this->test->notes ?? '';
+        $this->editingComponents = true;
+    }
+
+    public function cancelEditComponents(): void
+    {
+        $this->editingComponents = false;
+    }
+
+    public function updatedEditLoadDataId($value): void
+    {
+        if ($value) {
+            $load = LoadData::where('id', $value)->where('user_id', auth()->id())->first();
+            if ($load) {
+                $this->edit_user_firearm_id = $load->user_firearm_id;
+                $this->edit_calibre = $load->calibre_name ?? '';
+                $this->edit_bullet_make = $load->bullet_make ?? '';
+                $this->edit_bullet_weight = $load->bullet_weight ? (float) $load->bullet_weight : null;
+                $this->edit_bullet_type = $load->bullet_type ?? '';
+                $this->edit_powder_type = $load->powder_type ?? '';
+                $this->edit_primer_type = $load->primer_type ?? '';
+            }
+        }
+    }
+
+    public function saveComponents(): void
+    {
+        $this->validate([
+            'edit_name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $this->test->update([
+            'load_data_id' => $this->edit_load_data_id ?: null,
+            'user_firearm_id' => $this->edit_user_firearm_id ?: null,
+            'name' => $this->edit_name,
+            'calibre' => $this->edit_calibre ?: null,
+            'bullet_make' => $this->edit_bullet_make ?: null,
+            'bullet_weight' => $this->edit_bullet_weight,
+            'bullet_type' => $this->edit_bullet_type ?: null,
+            'powder_type' => $this->edit_powder_type ?: null,
+            'primer_type' => $this->edit_primer_type ?: null,
+            'notes' => $this->edit_notes ?: null,
+        ]);
+
+        $this->test->load(['userFirearm', 'loadData']);
+        $this->editingComponents = false;
+
+        session()->flash('success', 'Test details updated.');
     }
 
     // --- Unit conversion helpers ---
@@ -75,6 +152,34 @@ new class extends Component {
                 $this->stepGroupSize[$id] = $this->mmToIn((float) $gs);
             }
         }
+    }
+
+    public function editStep(int $stepId): void
+    {
+        // Reload fresh data from DB into form fields (in case they were stale)
+        $step = LadderTestStep::findOrFail($stepId);
+
+        // If user has a non-default unit selected, convert for display
+        if ($this->velocity_unit === 'ms' && $step->velocities) {
+            $converted = array_map(fn ($v) => round($v * 0.3048, 1), $step->velocities);
+            $this->stepVelocities[$stepId] = implode(', ', $converted);
+        } else {
+            $this->stepVelocities[$stepId] = $step->velocities ? implode(', ', $step->velocities) : '';
+        }
+
+        if ($this->group_unit === 'mm' && $step->group_size !== null) {
+            $this->stepGroupSize[$stepId] = $this->inToMm((float) $step->group_size);
+        } else {
+            $this->stepGroupSize[$stepId] = $step->group_size;
+        }
+
+        $this->stepNotes[$stepId] = $step->notes ?? '';
+        $this->editingSteps[$stepId] = true;
+    }
+
+    public function cancelEditStep(int $stepId): void
+    {
+        unset($this->editingSteps[$stepId]);
     }
 
     public function saveStepResults(int $stepId): void
@@ -121,6 +226,9 @@ new class extends Component {
         ]);
 
         $this->test->load('steps');
+
+        // Exit edit mode after saving
+        unset($this->editingSteps[$stepId]);
 
         session()->flash('step_saved_' . $stepId, 'Step ' . $step->step_number . ' results saved.');
     }
@@ -243,6 +351,41 @@ new class extends Component {
         $this->importReady = count($preview) > 0;
     }
 
+    public function deleteTest(): void
+    {
+        $this->test->steps()->delete();
+        $this->test->delete();
+
+        session()->flash('success', 'Ladder test deleted.');
+        $this->redirect(route('ladder-test.index'), navigate: true);
+    }
+
+    public function clearStepResults(int $stepId): void
+    {
+        $step = LadderTestStep::where('id', $stepId)
+            ->whereHas('ladderTest', fn ($q) => $q->where('user_id', auth()->id()))
+            ->firstOrFail();
+
+        $step->update([
+            'velocities' => null,
+            'group_size' => null,
+            'es' => null,
+            'sd' => null,
+            'notes' => null,
+        ]);
+
+        $this->stepVelocities[$stepId] = '';
+        $this->stepGroupSize[$stepId] = null;
+        $this->stepNotes[$stepId] = '';
+
+        $this->test->load('steps');
+
+        // Exit edit mode after clearing
+        unset($this->editingSteps[$stepId]);
+
+        session()->flash('step_saved_' . $stepId, 'Step ' . $step->step_number . ' results cleared.');
+    }
+
     public function importResults(): void
     {
         if (empty($this->importPreview)) return;
@@ -276,6 +419,7 @@ new class extends Component {
         $this->importPreview = [];
         $this->importErrors = [];
         $this->importReady = false;
+        $this->editingSteps = [];  // Exit all edit modes after import
 
         session()->flash('success', "Imported results for {$imported} steps.");
     }
@@ -299,12 +443,20 @@ new class extends Component {
 
         $hasAnyResults = collect($chartData)->contains(fn ($d) => $d['avgVelocity'] !== null);
 
-        return [
+        $data = [
             'steps' => $this->test->steps,
             'bestStepId' => $bestStep?->id,
             'chartData' => $chartData,
             'hasAnyResults' => $hasAnyResults,
         ];
+
+        // Only load these when editing components to avoid unnecessary queries
+        if ($this->editingComponents) {
+            $data['firearms'] = UserFirearm::forUser(auth()->id())->active()->with('firearmCalibre')->get();
+            $data['loads'] = LoadData::forUser(auth()->id())->orderBy('name')->get();
+        }
+
+        return $data;
     }
 }; ?>
 
@@ -344,6 +496,13 @@ new class extends Component {
                     </svg>
                     Print Labels
                 </button>
+                <button wire:click="deleteTest" wire:confirm="Are you sure you want to delete this ladder test? This cannot be undone."
+                        class="inline-flex items-center gap-2 rounded-lg border border-red-300 dark:border-red-600 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    Delete Test
+                </button>
             </div>
         </div>
     </x-slot>
@@ -377,41 +536,162 @@ new class extends Component {
 
     <!-- Component Info -->
     <div class="mb-6 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
-        <div class="grid grid-cols-2 gap-4 md:grid-cols-5 text-sm">
-            @if($test->bullet_make)
-                <div>
-                    <span class="text-zinc-500">Bullet:</span>
-                    <span class="font-medium text-zinc-900 dark:text-white">
-                        {{ $test->bullet_make }}
-                        @if($test->bullet_weight)
-                            {{ $test->bullet_weight }}gr
-                            <span class="text-xs text-zinc-400">({{ number_format($test->bullet_weight * 0.06479891, 2) }}g)</span>
-                        @endif
-                        {{ $test->bullet_type }}
-                    </span>
+        @if($editingComponents)
+            {{-- Editable component form --}}
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Edit Test Details</h2>
+                <button wire:click="cancelEditComponents" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="space-y-5">
+                {{-- Name & Base Load --}}
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-500 mb-1">Test Name *</label>
+                        <input type="text" wire:model="edit_name"
+                               class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                        @error('edit_name') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-500 mb-1">Base Load Recipe</label>
+                        <select wire:model.live="edit_load_data_id"
+                                class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                            <option value="">None</option>
+                            @foreach($loads as $l)
+                                <option value="{{ $l->id }}">{{ $l->display_name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-500 mb-1">Firearm</label>
+                        <select wire:model="edit_user_firearm_id"
+                                class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                            <option value="">None</option>
+                            @foreach($firearms as $f)
+                                <option value="{{ $f->id }}">{{ $f->display_name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
-            @endif
-            @if($test->powder_type)
-                <div>
-                    <span class="text-zinc-500">Powder:</span>
-                    <span class="font-medium text-zinc-900 dark:text-white">{{ $test->powder_type }}</span>
+
+                {{-- Components --}}
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-500 mb-1">Calibre</label>
+                        <input type="text" wire:model="edit_calibre" placeholder="e.g., .308 Win"
+                               class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-500 mb-1">Bullet Make</label>
+                        <input type="text" wire:model="edit_bullet_make"
+                               class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-500 mb-1">Bullet Weight (gr)</label>
+                        <input type="number" wire:model="edit_bullet_weight" step="0.1"
+                               class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                    </div>
                 </div>
-            @endif
-            @if($test->primer_type)
-                <div>
-                    <span class="text-zinc-500">Primer:</span>
-                    <span class="font-medium text-zinc-900 dark:text-white">{{ $test->primer_type }}</span>
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-500 mb-1">Bullet Type</label>
+                        <input type="text" wire:model="edit_bullet_type"
+                               class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-500 mb-1">Powder Type</label>
+                        <input type="text" wire:model="edit_powder_type"
+                               class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-500 mb-1">Primer Type</label>
+                        <input type="text" wire:model="edit_primer_type"
+                               class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                    </div>
                 </div>
-            @endif
-            @if($test->userFirearm)
+
+                {{-- Notes --}}
                 <div>
-                    <span class="text-zinc-500">Firearm:</span>
-                    <a href="{{ route('armoury.show', $test->userFirearm) }}" wire:navigate class="font-medium text-nrapa-blue hover:text-nrapa-blue-dark">{{ $test->userFirearm->display_name }}</a>
+                    <label class="block text-xs font-medium text-zinc-500 mb-1">Notes</label>
+                    <textarea wire:model="edit_notes" rows="2" placeholder="Test notes..."
+                              class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white"></textarea>
                 </div>
+
+                {{-- Actions --}}
+                <div class="flex items-center gap-3 pt-2">
+                    <button wire:click="saveComponents"
+                            wire:loading.attr="disabled"
+                            class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
+                        <span wire:loading.remove wire:target="saveComponents">Save Changes</span>
+                        <span wire:loading wire:target="saveComponents">Saving...</span>
+                    </button>
+                    <button wire:click="cancelEditComponents"
+                            class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        @else
+            {{-- Read-only component display --}}
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Components</h3>
+                <button wire:click="editComponents"
+                        class="inline-flex items-center gap-1 rounded-lg border border-nrapa-blue/40 px-2.5 py-1 text-xs font-medium text-nrapa-blue hover:bg-nrapa-blue/5 dark:text-nrapa-blue-light dark:hover:bg-nrapa-blue/10">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                    </svg>
+                    Edit
+                </button>
+            </div>
+            <div class="grid grid-cols-2 gap-4 md:grid-cols-5 text-sm">
+                @if($test->bullet_make || $test->bullet_weight || $test->bullet_type)
+                    <div>
+                        <span class="text-zinc-500">Bullet:</span>
+                        <span class="font-medium text-zinc-900 dark:text-white">
+                            {{ $test->bullet_make }}
+                            @if($test->bullet_weight)
+                                {{ $test->bullet_weight }}gr
+                                <span class="text-xs text-zinc-400">({{ number_format($test->bullet_weight * 0.06479891, 2) }}g)</span>
+                            @endif
+                            {{ $test->bullet_type }}
+                        </span>
+                    </div>
+                @endif
+                @if($test->powder_type)
+                    <div>
+                        <span class="text-zinc-500">Powder:</span>
+                        <span class="font-medium text-zinc-900 dark:text-white">{{ $test->powder_type }}</span>
+                    </div>
+                @endif
+                @if($test->primer_type)
+                    <div>
+                        <span class="text-zinc-500">Primer:</span>
+                        <span class="font-medium text-zinc-900 dark:text-white">{{ $test->primer_type }}</span>
+                    </div>
+                @endif
+                @if($test->userFirearm)
+                    <div>
+                        <span class="text-zinc-500">Firearm:</span>
+                        <a href="{{ route('armoury.show', $test->userFirearm) }}" wire:navigate class="font-medium text-nrapa-blue hover:text-nrapa-blue-dark">{{ $test->userFirearm->display_name }}</a>
+                    </div>
+                @endif
+                @if($test->loadData)
+                    <div>
+                        <span class="text-zinc-500">Load:</span>
+                        <a href="{{ route('load-data.show', $test->loadData) }}" wire:navigate class="font-medium text-nrapa-blue hover:text-nrapa-blue-dark">{{ $test->loadData->display_name }}</a>
+                    </div>
+                @endif
+            </div>
+            @if(!$test->bullet_make && !$test->powder_type && !$test->primer_type && !$test->userFirearm)
+                <p class="text-sm text-zinc-400 italic">No components linked. Click Edit to add them.</p>
             @endif
-        </div>
-        @if($test->notes)
-            <p class="mt-3 text-sm text-zinc-500">{{ $test->notes }}</p>
+            @if($test->notes)
+                <p class="mt-3 text-sm text-zinc-500">{{ $test->notes }}</p>
+            @endif
         @endif
     </div>
 
@@ -510,7 +790,7 @@ new class extends Component {
         <div class="mb-6 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6"
              x-data="ladderChart({{ Js::from($chartData) }}, {{ Js::from($test->unit_label) }}, {{ Js::from($test->type_label) }})"
              x-init="init()"
-             wire:key="ladder-chart-{{ collect($chartData)->map(fn($d) => ($d['avgVelocity'] ?? 0) . ($d['sd'] ?? 0))->implode('-') }}">
+             wire:key="ladder-chart-{{ md5(json_encode($chartData)) }}">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Results Graph</h2>
                 <div class="flex items-center gap-4 text-xs">
@@ -533,7 +813,28 @@ new class extends Component {
         </div>
     @endif
 
-    <!-- Steps Table -->
+    <!-- Unit Preferences & Steps -->
+    <div class="mb-4 flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Step Results</h2>
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
+                <label class="text-xs font-medium text-zinc-500">Velocity:</label>
+                <select wire:model.live="velocity_unit"
+                        class="rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-2 py-1 text-xs text-zinc-900 dark:text-white">
+                    <option value="fps">fps</option>
+                    <option value="ms">m/s</option>
+                </select>
+            </div>
+            <div class="flex items-center gap-2">
+                <label class="text-xs font-medium text-zinc-500">Group Size:</label>
+                <select wire:model.live="group_unit"
+                        class="rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-2 py-1 text-xs text-zinc-900 dark:text-white">
+                    <option value="in">inches</option>
+                    <option value="mm">mm</option>
+                </select>
+            </div>
+        </div>
+    </div>
     <div class="space-y-4">
         @foreach($steps as $step)
             <div class="rounded-lg border {{ $bestStepId === $step->id ? 'border-green-400 dark:border-green-600 bg-green-50/50 dark:bg-green-900/10' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800' }} p-6">
@@ -591,48 +892,117 @@ new class extends Component {
                     </div>
                 @endif
 
-                <!-- Results Form -->
-                <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
-                    <div class="md:col-span-2">
-                        <label class="block text-xs font-medium text-zinc-500 mb-1">Velocities (comma-separated, {{ $velocity_unit === 'ms' ? 'm/s' : 'fps' }})</label>
-                        <div class="flex gap-2">
-                            <input type="text" wire:model="stepVelocities.{{ $step->id }}" placeholder="{{ $velocity_unit === 'ms' ? 'e.g., 836.7, 838.2, 837.5' : 'e.g., 2745, 2752, 2748' }}"
-                                   class="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
-                            @if($loop->first)
-                                <select wire:model.live="velocity_unit"
-                                        class="w-16 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-1 py-1.5 text-xs text-zinc-900 dark:text-white">
-                                    <option value="fps">fps</option>
-                                    <option value="ms">m/s</option>
-                                </select>
-                            @endif
+                @php $isEditing = isset($editingSteps[$step->id]); @endphp
+
+                @if($step->has_results && !$isEditing)
+                    {{-- Read-only display for saved results --}}
+                    <div class="grid grid-cols-1 gap-3 md:grid-cols-6">
+                        <div class="md:col-span-3">
+                            <label class="block text-xs font-medium text-zinc-500 mb-1">Velocities ({{ $velocity_unit === 'ms' ? 'm/s' : 'fps' }})</label>
+                            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                                @if($step->velocities)
+                                    @if($velocity_unit === 'ms')
+                                        {{ implode(', ', array_map(fn ($v) => number_format($v * 0.3048, 1), $step->velocities)) }}
+                                    @else
+                                        {{ implode(', ', $step->velocities) }}
+                                    @endif
+                                @else
+                                    <span class="text-zinc-400">&mdash;</span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-3 md:col-span-3">
+                            <div>
+                                <label class="block text-xs font-medium text-zinc-500 mb-1">ES</label>
+                                <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 px-3 py-1.5 text-sm font-semibold text-zinc-900 dark:text-white">
+                                    @if($step->es !== null)
+                                        @if($velocity_unit === 'ms')
+                                            {{ number_format($step->es * 0.3048, 1) }}
+                                        @else
+                                            {{ $step->es }}
+                                        @endif
+                                    @else
+                                        <span class="text-zinc-400">&mdash;</span>
+                                    @endif
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-zinc-500 mb-1">SD</label>
+                                <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 px-3 py-1.5 text-sm font-semibold {{ $step->sd !== null ? ($step->sd <= 10 ? 'text-green-600' : ($step->sd <= 20 ? 'text-amber-600' : 'text-red-600')) : '' }}">
+                                    @if($step->sd !== null)
+                                        {{ $step->sd }}
+                                    @else
+                                        <span class="text-zinc-400">&mdash;</span>
+                                    @endif
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-zinc-500 mb-1">Group Size</label>
+                                <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                                    @if($step->group_size)
+                                        @if($group_unit === 'mm')
+                                            {{ number_format($step->group_size * 25.4, 1) }}mm
+                                        @else
+                                            {{ $step->group_size }}"
+                                        @endif
+                                    @else
+                                        <span class="text-zinc-400">&mdash;</span>
+                                    @endif
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-medium text-zinc-500 mb-1">Group Size ({{ $group_unit === 'mm' ? 'mm' : 'inches' }})</label>
-                        <div class="flex gap-2">
-                            <input type="number" wire:model="stepGroupSize.{{ $step->id }}" step="{{ $group_unit === 'mm' ? '0.1' : '0.01' }}" placeholder="{{ $group_unit === 'mm' ? 'e.g., 19.1' : 'e.g., 0.75' }}"
-                                   class="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
-                            @if($loop->first)
-                                <select wire:model.live="group_unit"
-                                        class="w-16 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-1 py-1.5 text-xs text-zinc-900 dark:text-white">
-                                    <option value="in">in</option>
-                                    <option value="mm">mm</option>
-                                </select>
-                            @endif
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-zinc-500 mb-1">Notes</label>
-                        <div class="flex gap-2">
-                            <input type="text" wire:model="stepNotes.{{ $step->id }}" placeholder="Notes..."
-                                   class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
-                            <button wire:click="saveStepResults({{ $step->id }})"
-                                    class="rounded-lg bg-nrapa-blue px-3 py-1.5 text-xs font-medium text-white hover:bg-nrapa-blue-dark whitespace-nowrap">
-                                Save
+                    {{-- Notes row + actions --}}
+                    <div class="mt-3 flex items-center gap-3">
+                        @if($step->notes)
+                            <span class="text-xs text-zinc-500"><strong class="font-medium">Notes:</strong> {{ $step->notes }}</span>
+                        @endif
+                        <div class="ml-auto flex items-center gap-2">
+                            <button wire:click="editStep({{ $step->id }})"
+                                    class="rounded-lg border border-nrapa-blue/40 px-3 py-1.5 text-xs font-medium text-nrapa-blue hover:bg-nrapa-blue/5 dark:text-nrapa-blue-light dark:hover:bg-nrapa-blue/10 whitespace-nowrap">
+                                Edit
+                            </button>
+                            <button wire:click="clearStepResults({{ $step->id }})" wire:confirm="Clear all results for Step {{ $step->step_number }}? This cannot be undone."
+                                    class="rounded-lg border border-red-300 dark:border-red-600 px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 whitespace-nowrap">
+                                Clear
                             </button>
                         </div>
                     </div>
-                </div>
+                @else
+                    {{-- Editable form: first entry or edit mode --}}
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-medium text-zinc-500 mb-1">Velocities (comma-separated, {{ $velocity_unit === 'ms' ? 'm/s' : 'fps' }})</label>
+                            <input type="text" wire:model="stepVelocities.{{ $step->id }}" placeholder="{{ $velocity_unit === 'ms' ? 'e.g., 836.7, 838.2, 837.5' : 'e.g., 2745, 2752, 2748' }}"
+                                   class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-zinc-500 mb-1">Group Size ({{ $group_unit === 'mm' ? 'mm' : 'inches' }})</label>
+                            <input type="number" wire:model="stepGroupSize.{{ $step->id }}" step="{{ $group_unit === 'mm' ? '0.1' : '0.01' }}" placeholder="{{ $group_unit === 'mm' ? 'e.g., 19.1' : 'e.g., 0.75' }}"
+                                   class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-zinc-500 mb-1">Notes</label>
+                            <div class="flex gap-2">
+                                <input type="text" wire:model="stepNotes.{{ $step->id }}" placeholder="Notes..."
+                                       class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                                <button wire:click="saveStepResults({{ $step->id }})"
+                                        wire:loading.attr="disabled"
+                                        wire:loading.class="opacity-50 cursor-not-allowed"
+                                        class="rounded-lg bg-nrapa-blue px-3 py-1.5 text-xs font-medium text-white hover:bg-nrapa-blue-dark whitespace-nowrap">
+                                    <span wire:loading.remove wire:target="saveStepResults({{ $step->id }})">Save</span>
+                                    <span wire:loading wire:target="saveStepResults({{ $step->id }})">Saving...</span>
+                                </button>
+                                @if($isEditing)
+                                    <button wire:click="cancelEditStep({{ $step->id }})"
+                                            class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700 whitespace-nowrap">
+                                        Cancel
+                                    </button>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @endif
             </div>
         @endforeach
     </div>

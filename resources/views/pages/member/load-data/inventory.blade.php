@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Bullet;
+use App\Models\InventoryLog;
+use App\Models\LoadData;
 use App\Models\ReloadingInventory;
 use App\Models\InventoryPurchase;
 use Livewire\Component;
@@ -38,6 +40,18 @@ new class extends Component {
 
     // Purchase history
     public ?int $showHistoryId = null;
+
+    // Low stock threshold (entered in display units: grains for powder, count for others)
+    public ?float $form_low_stock_threshold = null;
+
+    // Manual adjustment
+    public bool $showAdjustForm = false;
+    public ?int $adjustItemId = null;
+    public string $adjust_type = 'add';      // add, remove, set
+    public ?float $adjust_quantity = null;
+    public string $adjust_unit_size = '1';    // multiplier (e.g., 453.592 for 1lb powder)
+    public string $adjust_unit_label = 'Per unit';
+    public string $adjust_reason = '';
 
     public function mount(): void
     {
@@ -79,6 +93,7 @@ new class extends Component {
         }
         $this->showForm = true;
         $this->showRestockForm = false;
+        $this->showAdjustForm = false;
         $this->updatedFormType();
     }
 
@@ -98,8 +113,20 @@ new class extends Component {
         $this->form_bullet_bc_type = $item->bullet_bc_type ?? 'G1';
         $this->form_bullet_type = $item->bullet_type ?? '';
         $this->form_calibre = $item->calibre ?? '';
+
+        // Convert threshold from storage units (grams for powder, count for others) to display units
+        if ($item->low_stock_threshold !== null) {
+            $this->form_low_stock_threshold = $item->type === 'powder'
+                ? round($item->low_stock_threshold * 15.4324, 0)
+                : (float) $item->low_stock_threshold;
+        } else {
+            // Show default as placeholder — leave null so placeholder shows
+            $this->form_low_stock_threshold = null;
+        }
+
         $this->showForm = true;
         $this->showRestockForm = false;
+        $this->showAdjustForm = false;
     }
 
     public function save(): void
@@ -109,6 +136,7 @@ new class extends Component {
             $rules = [
                 'form_make' => ['required', 'string', 'max:255'],
                 'form_name' => ['required', 'string', 'max:255'],
+                'form_low_stock_threshold' => ['nullable', 'numeric', 'min:0'],
             ];
             if ($this->form_type === 'bullet') {
                 $rules['form_bullet_weight'] = ['required', 'numeric', 'min:1', 'max:999'];
@@ -116,10 +144,19 @@ new class extends Component {
             }
             $this->validate($rules);
 
+            // Convert threshold from display units to storage units
+            $thresholdValue = null;
+            if ($this->form_low_stock_threshold !== null && $this->form_low_stock_threshold !== '') {
+                $thresholdValue = $this->form_type === 'powder'
+                    ? (float) $this->form_low_stock_threshold / 15.4324  // grains → grams
+                    : (float) $this->form_low_stock_threshold;
+            }
+
             $updateData = [
                 'make' => $this->form_make,
                 'name' => $this->form_name,
                 'notes' => $this->form_notes ?: null,
+                'low_stock_threshold' => $thresholdValue,
             ];
 
             if ($this->form_type === 'bullet') {
@@ -191,6 +228,8 @@ new class extends Component {
                 'notes' => $this->purchase_notes ?: null,
             ]);
 
+            InventoryLog::record($item->id, auth()->id(), 'restock', $qtyAdded, null, 'Initial purchase', null, null, null, $this->purchase_date);
+
             $this->showForm = false;
             session()->flash('success', $this->form_make . ' ' . $this->form_name . ' added with first purchase recorded.');
         }
@@ -226,6 +265,7 @@ new class extends Component {
 
         $this->showRestockForm = true;
         $this->showForm = false;
+        $this->showAdjustForm = false;
     }
 
     public function saveRestock(): void
@@ -263,12 +303,89 @@ new class extends Component {
         $item->increment('quantity', $qtyAdded);
         $item->update(['cost_per_unit' => $pricePerBase]);
 
+        InventoryLog::record($item->id, auth()->id(), 'restock', $qtyAdded, null, 'Purchase', null, null, $this->purchase_notes ?: null, $this->purchase_date);
+
         $this->showRestockForm = false;
         $this->restockItemId = null;
         $addedDisplay = $item->type === 'powder'
             ? number_format($qtyAdded * 15.4324, 0) . ' grains'
             : number_format($qtyAdded, 0) . ' ' . $item->unit;
         session()->flash('success', $item->display_name . ' restocked — ' . $addedDisplay . ' added.');
+    }
+
+    public function startAdjust(int $id): void
+    {
+        $item = ReloadingInventory::where('id', $id)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+
+        $this->adjustItemId = $item->id;
+        $this->adjust_type = 'add';
+        $this->adjust_quantity = null;
+        $this->adjust_reason = '';
+
+        // Default to the simplest unit for the type
+        if ($item->type === 'powder') {
+            $this->adjust_unit_size = '1';      // 1 gram
+            $this->adjust_unit_label = 'grams';
+        } else {
+            $this->adjust_unit_size = '1';
+            $this->adjust_unit_label = 'units';
+        }
+
+        $this->showAdjustForm = true;
+        $this->showRestockForm = false;
+        $this->showForm = false;
+    }
+
+    public function saveAdjust(): void
+    {
+        $this->validate([
+            'adjustItemId' => ['required', 'integer'],
+            'adjust_type' => ['required', 'in:add,remove,set'],
+            'adjust_quantity' => ['required', 'numeric', $this->adjust_type === 'set' ? 'min:0' : 'min:0.01'],
+            'adjust_reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $item = ReloadingInventory::where('id', $this->adjustItemId)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+
+        $unitSize = (float) $this->adjust_unit_size;
+        $rawQty = $this->adjust_quantity * $unitSize;
+        $oldQty = (float) $item->quantity;
+
+        if ($this->adjust_type === 'add') {
+            $item->increment('quantity', $rawQty);
+            $logChange = $rawQty;
+            $actionLabel = 'Added';
+        } elseif ($this->adjust_type === 'remove') {
+            $removeQty = min($rawQty, $oldQty); // Don't go below zero
+            $item->decrement('quantity', $removeQty);
+            $rawQty = $removeQty;
+            $logChange = -$removeQty;
+            $actionLabel = 'Removed';
+        } else {
+            // Set to exact amount
+            $item->update(['quantity' => $rawQty]);
+            $logChange = $rawQty - $oldQty;
+            $actionLabel = 'Set to';
+        }
+
+        InventoryLog::record($item->id, auth()->id(), 'adjustment', $logChange, null, $actionLabel, null, null, $this->adjust_reason ?: null);
+
+        $displayQty = $item->type === 'powder'
+            ? number_format($rawQty * 15.4324, 0) . ' grains'
+            : number_format($rawQty, 0) . ' ' . $item->unit;
+
+        $this->showAdjustForm = false;
+        $this->adjustItemId = null;
+
+        $msg = "{$item->display_name}: {$actionLabel} {$displayQty}.";
+        if ($this->adjust_reason) {
+            $msg .= " Reason: {$this->adjust_reason}";
+        }
+        session()->flash('success', $msg);
     }
 
     public function toggleHistory(int $id): void
@@ -292,6 +409,7 @@ new class extends Component {
         $this->form_make = '';
         $this->form_name = '';
         $this->form_notes = '';
+        $this->form_low_stock_threshold = null;
         $this->form_bullet_weight = null;
         $this->form_bullet_bc = null;
         $this->form_bullet_bc_type = 'G1';
@@ -305,8 +423,13 @@ new class extends Component {
 
     public function with(): array
     {
+        $eagerLoad = ['purchases'];
+        if ($this->showHistoryId && \Illuminate\Support\Facades\Schema::hasTable('inventory_logs')) {
+            $eagerLoad[] = 'logs';
+        }
+
         $query = ReloadingInventory::where('user_id', auth()->id())
-            ->with(['purchases']);
+            ->with($eagerLoad);
 
         if ($this->filterType) {
             $query->where('type', $this->filterType);
@@ -324,6 +447,52 @@ new class extends Component {
 
         $items = $query->orderBy('type')->orderBy('make')->orderBy('name')->get();
 
+        // Estimate rounds per load recipe based on linked inventory
+        $loadEstimates = [];
+        $loads = LoadData::where('user_id', auth()->id())
+            ->where(function ($q) {
+                $q->whereNotNull('powder_inventory_id')
+                  ->orWhereNotNull('primer_inventory_id')
+                  ->orWhereNotNull('bullet_inventory_id')
+                  ->orWhereNotNull('brass_inventory_id');
+            })
+            ->with(['powderInventory', 'primerInventory', 'bulletInventory', 'brassInventory', 'userFirearm'])
+            ->get();
+
+        foreach ($loads as $load) {
+            $limits = [];
+
+            if ($load->powderInventory && $load->powder_charge) {
+                $gramsPerRound = $load->powder_charge * 0.06479891;
+                $powderStock = (float) $load->powderInventory->quantity;
+                $rounds = $gramsPerRound > 0 ? (int) floor($powderStock / $gramsPerRound) : 0;
+                $limits['Powder'] = $rounds;
+            }
+            if ($load->primerInventory) {
+                $limits['Primers'] = (int) floor((float) $load->primerInventory->quantity);
+            }
+            if ($load->bulletInventory) {
+                $limits['Bullets'] = (int) floor((float) $load->bulletInventory->quantity);
+            }
+            if ($load->brassInventory) {
+                $limits['Brass'] = (int) floor((float) $load->brassInventory->quantity);
+            }
+
+            if (!empty($limits)) {
+                $bottleneck = min($limits);
+                $bottleneckComponent = array_search($bottleneck, $limits);
+                $loadEstimates[] = [
+                    'load' => $load,
+                    'limits' => $limits,
+                    'estimated_rounds' => $bottleneck,
+                    'bottleneck' => $bottleneckComponent,
+                ];
+            }
+        }
+
+        // Sort by name
+        usort($loadEstimates, fn ($a, $b) => strcmp($a['load']->name, $b['load']->name));
+
         return [
             'items' => $items,
             'groupedItems' => $items->groupBy('type'),
@@ -331,6 +500,7 @@ new class extends Component {
             'bulletTypes' => ReloadingInventory::bulletTypes(),
             'purchaseUnits' => ReloadingInventory::purchaseUnits(),
             'lowStockCount' => $items->filter(fn ($i) => $i->is_low_stock)->count(),
+            'loadEstimates' => $loadEstimates,
         ];
     }
 }; ?>
@@ -386,6 +556,52 @@ new class extends Component {
                 </svg>
                 <p class="text-sm font-medium text-amber-800 dark:text-amber-200">{{ $lowStockCount }} item(s) running low on stock</p>
             </div>
+        </div>
+    @endif
+
+    <!-- Estimated Rounds per Load -->
+    @if(!empty($loadEstimates))
+        <div class="mb-6 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-5">
+            <div class="flex items-center gap-2 mb-4">
+                <svg class="h-5 w-5 text-nrapa-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                </svg>
+                <h3 class="text-sm font-semibold text-zinc-900 dark:text-white">Estimated Rounds from Current Stock</h3>
+            </div>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                @foreach($loadEstimates as $est)
+                    <div class="rounded-lg border {{ $est['estimated_rounds'] < 20 ? 'border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-900/10' : 'border-zinc-100 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50' }} p-4">
+                        <div class="flex items-start justify-between mb-2">
+                            <a href="{{ route('load-data.show', $est['load']) }}" wire:navigate
+                               class="text-sm font-semibold text-nrapa-blue hover:text-nrapa-blue-dark truncate mr-2">
+                                {{ $est['load']->name }}
+                            </a>
+                            <span class="text-lg font-bold {{ $est['estimated_rounds'] < 20 ? 'text-amber-600' : ($est['estimated_rounds'] < 100 ? 'text-nrapa-orange' : 'text-green-600') }} whitespace-nowrap">
+                                {{ number_format($est['estimated_rounds']) }}
+                            </span>
+                        </div>
+                        <p class="text-xs text-zinc-500 mb-2">
+                            @if($est['load']->calibre_name)
+                                {{ $est['load']->calibre_name }} &mdash;
+                            @endif
+                            @if($est['load']->powder_charge)
+                                {{ $est['load']->powder_charge }}gr charge
+                            @endif
+                        </p>
+                        <div class="flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                            @foreach($est['limits'] as $component => $count)
+                                <span class="{{ $component === $est['bottleneck'] ? 'font-semibold text-amber-600 dark:text-amber-400' : 'text-zinc-500' }}">
+                                    {{ $component }}: {{ number_format($count) }}
+                                    @if($component === $est['bottleneck'])
+                                        <span class="text-[10px]">(limiting)</span>
+                                    @endif
+                                </span>
+                            @endforeach
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+            <p class="mt-3 text-xs text-zinc-400">Based on load recipes linked to your inventory items. The lowest component determines the max rounds.</p>
         </div>
     @endif
 
@@ -524,7 +740,7 @@ new class extends Component {
         <div class="mb-6 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Edit Item Details</h2>
             <form wire:submit="save" class="space-y-4">
-                <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Make *</label>
                         <input type="text" wire:model="form_make"
@@ -541,6 +757,17 @@ new class extends Component {
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Notes</label>
                         <input type="text" wire:model="form_notes"
                                class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                            Low Stock Alert
+                            <span class="text-xs text-zinc-400 font-normal">({{ $form_type === 'powder' ? 'grains' : 'units' }})</span>
+                        </label>
+                        <input type="number" wire:model="form_low_stock_threshold" step="1" min="0"
+                               placeholder="{{ $form_type === 'powder' ? number_format(500 * 15.4324, 0) : ($form_type === 'primer' ? '100' : '50') }}"
+                               class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                        <p class="mt-1 text-xs text-zinc-400">Leave blank for default</p>
+                        @error('form_low_stock_threshold') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
                 </div>
 
@@ -655,6 +882,126 @@ new class extends Component {
         @endif
     @endif
 
+    <!-- Manual Adjustment Form -->
+    @if($showAdjustForm && $adjustItemId)
+        @php $adjustItem = $items->firstWhere('id', $adjustItemId); @endphp
+        @if($adjustItem)
+            <div class="mb-6 rounded-lg border border-purple-300/50 dark:border-purple-700/50 bg-white dark:bg-zinc-800 p-6">
+                <div class="flex items-center justify-between mb-1">
+                    <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">
+                        Adjust Stock: {{ $adjustItem->display_name }}
+                    </h2>
+                    <button wire:click="$set('showAdjustForm', false)" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <p class="text-sm text-zinc-500 mb-4">Current stock: <strong>{{ $adjustItem->stock_display }}{{ $adjustItem->type !== 'powder' ? ' ' . $adjustItem->unit : '' }}</strong></p>
+
+                <form wire:submit="saveAdjust" class="space-y-4">
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+                        <div>
+                            <label class="block text-xs font-medium text-zinc-500 mb-1">Action *</label>
+                            <select wire:model.live="adjust_type"
+                                    class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                                <option value="add">Add stock (received / gifted)</option>
+                                <option value="remove">Remove stock (gave away / lost)</option>
+                                <option value="set">Set exact amount (correction)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-zinc-500 mb-1">Quantity *</label>
+                            <input type="number" wire:model="adjust_quantity" step="0.01" min="{{ $adjust_type === 'set' ? '0' : '0.01' }}"
+                                   placeholder="{{ $adjustItem->type === 'powder' ? 'e.g., 1' : 'e.g., 50' }}"
+                                   class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                            @error('adjust_quantity') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-zinc-500 mb-1">Unit</label>
+                            @if($adjustItem->type === 'powder')
+                                <select wire:model="adjust_unit_size"
+                                        class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                                    <option value="1">grams</option>
+                                    <option value="0.06479891">grains</option>
+                                    <option value="453.592">pounds (lb)</option>
+                                    <option value="1000">kilograms (kg)</option>
+                                </select>
+                            @else
+                                <select wire:model="adjust_unit_size"
+                                        class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                                    <option value="1">individual units</option>
+                                    @if(in_array($adjustItem->type, ['primer']))
+                                        <option value="100">boxes of 100</option>
+                                        <option value="1000">bricks of 1,000</option>
+                                    @endif
+                                    @if(in_array($adjustItem->type, ['bullet']))
+                                        <option value="50">boxes of 50</option>
+                                        <option value="100">boxes of 100</option>
+                                    @endif
+                                    @if(in_array($adjustItem->type, ['brass']))
+                                        <option value="20">bags of 20</option>
+                                        <option value="50">bags of 50</option>
+                                        <option value="100">bags of 100</option>
+                                    @endif
+                                </select>
+                            @endif
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-zinc-500 mb-1">Reason</label>
+                            <input type="text" wire:model="adjust_reason" placeholder="{{ match($adjust_type) { 'add' => 'e.g., Gift from a friend', 'remove' => 'e.g., Spilled, gave to buddy', 'set' => 'e.g., Physical count correction' } }}"
+                                   class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                        </div>
+                    </div>
+
+                    @if($adjust_quantity && $adjust_quantity > 0)
+                        @php
+                            $unitSize = (float) $adjust_unit_size;
+                            $rawQty = $adjust_quantity * $unitSize;
+                            $previewDisplay = $adjustItem->type === 'powder'
+                                ? number_format($rawQty * 15.4324, 0) . ' grains (' . number_format($rawQty, 1) . 'g)'
+                                : number_format($rawQty, 0) . ' ' . $adjustItem->unit;
+                            $currentRaw = (float) $adjustItem->quantity;
+                            if ($adjust_type === 'add') {
+                                $newRaw = $currentRaw + $rawQty;
+                            } elseif ($adjust_type === 'remove') {
+                                $newRaw = max(0, $currentRaw - $rawQty);
+                            } else {
+                                $newRaw = $rawQty;
+                            }
+                            $newDisplay = $adjustItem->type === 'powder'
+                                ? number_format($newRaw * 15.4324, 0) . ' grains'
+                                : number_format($newRaw, 0) . ' ' . $adjustItem->unit;
+                        @endphp
+                        <div class="rounded-lg bg-zinc-50 dark:bg-zinc-700/50 border border-zinc-200 dark:border-zinc-600 px-4 py-3 text-sm">
+                            <span class="text-zinc-500">Preview:</span>
+                            @if($adjust_type === 'add')
+                                <span class="font-medium text-green-600">+{{ $previewDisplay }}</span>
+                            @elseif($adjust_type === 'remove')
+                                <span class="font-medium text-red-600">-{{ $previewDisplay }}</span>
+                            @else
+                                <span class="font-medium text-nrapa-blue">= {{ $previewDisplay }}</span>
+                            @endif
+                            <span class="text-zinc-400 mx-2">&rarr;</span>
+                            <span class="font-semibold text-zinc-900 dark:text-white">New stock: {{ $newDisplay }}</span>
+                        </div>
+                    @endif
+
+                    <div class="flex gap-2">
+                        <button type="submit"
+                                class="rounded-lg bg-purple-600 px-6 py-2 text-sm font-medium text-white hover:bg-purple-700">
+                            Apply Adjustment
+                        </button>
+                        <button type="button" wire:click="$set('showAdjustForm', false)"
+                                class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-6 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        @endif
+    @endif
+
     <!-- Filters -->
     <div class="mb-6 flex flex-col gap-4 sm:flex-row">
         <div class="flex-1">
@@ -686,7 +1033,10 @@ new class extends Component {
                                 <div class="flex items-center gap-2">
                                     <h4 class="font-semibold text-zinc-900 dark:text-white">{{ $item->display_name }}</h4>
                                     @if($item->is_low_stock)
-                                        <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Low Stock</span>
+                                        <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                                            Low Stock
+                                            <span class="ml-1 opacity-70">(below {{ $item->type === 'powder' ? number_format($item->effective_threshold * 15.4324, 0) . 'gr' : number_format($item->effective_threshold, 0) }})</span>
+                                        </span>
                                     @endif
                                 </div>
                                 <div class="flex flex-wrap items-center gap-y-1 mt-1 text-sm text-zinc-500">
@@ -720,12 +1070,19 @@ new class extends Component {
                                     </svg>
                                     Buy More
                                 </button>
+                                <button wire:click="startAdjust({{ $item->id }})"
+                                        class="inline-flex items-center gap-1 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 px-3 py-1.5 text-xs font-medium hover:bg-purple-500/20">
+                                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
+                                    </svg>
+                                    Adjust
+                                </button>
                                 <button wire:click="toggleHistory({{ $item->id }})"
                                         class="inline-flex items-center gap-1 rounded-lg border border-zinc-200 dark:border-zinc-600 px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700">
                                     <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
-                                    History
+                                    Activity
                                 </button>
                                 <button wire:click="editItem({{ $item->id }})"
                                         class="text-nrapa-blue hover:text-nrapa-blue-dark text-xs font-medium px-2 py-1.5">
@@ -738,12 +1095,13 @@ new class extends Component {
                             </div>
                         </div>
 
-                        <!-- Purchase History (expandable) -->
+                        <!-- Activity Log (expandable) -->
                         @if($showHistoryId === $item->id)
                             <div class="border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 px-5 py-4">
-                                <h4 class="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">Purchase History</h4>
+                                {{-- Purchases --}}
+                                <h4 class="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">Purchases</h4>
                                 @if($item->purchases->count() > 0)
-                                    <div class="space-y-2">
+                                    <div class="space-y-2 mb-5">
                                         @foreach($item->purchases as $purchase)
                                             <div class="flex items-center justify-between text-sm rounded-lg bg-white dark:bg-zinc-800 px-4 py-2.5 border border-zinc-100 dark:border-zinc-700">
                                                 <div>
@@ -764,7 +1122,42 @@ new class extends Component {
                                         @endforeach
                                     </div>
                                 @else
-                                    <p class="text-sm text-zinc-400">No purchases recorded yet. Use "Buy More" to start tracking.</p>
+                                    <p class="text-sm text-zinc-400 mb-5">No purchases recorded yet.</p>
+                                @endif
+
+                                {{-- Usage & Adjustment Log --}}
+                                <h4 class="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">Usage & Activity Log</h4>
+                                @if($item->relationLoaded('logs') && $item->logs->count() > 0)
+                                    <div class="space-y-2">
+                                        @foreach($item->logs->take(20) as $log)
+                                            <div class="flex items-center justify-between text-sm rounded-lg bg-white dark:bg-zinc-800 px-4 py-2.5 border border-zinc-100 dark:border-zinc-700">
+                                                <div class="flex items-center gap-2 min-w-0">
+                                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold {{ $log->badge_color }} whitespace-nowrap">
+                                                        {{ $log->type_label }}
+                                                    </span>
+                                                    <span class="text-zinc-900 dark:text-white truncate">{{ $log->display }}</span>
+                                                </div>
+                                                <div class="flex items-center gap-3 text-xs text-zinc-500 whitespace-nowrap ml-3">
+                                                    @if($log->balance_after !== null)
+                                                        <span class="text-zinc-400">
+                                                            Bal:
+                                                            @if($item->type === 'powder')
+                                                                {{ number_format($log->balance_after * 15.4324, 0) }}gr
+                                                            @else
+                                                                {{ number_format($log->balance_after, 0) }}
+                                                            @endif
+                                                        </span>
+                                                    @endif
+                                                    <span>{{ $log->logged_at->format('d M Y') }}</span>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                        @if($item->logs->count() > 20)
+                                            <p class="text-xs text-zinc-400 text-center pt-1">Showing latest 20 of {{ $item->logs->count() }} entries</p>
+                                        @endif
+                                    </div>
+                                @else
+                                    <p class="text-sm text-zinc-400">No usage recorded yet. Load ammo from a recipe to start tracking.</p>
                                 @endif
                             </div>
                         @endif

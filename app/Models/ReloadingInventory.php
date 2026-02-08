@@ -23,6 +23,7 @@ class ReloadingInventory extends Model
         'quantity',
         'unit',
         'cost_per_unit',
+        'low_stock_threshold',
         'notes',
     ];
 
@@ -31,6 +32,7 @@ class ReloadingInventory extends Model
         'cost_per_unit' => 'decimal:4',
         'bullet_weight' => 'decimal:1',
         'bullet_bc' => 'decimal:3',
+        'low_stock_threshold' => 'decimal:2',
     ];
 
     public function user(): BelongsTo
@@ -41,6 +43,11 @@ class ReloadingInventory extends Model
     public function purchases(): HasMany
     {
         return $this->hasMany(InventoryPurchase::class, 'reloading_inventory_id')->orderByDesc('purchased_at');
+    }
+
+    public function logs(): HasMany
+    {
+        return $this->hasMany(InventoryLog::class, 'reloading_inventory_id')->orderByDesc('logged_at')->orderByDesc('id');
     }
 
     public function getDisplayNameAttribute(): string
@@ -134,13 +141,42 @@ class ReloadingInventory extends Model
 
     public function getIsLowStockAttribute(): bool
     {
+        $threshold = $this->low_stock_threshold ?? $this->getDefaultThreshold();
+        return $this->quantity < $threshold;
+    }
+
+    /**
+     * Default low-stock thresholds when user hasn't set a custom one.
+     */
+    public function getDefaultThreshold(): float
+    {
         return match ($this->type) {
-            'powder' => $this->quantity < 500,    // Less than 500g
-            'primer' => $this->quantity < 100,    // Less than 100 primers
-            'bullet' => $this->quantity < 50,     // Less than 50 bullets
-            'brass' => $this->quantity < 50,      // Less than 50 brass
-            default => false,
+            'powder' => 500,    // 500g (~7,700 grains)
+            'primer' => 100,    // 100 primers
+            'bullet' => 50,     // 50 bullets
+            'brass' => 50,      // 50 brass
+            default => 0,
         };
+    }
+
+    /**
+     * Get the effective threshold (custom or default).
+     */
+    public function getEffectiveThresholdAttribute(): float
+    {
+        return (float) ($this->low_stock_threshold ?? $this->getDefaultThreshold());
+    }
+
+    /**
+     * Display the threshold in friendly units.
+     */
+    public function getThresholdDisplayAttribute(): string
+    {
+        $threshold = $this->effective_threshold;
+        if ($this->type === 'powder') {
+            return number_format($threshold * 15.4324, 0) . ' grains';
+        }
+        return number_format($threshold, 0);
     }
 
     public function scopeForUser($query, int $userId)

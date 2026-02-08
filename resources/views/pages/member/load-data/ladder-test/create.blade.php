@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\InventoryLog;
 use App\Models\LadderTest;
 use App\Models\LadderTestStep;
 use App\Models\LoadData;
@@ -178,23 +179,35 @@ new class extends Component {
         if ($this->deductFromInventory && $this->test_type === 'powder_charge') {
             $totalRounds = count($steps) * $this->rounds_per_step;
             $userId = auth()->id();
+            $testName = $test->name;
+            $testId = $test->id;
+            $today = now()->toDateString();
 
             if ($this->powder_type) {
                 $avgCharge = ($this->start_charge + $this->end_charge) / 2;
                 $powderGrams = $totalRounds * $avgCharge * 0.0648;
                 $powderInv = ReloadingInventory::where('user_id', $userId)->where('type', 'powder')
                     ->where('name', 'like', '%' . $this->powder_type . '%')->first();
-                if ($powderInv) $powderInv->decrement('quantity', $powderGrams);
+                if ($powderInv) {
+                    $powderInv->decrement('quantity', $powderGrams);
+                    InventoryLog::record($powderInv->id, $userId, 'ladder_test', -$powderGrams, $totalRounds, $testName, $testId, LadderTest::class, null, $today);
+                }
             }
             if ($this->primer_type) {
                 $primerInv = ReloadingInventory::where('user_id', $userId)->where('type', 'primer')
                     ->where('name', 'like', '%' . $this->primer_type . '%')->first();
-                if ($primerInv) $primerInv->decrement('quantity', $totalRounds);
+                if ($primerInv) {
+                    $primerInv->decrement('quantity', $totalRounds);
+                    InventoryLog::record($primerInv->id, $userId, 'ladder_test', -$totalRounds, $totalRounds, $testName, $testId, LadderTest::class, null, $today);
+                }
             }
             if ($this->bullet_make) {
                 $bulletInv = ReloadingInventory::where('user_id', $userId)->where('type', 'bullet')
                     ->where('make', 'like', '%' . $this->bullet_make . '%')->first();
-                if ($bulletInv) $bulletInv->decrement('quantity', $totalRounds);
+                if ($bulletInv) {
+                    $bulletInv->decrement('quantity', $totalRounds);
+                    InventoryLog::record($bulletInv->id, $userId, 'ladder_test', -$totalRounds, $totalRounds, $testName, $testId, LadderTest::class, null, $today);
+                }
             }
         }
 
@@ -202,16 +215,25 @@ new class extends Component {
         if ($this->deductFromInventory && $this->test_type === 'seating_depth') {
             $totalRounds = count($steps) * $this->rounds_per_step;
             $userId = auth()->id();
+            $testName = $test->name;
+            $testId = $test->id;
+            $today = now()->toDateString();
 
             if ($this->primer_type) {
                 $primerInv = ReloadingInventory::where('user_id', $userId)->where('type', 'primer')
                     ->where('name', 'like', '%' . $this->primer_type . '%')->first();
-                if ($primerInv) $primerInv->decrement('quantity', $totalRounds);
+                if ($primerInv) {
+                    $primerInv->decrement('quantity', $totalRounds);
+                    InventoryLog::record($primerInv->id, $userId, 'ladder_test', -$totalRounds, $totalRounds, $testName, $testId, LadderTest::class, null, $today);
+                }
             }
             if ($this->bullet_make) {
                 $bulletInv = ReloadingInventory::where('user_id', $userId)->where('type', 'bullet')
                     ->where('make', 'like', '%' . $this->bullet_make . '%')->first();
-                if ($bulletInv) $bulletInv->decrement('quantity', $totalRounds);
+                if ($bulletInv) {
+                    $bulletInv->decrement('quantity', $totalRounds);
+                    InventoryLog::record($bulletInv->id, $userId, 'ladder_test', -$totalRounds, $totalRounds, $testName, $testId, LadderTest::class, null, $today);
+                }
             }
         }
 
