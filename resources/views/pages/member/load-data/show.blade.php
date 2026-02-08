@@ -396,14 +396,15 @@ new class extends Component {
                             </div>
                         @endif
                         @if($load->brass_price_per_unit)
+                            @php $brassLoads = $load->brass_load_count; @endphp
                             <div class="flex justify-between col-span-2">
                                 <span class="text-zinc-500">
-                                    Brass (÷{{ max($load->brass_firings ?: 1, 1) }} firings)
+                                    Brass (÷{{ $brassLoads }} load{{ $brassLoads > 1 ? 's' : '' }})
                                     @if($load->brassInventory)
                                         <span class="text-xs text-nrapa-blue ml-1">({{ $load->brassInventory->display_name }})</span>
                                     @endif
                                 </span>
-                                <span class="text-zinc-900 dark:text-white">R{{ number_format($load->brass_price_per_unit / max($load->brass_firings ?: 1, 1), 2) }}<span class="text-zinc-400 text-xs ml-1">(R{{ number_format($load->brass_price_per_unit, 0) }}/case)</span></span>
+                                <span class="text-zinc-900 dark:text-white">R{{ number_format($load->brass_price_per_unit / $brassLoads, 2) }}<span class="text-zinc-400 text-xs ml-1">(R{{ number_format($load->brass_price_per_unit, 0) }}/case)</span></span>
                             </div>
                         @endif
                     </dl>

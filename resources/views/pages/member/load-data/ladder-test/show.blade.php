@@ -4,14 +4,24 @@ use App\Models\LadderTest;
 use App\Models\LadderTestStep;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 new class extends Component {
+    use WithFileUploads;
+
     public LadderTest $test;
 
     // Results editing
     public array $stepVelocities = [];
     public array $stepGroupSize = [];
     public array $stepNotes = [];
+
+    // CSV Import
+    public bool $showImportForm = false;
+    public $csvFile = null;
+    public array $importPreview = [];
+    public array $importErrors = [];
+    public bool $importReady = false;
 
     public function mount(LadderTest $test): void
     {
@@ -78,6 +88,147 @@ new class extends Component {
         }, 'ladder-labels-' . str_replace(' ', '-', strtolower($this->test->name)) . '.pdf');
     }
 
+    public function downloadCsvTemplate()
+    {
+        $unit = $this->test->unit_label;
+        $headers = "step,charge_weight_({$unit}),velocities,group_size_inches,notes";
+        $rows = [];
+
+        foreach ($this->test->steps as $step) {
+            $charge = rtrim(rtrim($step->charge_weight, '0'), '.');
+            $existingVel = $step->velocities ? implode('; ', $step->velocities) : '';
+            $existingGroup = $step->group_size ?? '';
+            $existingNotes = $step->notes ?? '';
+            $rows[] = "{$step->step_number},{$charge},\"{$existingVel}\",{$existingGroup},\"{$existingNotes}\"";
+        }
+
+        $csv = $headers . "\n" . implode("\n", $rows);
+        $filename = 'ladder-template-' . str_replace(' ', '-', strtolower($this->test->name)) . '.csv';
+
+        return response()->streamDownload(function () use ($csv) {
+            echo $csv;
+        }, $filename, ['Content-Type' => 'text/csv']);
+    }
+
+    public function updatedCsvFile(): void
+    {
+        $this->importPreview = [];
+        $this->importErrors = [];
+        $this->importReady = false;
+
+        if (!$this->csvFile) return;
+
+        $this->validate([
+            'csvFile' => ['required', 'file', 'mimes:csv,txt', 'max:1024'],
+        ]);
+
+        $path = $this->csvFile->getRealPath();
+        $lines = array_filter(array_map('trim', file($path)));
+
+        if (count($lines) < 2) {
+            $this->importErrors[] = 'CSV file must have a header row and at least one data row.';
+            return;
+        }
+
+        // Skip header
+        $header = str_getcsv(array_shift($lines));
+
+        $stepMap = $this->test->steps->keyBy('step_number');
+        $preview = [];
+        $errors = [];
+
+        foreach ($lines as $lineNum => $line) {
+            $cols = str_getcsv($line);
+            if (count($cols) < 2) continue;
+
+            $stepNum = (int) trim($cols[0] ?? '');
+            $chargeWeight = trim($cols[1] ?? '');
+            $velocitiesRaw = trim($cols[2] ?? '');
+            $groupSize = trim($cols[3] ?? '');
+            $notes = trim($cols[4] ?? '');
+
+            if (!$stepMap->has($stepNum)) {
+                $errors[] = "Row " . ($lineNum + 2) . ": Step {$stepNum} does not exist in this test.";
+                continue;
+            }
+
+            // Parse velocities (accept comma or semicolon separated)
+            $velocities = [];
+            if ($velocitiesRaw) {
+                $velParts = preg_split('/[;,]+/', $velocitiesRaw);
+                foreach ($velParts as $v) {
+                    $v = trim($v);
+                    if (is_numeric($v) && $v > 0) {
+                        $velocities[] = (int) $v;
+                    }
+                }
+            }
+
+            // Calculate ES and SD
+            $es = null;
+            $sd = null;
+            if (count($velocities) >= 2) {
+                $es = max($velocities) - min($velocities);
+                $mean = array_sum($velocities) / count($velocities);
+                $variance = array_sum(array_map(fn ($v) => pow($v - $mean, 2), $velocities)) / count($velocities);
+                $sd = (int) round(sqrt($variance));
+            }
+
+            $preview[] = [
+                'step_number' => $stepNum,
+                'charge_weight' => $chargeWeight,
+                'velocities' => $velocities,
+                'group_size' => $groupSize !== '' ? (float) $groupSize : null,
+                'es' => $es,
+                'sd' => $sd,
+                'notes' => $notes,
+                'vel_count' => count($velocities),
+                'avg_vel' => count($velocities) > 0 ? (int) round(array_sum($velocities) / count($velocities)) : null,
+            ];
+        }
+
+        $this->importPreview = $preview;
+        $this->importErrors = $errors;
+        $this->importReady = count($preview) > 0;
+    }
+
+    public function importResults(): void
+    {
+        if (empty($this->importPreview)) return;
+
+        $stepMap = $this->test->steps->keyBy('step_number');
+        $imported = 0;
+
+        foreach ($this->importPreview as $row) {
+            $step = $stepMap->get($row['step_number']);
+            if (!$step) continue;
+
+            $step->update([
+                'velocities' => !empty($row['velocities']) ? $row['velocities'] : null,
+                'group_size' => $row['group_size'],
+                'es' => $row['es'],
+                'sd' => $row['sd'],
+                'notes' => $row['notes'] ?: null,
+            ]);
+
+            // Update local form state to reflect import
+            $this->stepVelocities[$step->id] = !empty($row['velocities']) ? implode(', ', $row['velocities']) : '';
+            $this->stepGroupSize[$step->id] = $row['group_size'];
+            $this->stepNotes[$step->id] = $row['notes'] ?? '';
+
+            $imported++;
+        }
+
+        $this->test->load('steps');
+        $this->showImportForm = false;
+        $this->csvFile = null;
+        $this->importPreview = [];
+        $this->importErrors = [];
+        $this->importReady = false;
+
+        session()->flash('success', "Imported results for {$imported} steps.");
+    }
+
     public function with(): array
     {
         $bestStep = $this->test->best_step;
@@ -127,13 +278,22 @@ new class extends Component {
                     </p>
                 </div>
             </div>
-            <button wire:click="printLadderLabels"
-                    class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
-                </svg>
-                Print Ladder Labels
-            </button>
+            <div class="flex items-center gap-2">
+                <button wire:click="$set('showImportForm', true)"
+                        class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 dark:border-zinc-600 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                    </svg>
+                    Import CSV
+                </button>
+                <button wire:click="printLadderLabels"
+                        class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                    </svg>
+                    Print Labels
+                </button>
+            </div>
         </div>
     </x-slot>
 
@@ -196,6 +356,96 @@ new class extends Component {
             <p class="mt-3 text-sm text-zinc-500">{{ $test->notes }}</p>
         @endif
     </div>
+
+    <!-- CSV Import Panel -->
+    @if($showImportForm)
+        <div class="mb-6 rounded-lg border border-nrapa-blue/30 bg-nrapa-blue-light dark:bg-nrapa-blue/5 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Import Results from CSV</h2>
+                <button wire:click="$set('showImportForm', false)" class="text-zinc-400 hover:text-zinc-600">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="mb-4 p-3 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
+                <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-2">CSV format (first row is the header):</p>
+                <code class="block text-xs bg-zinc-100 dark:bg-zinc-900 p-2 rounded font-mono text-zinc-700 dark:text-zinc-300 overflow-x-auto">
+                    step,charge_weight,velocities,group_size_inches,notes<br>
+                    1,{{ rtrim(rtrim($test->steps->first()?->charge_weight ?? '39.0', '0'), '.') }},"2745; 2752; 2748",0.75,Good consistency
+                </code>
+                <p class="text-xs text-zinc-500 mt-2">Velocities can be separated by semicolons or commas (use semicolons if your CSV editor uses commas as column separator).</p>
+                <button wire:click="downloadCsvTemplate"
+                        class="mt-3 inline-flex items-center gap-1 rounded-lg border border-nrapa-blue text-nrapa-blue px-3 py-1.5 text-xs font-medium hover:bg-nrapa-blue hover:text-white transition-colors">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Download Template CSV
+                </button>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Upload CSV File</label>
+                <input type="file" wire:model="csvFile" accept=".csv,.txt"
+                       class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white file:mr-3 file:rounded file:border-0 file:bg-nrapa-blue file:px-3 file:py-1 file:text-xs file:font-medium file:text-white">
+                @error('csvFile') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+            </div>
+
+            @if(count($importErrors) > 0)
+                <div class="mb-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3">
+                    <p class="text-sm font-medium text-red-700 dark:text-red-300 mb-1">Warnings:</p>
+                    @foreach($importErrors as $error)
+                        <p class="text-xs text-red-600 dark:text-red-400">{{ $error }}</p>
+                    @endforeach
+                </div>
+            @endif
+
+            @if(count($importPreview) > 0)
+                <div class="mb-4">
+                    <p class="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Preview ({{ count($importPreview) }} steps found):</p>
+                    <div class="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
+                        <table class="w-full text-xs">
+                            <thead class="bg-zinc-50 dark:bg-zinc-800">
+                                <tr>
+                                    <th class="px-3 py-2 text-left text-zinc-500">Step</th>
+                                    <th class="px-3 py-2 text-left text-zinc-500">Charge</th>
+                                    <th class="px-3 py-2 text-left text-zinc-500">Velocities</th>
+                                    <th class="px-3 py-2 text-left text-zinc-500">Avg</th>
+                                    <th class="px-3 py-2 text-left text-zinc-500">ES</th>
+                                    <th class="px-3 py-2 text-left text-zinc-500">SD</th>
+                                    <th class="px-3 py-2 text-left text-zinc-500">Group</th>
+                                    <th class="px-3 py-2 text-left text-zinc-500">Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
+                                @foreach($importPreview as $row)
+                                    <tr>
+                                        <td class="px-3 py-1.5 font-medium">{{ $row['step_number'] }}</td>
+                                        <td class="px-3 py-1.5">{{ $row['charge_weight'] }}{{ $test->unit_label }}</td>
+                                        <td class="px-3 py-1.5">{{ $row['vel_count'] }} shots</td>
+                                        <td class="px-3 py-1.5">{{ $row['avg_vel'] ?? '—' }}</td>
+                                        <td class="px-3 py-1.5">{{ $row['es'] ?? '—' }}</td>
+                                        <td class="px-3 py-1.5 {{ ($row['sd'] ?? 99) <= 10 ? 'text-green-600' : '' }}">{{ $row['sd'] ?? '—' }}</td>
+                                        <td class="px-3 py-1.5">{{ $row['group_size'] !== null ? $row['group_size'] . '"' : '—' }}</td>
+                                        <td class="px-3 py-1.5 text-zinc-500 truncate max-w-32">{{ $row['notes'] ?: '—' }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button wire:click="importResults"
+                            class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
+                        Import {{ count($importPreview) }} Steps
+                    </button>
+                    <p class="text-xs text-zinc-500">This will overwrite any existing results for the matched steps.</p>
+                </div>
+            @endif
+        </div>
+    @endif
 
     <!-- Velocity / SD / ES Line Graph -->
     @if($hasAnyResults)

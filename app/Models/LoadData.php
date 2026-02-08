@@ -225,12 +225,20 @@ class LoadData extends Model
         }
 
         if ($this->brass_price_per_unit) {
-            $brassFireings = max($this->brass_firings ?: 1, 1);
-            $cost += $this->brass_price_per_unit / $brassFireings;
+            $cost += $this->brass_price_per_unit / max($this->brass_load_count, 1);
             $hasAny = true;
         }
 
         return $hasAny ? round($cost, 2) : null;
+    }
+
+    /**
+     * How many times this load has been loaded (loading sessions count).
+     * Used to amortise brass cost — each session = one use of the brass cases.
+     */
+    public function getBrassLoadCountAttribute(): int
+    {
+        return max($this->loadingSessions()->count(), 1);
     }
 
     public function getPerformanceSummaryAttribute(): string

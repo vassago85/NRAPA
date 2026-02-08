@@ -55,7 +55,7 @@
 @if($label_layout === '2x7')
     @php $labelsPerPage = 14; $totalPages = ceil($label_count / $labelsPerPage); @endphp
     @for($page = 0; $page < $totalPages; $page++)
-        <div class="page" @if(!$loop->last) style="page-break-after: always;" @endif>
+        <div class="page" @if($page < $totalPages - 1) style="page-break-after: always;" @endif>
             <div class="grid-2x7">
                 @for($row = 0; $row < 7; $row++)
                     @php $idx = $page * $labelsPerPage + $row * 2; @endphp
@@ -123,7 +123,7 @@
 @else
     {{-- Single large label layout --}}
     @for($i = 0; $i < $label_count; $i++)
-        <div class="page" @if(!$loop->last) style="page-break-after: always;" @endif>
+        <div class="page" @if($i < $label_count - 1) style="page-break-after: always;" @endif>
             <div class="label-single">
                 <div style="text-align: center; margin-bottom: 5mm;">
                     @if(file_exists(public_path('nrapa-logo.png')))
@@ -154,7 +154,7 @@
                     <div class="single-detail"><strong>COAL:</strong> {{ $load->coal }}"@if($load->cbto) &nbsp; <strong>CBTO:</strong> {{ $load->cbto }}"@endif</div>
                 @endif
                 @if($load->muzzle_velocity)
-                    <div class="single-detail"><strong>Velocity:</strong> {{ $load->muzzle_velocity }} fps@if($load->velocity_sd) &nbsp; <strong>SD:</strong> {{ $load->velocity_sd }}@endif @if($load->velocity_es) &nbsp; <strong>ES:</strong> {{ $load->velocity_es }}@endif</div>
+                    <div class="single-detail"><strong>Velocity:</strong> {{ $load->muzzle_velocity }} fps @if($load->velocity_sd) &nbsp; <strong>SD:</strong> {{ $load->velocity_sd }} @endif @if($load->velocity_es) &nbsp; <strong>ES:</strong> {{ $load->velocity_es }} @endif</div>
                 @endif
                 @if($load->group_size)
                     <div class="single-detail"><strong>Group:</strong> {{ $load->group_size }} {{ $load->group_size_unit === 'moa' ? 'MOA' : '"' }}</div>

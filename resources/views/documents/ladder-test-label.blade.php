@@ -36,7 +36,7 @@
 @endphp
 
 @for($page = 0; $page < $totalPages; $page++)
-    <div class="page" @if(!$loop->last) style="page-break-after: always;" @endif>
+    <div class="page" @if($page < $totalPages - 1) style="page-break-after: always;" @endif>
         <div class="grid-2x7">
             @for($row = 0; $row < 7; $row++)
                 @php $idx = $page * $labelsPerPage + $row * 2; @endphp
@@ -55,7 +55,7 @@
                                             @endif
                                         </div>
                                         <div class="test-name">{{ $test->name }}</div>
-                                        <div class="step-info">Step {{ $step->step_number }} &mdash; {{ $step->charge_weight }}gr</div>
+                                        <div class="step-info">Step {{ $step->step_number }} &mdash; {{ rtrim(rtrim($step->charge_weight, '0'), '.') }}{{ $test->unit_label }}</div>
 
                                         @if($test->bullet_make || $test->bullet_weight)
                                             <div class="detail-row">
