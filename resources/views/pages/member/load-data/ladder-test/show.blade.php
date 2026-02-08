@@ -16,6 +16,10 @@ new class extends Component {
     public array $stepGroupSize = [];
     public array $stepNotes = [];
 
+    // Unit preferences (display only — DB stores fps, inches)
+    public string $velocity_unit = 'fps';   // fps or ms (m/s)
+    public string $group_unit = 'in';       // in or mm
+
     // CSV Import
     public bool $showImportForm = false;
     public $csvFile = null;
@@ -38,6 +42,41 @@ new class extends Component {
         }
     }
 
+    // --- Unit conversion helpers ---
+    private function fpsToMs($v) { return $v !== null ? round($v * 0.3048, 1) : null; }
+    private function msToFps($v) { return $v !== null ? (int) round($v / 0.3048) : null; }
+    private function inToMm(?float $v): ?float { return $v !== null ? round($v * 25.4, 2) : null; }
+    private function mmToIn(?float $v): ?float { return $v !== null ? round($v / 25.4, 4) : null; }
+
+    public function updatedVelocityUnit($value): void
+    {
+        // Convert all displayed velocity strings
+        foreach ($this->stepVelocities as $id => $velStr) {
+            if (!$velStr) continue;
+            $parts = array_filter(array_map('trim', explode(',', $velStr)), fn ($v) => is_numeric($v));
+            if (empty($parts)) continue;
+
+            if ($value === 'ms') {
+                $converted = array_map(fn ($v) => round($v * 0.3048, 1), $parts);
+            } else {
+                $converted = array_map(fn ($v) => (int) round($v / 0.3048), $parts);
+            }
+            $this->stepVelocities[$id] = implode(', ', $converted);
+        }
+    }
+
+    public function updatedGroupUnit($value): void
+    {
+        foreach ($this->stepGroupSize as $id => $gs) {
+            if ($gs === null || $gs === '') continue;
+            if ($value === 'mm') {
+                $this->stepGroupSize[$id] = $this->inToMm((float) $gs);
+            } else {
+                $this->stepGroupSize[$id] = $this->mmToIn((float) $gs);
+            }
+        }
+    }
+
     public function saveStepResults(int $stepId): void
     {
         $step = LadderTestStep::where('id', $stepId)
@@ -49,9 +88,21 @@ new class extends Component {
             array_map('trim', explode(',', $velocitiesRaw)),
             fn ($v) => is_numeric($v) && $v > 0
         );
-        $velocities = array_map('intval', $velocities);
 
-        // Calculate ES and SD
+        // Convert velocities to canonical fps if entered in m/s
+        if ($this->velocity_unit === 'ms') {
+            $velocities = array_map(fn ($v) => (int) round($v / 0.3048), $velocities);
+        } else {
+            $velocities = array_map('intval', $velocities);
+        }
+
+        // Convert group size to canonical inches if entered in mm
+        $groupSize = $this->stepGroupSize[$stepId] ?: null;
+        if ($groupSize !== null && $this->group_unit === 'mm') {
+            $groupSize = $this->mmToIn((float) $groupSize);
+        }
+
+        // Calculate ES and SD (in fps)
         $es = null;
         $sd = null;
         if (count($velocities) >= 2) {
@@ -63,7 +114,7 @@ new class extends Component {
 
         $step->update([
             'velocities' => !empty($velocities) ? array_values($velocities) : null,
-            'group_size' => $this->stepGroupSize[$stepId] ?: null,
+            'group_size' => $groupSize,
             'es' => $es,
             'sd' => $sd,
             'notes' => $this->stepNotes[$stepId] ?: null,
@@ -330,7 +381,14 @@ new class extends Component {
             @if($test->bullet_make)
                 <div>
                     <span class="text-zinc-500">Bullet:</span>
-                    <span class="font-medium text-zinc-900 dark:text-white">{{ $test->bullet_make }} {{ $test->bullet_weight ? $test->bullet_weight . 'gr' : '' }} {{ $test->bullet_type }}</span>
+                    <span class="font-medium text-zinc-900 dark:text-white">
+                        {{ $test->bullet_make }}
+                        @if($test->bullet_weight)
+                            {{ $test->bullet_weight }}gr
+                            <span class="text-xs text-zinc-400">({{ number_format($test->bullet_weight * 0.06479891, 2) }}g)</span>
+                        @endif
+                        {{ $test->bullet_type }}
+                    </span>
                 </div>
             @endif
             @if($test->powder_type)
@@ -494,16 +552,34 @@ new class extends Component {
                     @if($step->has_results)
                         <div class="flex items-center gap-4 text-sm">
                             @if($step->average_velocity)
-                                <span class="text-zinc-500">Avg: <strong class="text-zinc-900 dark:text-white">{{ $step->average_velocity }} fps</strong></span>
+                                <span class="text-zinc-500">Avg: <strong class="text-zinc-900 dark:text-white">
+                                    @if($velocity_unit === 'ms')
+                                        {{ number_format($step->average_velocity * 0.3048, 1) }} m/s
+                                    @else
+                                        {{ $step->average_velocity }} fps
+                                    @endif
+                                </strong></span>
                             @endif
                             @if($step->es !== null)
-                                <span class="text-zinc-500">ES: <strong class="text-zinc-900 dark:text-white">{{ $step->es }}</strong></span>
+                                <span class="text-zinc-500">ES: <strong class="text-zinc-900 dark:text-white">
+                                    @if($velocity_unit === 'ms')
+                                        {{ number_format($step->es * 0.3048, 1) }}
+                                    @else
+                                        {{ $step->es }}
+                                    @endif
+                                </strong></span>
                             @endif
                             @if($step->sd !== null)
                                 <span class="text-zinc-500">SD: <strong class="{{ $step->sd <= 10 ? 'text-green-600' : ($step->sd <= 20 ? 'text-amber-600' : 'text-red-600') }}">{{ $step->sd }}</strong></span>
                             @endif
                             @if($step->group_size)
-                                <span class="text-zinc-500">Group: <strong class="text-zinc-900 dark:text-white">{{ $step->group_size }}"</strong></span>
+                                <span class="text-zinc-500">Group: <strong class="text-zinc-900 dark:text-white">
+                                    @if($group_unit === 'mm')
+                                        {{ number_format($step->group_size * 25.4, 1) }}mm
+                                    @else
+                                        {{ $step->group_size }}"
+                                    @endif
+                                </strong></span>
                             @endif
                         </div>
                     @endif
@@ -518,14 +594,32 @@ new class extends Component {
                 <!-- Results Form -->
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
                     <div class="md:col-span-2">
-                        <label class="block text-xs font-medium text-zinc-500 mb-1">Velocities (comma-separated)</label>
-                        <input type="text" wire:model="stepVelocities.{{ $step->id }}" placeholder="e.g., 2745, 2752, 2748"
-                               class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                        <label class="block text-xs font-medium text-zinc-500 mb-1">Velocities (comma-separated, {{ $velocity_unit === 'ms' ? 'm/s' : 'fps' }})</label>
+                        <div class="flex gap-2">
+                            <input type="text" wire:model="stepVelocities.{{ $step->id }}" placeholder="{{ $velocity_unit === 'ms' ? 'e.g., 836.7, 838.2, 837.5' : 'e.g., 2745, 2752, 2748' }}"
+                                   class="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                            @if($loop->first)
+                                <select wire:model.live="velocity_unit"
+                                        class="w-16 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-1 py-1.5 text-xs text-zinc-900 dark:text-white">
+                                    <option value="fps">fps</option>
+                                    <option value="ms">m/s</option>
+                                </select>
+                            @endif
+                        </div>
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-zinc-500 mb-1">Group Size (inches)</label>
-                        <input type="number" wire:model="stepGroupSize.{{ $step->id }}" step="0.01" placeholder="e.g., 0.75"
-                               class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                        <label class="block text-xs font-medium text-zinc-500 mb-1">Group Size ({{ $group_unit === 'mm' ? 'mm' : 'inches' }})</label>
+                        <div class="flex gap-2">
+                            <input type="number" wire:model="stepGroupSize.{{ $step->id }}" step="{{ $group_unit === 'mm' ? '0.1' : '0.01' }}" placeholder="{{ $group_unit === 'mm' ? 'e.g., 19.1' : 'e.g., 0.75' }}"
+                                   class="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                            @if($loop->first)
+                                <select wire:model.live="group_unit"
+                                        class="w-16 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-1 py-1.5 text-xs text-zinc-900 dark:text-white">
+                                    <option value="in">in</option>
+                                    <option value="mm">mm</option>
+                                </select>
+                            @endif
+                        </div>
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-zinc-500 mb-1">Notes</label>

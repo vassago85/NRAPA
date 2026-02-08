@@ -29,6 +29,9 @@ new class extends Component {
     public string $notes = '';
     public bool $deductFromInventory = false;
 
+    // Unit preferences (display only — DB stores grains)
+    public string $weight_unit = 'gr'; // gr or g
+
     public function mount(): void
     {
         $loadId = request()->query('load');
@@ -49,6 +52,18 @@ new class extends Component {
                     $this->end_charge = round($load->powder_charge + 1.5, 1);
                 }
             }
+        }
+    }
+
+    private function grToG(?float $v): ?float { return $v !== null ? round($v * 0.06479891, 2) : null; }
+    private function gToGr(?float $v): ?float { return $v !== null ? round($v / 0.06479891, 1) : null; }
+
+    public function updatedWeightUnit($value): void
+    {
+        if ($value === 'g') {
+            $this->bullet_weight = $this->grToG($this->bullet_weight);
+        } else {
+            $this->bullet_weight = $this->gToGr($this->bullet_weight);
         }
     }
 
@@ -75,7 +90,9 @@ new class extends Component {
                 $this->user_firearm_id = $load->user_firearm_id;
                 $this->calibre = $load->calibre_name ?? '';
                 $this->bullet_make = $load->bullet_make ?? '';
-                $this->bullet_weight = $load->bullet_weight;
+                $this->bullet_weight = $this->weight_unit === 'g'
+                    ? $this->grToG($load->bullet_weight)
+                    : $load->bullet_weight;
                 $this->bullet_type = $load->bullet_type ?? '';
                 $this->powder_type = $load->powder_type ?? '';
                 $this->primer_type = $load->primer_type ?? '';
@@ -120,6 +137,12 @@ new class extends Component {
             'rounds_per_step' => ['required', 'integer', 'min:1', 'max:20'],
         ]);
 
+        // Convert to canonical (grains) if entered in grams
+        $bulletWeight = $this->bullet_weight;
+        if ($this->weight_unit === 'g') {
+            $bulletWeight = $this->gToGr($bulletWeight);
+        }
+
         $test = LadderTest::create([
             'user_id' => auth()->id(),
             'load_data_id' => $this->load_data_id,
@@ -127,7 +150,7 @@ new class extends Component {
             'name' => $this->name,
             'calibre' => $this->calibre ?: null,
             'bullet_make' => $this->bullet_make ?: null,
-            'bullet_weight' => $this->bullet_weight,
+            'bullet_weight' => $bulletWeight,
             'bullet_type' => $this->bullet_type ?: null,
             'powder_type' => $this->powder_type ?: null,
             'primer_type' => $this->primer_type ?: null,
@@ -269,9 +292,16 @@ new class extends Component {
                            class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Bullet Weight (gr)</label>
-                    <input type="number" wire:model="bullet_weight" step="0.1"
-                           class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Bullet Weight</label>
+                    <div class="flex gap-2">
+                        <input type="number" wire:model="bullet_weight" step="0.1"
+                               class="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                        <select wire:model.live="weight_unit"
+                                class="w-16 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-2 py-2 text-sm text-zinc-900 dark:text-white">
+                            <option value="gr">gr</option>
+                            <option value="g">g</option>
+                        </select>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Bullet Type</label>
