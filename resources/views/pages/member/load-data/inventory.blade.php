@@ -265,7 +265,10 @@ new class extends Component {
 
         $this->showRestockForm = false;
         $this->restockItemId = null;
-        session()->flash('success', $item->display_name . ' restocked — ' . number_format($qtyAdded, 0) . ' ' . $item->unit . ' added.');
+        $addedDisplay = $item->type === 'powder'
+            ? number_format($qtyAdded * 15.4324, 0) . ' grains'
+            : number_format($qtyAdded, 0) . ' ' . $item->unit;
+        session()->flash('success', $item->display_name . ' restocked — ' . $addedDisplay . ' added.');
     }
 
     public function toggleHistory(int $id): void
@@ -602,7 +605,7 @@ new class extends Component {
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-1">
                     Buy More: {{ $restockItem->display_name }}
                 </h2>
-                <p class="text-sm text-zinc-500 mb-4">Current stock: {{ $restockItem->stock_display }} {{ $restockItem->unit }}</p>
+                <p class="text-sm text-zinc-500 mb-4">Current stock: {{ $restockItem->stock_display }}{{ $restockItem->type !== 'powder' ? ' ' . $restockItem->unit : '' }}</p>
                 <form wire:submit="saveRestock" class="space-y-4">
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
                         <div>
@@ -686,18 +689,22 @@ new class extends Component {
                                         <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Low Stock</span>
                                     @endif
                                 </div>
-                                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-zinc-500">
-                                    <span class="font-medium {{ $item->is_low_stock ? 'text-amber-600' : 'text-zinc-900 dark:text-white' }}">{{ $item->stock_display }} {{ $item->unit }}</span>
+                                <div class="flex flex-wrap items-center gap-y-1 mt-1 text-sm text-zinc-500">
+                                    <span class="font-medium {{ $item->is_low_stock ? 'text-amber-600' : 'text-zinc-900 dark:text-white' }}">{{ $item->stock_display }}{{ $item->type !== 'powder' ? ' ' . $item->unit : '' }}</span>
                                     @if($item->type === 'bullet' && $item->calibre)
+                                        <span class="mx-2 text-zinc-300 dark:text-zinc-600">&middot;</span>
                                         <span>{{ $item->calibre }}</span>
                                     @endif
                                     @if($item->type === 'bullet' && $item->bullet_bc)
+                                        <span class="mx-2 text-zinc-300 dark:text-zinc-600">&middot;</span>
                                         <span>BC {{ $item->bullet_bc }} ({{ $item->bullet_bc_type ?? 'G1' }})</span>
                                     @endif
                                     @if($item->friendly_price)
+                                        <span class="mx-2 text-zinc-300 dark:text-zinc-600">&middot;</span>
                                         <span class="text-nrapa-orange font-medium">{{ $item->friendly_price }}</span>
                                     @endif
                                     @if($item->purchases->count() > 0)
+                                        <span class="mx-2 text-zinc-300 dark:text-zinc-600">&middot;</span>
                                         <span>{{ $item->purchases->count() }} purchase{{ $item->purchases->count() > 1 ? 's' : '' }}</span>
                                     @endif
                                 </div>

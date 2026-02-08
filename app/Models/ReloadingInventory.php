@@ -56,12 +56,15 @@ class ReloadingInventory extends Model
     }
 
     /**
-     * Friendly stock display (e.g., "1,200g" or "350 units").
+     * Friendly stock display (e.g., "7,000 grains" or "350 units").
+     * Powder is stored in grams internally but displayed in grains for reloaders.
+     * 1 gram = 15.4324 grains.
      */
     public function getStockDisplayAttribute(): string
     {
         if ($this->type === 'powder') {
-            return number_format($this->quantity, 0) . 'g';
+            $grains = $this->quantity * 15.4324;
+            return number_format($grains, 0) . ' grains';
         }
         return number_format($this->quantity, 0);
     }
