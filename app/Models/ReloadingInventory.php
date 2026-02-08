@@ -165,23 +165,8 @@ class ReloadingInventory extends Model
 
     public static function bulletTypes(): array
     {
-        return [
-            'HPBT' => 'HPBT (Hollow Point Boat Tail)',
-            'HP' => 'HP (Hollow Point)',
-            'SP' => 'SP (Soft Point)',
-            'FMJ' => 'FMJ (Full Metal Jacket)',
-            'OTM' => 'OTM (Open Tip Match)',
-            'ELD-X' => 'ELD-X',
-            'ELD-M' => 'ELD-M (Match)',
-            'A-TIP' => 'A-TIP (Match)',
-            'ABLR' => 'AccuBond Long Range',
-            'AB' => 'AccuBond',
-            'PT' => 'Partition',
-            'TSX' => 'TSX (Triple Shock)',
-            'TTSX' => 'TTSX (Tipped Triple Shock)',
-            'RN' => 'RN (Round Nose)',
-            'other' => 'Other',
-        ];
+        // Shared with LoadData::bulletTypes() — keep in sync
+        return \App\Models\LoadData::bulletTypes();
     }
 
     public static function defaultUnits(): array

@@ -306,21 +306,28 @@ class LoadData extends Model
     public static function bulletTypes(): array
     {
         return [
-            'FMJ' => 'Full Metal Jacket',
-            'HPBT' => 'Hollow Point Boat Tail',
-            'SP' => 'Soft Point',
-            'HP' => 'Hollow Point',
-            'BT' => 'Boat Tail',
-            'RN' => 'Round Nose',
-            'FB' => 'Flat Base',
-            'VLD' => 'Very Low Drag',
+            'HPBT' => 'HPBT (Hollow Point Boat Tail)',
+            'HP' => 'HP (Hollow Point)',
+            'SP' => 'SP (Soft Point)',
+            'FMJ' => 'FMJ (Full Metal Jacket)',
+            'OTM' => 'OTM (Open Tip Match)',
+            'BT' => 'BT (Boat Tail)',
+            'FB' => 'FB (Flat Base)',
+            'RN' => 'RN (Round Nose)',
+            'VLD' => 'VLD (Very Low Drag)',
             'ELD-X' => 'ELD-X (Hornady)',
-            'ELD-M' => 'ELD-Match (Hornady)',
+            'ELD-M' => 'ELD-M (Match)',
+            'A-TIP' => 'A-TIP (Match)',
             'A-MAX' => 'A-MAX (Hornady)',
+            'ABLR' => 'AccuBond Long Range',
+            'AB' => 'AccuBond',
+            'PT' => 'Partition',
+            'TSX' => 'TSX (Triple Shock)',
+            'TTSX' => 'TTSX (Tipped Triple Shock)',
             'SMK' => 'Sierra MatchKing',
             'TMK' => 'Sierra Tipped MatchKing',
             'Berger' => 'Berger Hybrid',
-            'Other' => 'Other',
+            'other' => 'Other',
         ];
     }
 }
