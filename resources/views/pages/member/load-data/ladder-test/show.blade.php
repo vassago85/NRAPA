@@ -807,7 +807,6 @@ new class extends Component {
     @if($hasAnyResults)
         <div class="mb-6 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6"
              x-data="ladderChart({{ Js::from($chartData) }}, {{ Js::from($test->unit_label) }}, {{ Js::from($test->type_label) }})"
-             x-init="init()"
              wire:key="ladder-chart-{{ md5(json_encode($chartData)) }}">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Results Graph</h2>
@@ -1057,19 +1056,34 @@ new class extends Component {
 </div>
 
 @assets
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+// Load Chart.js from CDN with fallback retry
+(function() {
+    if (window.Chart) return;
+    function loadChartJs(attempt) {
+        if (attempt > 3) return;
+        var s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js';
+        s.onload = function() { window._chartJsLoaded = true; };
+        s.onerror = function() { setTimeout(function() { loadChartJs(attempt + 1); }, 1000); };
+        document.head.appendChild(s);
+    }
+    loadChartJs(1);
+})();
+</script>
 @endassets
 
 @script
 <script>
-Alpine.data('ladderChart', (initialData, unitLabel = 'gr', typeLabel = 'Powder Charge') => ({
+Alpine.data('ladderChart', (initialData, unitLabel, typeLabel) => ({
     chartInstance: null,
-    data: initialData,
-    unitLabel: unitLabel,
-    typeLabel: typeLabel,
     retryCount: 0,
+    _chartData: initialData,
+    _unitLabel: unitLabel || 'gr',
+    _typeLabel: typeLabel || 'Powder Charge',
 
     init() {
+        // Wait for Chart.js to load, then render
         this.$nextTick(() => this.waitForChartJs());
     },
 
@@ -1079,12 +1093,14 @@ Alpine.data('ladderChart', (initialData, unitLabel = 'gr', typeLabel = 'Powder C
         } else if (this.retryCount < 50) {
             this.retryCount++;
             setTimeout(() => this.waitForChartJs(), 100);
+        } else {
+            console.error('Chart.js failed to load after 5 seconds');
         }
     },
 
     renderChart() {
         const canvas = this.$refs.ladderCanvas;
-        if (!canvas || !window.Chart) return;
+        if (!canvas || !window.Chart || !this._chartData) return;
 
         // Destroy previous instance
         if (this.chartInstance) {
@@ -1092,24 +1108,27 @@ Alpine.data('ladderChart', (initialData, unitLabel = 'gr', typeLabel = 'Powder C
             this.chartInstance = null;
         }
 
-        const unit = this.unitLabel;
-        const labels = this.data.map(d => d.charge + unit);
+        const data = this._chartData;
+        const unit = this._unitLabel;
+        const labels = data.map(d => d.charge + unit);
 
         // Velocity data (left Y axis)
-        const velocityData = this.data.map(d => d.avgVelocity);
-        const hasVelocity = velocityData.some(v => v !== null);
+        const velocityData = data.map(d => d.avgVelocity);
+        const hasVelocity = velocityData.some(v => v !== null && v !== undefined);
 
         // SD data (right Y axis)
-        const sdData = this.data.map(d => d.sd);
-        const hasSd = sdData.some(v => v !== null);
+        const sdData = data.map(d => d.sd);
+        const hasSd = sdData.some(v => v !== null && v !== undefined);
 
         // ES data (right Y axis)
-        const esData = this.data.map(d => d.es);
-        const hasEs = esData.some(v => v !== null);
+        const esData = data.map(d => d.es);
+        const hasEs = esData.some(v => v !== null && v !== undefined);
 
         // Group size data (separate right axis)
-        const groupData = this.data.map(d => d.groupSize);
-        const hasGroup = groupData.some(v => v !== null);
+        const groupData = data.map(d => d.groupSize);
+        const hasGroup = groupData.some(v => v !== null && v !== undefined);
+
+        if (!hasVelocity && !hasSd && !hasEs && !hasGroup) return;
 
         const isDark = document.documentElement.classList.contains('dark');
         const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
@@ -1197,7 +1216,7 @@ Alpine.data('ladderChart', (initialData, unitLabel = 'gr', typeLabel = 'Powder C
 
         const scales = {
             x: {
-                title: { display: true, text: this.typeLabel + ' (' + this.unitLabel + ')', color: textColor, font: { weight: '600' } },
+                title: { display: true, text: this._typeLabel + ' (' + this._unitLabel + ')', color: textColor, font: { weight: '600' } },
                 grid: { color: gridColor },
                 ticks: { color: textColor },
             }
@@ -1224,38 +1243,42 @@ Alpine.data('ladderChart', (initialData, unitLabel = 'gr', typeLabel = 'Powder C
             };
         }
 
-        this.chartInstance = new Chart(canvas, {
-            type: 'line',
-            data: { labels, datasets },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    mode: 'index',
-                    intersect: false,
-                },
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'bottom',
-                        labels: { color: textColor, usePointStyle: true, pointStyle: 'circle', padding: 16 },
+        try {
+            this.chartInstance = new Chart(canvas, {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
                     },
-                    tooltip: {
-                        backgroundColor: isDark ? '#27272a' : '#fff',
-                        titleColor: isDark ? '#fff' : '#18181b',
-                        bodyColor: isDark ? '#d4d4d8' : '#3f3f46',
-                        borderColor: isDark ? '#3f3f46' : '#e4e4e7',
-                        borderWidth: 1,
-                        padding: 12,
-                        cornerRadius: 8,
-                        callbacks: {
-                            title: (items) => this.typeLabel + ': ' + items[0].label,
-                        }
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: { color: textColor, usePointStyle: true, pointStyle: 'circle', padding: 16 },
+                        },
+                        tooltip: {
+                            backgroundColor: isDark ? '#27272a' : '#fff',
+                            titleColor: isDark ? '#fff' : '#18181b',
+                            bodyColor: isDark ? '#d4d4d8' : '#3f3f46',
+                            borderColor: isDark ? '#3f3f46' : '#e4e4e7',
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                title: (items) => this._typeLabel + ': ' + items[0].label,
+                            }
+                        },
                     },
+                    scales,
                 },
-                scales,
-            },
-        });
+            });
+        } catch (e) {
+            console.error('Chart.js render error:', e);
+        }
     },
 
     destroy() {
