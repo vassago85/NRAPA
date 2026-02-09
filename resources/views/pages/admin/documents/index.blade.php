@@ -2,7 +2,9 @@
 
 use App\Models\DocumentType;
 use App\Models\MemberDocument;
+use App\Models\ShootingActivity;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -56,11 +58,35 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         ];
     }
 
+    /**
+     * Get the linked shooting activity for the document being reviewed.
+     */
+    #[Computed]
+    public function linkedActivity(): ?ShootingActivity
+    {
+        if (!$this->reviewingDocument) {
+            return null;
+        }
+
+        $activity = ShootingActivity::with([
+                'activityType', 'firearmType', 'userFirearm', 'loadData',
+                'country', 'province', 'tags',
+            ])
+            ->where(function ($q) {
+                $q->where('evidence_document_id', $this->reviewingDocument->id)
+                  ->orWhere('additional_document_id', $this->reviewingDocument->id);
+            })
+            ->first();
+
+        return $activity;
+    }
+
     public function reviewDocument(MemberDocument $document): void
     {
         $this->reviewingDocument = $document;
         $this->rejectionReason = '';
         $this->showReviewModal = true;
+        unset($this->linkedActivity); // Clear computed cache
     }
 
     public function verifyDocument(): void
@@ -330,6 +356,83 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                                 </div>
                             </div>
                             
+                            {{-- Linked Activity Details --}}
+                            @if($this->linkedActivity)
+                                @php $activity = $this->linkedActivity; @endphp
+                                <div class="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                                    <h4 class="text-sm font-semibold text-emerald-800 dark:text-emerald-200 mb-3 flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                                        Linked Activity Details
+                                    </h4>
+                                    <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                                        <div>
+                                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">Activity Type:</span>
+                                            <span class="text-emerald-900 dark:text-emerald-100 ml-1">{{ $activity->activityType?->name ?? 'N/A' }}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">Track:</span>
+                                            <span class="text-emerald-900 dark:text-emerald-100 ml-1 capitalize">{{ $activity->track ?? 'N/A' }}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">Date:</span>
+                                            <span class="text-emerald-900 dark:text-emerald-100 ml-1">{{ $activity->activity_date?->format('d M Y') ?? 'N/A' }}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">Rounds Fired:</span>
+                                            <span class="text-emerald-900 dark:text-emerald-100 ml-1">{{ $activity->rounds_fired ?? 'N/A' }}</span>
+                                        </div>
+                                        @if($activity->location || $activity->closest_town_city || $activity->province)
+                                        <div class="col-span-2">
+                                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">Location:</span>
+                                            <span class="text-emerald-900 dark:text-emerald-100 ml-1">{{ $activity->full_location }}</span>
+                                        </div>
+                                        @endif
+                                        @if($activity->userFirearm)
+                                        <div class="col-span-2">
+                                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">Firearm:</span>
+                                            <span class="text-emerald-900 dark:text-emerald-100 ml-1">
+                                                {{ $activity->userFirearm->firearmMake?->name ?? '' }}
+                                                {{ $activity->userFirearm->firearmModel?->name ?? '' }}
+                                                @if($activity->userFirearm->calibre_display)
+                                                    ({{ $activity->userFirearm->calibre_display }})
+                                                @endif
+                                            </span>
+                                        </div>
+                                        @elseif($activity->firearmType)
+                                        <div>
+                                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">Firearm Type:</span>
+                                            <span class="text-emerald-900 dark:text-emerald-100 ml-1">{{ $activity->firearmType->name }}</span>
+                                        </div>
+                                        @endif
+                                        @if($activity->loadData)
+                                        <div class="col-span-2">
+                                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">Load Data:</span>
+                                            <span class="text-emerald-900 dark:text-emerald-100 ml-1">{{ $activity->loadData->name }}</span>
+                                        </div>
+                                        @endif
+                                        @if($activity->description)
+                                        <div class="col-span-2">
+                                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">Description:</span>
+                                            <span class="text-emerald-900 dark:text-emerald-100 ml-1">{{ $activity->description }}</span>
+                                        </div>
+                                        @endif
+                                        @if($activity->tags->count())
+                                        <div class="col-span-2">
+                                            <span class="text-emerald-600 dark:text-emerald-400 font-medium">Tags:</span>
+                                            <span class="text-emerald-900 dark:text-emerald-100 ml-1">{{ $activity->tags->pluck('name')->implode(', ') }}</span>
+                                        </div>
+                                        @endif
+                                    </div>
+                                    <div class="mt-2 pt-2 border-t border-emerald-200 dark:border-emerald-700 flex items-center gap-2">
+                                        <span class="text-xs text-emerald-600 dark:text-emerald-400">Activity Status:</span>
+                                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
+                                            {{ $activity->status === 'approved' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : ($activity->status === 'rejected' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300') }}">
+                                            {{ ucfirst($activity->status) }}
+                                        </span>
+                                    </div>
+                                </div>
+                            @endif
+
                             @if($reviewingDocument->documentType->description)
                                 <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                                     <p class="text-sm font-medium text-blue-800 dark:text-blue-200">Document Requirements</p>
