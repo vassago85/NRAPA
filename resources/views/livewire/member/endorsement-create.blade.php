@@ -198,17 +198,17 @@
                 <div class="space-y-6 max-w-xl">
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Barrel diameter <span class="text-red-500">*</span></label>
-                        <input type="text" wire:model="componentBarrelDiameter" placeholder="e.g. 6.5mm, .308" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                        <input type="text" wire:model.live="componentBarrelDiameter" placeholder="e.g. 6.5mm, .308" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
                         @error('componentBarrelDiameter') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Make <span class="text-red-500">*</span></label>
-                        <input type="text" wire:model="componentBarrelMake" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                        <input type="text" wire:model.live="componentBarrelMake" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
                         @error('componentBarrelMake') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Serial number <span class="text-red-500">*</span></label>
-                        <input type="text" wire:model="componentBarrelSerial" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono">
+                        <input type="text" wire:model.live="componentBarrelSerial" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono">
                         @error('componentBarrelSerial') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
                 </div>
@@ -219,7 +219,7 @@
                 <div class="space-y-6 max-w-xl">
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Bolt face <span class="text-red-500">*</span></label>
-                        <select wire:model="componentActionBoltFace" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                        <select wire:model.live="componentActionBoltFace" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
                             <option value="">Select...</option>
                             @foreach($boltFaceOptions as $value => $label)
                                 <option value="{{ $value }}">{{ $label }}</option>
@@ -229,7 +229,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Action type <span class="text-red-500">*</span></label>
-                        <select wire:model="componentActionType" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                        <select wire:model.live="componentActionType" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
                             <option value="">Select...</option>
                             @foreach($componentActionTypeOptions as $value => $label)
                                 <option value="{{ $value }}">{{ $label }}</option>
@@ -239,7 +239,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Serial number <span class="text-red-500">*</span></label>
-                        <input type="text" wire:model="componentActionSerial" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono">
+                        <input type="text" wire:model.live="componentActionSerial" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono">
                         @error('componentActionSerial') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
                 </div>
