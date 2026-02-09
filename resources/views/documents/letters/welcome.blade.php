@@ -1,5 +1,6 @@
 @extends('documents.layouts.nrapa-official')
 
+@section('content')
 @php
     $farNumbers = \App\Helpers\DocumentDataHelper::getFarNumbers();
     $logoUrl = \App\Helpers\DocumentDataHelper::getLogoUrl();
@@ -27,8 +28,6 @@
         'title' => \App\Models\SystemSetting::get('default_signatory_title', 'Authorised Signatory'),
     ];
 @endphp
-
-@section('content')
 <div class="letterhead">
     <div class="header" style="grid-template-columns: 64px 1fr; gap: 14px;">
         @if($logoUrl)
@@ -92,7 +91,8 @@
 
     <p>Dear {{ $user->name ? (explode(' ', trim($user->name))[0] ?? 'Member') : 'Member' }},</p>
 
-    <p>Thank you for joining the National Rifle and Pistol Association (NRAPA). We welcome you to the Association.@if($membership) Your membership details are as follows:</p>
+    @if($membership)
+    <p>Thank you for joining the National Rifle and Pistol Association (NRAPA). We welcome you to the Association. Your membership details are as follows:</p>
 
     <div class="callout">
         <div class="kv" style="grid-template-columns: 200px 1fr;">
@@ -104,7 +104,7 @@
         </div>
     </div>
     @else
-    </p>
+    <p>Thank you for joining the National Rifle and Pistol Association (NRAPA). We welcome you to the Association.</p>
     @endif
 
     <div style="height:10px"></div>
