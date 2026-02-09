@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
 class FirearmCalibre extends Model
 {
     protected $fillable = [
+        'saps_code',
         'name',
         'normalized_name',
         'category',
@@ -117,6 +118,7 @@ class FirearmCalibre extends Model
         return $query->where(function ($q) use ($term, $normalizedTerm) {
             $q->where('name', 'LIKE', "%{$term}%")
               ->orWhere('normalized_name', 'LIKE', "%{$normalizedTerm}%")
+              ->orWhere('saps_code', $term)
               ->orWhereHas('aliases', function ($aliasQuery) use ($term, $normalizedTerm) {
                   $aliasQuery->where('alias', 'LIKE', "%{$term}%")
                             ->orWhere('normalized_alias', 'LIKE', "%{$normalizedTerm}%");

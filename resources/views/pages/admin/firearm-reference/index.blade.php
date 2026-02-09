@@ -481,6 +481,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
                     <table class="w-full">
                         <thead class="bg-zinc-50 dark:bg-zinc-900">
                             <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">SAPS</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">Name</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">Category</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">Ignition</th>
@@ -492,6 +493,9 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
                         <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
                             @foreach($calibres as $calibre)
                             <tr>
+                                <td class="px-4 py-4 whitespace-nowrap text-xs font-mono text-zinc-400 dark:text-zinc-500">
+                                    {{ $calibre->saps_code ?? '—' }}
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-zinc-900 dark:text-white">
                                     {{ $calibre->name }}
                                 </td>
@@ -561,6 +565,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
                     <table class="w-full">
                         <thead class="bg-zinc-50 dark:bg-zinc-900">
                             <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">SAPS</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">Name</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">Country</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">Models</th>
@@ -570,6 +575,9 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
                         <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
                             @foreach($makes as $make)
                             <tr>
+                                <td class="px-4 py-4 whitespace-nowrap text-xs font-mono text-zinc-400 dark:text-zinc-500">
+                                    {{ $make->saps_code ?? '—' }}
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-zinc-900 dark:text-white">
                                     {{ $make->name }}
                                 </td>

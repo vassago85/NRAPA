@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
 class FirearmMake extends Model
 {
     protected $fillable = [
+        'saps_code',
         'name',
         'normalized_name',
         'country',
@@ -72,13 +73,16 @@ class FirearmMake extends Model
     }
 
     /**
-     * Search makes by name.
+     * Search makes by name or SAPS code.
      */
     public function scopeSearch($query, string $term)
     {
         $normalizedTerm = static::normalize($term);
         
-        return $query->where('name', 'LIKE', "%{$term}%")
-                    ->orWhere('normalized_name', 'LIKE', "%{$normalizedTerm}%");
+        return $query->where(function ($q) use ($term, $normalizedTerm) {
+            $q->where('name', 'LIKE', "%{$term}%")
+              ->orWhere('normalized_name', 'LIKE', "%{$normalizedTerm}%")
+              ->orWhere('saps_code', $term);
+        });
     }
 }

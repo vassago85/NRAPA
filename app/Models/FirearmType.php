@@ -34,6 +34,7 @@ class FirearmType extends Model
      */
     protected $fillable = [
         'slug',
+        'saps_code',
         'name',
         'category',
         'ignition_type',

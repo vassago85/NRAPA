@@ -14,14 +14,20 @@ class FirearmCalibreSeeder extends Seeder
      */
     public function run(): void
     {
-        // First, seed from CSV file if it exists
+        // 1. Seed from our curated CSV file (rich metadata: family, diameter, etc.)
         $csvPath = resource_path('data/calibres.csv');
         if (File::exists($csvPath)) {
             $this->seedFromCsv($csvPath);
         }
 
-        // Then add additional calibres not in CSV
+        // 2. Seed additional curated calibres with aliases
         $this->seedAdditionalCalibres();
+
+        // 3. Import SAPS 350A calibres (adds saps_code, creates new entries)
+        $sapsCsvPath = resource_path('data/saps_calibres.csv');
+        if (File::exists($sapsCsvPath)) {
+            $this->seedSapsCalibres($sapsCsvPath);
+        }
     }
 
     /**
@@ -81,6 +87,222 @@ class FirearmCalibreSeeder extends Seeder
 
         fclose($handle);
         $this->command->info("Seeded {$count} calibres from CSV.");
+    }
+
+    /**
+     * Import SAPS 350A calibres.
+     * - Matches existing calibres by normalized name and adds saps_code.
+     * - Creates new calibres from unmatched SAPS entries.
+     * - Skips non-calibre entries (barrels, frames, components, etc.).
+     */
+    protected function seedSapsCalibres(string $csvPath): void
+    {
+        $handle = fopen($csvPath, 'r');
+        if (!$handle) {
+            return;
+        }
+
+        // Skip header row (Code,Description,FirearmType)
+        $header = fgetcsv($handle);
+
+        // Build lookup using normalize() on the actual name column.
+        // The stored normalized_name in the CSV may differ from what normalize()
+        // produces (e.g. CSV keeps dots: ".22hornet" vs normalize removes them: "22 hornet").
+        $existing = [];
+        foreach (FirearmCalibre::all(['id', 'name', 'saps_code']) as $calibre) {
+            $key = FirearmCalibre::normalize($calibre->name);
+            $existing[$key] = ['id' => $calibre->id, 'saps_code' => $calibre->saps_code];
+        }
+
+        $matched = 0;
+        $created = 0;
+        $skipped = 0;
+        $seen = []; // Track normalized names to handle duplicates
+
+        while (($row = fgetcsv($handle)) !== false) {
+            if (count($row) < 2) continue;
+
+            $sapsCode = trim($row[0]);
+            $sapsName = trim($row[1]);
+            if (empty($sapsName)) continue;
+
+            // Skip non-calibre entries
+            if ($this->shouldSkipSapsEntry($sapsName)) {
+                $skipped++;
+                continue;
+            }
+
+            $normalizedName = FirearmCalibre::normalize($sapsName);
+
+            // First SAPS entry for this name wins (many duplicates exist)
+            if (isset($seen[$normalizedName])) {
+                continue;
+            }
+            $seen[$normalizedName] = $sapsCode;
+
+            if (isset($existing[$normalizedName])) {
+                // Existing calibre found – add SAPS code if not already set
+                if (empty($existing[$normalizedName]['saps_code'])) {
+                    FirearmCalibre::where('id', $existing[$normalizedName]['id'])
+                        ->update(['saps_code' => $sapsCode]);
+                }
+                $matched++;
+            } else {
+                // New calibre from SAPS – create with inferred category
+                $category = $this->inferCategory($sapsName);
+                $ignition = $this->inferIgnition($sapsName);
+
+                try {
+                    FirearmCalibre::create([
+                        'saps_code' => $sapsCode,
+                        'name' => $sapsName,
+                        'normalized_name' => $normalizedName,
+                        'category' => $category,
+                        'ignition' => $ignition,
+                        'is_active' => true,
+                        'is_obsolete' => false,
+                        'is_wildcat' => false,
+                    ]);
+                    $existing[$normalizedName] = ['id' => null, 'saps_code' => $sapsCode];
+                    $created++;
+                } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+                    // Name already exists (case-insensitive match) – update saps_code instead
+                    FirearmCalibre::whereRaw('LOWER(name) = ?', [strtolower($sapsName)])
+                        ->whereNull('saps_code')
+                        ->update(['saps_code' => $sapsCode]);
+                    $matched++;
+                }
+            }
+        }
+
+        fclose($handle);
+        $this->command->info("SAPS calibres: {$matched} matched, {$created} new, {$skipped} non-calibre entries skipped.");
+    }
+
+    /**
+     * Determine if a SAPS entry should be skipped (not a real calibre).
+     */
+    protected function shouldSkipSapsEntry(string $name): bool
+    {
+        $upper = strtoupper($name);
+
+        // Skip barrel billets, barrel components, frames, receivers, etc.
+        $skipPrefixes = [
+            'BARREL',
+            'FRAME',
+            'RECEIVER',
+            'BOLT KNOB',
+            'PRIMERS',
+            'PROOF BARREL',
+            'POWERHEAD',
+            'JAKKALSKANON',
+            'FLARE GUN',
+            'STARTERS',
+        ];
+
+        foreach ($skipPrefixes as $prefix) {
+            if (str_starts_with($upper, $prefix)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Infer the calibre category from the SAPS name.
+     */
+    protected function inferCategory(string $name): string
+    {
+        $upper = strtoupper($name);
+
+        // Shotgun indicators
+        if (preg_match('/\b\d+\s*GA\b/i', $name) || preg_match('/\b\d+\s*GAUGE\b/i', $name)) {
+            return 'shotgun';
+        }
+        if (str_contains($upper, 'BORE') && !str_contains($upper, '30 BORE')) {
+            return 'shotgun';
+        }
+        if (preg_match('/^(10|11|12|13|14|15|16|17|20|24|25|28|32|54)\s+GA$/i', trim($name))) {
+            return 'shotgun';
+        }
+
+        // Muzzle loader indicators
+        if (str_contains($upper, 'MUZZLE LOADER') || str_contains($upper, 'CAP&BALL')) {
+            return 'muzzleloader';
+        }
+
+        // Air gun indicators
+        if (str_contains($upper, 'AIR/WIND')) {
+            return 'rifle';
+        }
+
+        // Handgun indicators - specific calibres that are primarily handgun
+        $handgunPatterns = [
+            '.25 ACP', '6.35MM BROWNING', '6.35MM BROW',
+            '.32 ACP', '.32 S&W', '.32 LONG', '.32 SHORT', '.32 RIM-FIRE',
+            '.380 ACP', '9MM SHORT', '9MM PAR', '9X19', '9X18', '9X21', '9X23',
+            '.38 SPECIAL', '.38 SPL', '.38 S&W', '.38 SUPER', '.38 SHORT',
+            '.357 MAG', '.357 SIG',
+            '.40 S&W',
+            '.41 MAG', '.41 REM MAG', '.41 LONG', '.41 SHORT', '.41 SPECIAL',
+            '.44 MAG', '.44 S&W', '.44 SPECIAL', '.44 RUSSIAN', '.44 BULL',
+            '.45 ACP', '.45 GAP', '.45 COLT', '.45 S&W', '.45 WEBLEY',
+            '.454 CASULL', '.460 S&W', '.475 LINEBAUGH', '.480 RUGER',
+            '.500 S&W', '.50 ACTION EXPRESS',
+            '5.7X28', '4.25MM LILIPUT', '4MM FLOBERT',
+            '7.62X25', '7.63 MM MAUSER', '7.63X25', '7.65MM',
+            '10MM AUTO', '.320 REVOLVER', '.442', '.455 WEBLEY', '.455 COLT',
+            '.455 ELEY', '.476 ENFIELD', '9.65MM NORMAL',
+            '.22 SHORT', '.22 LONG ', '.22 LONG/',
+            '.380 SHORT', '.380 LONG',
+        ];
+
+        foreach ($handgunPatterns as $pattern) {
+            if (str_contains($upper, strtoupper($pattern))) {
+                return 'handgun';
+            }
+        }
+
+        // Check for pistol/revolver mention in calibre name
+        if (str_contains($upper, '(PISTOL)') || str_contains($upper, 'REVOLVER')) {
+            return 'handgun';
+        }
+
+        // Everything else defaults to rifle
+        return 'rifle';
+    }
+
+    /**
+     * Infer the ignition type from the SAPS name.
+     */
+    protected function inferIgnition(string $name): string
+    {
+        $upper = strtoupper($name);
+
+        // Rimfire patterns
+        $rimfirePatterns = [
+            '.22 SHORT', '.22 LONG', '.22 LR', '.22 S/L/LR',
+            '.22 EXTRA LONG', '.22 WIN MAG RIM', '.22 WMR',
+            '.22 RIM FIRE', '.22 RIMFIRE', '.22 WIN RIMFIRE',
+            '.17 HORN MACH', '.17 HORN MAG RIM', '.17 HMR',
+            '.22 MAGNUM', '.22 CB CAP', '.22 BB CAP',
+            'RIM-FIRE', 'RIMFIRE', 'RIM FIRE',
+        ];
+
+        foreach ($rimfirePatterns as $pattern) {
+            if (str_contains($upper, $pattern)) {
+                return 'rimfire';
+            }
+        }
+
+        // Pinfire is neither, but treat as centerfire for our purposes
+        // Air guns
+        if (str_contains($upper, 'AIR/WIND')) {
+            return 'centerfire'; // technically neither, but needs a value
+        }
+
+        return 'centerfire';
     }
 
     /**

@@ -9,7 +9,20 @@ use Illuminate\Support\Str;
 class FirearmTypeSeeder extends Seeder
 {
     /**
-     * Run the database seeds.
+     * SAPS 350A FirearmTypes dropdown codes.
+     *
+     * 20  = PISTOL
+     * 21  = REVOLVER
+     * 22  = SHOTGUN
+     * 23  = RIFLE
+     * 24  = COMBINATION
+     * 185 = MACHINE GUN
+     * 187 = S/L: PIST CAL - RIFLE/CARB
+     * 600 = PRIMERS
+     * 1013 = MAIN FIREARM COMPONENT
+     * 2060 = S/L: RIFLE CAL - RIFLE/CARBINE
+     * 2072 = FULL-AUTO: PIST CAL - RIFLE/CARB
+     * 2073 = FULL-AUTO:RIFLE CAL-RIFLE/CARB
      */
     public function run(): void
     {
@@ -17,6 +30,7 @@ class FirearmTypeSeeder extends Seeder
             // ===== HANDGUNS =====
             [
                 'name' => 'Revolver',
+                'saps_code' => '21',
                 'category' => 'handgun',
                 'ignition_type' => 'both',
                 'action_type' => 'revolver',
@@ -25,6 +39,7 @@ class FirearmTypeSeeder extends Seeder
             ],
             [
                 'name' => 'Semi-Auto Pistol',
+                'saps_code' => '20',
                 'category' => 'handgun',
                 'ignition_type' => 'centerfire',
                 'action_type' => 'semi_auto',
@@ -33,6 +48,7 @@ class FirearmTypeSeeder extends Seeder
             ],
             [
                 'name' => 'Single Shot Pistol',
+                'saps_code' => '20',
                 'category' => 'handgun',
                 'ignition_type' => 'both',
                 'action_type' => 'single_shot',
@@ -43,6 +59,7 @@ class FirearmTypeSeeder extends Seeder
             // ===== RIFLES =====
             [
                 'name' => 'Bolt-Action Rifle',
+                'saps_code' => '23',
                 'category' => 'rifle',
                 'ignition_type' => 'both',
                 'action_type' => 'bolt_action',
@@ -51,6 +68,7 @@ class FirearmTypeSeeder extends Seeder
             ],
             [
                 'name' => 'Semi-Auto Rifle',
+                'saps_code' => '23',
                 'category' => 'rifle',
                 'ignition_type' => 'both',
                 'action_type' => 'semi_auto',
@@ -59,6 +77,7 @@ class FirearmTypeSeeder extends Seeder
             ],
             [
                 'name' => 'Lever-Action Rifle',
+                'saps_code' => '23',
                 'category' => 'rifle',
                 'ignition_type' => 'both',
                 'action_type' => 'lever_action',
@@ -67,6 +86,7 @@ class FirearmTypeSeeder extends Seeder
             ],
             [
                 'name' => 'Single Shot Rifle',
+                'saps_code' => '23',
                 'category' => 'rifle',
                 'ignition_type' => 'both',
                 'action_type' => 'single_shot',
@@ -75,6 +95,7 @@ class FirearmTypeSeeder extends Seeder
             ],
             [
                 'name' => 'Pump-Action Rifle',
+                'saps_code' => '23',
                 'category' => 'rifle',
                 'ignition_type' => 'both',
                 'action_type' => 'pump_action',
@@ -85,6 +106,7 @@ class FirearmTypeSeeder extends Seeder
             // ===== SHOTGUNS =====
             [
                 'name' => 'Break-Action Shotgun',
+                'saps_code' => '22',
                 'category' => 'shotgun',
                 'ignition_type' => 'centerfire',
                 'action_type' => 'break_action',
@@ -93,6 +115,7 @@ class FirearmTypeSeeder extends Seeder
             ],
             [
                 'name' => 'Pump-Action Shotgun',
+                'saps_code' => '22',
                 'category' => 'shotgun',
                 'ignition_type' => 'centerfire',
                 'action_type' => 'pump_action',
@@ -101,6 +124,7 @@ class FirearmTypeSeeder extends Seeder
             ],
             [
                 'name' => 'Semi-Auto Shotgun',
+                'saps_code' => '22',
                 'category' => 'shotgun',
                 'ignition_type' => 'centerfire',
                 'action_type' => 'semi_auto',
@@ -109,6 +133,7 @@ class FirearmTypeSeeder extends Seeder
             ],
             [
                 'name' => 'Bolt-Action Shotgun',
+                'saps_code' => '22',
                 'category' => 'shotgun',
                 'ignition_type' => 'centerfire',
                 'action_type' => 'bolt_action',
@@ -117,6 +142,7 @@ class FirearmTypeSeeder extends Seeder
             ],
             [
                 'name' => 'Lever-Action Shotgun',
+                'saps_code' => '22',
                 'category' => 'shotgun',
                 'ignition_type' => 'centerfire',
                 'action_type' => 'lever_action',
@@ -133,6 +159,7 @@ class FirearmTypeSeeder extends Seeder
                 ['slug' => Str::slug($type['name'])],
                 [
                     'name' => $type['name'],
+                    'saps_code' => $type['saps_code'],
                     'category' => $type['category'],
                     'ignition_type' => $type['ignition_type'],
                     'action_type' => $type['action_type'],
@@ -144,6 +171,6 @@ class FirearmTypeSeeder extends Seeder
             );
         }
 
-        $this->command->info('Seeded ' . count($firearmTypes) . ' firearm types.');
+        $this->command->info('Seeded ' . count($firearmTypes) . ' firearm types with SAPS codes.');
     }
 }

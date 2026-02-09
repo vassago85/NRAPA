@@ -213,6 +213,7 @@ new #[Title('Firearm Settings')] class extends Component {
                     <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
                         <thead class="bg-zinc-50 dark:bg-zinc-800/50">
                             <tr>
+                                <th class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">SAPS</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Name</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Category</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Ignition</th>
@@ -224,6 +225,9 @@ new #[Title('Firearm Settings')] class extends Component {
                         <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
                             @forelse($firearmTypes as $type)
                                 <tr class="{{ !$type->is_active ? 'opacity-50' : '' }}">
+                                    <td class="px-3 py-3 text-xs font-mono text-zinc-400 dark:text-zinc-500">
+                                        {{ $type->saps_code ?? '—' }}
+                                    </td>
                                     <td class="px-4 py-3 text-sm text-zinc-900 dark:text-white">
                                         {{ $type->name }}
                                         @if($type->description)
@@ -260,7 +264,7 @@ new #[Title('Firearm Settings')] class extends Component {
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="px-4 py-8 text-center text-zinc-500 dark:text-zinc-400">
+                                    <td colspan="7" class="px-4 py-8 text-center text-zinc-500 dark:text-zinc-400">
                                         No firearm types found. Add one above.
                                     </td>
                                 </tr>
