@@ -25,7 +25,7 @@ class DocumentHelper
             }
             
             // If it's a storage path, get the URL
-            $disk = app()->environment(['local', 'development', 'testing']) ? 'public' : 'r2_public';
+            $disk = StorageHelper::getPublicDisk();
             if (Storage::disk($disk)->exists($logoPath)) {
                 return StorageHelper::getUrl($logoPath);
             }

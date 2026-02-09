@@ -75,9 +75,14 @@ class DocumentDataHelper
             return 'Signature image (transparent PNG)';
         }
 
-        $disk = app()->environment(['local', 'development', 'testing']) ? 'public' : 'r2_public';
+        $disk = StorageHelper::getPublicDisk();
         
-        if (!Storage::disk($disk)->exists($signaturePath)) {
+        try {
+            if (!Storage::disk($disk)->exists($signaturePath)) {
+                return 'Signature image (transparent PNG)';
+            }
+        } catch (\Throwable $e) {
+            report($e);
             return 'Signature image (transparent PNG)';
         }
 
@@ -98,9 +103,14 @@ class DocumentDataHelper
             return 'Commissioner of Oaths scan';
         }
 
-        $disk = app()->environment(['local', 'development', 'testing']) ? 'public' : 'r2_public';
+        $disk = StorageHelper::getPublicDisk();
         
-        if (!Storage::disk($disk)->exists($scanPath)) {
+        try {
+            if (!Storage::disk($disk)->exists($scanPath)) {
+                return 'Commissioner of Oaths scan';
+            }
+        } catch (\Throwable $e) {
+            report($e);
             return 'Commissioner of Oaths scan';
         }
 

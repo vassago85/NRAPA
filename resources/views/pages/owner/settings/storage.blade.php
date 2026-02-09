@@ -77,6 +77,7 @@ new class extends Component {
                 'filesystems.disks.r2.url' => $this->r2_url,
                 'filesystems.disks.r2.region' => $this->r2_region,
             ]);
+
         } else {
             // Local storage - update default
             config([

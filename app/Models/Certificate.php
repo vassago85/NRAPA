@@ -254,7 +254,7 @@ class Certificate extends Model
             return null;
         }
 
-        $disk = app()->environment(['local', 'development', 'testing']) ? 'public' : 'r2_public';
+        $disk = \App\Helpers\StorageHelper::getPublicDisk();
         
         if (!\Illuminate\Support\Facades\Storage::disk($disk)->exists($this->signatory_signature_path)) {
             return null;
@@ -272,7 +272,7 @@ class Certificate extends Model
             return null;
         }
 
-        $disk = app()->environment(['local', 'development', 'testing']) ? 'public' : 'r2_public';
+        $disk = \App\Helpers\StorageHelper::getPublicDisk();
         
         if (!\Illuminate\Support\Facades\Storage::disk($disk)->exists($this->commissioner_oaths_scan_path)) {
             return null;

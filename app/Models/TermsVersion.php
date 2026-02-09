@@ -48,7 +48,7 @@ class TermsVersion extends Model
         }
 
         if ($this->html_path) {
-            $disk = app()->environment(['local', 'development', 'testing']) ? 'public' : 'r2_public';
+            $disk = \App\Helpers\StorageHelper::getPublicDisk();
             if (Storage::disk($disk)->exists($this->html_path)) {
                 return Storage::disk($disk)->get($this->html_path);
             }

@@ -77,7 +77,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         ];
 
         if ($this->useFile && $this->htmlFile) {
-            $disk = app()->environment(['local', 'development', 'testing']) ? 'public' : 'r2_public';
+            $disk = \App\Helpers\StorageHelper::getPublicDisk();
             $path = $this->htmlFile->store('terms', $disk);
             $data['html_path'] = $path;
             $data['html_content'] = null;
