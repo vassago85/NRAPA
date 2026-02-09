@@ -21,12 +21,12 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         // Register DocumentRenderer implementation
-        // Use PDF renderer in production, fallback to fake renderer if DomPDF not available
+        // Use Spatie PDF renderer (Browsershot/Chromium) in production, fallback to fake renderer if not available
         $this->app->singleton(
             \App\Contracts\DocumentRenderer::class,
             function ($app) {
-                // Check if DomPDF is available
-                if (class_exists(\Barryvdh\DomPDF\Facade\Pdf::class)) {
+                // Check if Spatie Laravel PDF is available
+                if (class_exists(\Spatie\LaravelPdf\Facades\Pdf::class)) {
                     return new \App\Services\PdfDocumentRenderer();
                 }
                 // Fallback to fake renderer for development/testing

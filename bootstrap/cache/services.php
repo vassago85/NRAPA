@@ -35,10 +35,11 @@
     31 => 'NunoMaduro\\Collision\\Adapters\\Laravel\\CollisionServiceProvider',
     32 => 'Termwind\\Laravel\\TermwindServiceProvider',
     33 => 'Pest\\Laravel\\PestServiceProvider',
-    34 => 'App\\Providers\\AppServiceProvider',
-    35 => 'App\\Providers\\FortifyServiceProvider',
-    36 => 'App\\Providers\\MailConfigServiceProvider',
-    37 => 'App\\Providers\\StorageConfigServiceProvider',
+    34 => 'Spatie\\LaravelPdf\\PdfServiceProvider',
+    35 => 'App\\Providers\\AppServiceProvider',
+    36 => 'App\\Providers\\FortifyServiceProvider',
+    37 => 'App\\Providers\\MailConfigServiceProvider',
+    38 => 'App\\Providers\\StorageConfigServiceProvider',
   ),
   'eager' => 
   array (
@@ -61,10 +62,11 @@
     16 => 'NunoMaduro\\Collision\\Adapters\\Laravel\\CollisionServiceProvider',
     17 => 'Termwind\\Laravel\\TermwindServiceProvider',
     18 => 'Pest\\Laravel\\PestServiceProvider',
-    19 => 'App\\Providers\\AppServiceProvider',
-    20 => 'App\\Providers\\FortifyServiceProvider',
-    21 => 'App\\Providers\\MailConfigServiceProvider',
-    22 => 'App\\Providers\\StorageConfigServiceProvider',
+    19 => 'Spatie\\LaravelPdf\\PdfServiceProvider',
+    20 => 'App\\Providers\\AppServiceProvider',
+    21 => 'App\\Providers\\FortifyServiceProvider',
+    22 => 'App\\Providers\\MailConfigServiceProvider',
+    23 => 'App\\Providers\\StorageConfigServiceProvider',
   ),
   'deferred' => 
   array (

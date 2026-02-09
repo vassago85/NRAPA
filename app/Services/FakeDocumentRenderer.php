@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\View;
 /**
  * Fake document renderer that generates placeholder PDFs/HTML.
  * 
- * TODO: Replace with actual PDF generation (DomPDF, Snappy, etc.)
+ * Fallback renderer when Spatie Laravel PDF (Browsershot/Chromium) is not available.
  * This implementation writes HTML files to storage as placeholders.
  */
 class FakeDocumentRenderer implements DocumentRenderer
@@ -70,9 +70,7 @@ class FakeDocumentRenderer implements DocumentRenderer
         // Store the HTML (TODO: Convert to PDF)
         Storage::disk($this->disk)->put($filePath, $html);
 
-        // TODO: Convert HTML to PDF using DomPDF/Snappy/etc.
-        // For now, return the HTML file path
-        // Note: In production, this should return a PDF file path
+        // In production, PdfDocumentRenderer with Spatie/Browsershot handles real PDFs
         return $filePath;
     }
 
@@ -132,8 +130,7 @@ class FakeDocumentRenderer implements DocumentRenderer
         // Store the HTML (TODO: Convert to PDF)
         Storage::disk($this->disk)->put($filePath, $html);
 
-        // TODO: Convert HTML to PDF using DomPDF/Snappy/etc.
-        // For now, return the HTML file path
+        // In production, PdfDocumentRenderer with Spatie/Browsershot handles real PDFs
         return $filePath;
     }
 }

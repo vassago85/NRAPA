@@ -4,7 +4,7 @@ use App\Models\InventoryLog;
 use App\Models\LoadData;
 use App\Models\LoadingSession;
 use App\Models\ReloadingInventory;
-use Barryvdh\DomPDF\Facade\Pdf;
+use Spatie\LaravelPdf\Facades\Pdf;
 use Livewire\Component;
 
 new class extends Component {
@@ -129,16 +129,19 @@ new class extends Component {
             'label_layout' => ['required', 'in:2x7,single'],
         ]);
 
-        $pdf = Pdf::loadView('documents.load-label', [
-            'load' => $this->load,
-            'label_count' => $this->label_count,
-            'label_layout' => $this->label_layout,
-        ]);
+        $pdfContent = base64_decode(
+            Pdf::view('documents.load-label', [
+                'load' => $this->load,
+                'label_count' => $this->label_count,
+                'label_layout' => $this->label_layout,
+            ])
+            ->format('a4')
+            ->portrait()
+            ->base64()
+        );
 
-        $pdf->setPaper('a4', 'portrait');
-
-        return response()->streamDownload(function () use ($pdf) {
-            echo $pdf->output();
+        return response()->streamDownload(function () use ($pdfContent) {
+            echo $pdfContent;
         }, 'load-labels-' . str_replace(' ', '-', strtolower($this->load->name)) . '.pdf');
     }
 

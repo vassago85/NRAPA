@@ -1,6 +1,6 @@
 FROM php:8.3-fpm-alpine
 
-# Install system dependencies
+# Install system dependencies (including Chromium for PDF generation via Browsershot)
 RUN apk add --no-cache \
     nginx \
     supervisor \
@@ -17,7 +17,19 @@ RUN apk add --no-cache \
     icu-dev \
     sqlite-dev \
     nodejs \
-    npm
+    npm \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont
+
+# Set Puppeteer/Browsershot environment variables for headless Chromium
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
+    LARAVEL_PDF_CHROME_PATH=/usr/bin/chromium-browser \
+    LARAVEL_PDF_NO_SANDBOX=true
 
 # Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
@@ -49,6 +61,9 @@ COPY . .
 
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction
+
+# Install Puppeteer globally for Browsershot PDF generation
+RUN npm install -g puppeteer-core
 
 # Install Node dependencies and build frontend assets
 RUN npm ci && npm run build && rm -rf node_modules

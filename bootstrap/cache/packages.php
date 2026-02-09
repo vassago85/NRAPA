@@ -85,4 +85,15 @@
       0 => 'Pest\\Laravel\\PestServiceProvider',
     ),
   ),
+  'spatie/laravel-pdf' => 
+  array (
+    'aliases' => 
+    array (
+      'LaravelPdf' => 'Pdf',
+    ),
+    'providers' => 
+    array (
+      0 => 'Spatie\\LaravelPdf\\PdfServiceProvider',
+    ),
+  ),
 );

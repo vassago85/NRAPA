@@ -6,12 +6,11 @@ use App\Contracts\DocumentRenderer;
 use App\Models\Certificate;
 use App\Models\EndorsementRequest;
 use App\Models\User;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\View;
+use Spatie\LaravelPdf\Facades\Pdf;
 
 /**
- * PDF Document Renderer using DomPDF.
+ * PDF Document Renderer using Spatie Laravel PDF (Browsershot/Chromium).
  * 
  * Generates PDF files from Blade templates for certificates and letters.
  */
@@ -54,27 +53,21 @@ class PdfDocumentRenderer implements DocumentRenderer
             $template = 'documents.certificates.dedicated-status';
         }
         
-        // Generate PDF
-        $pdf = Pdf::loadView($template, [
-            'certificate' => $certificate,
-            'user' => $certificate->user,
-            'membership' => $certificate->membership,
-            'certificateType' => $certificate->certificateType,
-            'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
-        ]);
-
-        // Configure PDF options
-        $pdf->setPaper('a4', 'portrait');
-        $pdf->setOption('enable-local-file-access', true);
-        $pdf->setOption('isHtml5ParserEnabled', true);
-        $pdf->setOption('isRemoteEnabled', true);
-
         // Generate file path
         $filename = "certificate-{$certificate->uuid}.pdf";
         $filePath = "{$this->pathPrefix}/{$filename}";
 
-        // Save PDF to storage
-        Storage::disk($this->disk)->put($filePath, $pdf->output());
+        // Generate PDF using Spatie
+        Pdf::view($template, [
+                'certificate' => $certificate,
+                'user' => $certificate->user,
+                'membership' => $certificate->membership,
+                'certificateType' => $certificate->certificateType,
+                'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
+            ])
+            ->format('a4')
+            ->disk($this->disk)
+            ->save($filePath);
 
         return $filePath;
     }
@@ -95,26 +88,20 @@ class PdfDocumentRenderer implements DocumentRenderer
             ->latest('created_at')
             ->first();
         
-        // Generate PDF
-        $pdf = Pdf::loadView($template, [
-            'user' => $user,
-            'membership' => $membership,
-            'certificate' => $certificate,
-            'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
-        ]);
-
-        // Configure PDF options
-        $pdf->setPaper('a4', 'portrait');
-        $pdf->setOption('enable-local-file-access', true);
-        $pdf->setOption('isHtml5ParserEnabled', true);
-        $pdf->setOption('isRemoteEnabled', true);
-
         // Generate file path
         $filename = "welcome-letter-{$user->uuid}.pdf";
         $filePath = "{$this->pathPrefix}/{$filename}";
 
-        // Save PDF to storage
-        Storage::disk($this->disk)->put($filePath, $pdf->output());
+        // Generate PDF using Spatie
+        Pdf::view($template, [
+                'user' => $user,
+                'membership' => $membership,
+                'certificate' => $certificate,
+                'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
+            ])
+            ->format('a4')
+            ->disk($this->disk)
+            ->save($filePath);
 
         return $filePath;
     }
@@ -129,27 +116,21 @@ class PdfDocumentRenderer implements DocumentRenderer
             $template = 'documents.letters.endorsement';
         }
         
-        // Generate PDF
-        $pdf = Pdf::loadView($template, [
-            'request' => $request,
-            'user' => $request->user,
-            'firearm' => $request->firearm,
-            'membership' => $request->user->activeMembership,
-            'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
-        ]);
-
-        // Configure PDF options
-        $pdf->setPaper('a4', 'portrait');
-        $pdf->setOption('enable-local-file-access', true);
-        $pdf->setOption('isHtml5ParserEnabled', true);
-        $pdf->setOption('isRemoteEnabled', true);
-
         // Generate file path
         $filename = "endorsement-letter-{$request->uuid}.pdf";
         $filePath = "{$this->pathPrefix}/{$filename}";
 
-        // Save PDF to storage
-        Storage::disk($this->disk)->put($filePath, $pdf->output());
+        // Generate PDF using Spatie
+        Pdf::view($template, [
+                'request' => $request,
+                'user' => $request->user,
+                'firearm' => $request->firearm,
+                'membership' => $request->user->activeMembership,
+                'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
+            ])
+            ->format('a4')
+            ->disk($this->disk)
+            ->save($filePath);
 
         return $filePath;
     }

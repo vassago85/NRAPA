@@ -310,13 +310,15 @@ Route::middleware(['auth', 'verified', 'membership.required', 'terms.accepted'])
             abort(403);
         }
         $test->load('steps');
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('documents.ladder-test-label', [
+        $filename = 'ladder-labels-' . str_replace(' ', '-', strtolower($test->name)) . '.pdf';
+        return \Spatie\LaravelPdf\Facades\Pdf::view('documents.ladder-test-label', [
             'test' => $test,
             'steps' => $test->steps,
-        ]);
-        $pdf->setPaper('a4', 'portrait');
-        $filename = 'ladder-labels-' . str_replace(' ', '-', strtolower($test->name)) . '.pdf';
-        return $pdf->download($filename);
+        ])
+            ->format('a4')
+            ->portrait()
+            ->name($filename)
+            ->download();
     })->name('ladder-test.labels');
     Route::livewire('load-data/{load}', 'pages::member.load-data.show')->name('load-data.show');
     Route::livewire('load-data/{load}/edit', 'pages::member.load-data.edit')->name('load-data.edit');

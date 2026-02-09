@@ -10,7 +10,7 @@ use App\Models\EndorsementRequest;
  * Interface for document rendering services.
  * 
  * This interface allows for interchangeable PDF generation engines
- * (DomPDF, Snappy, etc.) while maintaining a consistent API.
+ * (Spatie/Browsershot, DomPDF, etc.) while maintaining a consistent API.
  */
 interface DocumentRenderer
 {
