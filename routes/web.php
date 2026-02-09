@@ -310,15 +310,34 @@ Route::middleware(['auth', 'verified', 'membership.required', 'terms.accepted'])
             abort(403);
         }
         $test->load('steps');
+        
+        if ($test->steps->isEmpty()) {
+            abort(404, 'No steps found for this ladder test. Add steps before printing labels.');
+        }
+        
         $filename = 'ladder-labels-' . str_replace(' ', '-', strtolower($test->name)) . '.pdf';
-        return \Spatie\LaravelPdf\Facades\Pdf::view('documents.ladder-test-label', [
-            'test' => $test,
-            'steps' => $test->steps,
-        ])
-            ->format('a4')
-            ->portrait()
-            ->name($filename)
-            ->download();
+        
+        try {
+            $pdfContent = \Spatie\LaravelPdf\Facades\Pdf::view('documents.ladder-test-label', [
+                'test' => $test,
+                'steps' => $test->steps,
+            ])
+                ->format('a4')
+                ->portrait()
+                ->base64();
+            
+            return response(base64_decode($pdfContent), 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Ladder test label PDF generation failed', [
+                'test_id' => $test->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            abort(500, 'PDF generation failed: ' . $e->getMessage());
+        }
     })->name('ladder-test.labels');
     Route::livewire('load-data/{load}', 'pages::member.load-data.show')->name('load-data.show');
     Route::livewire('load-data/{load}/edit', 'pages::member.load-data.edit')->name('load-data.edit');

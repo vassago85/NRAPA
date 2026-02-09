@@ -27,6 +27,7 @@ RUN apk add --no-cache \
 
 # Set Puppeteer/Browsershot environment variables for headless Chromium
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_SKIP_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
     LARAVEL_PDF_CHROME_PATH=/usr/bin/chromium-browser \
     LARAVEL_PDF_NO_SANDBOX=true
@@ -63,7 +64,10 @@ COPY . .
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Install Puppeteer globally for Browsershot PDF generation
-RUN npm install -g puppeteer-core
+# Browsershot's browser.cjs requires 'puppeteer' (not 'puppeteer-core')
+# PUPPETEER_SKIP_DOWNLOAD prevents Chromium download since we install it via apk
+# Browsershot auto-detects global node_modules via `npm root -g` at runtime
+RUN npm install -g puppeteer
 
 # Install Node dependencies and build frontend assets
 RUN npm ci && npm run build && rm -rf node_modules

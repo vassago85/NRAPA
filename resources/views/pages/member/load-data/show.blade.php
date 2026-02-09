@@ -129,20 +129,28 @@ new class extends Component {
             'label_layout' => ['required', 'in:2x7,single'],
         ]);
 
-        $pdfContent = base64_decode(
-            Pdf::view('documents.load-label', [
-                'load' => $this->load,
-                'label_count' => $this->label_count,
-                'label_layout' => $this->label_layout,
-            ])
-            ->format('a4')
-            ->portrait()
-            ->base64()
-        );
+        try {
+            $pdfContent = base64_decode(
+                Pdf::view('documents.load-label', [
+                    'load' => $this->load,
+                    'label_count' => $this->label_count,
+                    'label_layout' => $this->label_layout,
+                ])
+                ->format('a4')
+                ->portrait()
+                ->base64()
+            );
 
-        return response()->streamDownload(function () use ($pdfContent) {
-            echo $pdfContent;
-        }, 'load-labels-' . str_replace(' ', '-', strtolower($this->load->name)) . '.pdf');
+            return response()->streamDownload(function () use ($pdfContent) {
+                echo $pdfContent;
+            }, 'load-labels-' . str_replace(' ', '-', strtolower($this->load->name)) . '.pdf');
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Load label PDF generation failed', [
+                'load_id' => $this->load->id,
+                'error' => $e->getMessage(),
+            ]);
+            session()->flash('error', 'PDF generation failed: ' . $e->getMessage());
+        }
     }
 
     public function deleteLoad(): void
