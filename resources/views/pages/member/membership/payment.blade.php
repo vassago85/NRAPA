@@ -62,22 +62,17 @@ new class extends Component {
     }
 }; ?>
 
-<div class="min-h-screen bg-zinc-50 dark:bg-zinc-900 py-12 px-4">
-    <div class="max-w-3xl mx-auto">
-        <!-- Header -->
-        <div class="text-center mb-8">
-            <div class="flex justify-center mb-4">
-                <div class="flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg">
-                    <svg class="size-9 text-white" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2L4 6V12C4 16.42 7.58 20.58 12 22C16.42 20.58 20 16.42 20 12V6L12 2Z"/>
-                    </svg>
-                </div>
-            </div>
-            <h1 class="text-2xl font-bold text-zinc-900 dark:text-white mb-2">Complete Your Payment</h1>
-            <p class="text-zinc-600 dark:text-zinc-400">
+<div>
+    <x-slot name="header">
+        <div>
+            <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Complete Your Payment</h1>
+            <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                 Please make an EFT payment using the details below to activate your membership.
             </p>
         </div>
+    </x-slot>
+
+    <div class="max-w-3xl mx-auto">
 
         @if(session('success'))
             <div class="mb-6 p-4 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-xl">

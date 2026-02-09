@@ -55,18 +55,18 @@ new class extends Component {
 }; ?>
 
 <div>
-    <div class="mb-8">
+    <x-slot name="header">
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">My Activities</h1>
-                <p class="mt-1 text-zinc-600 dark:text-zinc-400">Track and manage your shooting activities for dedicated status</p>
+                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Track and manage your shooting activities for dedicated status</p>
             </div>
             <a href="{{ route('activities.submit') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                 <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 Submit Activity
             </a>
         </div>
-    </div>
+    </x-slot>
 
     <!-- Activity Period Info -->
     <div class="mb-6 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4">

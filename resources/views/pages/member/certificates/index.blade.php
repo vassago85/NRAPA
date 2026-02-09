@@ -109,17 +109,21 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
     }
 }; ?>
 
-<div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
-    <div class="flex flex-col gap-2">
-        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Certificates & Endorsements</h1>
-        <p class="text-zinc-600 dark:text-zinc-400">
-            @if($this->user->isDeveloper() || $this->user->isOwner() || $this->user->isAdmin())
-                View and manage all NRAPA membership certificates and endorsement letters.
-            @else
-                View and download your NRAPA membership certificates and endorsement letters.
-            @endif
-        </p>
-    </div>
+<div>
+    <x-slot name="header">
+        <div>
+            <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Certificates & Endorsements</h1>
+            <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                @if($this->user->isDeveloper() || $this->user->isOwner() || $this->user->isAdmin())
+                    View and manage all NRAPA membership certificates and endorsement letters.
+                @else
+                    View and download your NRAPA membership certificates and endorsement letters.
+                @endif
+            </p>
+        </div>
+    </x-slot>
+
+    <div class="flex flex-col gap-6">
 
     {{-- Valid Certificates --}}
     <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
@@ -390,5 +394,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
                 </p>
             </div>
         </div>
+    </div>
     </div>
 </div>

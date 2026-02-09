@@ -34,35 +34,24 @@ new #[Title('Category - Learning Center')] class extends Component {
     }
 }; ?>
 
-<div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
-    {{-- Breadcrumb --}}
-    <nav class="flex items-center gap-2 text-sm">
-        <a href="{{ route('learning.index') }}" wire:navigate class="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300">Learning Center</a>
-        <svg class="size-4 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-        </svg>
-        <span class="text-zinc-900 dark:text-white">{{ $category->name }}</span>
-    </nav>
+<div>
+    <x-slot name="header">
+        <div class="flex items-center gap-4">
+            <a href="{{ route('learning.index') }}" wire:navigate class="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">{{ $category->name }}</h1>
+                @if($category->description)
+                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{{ $category->description }}</p>
+                @endif
+            </div>
+        </div>
+    </x-slot>
 
-    {{-- Header --}}
-    <div class="flex items-start gap-6">
-        @if($category->hasImage())
-        <img src="{{ $category->image_url }}" alt="{{ $category->name }}" class="h-24 w-36 rounded-xl object-cover shadow-lg">
-        @else
-        <div class="flex h-24 w-36 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg">
-            <svg class="size-12 text-white/70" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
-            </svg>
-        </div>
-        @endif
-        <div>
-            <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">{{ $category->name }}</h1>
-            @if($category->description)
-            <p class="mt-2 text-zinc-600 dark:text-zinc-400">{{ $category->description }}</p>
-            @endif
-            <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">{{ $this->articles->count() }} {{ Str::plural('article', $this->articles->count()) }}</p>
-        </div>
-    </div>
+    <div class="flex flex-col gap-6">
 
     {{-- Articles --}}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -116,5 +105,6 @@ new #[Title('Category - Learning Center')] class extends Component {
             </a>
         </div>
         @endforelse
+    </div>
     </div>
 </div>

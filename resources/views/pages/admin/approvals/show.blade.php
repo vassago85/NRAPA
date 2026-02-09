@@ -146,38 +146,16 @@ new #[Title('Review Application - Admin')] class extends Component {
         $admin = Auth::user();
         $service = app(\App\Services\CertificateIssueService::class);
 
-        // Issue membership certificate immediately (skip terms/standing checks — admin is approving)
+        // Issue membership certificate (skip terms/standing checks — admin is approving)
+        // Note: ID and Proof of Address documents are always required; if missing,
+        // the certificate will be issued later once the member uploads them.
         try {
             $service->issueMembershipCertificate($user, $admin, skipChecks: true);
         } catch (\Exception $e) {
-            // Fallback: create certificate record directly without PDF
-            $certType = \App\Models\CertificateType::firstOrCreate(
-                ['slug' => 'membership-certificate'],
-                [
-                    'name' => 'Membership Certificate',
-                    'description' => 'Certificate confirming member is paid-up, active, and in good standing',
-                    'template' => 'documents.certificates.good-standing',
-                    'validity_months' => 12,
-                    'is_active' => true,
-                    'sort_order' => 12,
-                ]
-            );
-
-            $validUntil = $this->membership->expires_at
-                ? min(now()->addMonths(12), $this->membership->expires_at)
-                : now()->addMonths(12);
-
-            Certificate::create([
+            Log::info('Membership certificate not issued at approval time', [
                 'user_id' => $user->id,
-                'membership_id' => $this->membership->id,
-                'certificate_type_id' => $certType->id,
-                'issued_at' => now(),
-                'valid_from' => now(),
-                'valid_until' => $validUntil,
-                'issued_by' => $admin->id,
+                'reason' => $e->getMessage(),
             ]);
-
-            Log::info('Membership certificate created via fallback', ['user_id' => $user->id, 'reason' => $e->getMessage()]);
         }
     }
 

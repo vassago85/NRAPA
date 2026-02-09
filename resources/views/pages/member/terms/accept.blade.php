@@ -53,13 +53,16 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
 ?>
 
 <div>
-    <div class="mx-auto max-w-4xl">
-        <div class="mb-6">
+    <x-slot name="header">
+        <div>
             <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Terms & Conditions</h1>
-            <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+            <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                 You must accept the NRAPA Membership Terms & Conditions to continue using the platform.
             </p>
         </div>
+    </x-slot>
+
+    <div class="mx-auto max-w-4xl">
 
         @if(session('error'))
             <div class="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">

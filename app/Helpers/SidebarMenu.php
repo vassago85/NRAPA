@@ -21,6 +21,21 @@ class SidebarMenu
         if ($showMemberArea) {
         // Check if user has an active membership
         $hasActiveMembership = $user->activeMembership !== null;
+
+        // Virtual Card section (shown at top if active membership)
+        if ($hasActiveMembership) {
+            $menu[] = [
+                'section' => 'VIRTUAL CARD',
+                'items' => [
+                    [
+                        'label' => 'My Virtual Card',
+                        'route' => 'card',
+                        'icon' => 'credit-card',
+                        'roles' => ['member', 'admin', 'owner', 'developer'],
+                    ],
+                ],
+            ];
+        }
         
         $memberAreaItems = [
             [
@@ -36,16 +51,6 @@ class SidebarMenu
                 'roles' => ['member', 'admin', 'owner', 'developer'],
             ],
         ];
-
-        // Add "My Card" if user has active membership
-        if ($hasActiveMembership) {
-            $memberAreaItems[] = [
-                'label' => 'My Card',
-                'route' => 'card',
-                'icon' => 'credit-card',
-                'roles' => ['member', 'admin', 'owner', 'developer'],
-            ];
-        }
 
         // Only show these items if user has active membership (or is admin/owner/dev not viewing as member)
         if ($hasActiveMembership || ($isAdminRole && !$viewingAsMember)) {

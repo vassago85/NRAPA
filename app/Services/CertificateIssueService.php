@@ -288,6 +288,13 @@ class CertificateIssueService
             throw new \Exception('User does not have an active membership.');
         }
 
+        // Always require ID and Proof of Address documents (regardless of skipChecks)
+        $missingDocs = $this->getMissingRequiredDocumentsForMembership($user);
+        if (count($missingDocs) > 0) {
+            $docNames = implode(' and ', $missingDocs);
+            throw new \Exception("Membership certificate requires {$docNames} to be uploaded.");
+        }
+
         // Get or create certificate type
         $certType = CertificateType::firstOrCreate(
             ['slug' => 'membership-certificate'],
@@ -503,5 +510,41 @@ class CertificateIssueService
         }
 
         return $certificate;
+    }
+
+    /**
+     * Check if a user is missing required documents (ID and Proof of Address) for membership certificate.
+     *
+     * @return array<string> List of missing document type names
+     */
+    protected function getMissingRequiredDocumentsForMembership(User $user): array
+    {
+        $missing = [];
+
+        // Check for ID document (any status except rejected/archived = uploaded)
+        $hasId = \App\Models\MemberDocument::where('user_id', $user->id)
+            ->whereHas('documentType', function ($q) {
+                $q->whereIn('slug', \App\Models\MemberDocument::ID_DOCUMENT_SLUGS);
+            })
+            ->whereIn('status', ['pending', 'verified'])
+            ->exists();
+
+        if (!$hasId) {
+            $missing[] = 'ID document';
+        }
+
+        // Check for Proof of Address (any status except rejected/archived = uploaded)
+        $hasAddress = \App\Models\MemberDocument::where('user_id', $user->id)
+            ->whereHas('documentType', function ($q) {
+                $q->whereIn('slug', \App\Models\MemberDocument::ADDRESS_DOCUMENT_SLUGS);
+            })
+            ->whereIn('status', ['pending', 'verified'])
+            ->exists();
+
+        if (!$hasAddress) {
+            $missing[] = 'Proof of Address';
+        }
+
+        return $missing;
     }
 }

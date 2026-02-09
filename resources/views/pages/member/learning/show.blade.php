@@ -116,7 +116,7 @@ new #[Title('Article - Learning Center')] class extends Component {
     }
 }; ?>
 
-<div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
+<div class="flex flex-col gap-6">
     {{-- Breadcrumb --}}
     <nav class="flex items-center gap-2 text-sm">
         <a href="{{ route('learning.index') }}" wire:navigate class="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300">Learning Center</a>

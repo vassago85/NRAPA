@@ -65,12 +65,15 @@ body{
 .doc-sheet{
   width:210mm;
   min-height:297mm;
+  height:297mm;
   margin:18px auto;
   position:relative;
   overflow:hidden;
   background:#fff;
   box-shadow: var(--shadow);
   border-radius: var(--sheet-radius);
+  display:flex;
+  flex-direction:column;
 }
 
 /* Background image layer (optional)

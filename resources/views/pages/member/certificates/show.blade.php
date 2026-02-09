@@ -173,7 +173,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     }
 }; ?>
 
-<div class="flex h-full w-full flex-1 flex-col gap-6 p-4 sm:p-6">
+<div class="flex flex-col gap-6">
 
     {{-- Header with blue accent --}}
     @php

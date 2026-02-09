@@ -266,23 +266,26 @@ new #[Title('My Membership')] class extends Component {
     }
 }; ?>
 
-<div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
-    {{-- Header --}}
-    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">My Membership</h1>
-            <p class="text-zinc-500 dark:text-zinc-400">View and manage your NRAPA membership.</p>
+<div>
+    <x-slot name="header">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">My Membership</h1>
+                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">View and manage your NRAPA membership.</p>
+            </div>
+            @if(!$this->activeMembership)
+            <a href="{{ route('membership.apply') }}" wire:navigate 
+                class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Apply for Membership
+            </a>
+            @endif
         </div>
-        @if(!$this->activeMembership)
-        <a href="{{ route('membership.apply') }}" wire:navigate 
-            class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
-            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            Apply for Membership
-        </a>
-        @endif
-    </div>
+    </x-slot>
+
+    <div class="flex flex-col gap-6">
 
     @if(session('success'))
     <div class="rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4">
@@ -776,4 +779,5 @@ new #[Title('My Membership')] class extends Component {
         </div>
     </div>
     @endif
+    </div>
 </div>

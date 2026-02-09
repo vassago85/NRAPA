@@ -190,13 +190,17 @@ new #[Title('Apply for Membership')] class extends Component {
     }
 }; ?>
 
-<div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
-    <div class="flex flex-col gap-2">
-        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Apply for Membership</h1>
-        <p class="text-zinc-600 dark:text-zinc-400">
-            Choose your membership type and submit your application.
-        </p>
-    </div>
+<div>
+    <x-slot name="header">
+        <div>
+            <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Apply for Membership</h1>
+            <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                Choose your membership type and submit your application.
+            </p>
+        </div>
+    </x-slot>
+
+    <div class="flex flex-col gap-6">
 
     @if(!$this->canApply)
     {{-- Already has membership --}}
@@ -390,4 +394,5 @@ new #[Title('Apply for Membership')] class extends Component {
         </div>
     </form>
     @endif
+    </div>
 </div>

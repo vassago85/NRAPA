@@ -62,130 +62,134 @@
     <div class="doc-accent"></div>
 
     {{-- Title --}}
-    <div class="doc-title">
-        <h1>{{ $dedicatedTitle }} Certificate</h1>
-        <div class="doc-subtitle">Firearms Control Act (Act 60 of 2000, as amended)</div>
+    <div class="doc-title" style="padding: 16px 24px;">
+        <h1 style="font-size: 18px;">{{ $dedicatedTitle }} Certificate</h1>
+        <div class="doc-subtitle" style="font-size: 10px; margin-top: 4px;">Firearms Control Act (Act 60 of 2000, as amended)</div>
     </div>
 
-    <hr class="sep" style="margin: 0 16px;"/>
+    <hr class="sep" style="margin: 0 24px;"/>
 
     {{-- Content --}}
-    <div style="padding: 8px 16px;">
-        {{-- Details Grid --}}
-        <div class="doc-grid">
-            <div class="doc-section">
-                <div class="doc-section-title">Member Details</div>
-                <div class="doc-field">
-                    <div class="doc-field-label">Full Name</div>
-                    <div class="doc-field-value name">{{ $certificate->user->getIdName() }}</div>
-                </div>
-                <div class="doc-field">
-                    <div class="doc-field-label">ID / Passport Number</div>
-                    <div class="doc-field-value mono">{{ $certificate->user->getIdNumber() ?? 'N/A' }}</div>
-                </div>
-                <div class="doc-field-row">
-                    <div class="doc-field">
-                        <div class="doc-field-label">Member No.</div>
-                        <div class="doc-field-value mono">{{ $membership->membership_number ?? 'N/A' }}</div>
+    <div style="padding: 16px 24px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            {{-- Details Grid --}}
+            <div class="doc-grid" style="gap: 16px;">
+                <div class="doc-section" style="padding: 14px 18px;">
+                    <div class="doc-section-title" style="font-size: 11px; margin-bottom: 12px;">Member Details</div>
+                    <div class="doc-field" style="margin-bottom: 10px;">
+                        <div class="doc-field-label" style="font-size: 9px;">Full Name</div>
+                        <div class="doc-field-value name" style="font-size: 15px;">{{ $certificate->user->getIdName() }}</div>
+                    </div>
+                    <div class="doc-field" style="margin-bottom: 10px;">
+                        <div class="doc-field-label" style="font-size: 9px;">ID / Passport Number</div>
+                        <div class="doc-field-value mono" style="font-size: 12px;">{{ $certificate->user->getIdNumber() ?? 'N/A' }}</div>
+                    </div>
+                    <div class="doc-field-row" style="gap: 16px; margin-bottom: 10px;">
+                        <div class="doc-field">
+                            <div class="doc-field-label" style="font-size: 9px;">Member No.</div>
+                            <div class="doc-field-value mono" style="font-size: 12px;">{{ $membership->membership_number ?? 'N/A' }}</div>
+                        </div>
+                        <div class="doc-field">
+                            <div class="doc-field-label" style="font-size: 9px;">Membership Type</div>
+                            <div class="doc-field-value" style="font-size: 12px;">{{ $membership->type->name ?? 'N/A' }}</div>
+                        </div>
                     </div>
                     <div class="doc-field">
-                        <div class="doc-field-label">Membership Type</div>
-                        <div class="doc-field-value">{{ $membership->type->name ?? 'N/A' }}</div>
+                        <div class="doc-field-label" style="font-size: 9px;">Valid Until</div>
+                        <div class="doc-field-value" style="font-size: 12px;">{{ $membership->expires_at ? $membership->expires_at->format('d F Y') : 'Lifetime' }}</div>
                     </div>
                 </div>
-                <div class="doc-field">
-                    <div class="doc-field-label">Valid Until</div>
-                    <div class="doc-field-value">{{ $membership->expires_at ? $membership->expires_at->format('d F Y') : 'Lifetime' }}</div>
+
+                <div class="doc-section" style="padding: 14px 18px;">
+                    <div class="doc-section-title" style="font-size: 11px; margin-bottom: 12px;">Compliance Status</div>
+                    <div class="doc-field" style="margin-bottom: 10px;">
+                        <div class="doc-field-label" style="font-size: 9px;">Documents</div>
+                        <div class="doc-field-value" style="font-size: 12px;">
+                            @if ($hasValidDocs)
+                                <span style="color: var(--emerald);">&#10003; Valid</span>
+                            @else
+                                <span style="color: var(--red);">&#10007; Missing</span>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="doc-field" style="margin-bottom: 10px;">
+                        <div class="doc-field-label" style="font-size: 9px;">Activities</div>
+                        <div class="doc-field-value" style="font-size: 12px;">
+                            @if ($hasValidActivities)
+                                <span style="color: var(--emerald);">&#10003; Met ({{ $activityCheck['approved_count'] }}/{{ $activityCheck['required'] }})</span>
+                            @else
+                                <span style="color: var(--red);">&#10007; {{ $activityCheck['approved_count'] }}/{{ $activityCheck['required'] }}</span>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="doc-field" style="margin-bottom: 10px;">
+                        <div class="doc-field-label" style="font-size: 9px;">Dedicated Status</div>
+                        <div class="doc-field-value" style="font-size: 12px;"><span style="color: var(--emerald);">&#10003; {{ $dedicatedTitle }}</span></div>
+                    </div>
+                    <div class="doc-field">
+                        <div class="doc-field-label" style="font-size: 9px;">Effective Date</div>
+                        <div class="doc-field-value" style="font-size: 12px;">{{ $statusEffectiveDate }}</div>
+                    </div>
                 </div>
             </div>
 
-            <div class="doc-section">
-                <div class="doc-section-title">Compliance Status</div>
-                <div class="doc-field">
-                    <div class="doc-field-label">Documents</div>
-                    <div class="doc-field-value">
-                        @if ($hasValidDocs)
-                            <span style="color: var(--emerald);">&#10003; Valid</span>
-                        @else
-                            <span style="color: var(--red);">&#10007; Missing</span>
-                        @endif
-                    </div>
-                </div>
-                <div class="doc-field">
-                    <div class="doc-field-label">Activities</div>
-                    <div class="doc-field-value">
-                        @if ($hasValidActivities)
-                            <span style="color: var(--emerald);">&#10003; Met ({{ $activityCheck['approved_count'] }}/{{ $activityCheck['required'] }})</span>
-                        @else
-                            <span style="color: var(--red);">&#10007; {{ $activityCheck['approved_count'] }}/{{ $activityCheck['required'] }}</span>
-                        @endif
-                    </div>
-                </div>
-                <div class="doc-field">
-                    <div class="doc-field-label">Dedicated Status</div>
-                    <div class="doc-field-value"><span style="color: var(--emerald);">&#10003; {{ $dedicatedTitle }}</span></div>
-                </div>
-                <div class="doc-field">
-                    <div class="doc-field-label">Effective Date</div>
-                    <div class="doc-field-value">{{ $statusEffectiveDate }}</div>
-                </div>
+            <div style="height:16px"></div>
+
+            {{-- Declaration --}}
+            <div class="doc-notice" style="padding: 14px 18px; font-size: 12px; line-height: 1.6;">
+                I, <b>{{ $signatory['name'] }}</b>, {{ $signatory['title'] }} of NRAPA, declare that the above member is a <b>Dedicated Member in good standing</b>.
+                Dedicated Status has been awarded in accordance with the Firearms Control Act (Act 60 of 2000, as amended).
+                This certificate confirms that at the time of issue, the member's documents are valid and activity requirements are up to date.
             </div>
         </div>
 
-        <div style="height:6px"></div>
+        <div>
+            <div style="height:16px"></div>
 
-        {{-- Declaration --}}
-        <div class="doc-notice" style="font-size:9px; line-height:1.35;">
-            I, <b>{{ $signatory['name'] }}</b>, {{ $signatory['title'] }} of NRAPA, declare that the above member is a <b>Dedicated Member in good standing</b>.
-            Dedicated Status has been awarded in accordance with the Firearms Control Act (Act 60 of 2000, as amended).
-            This certificate confirms that at the time of issue, the member's documents are valid and activity requirements are up to date.
-        </div>
+            {{-- Commissioner + Signatory + QR --}}
+            <div class="doc-grid" style="gap: 16px;">
+                <div class="doc-section" style="padding: 14px 18px;">
+                    <div class="doc-field-label" style="font-size: 9px; margin-bottom:6px;">Commissioner of Oaths</div>
+                    <div class="placeholder-white oaths-scan" style="height:100px;">
+                        {!! $commissionerHtml !!}
+                    </div>
+                </div>
 
-        <div style="height:6px"></div>
-
-        {{-- Commissioner + Signatory + QR --}}
-        <div class="doc-grid">
-            <div class="doc-section" style="padding: 8px 12px;">
-                <div class="doc-field-label" style="margin-bottom:4px;">Commissioner of Oaths</div>
-                <div class="placeholder-white oaths-scan" style="height:75px;">
-                    {!! $commissionerHtml !!}
+                <div class="doc-section" style="padding: 14px 18px;">
+                    <div class="doc-field-label" style="font-size: 9px; margin-bottom:6px;">Authorised Signatory</div>
+                    <div class="placeholder-white signature-box" style="height: 48px;">
+                        {!! $signatureHtml !!}
+                    </div>
+                    <div style="height:1px; background:var(--line); margin:6px 0;"></div>
+                    <div style="font-weight:700; font-size:13px;">{{ $signatory['name'] }}</div>
+                    <div class="small" style="font-size: 11px;">{{ $signatory['title'] }}</div>
+                    <div style="height:8px"></div>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <div class="doc-qr-box" style="width:55px; height:55px;">
+                            <img src="{{ $qrCodeUrl }}" alt="QR" />
+                        </div>
+                        <div class="doc-qr-text" style="font-size:9px;">Scan to verify<br/><a href="{{ $verifyUrl }}" style="font-size:8px;">{{ $verifyUrl }}</a></div>
+                    </div>
                 </div>
             </div>
 
-            <div class="doc-section" style="padding: 8px 12px;">
-                <div class="doc-field-label" style="margin-bottom:4px;">Authorised Signatory</div>
-                <div class="placeholder-white signature-box">
-                    {!! $signatureHtml !!}
-                </div>
-                <div style="height:1px; background:var(--line); margin:4px 0;"></div>
-                <div style="font-weight:700; font-size:11px;">{{ $signatory['name'] }}</div>
-                <div class="small">{{ $signatory['title'] }}</div>
-                <div style="height:6px"></div>
-                <div style="display:flex; gap:8px; align-items:center;">
-                    <div class="doc-qr-box" style="width:45px; height:45px;">
-                        <img src="{{ $qrCodeUrl }}" alt="QR" />
-                    </div>
-                    <div class="doc-qr-text" style="font-size:8px;">Scan to verify<br/><a href="{{ $verifyUrl }}" style="font-size:7px;">{{ $verifyUrl }}</a></div>
-                </div>
+            <div style="margin-top: 12px; text-align: center; font-size: 9px; color: var(--muted);">
+                This document is generated electronically and is valid without a physical signature when verified via QR code.
             </div>
         </div>
     </div>
 
     {{-- Blue Footer --}}
-    <div class="doc-footer">
+    <div class="doc-footer" style="padding: 10px 24px;">
         <div>
-            <span class="doc-footer-cert">{{ $certificate->certificate_number }}</span>
+            <span class="doc-footer-cert" style="font-size: 10px;">{{ $certificate->certificate_number }}</span>
             &nbsp;&mdash;&nbsp;
-            <span>{{ $contact['email'] }} | {{ $contact['tel'] }}</span>
+            <span style="font-size: 9px;">{{ $contact['email'] }} | {{ $contact['tel'] }}</span>
         </div>
-        <div class="doc-footer-far">
+        <div class="doc-footer-far" style="font-size: 8px;">
             FAR Sport: <span class="far-sport">{{ $farNumbers['sport'] }}</span>
             &nbsp;|&nbsp; Hunting: <span class="far-hunting">{{ $farNumbers['hunting'] }}</span>
         </div>
     </div>
-</div>
-
-<div style="margin-top: 4px; text-align: center; font-size: 8px; color: var(--muted);">
-    This document is generated electronically and is valid without a physical signature when verified via QR code.
 </div>
 @endsection

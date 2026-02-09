@@ -39,25 +39,27 @@ new #[Title('Membership Details')] class extends Component {
     }
 }; ?>
 
-<div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
-    {{-- Header --}}
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div class="flex items-center gap-4">
-            <a href="{{ route('membership.index') }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
-                <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                </svg>
-                Back
-            </a>
-            <div>
-                <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Membership Details</h1>
-                <p class="font-mono text-zinc-500 dark:text-zinc-400">{{ $this->membership->membership_number }}</p>
+<div>
+    <x-slot name="header">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <a href="{{ route('membership.index') }}" wire:navigate class="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                </a>
+                <div>
+                    <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Membership Details</h1>
+                    <p class="mt-1 text-sm font-mono text-zinc-500 dark:text-zinc-400">{{ $this->membership->membership_number }}</p>
+                </div>
             </div>
+            <span class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium {{ $this->getStatusClasses() }}">
+                {{ ucfirst($this->membership->status) }}
+            </span>
         </div>
-        <span class="inline-flex items-center gap-2 self-start rounded-full px-3 py-1 text-sm font-medium sm:self-auto {{ $this->getStatusClasses() }}">
-            {{ ucfirst($this->membership->status) }}
-        </span>
-    </div>
+    </x-slot>
+
+    <div class="flex flex-col gap-6">
 
     @if(session('success'))
     <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
@@ -380,4 +382,5 @@ new #[Title('Membership Details')] class extends Component {
         </div>
     </div>
     @endif
+    </div>
 </div>

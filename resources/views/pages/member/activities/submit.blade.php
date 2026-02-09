@@ -506,14 +506,19 @@ new class extends Component {
 }; ?>
 
 <div>
-    <div class="mb-8">
-        <a href="{{ route('activities.index') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-zinc-600 dark:text-zinc-400 hover:text-nrapa-blue">
-            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-            Back to Activities
-        </a>
-        <h1 class="mt-2 text-2xl font-bold text-zinc-900 dark:text-white">Submit Activity</h1>
-        <p class="mt-1 text-zinc-600 dark:text-zinc-400">Add a hunting or sport-shooting related activity for your membership qualifications</p>
-    </div>
+    <x-slot name="header">
+        <div class="flex items-center gap-4">
+            <a href="{{ route('activities.index') }}" wire:navigate class="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Submit Activity</h1>
+                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Add a hunting or sport-shooting related activity for your membership qualifications</p>
+            </div>
+        </div>
+    </x-slot>
 
     @if(session('error'))
         <div class="mb-6 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 text-red-700 dark:text-red-300">

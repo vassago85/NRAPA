@@ -55,21 +55,26 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
 }; ?>
 
 <div>
-    <div class="mb-8 flex items-center justify-between">
-        <div>
-            <a href="{{ route('documents.index') }}" class="text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 flex items-center gap-1 mb-2 transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-                Back to Documents
-            </a>
-            <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">{{ $document->documentType->name }}</h1>
-            <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{{ $document->original_filename }}</p>
+    <x-slot name="header">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <a href="{{ route('documents.index') }}" wire:navigate class="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                </a>
+                <div>
+                    <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">{{ $document->documentType->name }}</h1>
+                    <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{{ $document->original_filename }}</p>
+                </div>
+            </div>
+            <button wire:click="download"
+                class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Download
+            </button>
         </div>
-        <button wire:click="download"
-            class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-            Download
-        </button>
-    </div>
+    </x-slot>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         {{-- Document Preview --}}

@@ -1156,20 +1156,21 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
 }; ?>
 
 <div>
-    <div class="mb-8">
-        <div class="flex items-center gap-4 mb-2">
-            <a href="{{ route('member.endorsements.index') }}" wire:navigate class="inline-flex items-center gap-1 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/>
+    <x-slot name="header">
+        <div class="flex items-center gap-4">
+            <a href="{{ route('member.endorsements.index') }}" wire:navigate class="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                 </svg>
-                Back
             </a>
+            <div>
+                <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">
+                    {{ $editingRequest ? 'Edit Endorsement Request' : 'Request Endorsement Letter' }}
+                </h1>
+                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Complete the form below to request a dedicated status endorsement letter.</p>
+            </div>
         </div>
-        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">
-            {{ $editingRequest ? 'Edit Endorsement Request' : 'Request Endorsement Letter' }}
-        </h1>
-        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Complete the form below to request a dedicated status endorsement letter.</p>
-    </div>
+    </x-slot>
 
     {{-- Progress Steps --}}
     <div class="mb-8">
