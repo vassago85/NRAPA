@@ -371,9 +371,9 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                     Fully Compliant
                 </span>
             @else
-                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                     Not Fully Compliant
                 </span>
@@ -382,7 +382,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
         <div class="p-6">
             <div class="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
                 {{-- Knowledge Test --}}
-                <div class="p-4 rounded-xl border {{ $this->eligibility['knowledge_test_passed'] ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' }}">
+                <div class="p-4 rounded-xl border {{ $this->eligibility['knowledge_test_passed'] ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20' }}">
                     <div class="flex items-center gap-3 mb-2">
                         @if($this->eligibility['knowledge_test_passed'])
                             <div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
@@ -391,27 +391,30 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                                 </svg>
                             </div>
                         @else
-                            <div class="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
-                                <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                                <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                                 </svg>
                             </div>
                         @endif
                         <h3 class="font-semibold text-zinc-900 dark:text-white">Knowledge Test</h3>
                     </div>
-                    <p class="text-sm {{ $this->eligibility['knowledge_test_passed'] ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300' }}">
-                        @if($this->eligibility['knowledge_test_passed'])
-                            Completed (once-off requirement)
-                        @else
-                            <a href="{{ route('knowledge-test.index') }}" wire:navigate class="underline hover:no-underline">
-                                Take the knowledge test
-                            </a>
-                        @endif
-                    </p>
+                    @if($this->eligibility['knowledge_test_passed'])
+                        <p class="text-sm text-emerald-700 dark:text-emerald-300">Completed (once-off requirement)</p>
+                    @else
+                        <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-2">Required once-off to proceed</p>
+                        <a href="{{ route('knowledge-test.index') }}" wire:navigate
+                            class="inline-flex items-center gap-1 text-sm font-medium text-blue-700 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
+                            Take the knowledge test
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                            </svg>
+                        </a>
+                    @endif
                 </div>
 
                 {{-- Documents --}}
-                <div class="p-4 rounded-xl border {{ $this->eligibility['documents_complete'] ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' }}">
+                <div class="p-4 rounded-xl border {{ $this->eligibility['documents_complete'] ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20' }}">
                     <div class="flex items-center gap-3 mb-2">
                         @if($this->eligibility['documents_complete'])
                             <div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
@@ -420,9 +423,9 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                                 </svg>
                             </div>
                         @else
-                            <div class="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
-                                <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                                <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                                 </svg>
                             </div>
                         @endif
@@ -431,15 +434,19 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                     @if($this->eligibility['documents_complete'])
                         <p class="text-sm text-emerald-700 dark:text-emerald-300">All documents verified</p>
                     @else
-                        <div class="text-sm text-red-700 dark:text-red-300">
-                            <p class="mb-1">Missing:</p>
-                            <ul class="list-disc list-inside">
+                        <div class="text-sm text-zinc-600 dark:text-zinc-400">
+                            <p class="mb-1">Still needed:</p>
+                            <ul class="list-disc list-inside mb-2">
                                 @foreach($this->eligibility['missing_documents'] as $doc)
                                     <li>{{ $doc['name'] }}</li>
                                 @endforeach
                             </ul>
-                            <a href="{{ route('documents.index') }}" wire:navigate class="underline hover:no-underline mt-2 inline-block">
+                            <a href="{{ route('documents.index') }}" wire:navigate
+                                class="inline-flex items-center gap-1 font-medium text-blue-700 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
                                 Upload documents
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                                </svg>
                             </a>
                         </div>
                     @endif
@@ -480,7 +487,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                 @endif
 
                 {{-- Activities --}}
-                <div class="p-4 rounded-xl border {{ $this->eligibility['activities_met'] ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' }}">
+                <div class="p-4 rounded-xl border {{ $this->eligibility['activities_met'] ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20' }}">
                     <div class="flex items-center gap-3 mb-2">
                         @if($this->eligibility['activities_met'])
                             <div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
@@ -489,21 +496,25 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                                 </svg>
                             </div>
                         @else
-                            <div class="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
-                                <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                                <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                                 </svg>
                             </div>
                         @endif
                         <h3 class="font-semibold text-zinc-900 dark:text-white">Approved Activities</h3>
                     </div>
-                    <p class="text-sm {{ $this->eligibility['activities_met'] ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300' }}">
+                    <p class="text-sm text-zinc-600 dark:text-zinc-400">
                         {{ $this->eligibility['activity_details']['approved_count'] }} / {{ $this->eligibility['activity_details']['required'] }} required
                         <span class="text-xs">(last {{ $this->eligibility['activity_details']['period_months'] }} months)</span>
                     </p>
                     @if(!$this->eligibility['activities_met'])
-                        <a href="{{ route('activities.index') }}" wire:navigate class="text-sm underline hover:no-underline text-red-700 dark:text-red-300 mt-1 inline-block">
+                        <a href="{{ route('activities.index') }}" wire:navigate
+                            class="inline-flex items-center gap-1 text-sm font-medium text-blue-700 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 mt-1">
                             Submit activities
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                            </svg>
                         </a>
                     @endif
                 </div>
