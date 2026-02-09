@@ -316,28 +316,40 @@ Route::middleware(['auth', 'verified', 'membership.required', 'terms.accepted'])
         }
         
         $filename = 'ladder-labels-' . str_replace(' ', '-', strtolower($test->name)) . '.pdf';
+        $viewData = ['test' => $test, 'steps' => $test->steps];
         
+        // Try Browsershot first, then DomPDF fallback
+        $pdfContent = null;
         try {
-            $pdfContent = \Spatie\LaravelPdf\Facades\Pdf::view('documents.ladder-test-label', [
-                'test' => $test,
-                'steps' => $test->steps,
-            ])
+            $pdfContent = \Spatie\LaravelPdf\Facades\Pdf::view('documents.ladder-test-label', $viewData)
                 ->format('a4')
                 ->portrait()
                 ->base64();
-            
-            return response(base64_decode($pdfContent), 200, [
-                'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-            ]);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Ladder test label PDF generation failed', [
+            \Illuminate\Support\Facades\Log::warning('Browsershot label PDF failed, trying DomPDF', [
                 'test_id' => $test->id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
             ]);
-            abort(500, 'PDF generation failed: ' . $e->getMessage());
+            try {
+                $pdfContent = \Spatie\LaravelPdf\Facades\Pdf::view('documents.ladder-test-label', $viewData)
+                    ->driver('dompdf')
+                    ->format('a4')
+                    ->portrait()
+                    ->base64();
+            } catch (\Throwable $e2) {
+                \Illuminate\Support\Facades\Log::error('Both PDF engines failed for labels', [
+                    'test_id' => $test->id,
+                    'browsershot_error' => $e->getMessage(),
+                    'dompdf_error' => $e2->getMessage(),
+                ]);
+                abort(500, 'PDF generation failed. Please contact support.');
+            }
         }
+        
+        return response(base64_decode($pdfContent), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
     })->name('ladder-test.labels');
     Route::livewire('load-data/{load}', 'pages::member.load-data.show')->name('load-data.show');
     Route::livewire('load-data/{load}/edit', 'pages::member.load-data.edit')->name('load-data.edit');

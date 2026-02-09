@@ -6,13 +6,15 @@ use App\Contracts\DocumentRenderer;
 use App\Models\Certificate;
 use App\Models\EndorsementRequest;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Spatie\LaravelPdf\Facades\Pdf;
 
 /**
- * PDF Document Renderer using Spatie Laravel PDF (Browsershot/Chromium).
+ * PDF Document Renderer using Spatie Laravel PDF.
  * 
- * Generates PDF files from Blade templates for certificates and letters.
+ * Tries Browsershot (Chrome) first for best rendering quality,
+ * then falls back to DomPDF if Chrome/Browsershot is unavailable.
  */
 class PdfDocumentRenderer implements DocumentRenderer
 {
@@ -25,6 +27,49 @@ class PdfDocumentRenderer implements DocumentRenderer
         $this->disk = app()->environment(['local', 'development', 'testing']) 
             ? 'local' 
             : (config('filesystems.disks.r2.key') ? 'r2' : (config('filesystems.disks.s3.key') ? 's3' : 'local'));
+    }
+
+    /**
+     * Generate and save a PDF, trying Browsershot first then DomPDF fallback.
+     */
+    protected function generatePdf(string $template, array $data, string $filePath): void
+    {
+        // Try Browsershot (Chrome) first — best rendering quality
+        try {
+            Pdf::view($template, $data)
+                ->format('a4')
+                ->disk($this->disk)
+                ->save($filePath);
+            return;
+        } catch (\Throwable $e) {
+            Log::warning('Browsershot PDF generation failed, trying DomPDF fallback', [
+                'template' => $template,
+                'file' => $filePath,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // Fallback to DomPDF — pure PHP, no external dependencies
+        try {
+            Pdf::view($template, $data)
+                ->driver('dompdf')
+                ->format('a4')
+                ->disk($this->disk)
+                ->save($filePath);
+            
+            Log::info('PDF generated successfully via DomPDF fallback', [
+                'template' => $template,
+                'file' => $filePath,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Both Browsershot and DomPDF PDF generation failed', [
+                'template' => $template,
+                'file' => $filePath,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            throw $e;
+        }
     }
 
     public function renderCertificate(Certificate $certificate, string $template): string
@@ -57,17 +102,13 @@ class PdfDocumentRenderer implements DocumentRenderer
         $filename = "certificate-{$certificate->uuid}.pdf";
         $filePath = "{$this->pathPrefix}/{$filename}";
 
-        // Generate PDF using Spatie
-        Pdf::view($template, [
-                'certificate' => $certificate,
-                'user' => $certificate->user,
-                'membership' => $certificate->membership,
-                'certificateType' => $certificate->certificateType,
-                'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
-            ])
-            ->format('a4')
-            ->disk($this->disk)
-            ->save($filePath);
+        $this->generatePdf($template, [
+            'certificate' => $certificate,
+            'user' => $certificate->user,
+            'membership' => $certificate->membership,
+            'certificateType' => $certificate->certificateType,
+            'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
+        ], $filePath);
 
         return $filePath;
     }
@@ -92,16 +133,12 @@ class PdfDocumentRenderer implements DocumentRenderer
         $filename = "welcome-letter-{$user->uuid}.pdf";
         $filePath = "{$this->pathPrefix}/{$filename}";
 
-        // Generate PDF using Spatie
-        Pdf::view($template, [
-                'user' => $user,
-                'membership' => $membership,
-                'certificate' => $certificate,
-                'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
-            ])
-            ->format('a4')
-            ->disk($this->disk)
-            ->save($filePath);
+        $this->generatePdf($template, [
+            'user' => $user,
+            'membership' => $membership,
+            'certificate' => $certificate,
+            'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
+        ], $filePath);
 
         return $filePath;
     }
@@ -120,17 +157,13 @@ class PdfDocumentRenderer implements DocumentRenderer
         $filename = "endorsement-letter-{$request->uuid}.pdf";
         $filePath = "{$this->pathPrefix}/{$filename}";
 
-        // Generate PDF using Spatie
-        Pdf::view($template, [
-                'request' => $request,
-                'user' => $request->user,
-                'firearm' => $request->firearm,
-                'membership' => $request->user->activeMembership,
-                'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
-            ])
-            ->format('a4')
-            ->disk($this->disk)
-            ->save($filePath);
+        $this->generatePdf($template, [
+            'request' => $request,
+            'user' => $request->user,
+            'firearm' => $request->firearm,
+            'membership' => $request->user->activeMembership,
+            'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
+        ], $filePath);
 
         return $filePath;
     }

@@ -129,28 +129,45 @@ new class extends Component {
             'label_layout' => ['required', 'in:2x7,single'],
         ]);
 
+        $viewData = [
+            'load' => $this->load,
+            'label_count' => $this->label_count,
+            'label_layout' => $this->label_layout,
+        ];
+
+        // Try Browsershot first, then DomPDF fallback
+        $pdfContent = null;
         try {
-            $pdfContent = base64_decode(
-                Pdf::view('documents.load-label', [
-                    'load' => $this->load,
-                    'label_count' => $this->label_count,
-                    'label_layout' => $this->label_layout,
-                ])
+            $pdfContent = Pdf::view('documents.load-label', $viewData)
                 ->format('a4')
                 ->portrait()
-                ->base64()
-            );
-
-            return response()->streamDownload(function () use ($pdfContent) {
-                echo $pdfContent;
-            }, 'load-labels-' . str_replace(' ', '-', strtolower($this->load->name)) . '.pdf');
+                ->base64();
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Load label PDF generation failed', [
+            \Illuminate\Support\Facades\Log::warning('Browsershot label PDF failed, trying DomPDF', [
                 'load_id' => $this->load->id,
                 'error' => $e->getMessage(),
             ]);
-            session()->flash('error', 'PDF generation failed: ' . $e->getMessage());
+            try {
+                $pdfContent = Pdf::view('documents.load-label', $viewData)
+                    ->driver('dompdf')
+                    ->format('a4')
+                    ->portrait()
+                    ->base64();
+            } catch (\Throwable $e2) {
+                \Illuminate\Support\Facades\Log::error('Both PDF engines failed for load labels', [
+                    'load_id' => $this->load->id,
+                    'browsershot_error' => $e->getMessage(),
+                    'dompdf_error' => $e2->getMessage(),
+                ]);
+                session()->flash('error', 'PDF generation failed. Please try again or contact support.');
+                return;
+            }
         }
+
+        $decoded = base64_decode($pdfContent);
+        return response()->streamDownload(function () use ($decoded) {
+            echo $decoded;
+        }, 'load-labels-' . str_replace(' ', '-', strtolower($this->load->name)) . '.pdf');
     }
 
     public function deleteLoad(): void

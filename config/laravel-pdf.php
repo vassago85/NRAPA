@@ -63,7 +63,7 @@ return [
          * Allow DOMPDF to fetch external resources (images, CSS).
          * Set to true if your HTML references remote URLs.
          */
-        'is_remote_enabled' => env('LARAVEL_PDF_DOMPDF_REMOTE_ENABLED', false),
+        'is_remote_enabled' => env('LARAVEL_PDF_DOMPDF_REMOTE_ENABLED', true),
 
         /*
          * The base path for local file access.
