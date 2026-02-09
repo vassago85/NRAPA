@@ -372,6 +372,42 @@ new #[Title('Dashboard')] class extends Component {
             </a>
             @endif
         </div>
+        @if($this->activeMembership)
+        <nav class="flex border-b border-blue-200/50 dark:border-zinc-700 -mb-4 mt-3">
+            <a href="{{ route('certificates.index') }}" wire:navigate
+               class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-zinc-600 hover:text-zinc-900 hover:border-zinc-400 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors whitespace-nowrap">
+                <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+                </svg>
+                Certificates
+            </a>
+            <a href="{{ route('profile.edit') }}" wire:navigate
+               class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-zinc-600 hover:text-zinc-900 hover:border-zinc-400 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors whitespace-nowrap">
+                <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
+                </svg>
+                Profile
+            </a>
+            @if($this->activeMembership->requiresRenewal() && $this->activeMembership->isRenewable())
+            <a href="{{ route('membership.apply') }}" wire:navigate
+               class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-zinc-600 hover:text-zinc-900 hover:border-zinc-400 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors whitespace-nowrap">
+                <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/>
+                </svg>
+                Renew
+            </a>
+            @endif
+            @if($this->activeMembership->allowsDedicatedStatus())
+            <a href="{{ route('member.endorsements.index') }}" wire:navigate
+               class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-zinc-600 hover:text-zinc-900 hover:border-zinc-400 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors whitespace-nowrap">
+                <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.562.562 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.562.562 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/>
+                </svg>
+                Dedicated Status
+            </a>
+            @endif
+        </nav>
+        @endif
     </x-slot>
 
     <div class="flex flex-col gap-6">
@@ -392,7 +428,7 @@ new #[Title('Dashboard')] class extends Component {
                 </p>
                 <div class="mt-4 flex flex-wrap items-center gap-3">
                     <button wire:click="openWelcomeLetterModal"
-                        class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 transition-colors shadow-sm">
+                        class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-5 py-2.5 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
@@ -465,7 +501,7 @@ new #[Title('Dashboard')] class extends Component {
 
                 <div class="mt-6 flex flex-col gap-3">
                     <button wire:click="viewWelcomeLetter"
-                        class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors shadow-sm">
+                        class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-nrapa-blue px-5 py-3 text-sm font-semibold text-white hover:bg-nrapa-blue-dark transition-colors">
                         <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.125 2.25h-4.5c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125v-9M10.125 2.25h.375a9 9 0 019 9v.375M10.125 2.25A3.375 3.375 0 0113.5 5.625v1.5c0 .621.504 1.125 1.125 1.125h1.5a3.375 3.375 0 013.375 3.375M9 15l2.25 2.25L15 12"/>
                         </svg>
@@ -1415,41 +1451,6 @@ new #[Title('Dashboard')] class extends Component {
     </div>
     @endif
 
-    {{-- Quick Actions --}}
-    @if($this->activeMembership)
-    <div class="mt-2 sm:mt-4">
-        <h2 class="mb-3 sm:mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Quick Actions</h2>
-        <div class="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-            <a href="{{ route('certificates.index') }}" wire:navigate class="flex items-center gap-2 sm:gap-3 rounded-lg bg-nrapa-blue px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
-                <svg class="size-4 sm:size-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                </svg>
-                <span class="truncate">Certificates</span>
-            </a>
-            <a href="{{ route('profile.edit') }}" wire:navigate class="flex items-center gap-2 sm:gap-3 rounded-lg border border-zinc-300 bg-white px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
-                <svg class="size-4 sm:size-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-                </svg>
-                <span class="truncate">Profile</span>
-            </a>
-            @if($this->activeMembership->requiresRenewal() && $this->activeMembership->isRenewable())
-            <a href="{{ route('membership.apply') }}" wire:navigate class="flex items-center gap-2 sm:gap-3 rounded-lg border border-zinc-300 bg-white px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
-                <svg class="size-4 sm:size-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-                </svg>
-                <span class="truncate">Renew</span>
-            </a>
-            @endif
-            @if($this->activeMembership->allowsDedicatedStatus())
-            <a href="{{ route('member.endorsements.index') }}" wire:navigate class="flex items-center gap-2 sm:gap-3 rounded-lg border border-zinc-300 bg-white px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
-                <svg class="size-4 sm:size-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
-                </svg>
-                <span class="truncate">Dedicated Status</span>
-            </a>
-            @endif
-        </div>
-    </div>
-    @endif
+    {{-- (Quick Actions moved to header tabs) --}}
     </div>
 </div>
