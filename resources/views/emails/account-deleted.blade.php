@@ -1,46 +1,37 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NRAPA Account Deleted</title>
-</head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-    <div style="text-align: center; margin-bottom: 30px;">
-        <img src="{{ config('app.url') }}/nrapa-logo.png" alt="NRAPA" style="width: 80px; height: 80px; object-fit: contain;" />
-        <h1 style="color: #1f2937; margin-top: 15px; margin-bottom: 5px;">NRAPA</h1>
-        <p style="color: #6b7280; margin: 0;">Account Notification</p>
-    </div>
+@extends('emails.layout')
 
-    <p>Dear {{ $userName }},</p>
+@section('title', 'NRAPA Account Deleted')
+@section('heading', 'NRAPA')
+@section('subtitle', 'Account Notification')
 
-    <p>We regret to inform you that your NRAPA account associated with the email address <strong>{{ $userEmail }}</strong> has been deleted.</p>
+@section('content')
+    <p class="tx" style="color: #374151; margin: 0 0 16px 0;">Dear {{ $userName }},</p>
 
-    <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 20px; margin: 20px 0;">
-        <h3 style="color: #991b1b; margin-top: 0; margin-bottom: 10px;">Reason for Deletion</h3>
+    <p class="tx" style="color: #374151; margin: 0 0 20px 0;">We regret to inform you that your NRAPA account associated with the email address <strong>{{ $userEmail }}</strong> has been deleted.</p>
+
+    {{-- Reason --}}
+    <div class="bx-danger" style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 20px; margin: 0 0 20px 0;">
+        <h3 class="hd" style="color: #991b1b; margin: 0 0 8px 0; font-size: 16px;">Reason for Deletion</h3>
         <p style="color: #7f1d1d; margin: 0;">{{ $reason }}</p>
     </div>
 
-    <p>This action was taken by an administrator ({{ $deletedBy }}) on {{ now()->format('d F Y') }} at {{ now()->format('H:i') }}.</p>
+    <p class="tx" style="color: #374151; margin: 0 0 20px 0;">This action was taken by an administrator ({{ $deletedBy }}) on {{ now()->format('d F Y') }} at {{ now()->format('H:i') }}.</p>
 
-    <div style="background: #f3f4f6; border-radius: 8px; padding: 20px; margin: 20px 0;">
-        <h3 style="color: #1f2937; margin-top: 0; margin-bottom: 15px;">What This Means</h3>
+    {{-- What this means --}}
+    <div class="bx-neutral" style="background-color: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 0 0 20px 0;">
+        <h3 class="hd" style="color: #111827; margin: 0 0 12px 0; font-size: 16px;">What This Means</h3>
         <ul style="color: #4b5563; margin: 0; padding-left: 20px;">
-            <li>You will no longer be able to log in to the NRAPA platform</li>
-            <li>Your membership and associated benefits have been cancelled</li>
-            <li>Any pending endorsement requests have been cancelled</li>
+            <li class="tx" style="margin-bottom: 6px; color: #4b5563;">You will no longer be able to log in to the NRAPA platform</li>
+            <li class="tx" style="margin-bottom: 6px; color: #4b5563;">Your membership and associated benefits have been cancelled</li>
+            <li class="tx" style="color: #4b5563;">Any pending endorsement requests have been cancelled</li>
         </ul>
     </div>
 
-    <p>If you believe this action was taken in error, or if you have any questions, please contact us for further assistance.</p>
+    <p class="tx" style="color: #374151; margin: 0 0 16px 0;">If you believe this action was taken in error, or if you have any questions, please contact us for further assistance.</p>
 
-    <p>Best regards,<br><strong>NRAPA Team</strong></p>
+    <p class="tx" style="color: #374151; margin: 0;">Best regards,<br><strong>NRAPA Team</strong></p>
+@endsection
 
-    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
-
-    <p style="color: #9ca3af; font-size: 12px; text-align: center;">
-        This email was sent to {{ $userEmail }} regarding your NRAPA account.<br>
-        &copy; {{ date('Y') }} National Rifle Association of South Africa. All rights reserved.
-    </p>
-</body>
-</html>
+@section('footer')
+    This email was sent to {{ $userEmail }} regarding your NRAPA account.
+@endsection

@@ -2,10 +2,10 @@
 
 namespace App\Notifications;
 
+use App\Mail\LicenseExpiry;
 use App\Models\UserFirearm;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class LicenseExpiryNotification extends Notification implements ShouldQueue
@@ -31,48 +31,13 @@ class LicenseExpiryNotification extends Notification implements ShouldQueue
     /**
      * Get the mail representation of the notification.
      */
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(object $notifiable): LicenseExpiry
     {
-        $urgency = $this->getUrgencyLevel();
-        $subject = $this->getSubject();
-
-        $message = (new MailMessage)
-            ->subject($subject)
-            ->greeting("Hello {$notifiable->name},");
-
-        if ($this->daysUntilExpiry <= 7) {
-            $message->line("⚠️ **URGENT:** Your firearm license is expiring very soon!");
-        } elseif ($this->daysUntilExpiry <= 30) {
-            $message->line("⏰ Your firearm license is expiring soon.");
-        } else {
-            $message->line("This is a reminder about your upcoming firearm license expiry.");
-        }
-
-        $message
-            ->line("**Firearm:** {$this->firearm->display_name}")
-            ->line("**Make/Model:** {$this->firearm->make} {$this->firearm->model}")
-            ->line("**License Number:** " . ($this->firearm->license_number ?? 'Not recorded'))
-            ->line("**Expiry Date:** {$this->firearm->license_expiry_date->format('d M Y')}")
-            ->line("**Days Remaining:** {$this->daysUntilExpiry} days");
-
-        if ($this->daysUntilExpiry <= 30) {
-            $message->line("")
-                ->line("**Action Required:**")
-                ->line("Please start your license renewal process immediately to avoid any legal issues or interruptions to your shooting activities.");
-        }
-
-        $message
-            ->action('View in My Armoury', route('armoury.show', $this->firearm))
-            ->line("You can update your license details and upload your renewed license document in your armoury.");
-
-        if ($this->daysUntilExpiry <= 7) {
-            $message->line("")
-                ->line("**Important:** An expired firearm license may result in legal consequences. Please prioritize this renewal.");
-        }
-
-        $message->line("Thank you for being a responsible firearm owner and NRAPA member.");
-
-        return $message;
+        return (new LicenseExpiry(
+            user: $notifiable,
+            firearm: $this->firearm,
+            daysUntilExpiry: $this->daysUntilExpiry,
+        ))->to($notifiable->email);
     }
 
     /**
@@ -105,15 +70,4 @@ class LicenseExpiryNotification extends Notification implements ShouldQueue
         };
     }
 
-    /**
-     * Get the notification subject.
-     */
-    protected function getSubject(): string
-    {
-        return match (true) {
-            $this->daysUntilExpiry <= 7 => "⚠️ URGENT: Firearm License Expires in {$this->daysUntilExpiry} Days",
-            $this->daysUntilExpiry <= 30 => "⏰ Firearm License Expiring Soon - {$this->daysUntilExpiry} Days",
-            default => "Reminder: Firearm License Expiring in {$this->daysUntilExpiry} Days",
-        };
-    }
 }

@@ -1,60 +1,55 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NRAPA Membership Payment Instructions</title>
-</head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-    <div style="text-align: center; margin-bottom: 30px;">
-        <img src="{{ config('app.url') }}/nrapa-logo.png" alt="NRAPA" style="width: 80px; height: 80px; object-fit: contain;" />
-        <h1 style="color: #1f2937; margin-top: 15px; margin-bottom: 5px;">NRAPA Membership</h1>
-        <p style="color: #6b7280; margin: 0;">Payment Instructions</p>
-    </div>
+@extends('emails.layout')
 
-    <p>Dear {{ $membership->user->name }},</p>
+@section('title', 'NRAPA Membership Payment Instructions')
+@section('heading', 'NRAPA Membership')
+@section('subtitle', 'Payment Instructions')
 
-    <p>Thank you for registering with NRAPA. To activate your <strong>{{ $membership->type->name }}</strong>, please make an EFT payment using the details below:</p>
+@section('content')
+    <p class="tx" style="color: #374151; margin: 0 0 16px 0;">Dear {{ $membership->user->name }},</p>
 
-    <div style="background: #f3f4f6; border-radius: 8px; padding: 20px; margin: 20px 0;">
-        <h3 style="color: #1f2937; margin-top: 0; margin-bottom: 15px;">Bank Account Details</h3>
-        <table style="width: 100%; border-collapse: collapse;">
+    <p class="tx" style="color: #374151; margin: 0 0 20px 0;">Thank you for registering with NRAPA. To activate your <strong>{{ $membership->type->name }}</strong>, please make an EFT payment using the details below:</p>
+
+    {{-- Bank details --}}
+    <div class="bx-neutral" style="background-color: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 0 0 20px 0;">
+        <h3 class="hd" style="color: #111827; margin: 0 0 12px 0; font-size: 16px;">Bank Account Details</h3>
+        <table role="presentation" style="width: 100%; border-collapse: collapse;">
             <tr>
-                <td style="padding: 8px 0; color: #6b7280;">Bank:</td>
-                <td style="padding: 8px 0; text-align: right; font-weight: bold;">{{ $bankAccount['bank_name'] ?: 'To be confirmed' }}</td>
+                <td class="tx-muted" style="padding: 6px 0; color: #6b7280; font-size: 14px;">Bank:</td>
+                <td class="tx" style="padding: 6px 0; text-align: right; font-weight: bold; color: #374151; font-size: 14px;">{{ $bankAccount['bank_name'] ?: 'To be confirmed' }}</td>
             </tr>
             <tr>
-                <td style="padding: 8px 0; color: #6b7280;">Account Name:</td>
-                <td style="padding: 8px 0; text-align: right; font-weight: bold;">{{ $bankAccount['account_name'] ?: 'To be confirmed' }}</td>
+                <td class="tx-muted" style="padding: 6px 0; color: #6b7280; font-size: 14px;">Account Name:</td>
+                <td class="tx" style="padding: 6px 0; text-align: right; font-weight: bold; color: #374151; font-size: 14px;">{{ $bankAccount['account_name'] ?: 'To be confirmed' }}</td>
             </tr>
             <tr>
-                <td style="padding: 8px 0; color: #6b7280;">Account Number:</td>
-                <td style="padding: 8px 0; text-align: right; font-weight: bold; font-family: monospace;">{{ $bankAccount['account_number'] ?: 'To be confirmed' }}</td>
+                <td class="tx-muted" style="padding: 6px 0; color: #6b7280; font-size: 14px;">Account Number:</td>
+                <td class="tx" style="padding: 6px 0; text-align: right; font-weight: bold; color: #374151; font-family: 'Courier New', monospace; font-size: 14px;">{{ $bankAccount['account_number'] ?: 'To be confirmed' }}</td>
             </tr>
             <tr>
-                <td style="padding: 8px 0; color: #6b7280;">Branch Code:</td>
-                <td style="padding: 8px 0; text-align: right; font-weight: bold; font-family: monospace;">{{ $bankAccount['branch_code'] ?: 'To be confirmed' }}</td>
+                <td class="tx-muted" style="padding: 6px 0; color: #6b7280; font-size: 14px;">Branch Code:</td>
+                <td class="tx" style="padding: 6px 0; text-align: right; font-weight: bold; color: #374151; font-family: 'Courier New', monospace; font-size: 14px;">{{ $bankAccount['branch_code'] ?: 'To be confirmed' }}</td>
             </tr>
             <tr>
-                <td style="padding: 8px 0; color: #6b7280;">Account Type:</td>
-                <td style="padding: 8px 0; text-align: right; font-weight: bold;">{{ $bankAccount['account_type'] ?: 'To be confirmed' }}</td>
+                <td class="tx-muted" style="padding: 6px 0; color: #6b7280; font-size: 14px;">Account Type:</td>
+                <td class="tx" style="padding: 6px 0; text-align: right; font-weight: bold; color: #374151; font-size: 14px;">{{ $bankAccount['account_type'] ?: 'To be confirmed' }}</td>
             </tr>
         </table>
     </div>
 
-    <div style="background: #dcfce7; border: 1px solid #86efac; border-radius: 8px; padding: 20px; margin: 20px 0;">
-        <table style="width: 100%; border-collapse: collapse;">
+    {{-- Amount --}}
+    <div class="bx-success" style="background-color: #dcfce7; border: 1px solid #86efac; border-radius: 8px; padding: 20px; margin: 0 0 20px 0;">
+        <table role="presentation" style="width: 100%; border-collapse: collapse;">
             <tr>
-                <td style="padding: 8px 0; color: #166534;">Amount to Pay:</td>
-                <td style="padding: 8px 0; text-align: right; font-weight: bold; font-size: 1.25em; color: #166534;">R{{ number_format($membership->amount_due, 2) }}</td>
+                <td class="tx" style="padding: 6px 0; color: #166534; font-size: 14px;">Amount to Pay:</td>
+                <td class="tx" style="padding: 6px 0; text-align: right; font-weight: bold; font-size: 1.25em; color: #166534;">R{{ number_format($membership->amount_due, 2) }}</td>
             </tr>
         </table>
     </div>
 
-    {{-- Payment Reference - Prominent Display --}}
-    <div style="background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+    {{-- Payment reference --}}
+    <div class="bx-warning" style="background-color: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; padding: 20px; margin: 0 0 20px 0; text-align: center;">
         <p style="margin: 0 0 10px 0; color: #92400e; font-weight: bold; font-size: 14px;">YOUR PAYMENT REFERENCE</p>
-        <p style="margin: 0; background: #ffffff; border: 2px dashed #f59e0b; border-radius: 6px; padding: 15px; font-family: 'Courier New', monospace; font-size: 24px; font-weight: bold; color: #1f2937; letter-spacing: 2px;">
+        <p class="ref-value" style="margin: 0; background-color: #ffffff; border: 2px dashed #f59e0b; border-radius: 6px; padding: 15px; font-family: 'Courier New', monospace; font-size: 24px; font-weight: bold; color: #111827; letter-spacing: 2px;">
             {{ $reference }}
         </p>
         <p style="margin: 10px 0 0 0; color: #92400e; font-size: 12px;">
@@ -62,24 +57,21 @@
         </p>
     </div>
 
-    <div style="background: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px; padding: 15px; margin: 20px 0;">
-        <p style="margin: 0; color: #92400e;"><strong>Important:</strong></p>
-        <ul style="color: #92400e; margin: 10px 0 0 0; padding-left: 20px;">
-            <li>Please use the exact reference shown above when making payment</li>
-            <li>Allow 1-3 business days for payment verification</li>
+    {{-- Important notes --}}
+    <div class="bx-warning" style="background-color: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px; padding: 15px; margin: 0 0 20px 0;">
+        <p style="margin: 0 0 8px 0; color: #92400e;"><strong>Important:</strong></p>
+        <ul style="color: #92400e; margin: 0; padding-left: 20px;">
+            <li style="margin-bottom: 4px;">Please use the exact reference shown above when making payment</li>
+            <li style="margin-bottom: 4px;">Allow 1-3 business days for payment verification</li>
             <li>Your membership will be activated once payment is confirmed</li>
         </ul>
     </div>
 
-    <p>If you have any questions, please don't hesitate to contact us.</p>
+    <p class="tx" style="color: #374151; margin: 0 0 16px 0;">If you have any questions, please don't hesitate to contact us.</p>
 
-    <p>Best regards,<br><strong>NRAPA Team</strong></p>
+    <p class="tx" style="color: #374151; margin: 0;">Best regards,<br><strong>NRAPA Team</strong></p>
+@endsection
 
-    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
-
-    <p style="color: #9ca3af; font-size: 12px; text-align: center;">
-        This email was sent to {{ $membership->user->email }} because you registered for a NRAPA membership.<br>
-        &copy; {{ date('Y') }} National Rifle Association of South Africa. All rights reserved.
-    </p>
-</body>
-</html>
+@section('footer')
+    This email was sent to {{ $membership->user->email }} because you registered for a NRAPA membership.
+@endsection
