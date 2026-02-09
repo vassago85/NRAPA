@@ -213,6 +213,12 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             'uploaded_at' => now(),
         ]);
 
+        // Pre-populate users.id_number from ID document metadata so it is
+        // available as a fallback on certificates even before verification.
+        if (in_array($documentType->slug, MemberDocument::ID_DOCUMENT_SLUGS) && !empty($this->idNumber)) {
+            $user->update(['id_number' => $this->idNumber]);
+        }
+
         $this->reset([
             'selectedDocumentType', 'uploadFile', 'showUploadModal',
             'idSurname', 'idNames', 'idSex', 'idNumber', 'idDateOfBirth',

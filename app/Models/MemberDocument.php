@@ -238,6 +238,27 @@ class MemberDocument extends Model
             'verified_at' => now(),
             'verified_by' => $admin->id,
         ]);
+
+        // Sync ID number to users table when an ID document is verified
+        $this->syncIdNumberToUser();
+    }
+
+    /**
+     * When an ID document is verified, copy the identity_number from
+     * the document metadata to the users.id_number column so it is
+     * always available as a fallback (e.g. on certificates).
+     */
+    protected function syncIdNumberToUser(): void
+    {
+        if (!$this->requiresIdMetadata()) {
+            return;
+        }
+
+        $idNumber = $this->metadata['identity_number'] ?? null;
+
+        if ($idNumber && $this->user) {
+            $this->user->update(['id_number' => $idNumber]);
+        }
     }
 
     /**

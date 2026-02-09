@@ -68,64 +68,93 @@ class DocumentDataHelper
 
     /**
      * Get signature image HTML (safe, server-generated).
+     * Falls back to the system default signature if no specific path is provided.
+     * Uses base64 data URI for reliable rendering in both browsers and PDF generators.
      */
     public static function getSignatureImageHtml(?string $signaturePath): string
     {
+        // Fall back to system default signature path
+        if (!$signaturePath) {
+            $signaturePath = static::getDefaultSignaturePath();
+        }
+
         if (!$signaturePath) {
             return 'Signature image (transparent PNG)';
         }
 
-        $disk = StorageHelper::getPublicDisk();
-        
-        try {
-            if (!Storage::disk($disk)->exists($signaturePath)) {
-                return 'Signature image (transparent PNG)';
+        // Try multiple disks: document assets disk first, then public
+        $disks = array_unique(array_filter([
+            SystemSetting::get('document_assets_disk'),
+            StorageHelper::getPublicDisk(),
+        ]));
+
+        foreach ($disks as $disk) {
+            try {
+                if (!Storage::disk($disk)->exists($signaturePath)) {
+                    continue;
+                }
+
+                $contents = Storage::disk($disk)->get($signaturePath);
+                $mimeType = Storage::disk($disk)->mimeType($signaturePath) ?: 'image/png';
+                $dataUri = 'data:' . $mimeType . ';base64,' . base64_encode($contents);
+
+                return '<img src="' . $dataUri . '" alt="Signature" />';
+            } catch (\Throwable $e) {
+                report($e);
+                continue;
             }
-        } catch (\Throwable $e) {
-            report($e);
-            return 'Signature image (transparent PNG)';
         }
 
-        $url = StorageHelper::getUrl($signaturePath);
-        if (!$url) {
-            return 'Signature image (transparent PNG)';
-        }
-
-        return '<img src="' . e($url) . '" alt="Signature" />';
+        return 'Signature image (transparent PNG)';
     }
 
     /**
      * Get commissioner of oaths scan HTML (safe, server-generated).
+     * Falls back to the system default commissioner scan if no specific path is provided.
+     * Uses base64 data URI for reliable rendering in both browsers and PDF generators.
      */
     public static function getCommissionerScanHtml(?string $scanPath): string
     {
+        // Fall back to system default commissioner scan path
+        if (!$scanPath) {
+            $scanPath = static::getDefaultCommissionerScanPath();
+        }
+
         if (!$scanPath) {
             return 'Commissioner of Oaths scan';
         }
 
-        $disk = StorageHelper::getPublicDisk();
-        
-        try {
-            if (!Storage::disk($disk)->exists($scanPath)) {
-                return 'Commissioner of Oaths scan';
+        // Try multiple disks: document assets disk first, then public
+        $disks = array_unique(array_filter([
+            SystemSetting::get('document_assets_disk'),
+            StorageHelper::getPublicDisk(),
+        ]));
+
+        foreach ($disks as $disk) {
+            try {
+                if (!Storage::disk($disk)->exists($scanPath)) {
+                    continue;
+                }
+
+                // Check if it's a PDF — PDFs can't be base64-embedded as images
+                $extension = strtolower(pathinfo($scanPath, PATHINFO_EXTENSION));
+                if ($extension === 'pdf') {
+                    $url = Storage::disk($disk)->url($scanPath);
+                    return '<iframe src="' . e($url) . '" style="width:100%; height:100%; border:0;"></iframe>';
+                }
+
+                $contents = Storage::disk($disk)->get($scanPath);
+                $mimeType = Storage::disk($disk)->mimeType($scanPath) ?: 'image/png';
+                $dataUri = 'data:' . $mimeType . ';base64,' . base64_encode($contents);
+
+                return '<img src="' . e($dataUri) . '" alt="Commissioner of Oaths Scan" />';
+            } catch (\Throwable $e) {
+                report($e);
+                continue;
             }
-        } catch (\Throwable $e) {
-            report($e);
-            return 'Commissioner of Oaths scan';
         }
 
-        $url = StorageHelper::getUrl($scanPath);
-        if (!$url) {
-            return 'Commissioner of Oaths scan';
-        }
-
-        // Check if it's a PDF
-        $extension = strtolower(pathinfo($scanPath, PATHINFO_EXTENSION));
-        if ($extension === 'pdf') {
-            return '<iframe src="' . e($url) . '" style="width:100%; height:100%; border:0;"></iframe>';
-        }
-
-        return '<img src="' . e($url) . '" alt="Commissioner of Oaths Scan" />';
+        return 'Commissioner of Oaths scan';
     }
 
     /**

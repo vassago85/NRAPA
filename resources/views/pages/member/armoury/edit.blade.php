@@ -351,37 +351,32 @@ new class extends Component {
                 <!-- Calibre -->
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Calibre</label>
-                    <select wire:model="firearm_calibre_id"
-                            class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
-                        <option value="">Select calibre...</option>
-                        @foreach($calibres as $calibre)
-                            <option value="{{ $calibre->id }}">{{ $calibre->name }}</option>
-                        @endforeach
-                    </select>
+                    <x-searchable-select
+                        :options="$calibres"
+                        wire-model="firearm_calibre_id"
+                        placeholder="Type to search calibres..."
+                    />
                 </div>
 
                 <!-- Make & Model -->
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Make</label>
-                        <select wire:model.live="firearm_make_id"
-                                class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
-                            <option value="">Select make...</option>
-                            @foreach($makes as $make)
-                                <option value="{{ $make->id }}">{{ $make->name }}</option>
-                            @endforeach
-                        </select>
+                        <x-searchable-select
+                            :options="$makes"
+                            wire-model="firearm_make_id"
+                            placeholder="Type to search makes..."
+                            :live="true"
+                        />
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Model</label>
-                        <select wire:model="firearm_model_id"
-                                class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white"
-                                {{ $models->isEmpty() ? 'disabled' : '' }}>
-                            <option value="">{{ $models->isEmpty() ? 'Select a make first' : 'Select model...' }}</option>
-                            @foreach($models as $mdl)
-                                <option value="{{ $mdl->id }}">{{ $mdl->name }}</option>
-                            @endforeach
-                        </select>
+                        <x-searchable-select
+                            :options="$models"
+                            wire-model="firearm_model_id"
+                            placeholder="{{ $models->isEmpty() ? 'Select a make first' : 'Type to search models...' }}"
+                            :disabled="$models->isEmpty()"
+                        />
                     </div>
                 </div>
 
