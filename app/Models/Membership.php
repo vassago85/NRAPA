@@ -474,7 +474,7 @@ class Membership extends Model
     /**
      * Get the date when the renewal window opens.
      */
-    public function getRenewalWindowOpensAtAttribute(): ?\Carbon\Carbon
+    public function getRenewalWindowOpensAtAttribute(): ?\DateTimeInterface
     {
         if (! $this->expires_at) {
             return null;
@@ -486,7 +486,7 @@ class Membership extends Model
     /**
      * Get the date when the grace period ends (after which member must rejoin as new).
      */
-    public function getGracePeriodEndsAtAttribute(): ?\Carbon\Carbon
+    public function getGracePeriodEndsAtAttribute(): ?\DateTimeInterface
     {
         if (! $this->expires_at) {
             return null;
