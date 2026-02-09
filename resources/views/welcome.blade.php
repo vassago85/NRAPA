@@ -258,6 +258,7 @@
                 ->where('is_active', true)
                 ->ordered()
                 ->get();
+            $basicType = $membershipTypes->firstWhere('slug', 'basic');
         @endphp
         <section id="pricing" class="bg-white py-24">
             <div class="mx-auto max-w-7xl px-6 lg:px-8">
@@ -269,7 +270,7 @@
                         Become a member
                     </p>
                     <p class="mx-auto mt-4 max-w-xl text-base text-zinc-500">
-                        Choose the membership that fits your needs. All packages include full portal access, digital certificates, and dedicated status support.
+                        Choose the membership that fits your needs. All packages include full portal access and digital certificates.
                     </p>
                 </div>
 
@@ -313,12 +314,13 @@
                         <h3 class="text-lg font-bold text-zinc-900">{{ $type->name }}</h3>
 
                         <div class="mt-3">
-                            @if($type->hasUpgradeFee())
+                            @if($type->hasUpgradeFee() && $basicType)
+                            @php $totalSignup = ($basicType->initial_price ?? 0) + ($type->upgrade_price ?? 0); @endphp
                             <div class="flex items-baseline gap-1">
-                                <span class="text-4xl font-extrabold tracking-tight text-zinc-900">R{{ number_format($type->upgrade_price, 0) }}</span>
-                                <span class="text-sm font-medium text-zinc-400">upgrade (once-off)</span>
+                                <span class="text-4xl font-extrabold tracking-tight text-zinc-900">R{{ number_format($totalSignup, 0) }}</span>
+                                <span class="text-sm font-medium text-zinc-400">sign-up</span>
                             </div>
-                            <p class="text-sm text-zinc-500 mt-1">+ R{{ number_format($type->renewal_price, 0) }}/year renewal</p>
+                            <p class="text-sm text-zinc-500 mt-1">Renewal: R{{ number_format($type->renewal_price, 0) }}/year</p>
                             @else
                             <div class="flex items-baseline gap-1">
                                 <span class="text-4xl font-extrabold tracking-tight text-zinc-900">R{{ number_format($type->initial_price, 0) }}</span>
@@ -337,8 +339,14 @@
                         <ul class="space-y-3">
                             <li class="flex items-center gap-2.5 text-sm text-zinc-600">
                                 <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                Virtual Safe &amp; Loading Bench
+                                Virtual Safe
                             </li>
+                            @if($type->allows_dedicated_status)
+                            <li class="flex items-center gap-2.5 text-sm text-zinc-600">
+                                <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                Virtual Loading Bench
+                            </li>
+                            @endif
                             <li class="flex items-center gap-2.5 text-sm text-zinc-600">
                                 <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                                 QR-Verified Certificates

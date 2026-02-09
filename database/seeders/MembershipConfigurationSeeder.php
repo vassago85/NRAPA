@@ -274,7 +274,7 @@ class MembershipConfigurationSeeder extends Seeder
             [
                 'slug' => 'dedicated-sport',
                 'name' => 'Dedicated Sport Shooter',
-                'description' => 'Dedicated status for sport shooters. Requires basic membership first. Includes full platform access, Virtual Safe, Virtual Loading Bench, and sport shooting learning content.',
+                'description' => 'Dedicated status for sport shooters. Includes basic membership, full platform access, Virtual Safe, Virtual Loading Bench, and sport shooting learning content.',
                 'duration_type' => 'annual',
                 'duration_months' => 12,
                 'requires_renewal' => true,
@@ -299,7 +299,7 @@ class MembershipConfigurationSeeder extends Seeder
             [
                 'slug' => 'dedicated-hunter',
                 'name' => 'Dedicated Hunter',
-                'description' => 'Dedicated status for hunters. Requires basic membership first. Includes full platform access, Virtual Safe, Virtual Loading Bench, and hunting learning content.',
+                'description' => 'Dedicated status for hunters. Includes basic membership, full platform access, Virtual Safe, Virtual Loading Bench, and hunting learning content.',
                 'duration_type' => 'annual',
                 'duration_months' => 12,
                 'requires_renewal' => true,
@@ -324,7 +324,7 @@ class MembershipConfigurationSeeder extends Seeder
             [
                 'slug' => 'dedicated-both',
                 'name' => 'Dedicated Hunter & Sport Shooter',
-                'description' => 'Dedicated status for both hunters and sport shooters. Requires basic membership first. Full access to all platform features, learning content, and knowledge tests.',
+                'description' => 'Dedicated status for both hunters and sport shooters. Includes basic membership, full access to all platform features, learning content, and knowledge tests.',
                 'duration_type' => 'annual',
                 'duration_months' => 12,
                 'requires_renewal' => true,

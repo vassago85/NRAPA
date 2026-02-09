@@ -987,7 +987,7 @@ new #[Title('Dashboard')] class extends Component {
             </a>
         </div>
         <p class="mb-6 text-sm text-zinc-500 dark:text-zinc-400">
-            Select a membership to unlock full access to the NRAPA member portal, including the Virtual Safe, Virtual Loading Bench, Learning Center, and more.
+            Select a membership to unlock full access to the NRAPA member portal, including the Virtual Safe, Learning Center, and more.
         </p>
         <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             @foreach($this->availableMembershipTypes as $type)
@@ -1010,6 +1010,15 @@ new #[Title('Dashboard')] class extends Component {
                     </div>
                     
                     <div class="mb-4">
+                        @if($type->hasUpgradeFee())
+                        @php $basicType = $this->availableMembershipTypes->firstWhere('slug', 'basic'); @endphp
+                        @php $totalSignup = ($basicType?->initial_price ?? 0) + ($type->upgrade_price ?? 0); @endphp
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-3xl font-bold text-zinc-900 dark:text-white">R{{ number_format($totalSignup, 0) }}</span>
+                            <span class="text-sm text-zinc-500 dark:text-zinc-400">sign-up</span>
+                        </div>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Renewal: R{{ number_format($type->renewal_price, 0) }}/year</p>
+                        @else
                         <div class="flex items-baseline gap-1">
                             <span class="text-3xl font-bold text-zinc-900 dark:text-white">R{{ number_format($type->initial_price, 0) }}</span>
                             @if($type->duration_type === 'annual')
@@ -1020,6 +1029,10 @@ new #[Title('Dashboard')] class extends Component {
                                 <span class="text-sm text-zinc-500 dark:text-zinc-400">/{{ $type->duration_months }}mo</span>
                             @endif
                         </div>
+                        @if($type->renewal_price > 0 && $type->renewal_price != $type->initial_price)
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Renewal: R{{ number_format($type->renewal_price, 0) }}/year</p>
+                        @endif
+                        @endif
                     </div>
                     
                     @if($type->description)
@@ -1031,14 +1044,16 @@ new #[Title('Dashboard')] class extends Component {
                             <svg class="h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                             </svg>
-                            Virtual Safe access
+                            Virtual Safe
                         </li>
+                        @if($type->allows_dedicated_status)
                         <li class="flex items-center gap-2">
                             <svg class="h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                             </svg>
                             Virtual Loading Bench
                         </li>
+                        @endif
                         <li class="flex items-center gap-2">
                             <svg class="h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
@@ -1046,12 +1061,12 @@ new #[Title('Dashboard')] class extends Component {
                             Learning Center
                         </li>
                         @if($type->allows_dedicated_status)
-                            <li class="flex items-center gap-2">
-                                <svg class="h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                </svg>
-                                Dedicated Status support
-                            </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Dedicated Status support
+                        </li>
                         @endif
                     </ul>
                     

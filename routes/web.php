@@ -165,6 +165,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('membership/payment/{membership}', 'pages::member.membership.payment')->name('membership.payment');
     Route::livewire('membership', 'pages::member.membership.index')->name('membership.index');
     Route::livewire('membership/apply', 'pages::member.membership.apply')->name('membership.apply');
+    Route::livewire('membership/club-apply/{club}', 'pages::member.membership.club-apply')->name('membership.club-apply');
     Route::livewire('membership/{membership}', 'pages::member.membership.show')->name('membership.show');
 });
 
@@ -493,7 +494,6 @@ Route::middleware(['auth', 'verified', 'membership.required', 'terms.accepted'])
 Route::middleware(['auth', 'verified', 'owner'])->prefix('owner')->name('owner.')->group(function () {
     Route::livewire('dashboard', 'pages::owner.dashboard')->name('dashboard');
     Route::livewire('admins', 'pages::owner.admins.index')->name('admins.index');
-    Route::livewire('admins/create', 'pages::owner.admins.create')->name('admins.create');
 
     // User Deletion Requests
     Route::livewire('deletion-requests', 'pages::owner.deletion-requests.index')->name('deletion-requests.index');
@@ -793,6 +793,7 @@ Route::middleware(['auth', 'verified', 'developer'])->prefix('developer')->name(
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::livewire('dashboard', 'pages::admin.dashboard')->name('dashboard');
     Route::livewire('members', 'pages::admin.members.index')->name('members.index');
+    Route::livewire('members/import-failures', 'pages::admin.members.import-failures')->name('members.import-failures');
     Route::livewire('members/{user}', 'pages::admin.members.show')->name('members.show');
     
     // Certificates (admin can view all certificates)

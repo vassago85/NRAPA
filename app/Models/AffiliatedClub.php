@@ -84,6 +84,14 @@ class AffiliatedClub extends Model
     }
 
     /**
+     * Get all invites for this club.
+     */
+    public function invites(): HasMany
+    {
+        return $this->hasMany(AffiliatedClubInvite::class);
+    }
+
+    /**
      * Scope to only active clubs.
      */
     public function scopeActive($query)
