@@ -32,7 +32,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
         </div>
         <div class="flex items-center justify-between">
             <div>
-                <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Endorsement Request</h1>
+                <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Endorsement Request</h1>
                 <p class="mt-1 text-zinc-600 dark:text-zinc-400">{{ $request->request_type_label }}</p>
             </div>
             <span class="inline-flex items-center rounded-full px-4 py-2 text-sm font-medium {{ $request->status_badge_class }}">

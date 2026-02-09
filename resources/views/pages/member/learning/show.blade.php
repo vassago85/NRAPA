@@ -209,7 +209,7 @@ new #[Title('Article - Learning Center')] class extends Component {
                         @endif
                     </div>
 
-                    <h1 class="mt-4 text-3xl font-bold text-zinc-900 dark:text-white">{{ $article->title }}</h1>
+                    <h1 class="mt-4 text-2xl font-bold text-zinc-900 dark:text-white">{{ $article->title }}</h1>
 
                     <div class="mt-4 flex flex-wrap items-center gap-4 text-sm text-zinc-500 dark:text-zinc-400">
                         @if($article->author)
@@ -252,7 +252,7 @@ new #[Title('Article - Learning Center')] class extends Component {
             @else
                 <header class="mb-8">
                     <p class="text-sm font-medium text-emerald-600 dark:text-emerald-400">Page {{ $pageNumber }} of {{ $this->totalPages }}</p>
-                    <h1 class="mt-2 text-3xl font-bold text-zinc-900 dark:text-white">{{ $currentPage->title }}</h1>
+                    <h1 class="mt-2 text-2xl font-bold text-zinc-900 dark:text-white">{{ $currentPage->title }}</h1>
                 </header>
 
                 @if($currentPage->hasImage())

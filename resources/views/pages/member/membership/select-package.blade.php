@@ -61,7 +61,7 @@ new class extends Component {
                     </svg>
                 </div>
             </div>
-            <h1 class="text-3xl font-bold text-zinc-900 dark:text-white mb-2">Choose Your Membership</h1>
+            <h1 class="text-2xl font-bold text-zinc-900 dark:text-white mb-2">Choose Your Membership</h1>
             <p class="text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
                 Welcome to NRAPA! Select the membership package that best suits your needs. All memberships include full access to our compliance platform.
             </p>

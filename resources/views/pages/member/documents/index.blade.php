@@ -283,8 +283,8 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
 <div>
     <div class="mb-8 flex items-center justify-between">
         <div>
-            <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">My Documents</h1>
-            <p class="mt-2 text-zinc-600 dark:text-zinc-400">Upload and manage your documents for membership and firearm applications.</p>
+            <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">My Documents</h1>
+            <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Upload and manage your documents for membership and firearm applications.</p>
         </div>
         <button wire:click="openUploadModal()"
             class="inline-flex items-center gap-2 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors">

@@ -1165,10 +1165,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                 Back
             </a>
         </div>
-        <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">
             {{ $editingRequest ? 'Edit Endorsement Request' : 'Request Endorsement Letter' }}
         </h1>
-        <p class="mt-2 text-zinc-600 dark:text-zinc-400">Complete the form below to request a dedicated status endorsement letter.</p>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Complete the form below to request a dedicated status endorsement letter.</p>
     </div>
 
     {{-- Progress Steps --}}

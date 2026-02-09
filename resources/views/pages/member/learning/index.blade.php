@@ -81,8 +81,8 @@ new #[Title('Learning Center')] class extends Component {
 <div class="flex h-full w-full flex-1 flex-col gap-8 p-6">
     {{-- Header --}}
     <div class="text-center">
-        <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Learning Center</h1>
-        <p class="mt-2 text-zinc-600 dark:text-zinc-400">Educational resources to help you stay informed and compliant</p>
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Learning Center</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Educational resources to help you stay informed and compliant</p>
     </div>
 
     {{-- Search --}}

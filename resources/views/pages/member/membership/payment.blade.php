@@ -73,7 +73,7 @@ new class extends Component {
                     </svg>
                 </div>
             </div>
-            <h1 class="text-3xl font-bold text-zinc-900 dark:text-white mb-2">Complete Your Payment</h1>
+            <h1 class="text-2xl font-bold text-zinc-900 dark:text-white mb-2">Complete Your Payment</h1>
             <p class="text-zinc-600 dark:text-zinc-400">
                 Please make an EFT payment using the details below to activate your membership.
             </p>
