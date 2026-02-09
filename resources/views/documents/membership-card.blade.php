@@ -56,7 +56,7 @@
         .doc-card-bg {
             position: absolute;
             inset: 0;
-            background: linear-gradient(145deg, #0a1628 0%, #0f2847 30%, #164272 60%, #1a365d 85%, #0d1f3c 100%);
+            background: linear-gradient(145deg, #062d6e 0%, #0B4EA2 30%, #0d5ab8 60%, #0B4EA2 85%, #073878 100%);
         }
 
         /* Subtle light sweep across the card */
@@ -64,7 +64,7 @@
             content: '';
             position: absolute;
             inset: 0;
-            background: radial-gradient(ellipse at 70% 20%, rgba(255,255,255,0.06) 0%, transparent 60%);
+            background: radial-gradient(ellipse at 70% 20%, rgba(255,255,255,0.08) 0%, transparent 60%);
         }
 
         .doc-card-inner {
@@ -121,11 +121,11 @@
             color: rgba(255,255,255,.55);
         }
         .doc-card-far .far-sport {
-            color: #4ade80;
+            color: #F58220;
             font-weight: 700;
         }
         .doc-card-far .far-hunting {
-            color: #f59e0b;
+            color: #fbbf24;
             font-weight: 700;
         }
 
