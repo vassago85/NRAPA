@@ -492,7 +492,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
                         </thead>
                         <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
                             @foreach($calibres as $calibre)
-                            <tr>
+                            <tr class="{{ !$calibre->is_active ? 'opacity-40' : '' }}">
                                 <td class="px-4 py-4 whitespace-nowrap text-xs font-mono text-zinc-400 dark:text-zinc-500">
                                     {{ $calibre->saps_code ?? '—' }}
                                 </td>
@@ -574,7 +574,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
                         </thead>
                         <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
                             @foreach($makes as $make)
-                            <tr>
+                            <tr class="{{ !$make->is_active ? 'opacity-40' : '' }}">
                                 <td class="px-4 py-4 whitespace-nowrap text-xs font-mono text-zinc-400 dark:text-zinc-500">
                                     {{ $make->saps_code ?? '—' }}
                                 </td>

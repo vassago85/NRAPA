@@ -11,89 +11,37 @@ class FirearmCalibreSeeder extends Seeder
 {
     /**
      * Run the database seeds.
+     *
+     * SAPS 350A is the sole source of truth for calibre names/codes.
+     * Curated metadata (bullet diameter, case length, aliases) is applied
+     * as enrichment where a SAPS entry can be matched.
+     * Any calibres without a SAPS code are deactivated.
      */
     public function run(): void
     {
-        // 1. Seed from our curated CSV file (rich metadata: family, diameter, etc.)
-        $csvPath = resource_path('data/calibres.csv');
-        if (File::exists($csvPath)) {
-            $this->seedFromCsv($csvPath);
-        }
-
-        // 2. Seed additional curated calibres with aliases
-        $this->seedAdditionalCalibres();
-
-        // 3. Import SAPS 350A calibres (adds saps_code, creates new entries)
+        // 1. Import SAPS 350A calibres as the primary (and only) source
         $sapsCsvPath = resource_path('data/saps_calibres.csv');
         if (File::exists($sapsCsvPath)) {
             $this->seedSapsCalibres($sapsCsvPath);
         }
+
+        // 2. Enrich SAPS entries with curated metadata (diameters, aliases, etc.)
+        $this->enrichWithCuratedMetadata();
+
+        // 3. Deactivate any calibres that have no SAPS code
+        $deactivated = FirearmCalibre::whereNull('saps_code')
+            ->where('is_active', true)
+            ->update(['is_active' => false]);
+
+        if ($deactivated > 0) {
+            $this->command->info("Deactivated {$deactivated} non-SAPS calibres.");
+        }
     }
 
     /**
-     * Seed calibres from CSV file.
-     */
-    protected function seedFromCsv(string $csvPath): void
-    {
-        $handle = fopen($csvPath, 'r');
-        if (!$handle) {
-            return;
-        }
-
-        // Skip header row
-        $header = fgetcsv($handle);
-        
-        $count = 0;
-        while (($row = fgetcsv($handle)) !== false) {
-            if (count($row) < 11) continue;
-            
-            $data = [
-                'name' => $row[0],
-                'normalized_name' => $row[1] ?: FirearmCalibre::normalize($row[0]),
-                'category' => $row[2] ?: 'rifle',
-                'family' => $row[3] ?: null,
-                'bullet_diameter_mm' => !empty($row[4]) ? (float)$row[4] : null,
-                'case_length_mm' => !empty($row[5]) ? (float)$row[5] : null,
-                'parent' => $row[6] ?: null,
-                'is_wildcat' => filter_var($row[7] ?? false, FILTER_VALIDATE_BOOLEAN),
-                'is_obsolete' => filter_var($row[8] ?? false, FILTER_VALIDATE_BOOLEAN),
-                'is_active' => filter_var($row[9] ?? true, FILTER_VALIDATE_BOOLEAN),
-                'tags' => !empty($row[10]) ? explode(',', $row[10]) : null,
-            ];
-
-            // Determine ignition type from category or name
-            if ($data['category'] === 'rimfire') {
-                $data['ignition'] = 'rimfire';
-                $data['category'] = 'rifle'; // rimfire is ignition type, category should be rifle/handgun
-            } else {
-                $data['ignition'] = 'centerfire';
-            }
-
-            // Fix rimfire calibres
-            if (str_contains(strtolower($data['name']), '.22 lr') || 
-                str_contains(strtolower($data['name']), '.22 wmr') ||
-                str_contains(strtolower($data['name']), '.17 hmr') ||
-                str_contains(strtolower($data['name']), '.17 wsm')) {
-                $data['ignition'] = 'rimfire';
-            }
-
-            // Use name for lookup since it has unique constraint
-            FirearmCalibre::updateOrCreate(
-                ['name' => $data['name']],
-                $data
-            );
-            $count++;
-        }
-
-        fclose($handle);
-        $this->command->info("Seeded {$count} calibres from CSV.");
-    }
-
-    /**
-     * Import SAPS 350A calibres.
-     * - Matches existing calibres by normalized name and adds saps_code.
-     * - Creates new calibres from unmatched SAPS entries.
-     * - Skips non-calibre entries (barrels, frames, components, etc.).
+     * Import SAPS 350A calibres as the sole source.
+     * Creates new calibres or updates existing ones with the SAPS code.
+     * Skips non-calibre entries (barrels, frames, components, etc.).
      */
     protected function seedSapsCalibres(string $csvPath): void
     {
@@ -106,8 +54,6 @@ class FirearmCalibreSeeder extends Seeder
         $header = fgetcsv($handle);
 
         // Build lookup using normalize() on the actual name column.
-        // The stored normalized_name in the CSV may differ from what normalize()
-        // produces (e.g. CSV keeps dots: ".22hornet" vs normalize removes them: "22 hornet").
         $existing = [];
         foreach (FirearmCalibre::all(['id', 'name', 'saps_code']) as $calibre) {
             $key = FirearmCalibre::normalize($calibre->name);
@@ -141,11 +87,13 @@ class FirearmCalibreSeeder extends Seeder
             $seen[$normalizedName] = $sapsCode;
 
             if (isset($existing[$normalizedName])) {
-                // Existing calibre found – add SAPS code if not already set
+                // Existing calibre found – set SAPS code and ensure active
+                $updates = ['is_active' => true];
                 if (empty($existing[$normalizedName]['saps_code'])) {
-                    FirearmCalibre::where('id', $existing[$normalizedName]['id'])
-                        ->update(['saps_code' => $sapsCode]);
+                    $updates['saps_code'] = $sapsCode;
                 }
+                FirearmCalibre::where('id', $existing[$normalizedName]['id'])
+                    ->update($updates);
                 $matched++;
             } else {
                 // New calibre from SAPS – create with inferred category
@@ -169,7 +117,7 @@ class FirearmCalibreSeeder extends Seeder
                     // Name already exists (case-insensitive match) – update saps_code instead
                     FirearmCalibre::whereRaw('LOWER(name) = ?', [strtolower($sapsName)])
                         ->whereNull('saps_code')
-                        ->update(['saps_code' => $sapsCode]);
+                        ->update(['saps_code' => $sapsCode, 'is_active' => true]);
                     $matched++;
                 }
             }
@@ -180,13 +128,220 @@ class FirearmCalibreSeeder extends Seeder
     }
 
     /**
+     * Enrich SAPS entries with curated metadata (bullet diameter, case length, aliases).
+     * Only updates existing SAPS entries – never creates new calibres.
+     */
+    protected function enrichWithCuratedMetadata(): void
+    {
+        $enrichment = $this->getCuratedEnrichmentData();
+
+        $enriched = 0;
+        foreach ($enrichment as $entry) {
+            $normalizedName = FirearmCalibre::normalize($entry['name']);
+            $aliases = $entry['aliases'] ?? [];
+            unset($entry['aliases']);
+
+            // Only enrich calibres that have a SAPS code (i.e. are in the SAPS list)
+            $calibre = FirearmCalibre::whereNotNull('saps_code')
+                ->where(function ($q) use ($normalizedName, $entry) {
+                    $q->where('normalized_name', $normalizedName)
+                      ->orWhereRaw('LOWER(name) = ?', [strtolower($entry['name'])]);
+                })
+                ->first();
+
+            if (!$calibre) {
+                continue; // No matching SAPS entry – skip
+            }
+
+            // Update metadata fields (only if not already set)
+            $updates = [];
+            if (!empty($entry['bullet_diameter_mm']) && empty($calibre->bullet_diameter_mm)) {
+                $updates['bullet_diameter_mm'] = $entry['bullet_diameter_mm'];
+            }
+            if (!empty($entry['case_length_mm']) && empty($calibre->case_length_mm)) {
+                $updates['case_length_mm'] = $entry['case_length_mm'];
+            }
+            if (!empty($entry['family']) && empty($calibre->family)) {
+                $updates['family'] = $entry['family'];
+            }
+
+            if (!empty($updates)) {
+                $calibre->update($updates);
+                $enriched++;
+            }
+
+            // Add aliases
+            foreach ($aliases as $alias) {
+                $normalizedAlias = FirearmCalibre::normalize($alias);
+                $existingAlias = FirearmCalibreAlias::where('normalized_alias', $normalizedAlias)->first();
+                if (!$existingAlias) {
+                    FirearmCalibreAlias::create([
+                        'firearm_calibre_id' => $calibre->id,
+                        'alias' => $alias,
+                        'normalized_alias' => $normalizedAlias,
+                    ]);
+                }
+            }
+        }
+
+        // Also try enrichment from the curated CSV if it exists
+        $csvPath = resource_path('data/calibres.csv');
+        if (File::exists($csvPath)) {
+            $enriched += $this->enrichFromCsv($csvPath);
+        }
+
+        $this->command->info("Enriched {$enriched} SAPS calibres with curated metadata.");
+    }
+
+    /**
+     * Enrich SAPS entries from the curated CSV file (bullet diameter, case length, etc.).
+     */
+    protected function enrichFromCsv(string $csvPath): int
+    {
+        $handle = fopen($csvPath, 'r');
+        if (!$handle) {
+            return 0;
+        }
+
+        $header = fgetcsv($handle);
+        $enriched = 0;
+
+        while (($row = fgetcsv($handle)) !== false) {
+            if (count($row) < 11) continue;
+
+            $name = $row[0];
+            $normalizedName = FirearmCalibre::normalize($name);
+
+            // Only match against SAPS entries
+            $calibre = FirearmCalibre::whereNotNull('saps_code')
+                ->where(function ($q) use ($normalizedName, $name) {
+                    $q->where('normalized_name', $normalizedName)
+                      ->orWhereRaw('LOWER(name) = ?', [strtolower($name)]);
+                })
+                ->first();
+
+            if (!$calibre) {
+                continue;
+            }
+
+            $updates = [];
+            if (!empty($row[3]) && empty($calibre->family)) {
+                $updates['family'] = $row[3];
+            }
+            if (!empty($row[4]) && empty($calibre->bullet_diameter_mm)) {
+                $updates['bullet_diameter_mm'] = (float) $row[4];
+            }
+            if (!empty($row[5]) && empty($calibre->case_length_mm)) {
+                $updates['case_length_mm'] = (float) $row[5];
+            }
+            if (!empty($row[6]) && empty($calibre->parent)) {
+                $updates['parent'] = $row[6];
+            }
+            if (!empty($row[10]) && empty($calibre->tags)) {
+                $updates['tags'] = explode(',', $row[10]);
+            }
+
+            if (!empty($updates)) {
+                $calibre->update($updates);
+                $enriched++;
+            }
+        }
+
+        fclose($handle);
+        return $enriched;
+    }
+
+    /**
+     * Curated metadata to enrich SAPS entries with bullet diameters, case lengths, and aliases.
+     * Keyed by common calibre name – the seeder matches these against SAPS entries.
+     */
+    protected function getCuratedEnrichmentData(): array
+    {
+        return [
+            // Handgun
+            ['name' => '.25 ACP', 'bullet_diameter_mm' => 6.35, 'aliases' => ['6.35mm Browning', '.25 Auto']],
+            ['name' => '.32 ACP', 'bullet_diameter_mm' => 7.65, 'aliases' => ['7.65mm Browning', '.32 Auto']],
+            ['name' => '.32 S&W', 'bullet_diameter_mm' => 7.94],
+            ['name' => '.380 ACP', 'bullet_diameter_mm' => 9.0, 'aliases' => ['9mm Short', '9mm Kurz', '9x17mm']],
+            ['name' => '9MM PARABELLUM', 'bullet_diameter_mm' => 9.01, 'aliases' => ['9mm', '9mm Luger', '9x19mm', '9mm Para']],
+            ['name' => '.357 SIG', 'bullet_diameter_mm' => 9.04],
+            ['name' => '.357 MAG', 'bullet_diameter_mm' => 9.04, 'aliases' => ['.357 Magnum']],
+            ['name' => '.38 SPECIAL', 'bullet_diameter_mm' => 9.04, 'aliases' => ['.38 Spl']],
+            ['name' => '.40 S&W', 'bullet_diameter_mm' => 10.16],
+            ['name' => '10MM AUTO', 'bullet_diameter_mm' => 10.16],
+            ['name' => '.41 REM MAG', 'bullet_diameter_mm' => 10.41, 'aliases' => ['.41 Magnum']],
+            ['name' => '.44 MAG', 'bullet_diameter_mm' => 10.92, 'aliases' => ['.44 Magnum', '.44 Rem Mag']],
+            ['name' => '.44 SPECIAL', 'bullet_diameter_mm' => 10.92, 'aliases' => ['.44 Spl']],
+            ['name' => '.45 ACP', 'bullet_diameter_mm' => 11.48, 'aliases' => ['.45 Auto']],
+            ['name' => '.45 COLT', 'bullet_diameter_mm' => 11.48, 'aliases' => ['.45 Long Colt', '.45 LC']],
+            ['name' => '.454 CASULL', 'bullet_diameter_mm' => 11.48],
+            ['name' => '.50 ACTION EXPRESS', 'bullet_diameter_mm' => 12.7, 'aliases' => ['.50 AE']],
+            ['name' => '.500 S&W MAG', 'bullet_diameter_mm' => 12.7, 'aliases' => ['.500 S&W Magnum']],
+
+            // Rifle – common
+            ['name' => '.204 RUGER', 'bullet_diameter_mm' => 5.2, 'case_length_mm' => 47.0],
+            ['name' => '.218 BEE', 'bullet_diameter_mm' => 5.7],
+            ['name' => '.22 HORNET', 'bullet_diameter_mm' => 5.7, 'case_length_mm' => 35.6],
+            ['name' => '.222 REM', 'bullet_diameter_mm' => 5.7, 'case_length_mm' => 43.2, 'aliases' => ['.222 Remington']],
+            ['name' => '.223 REM', 'bullet_diameter_mm' => 5.7, 'case_length_mm' => 45.0, 'aliases' => ['.223 Remington', '.223']],
+            ['name' => '5.56X45 NATO', 'bullet_diameter_mm' => 5.7, 'case_length_mm' => 45.0, 'aliases' => ['5.56x45mm', '5.56 NATO']],
+            ['name' => '.22-250 REM', 'bullet_diameter_mm' => 5.7, 'case_length_mm' => 48.6, 'aliases' => ['.22-250', '.22-250 Remington']],
+            ['name' => '.243 WIN', 'bullet_diameter_mm' => 6.17, 'case_length_mm' => 51.9, 'aliases' => ['.243 Winchester', '.243']],
+            ['name' => '6MM REM', 'bullet_diameter_mm' => 6.17, 'case_length_mm' => 56.0, 'aliases' => ['6mm Remington']],
+            ['name' => '6.5 CREEDMOOR', 'bullet_diameter_mm' => 6.72, 'case_length_mm' => 48.0, 'aliases' => ['6.5 CM', '6.5mm Creedmoor']],
+            ['name' => '6.5X55 SWED MAUS', 'bullet_diameter_mm' => 6.72, 'case_length_mm' => 55.0, 'aliases' => ['6.5x55 Swedish', '6.5x55 Swede', '6.5x55mm']],
+            ['name' => '6.5 PRC', 'bullet_diameter_mm' => 6.72, 'case_length_mm' => 51.0, 'aliases' => ['6.5 Precision Rifle Cartridge']],
+            ['name' => '.25-06 REM', 'bullet_diameter_mm' => 6.53, 'case_length_mm' => 63.3, 'aliases' => ['.25-06 Remington']],
+            ['name' => '.270 WIN', 'bullet_diameter_mm' => 7.04, 'case_length_mm' => 64.5, 'aliases' => ['.270 Winchester', '.270']],
+            ['name' => '7X57 MAUSER', 'bullet_diameter_mm' => 7.24, 'case_length_mm' => 57.0, 'aliases' => ['7x57mm', '7mm Mauser']],
+            ['name' => '7MM-08 REM', 'bullet_diameter_mm' => 7.24, 'case_length_mm' => 51.2, 'aliases' => ['7mm-08', '7mm-08 Remington']],
+            ['name' => '7MM REM MAG', 'bullet_diameter_mm' => 7.24, 'case_length_mm' => 64.0, 'aliases' => ['7mm Remington Magnum']],
+            ['name' => '7MM PRC', 'bullet_diameter_mm' => 7.24, 'case_length_mm' => 51.0],
+            ['name' => '.280 REM', 'bullet_diameter_mm' => 7.24, 'case_length_mm' => 64.5, 'aliases' => ['.280 Remington']],
+            ['name' => '.30 CARBINE', 'bullet_diameter_mm' => 7.82, 'case_length_mm' => 33.0],
+            ['name' => '.30-30 WIN', 'bullet_diameter_mm' => 7.82, 'case_length_mm' => 51.8, 'aliases' => ['.30-30', '.30-30 Winchester']],
+            ['name' => '.300 AAC BLACKOUT', 'bullet_diameter_mm' => 7.82, 'case_length_mm' => 35.0, 'aliases' => ['.300 BLK', '300 Blackout']],
+            ['name' => '.308 WIN', 'bullet_diameter_mm' => 7.82, 'case_length_mm' => 51.2, 'aliases' => ['.308 Winchester', '.308']],
+            ['name' => '7.62X51 NATO', 'bullet_diameter_mm' => 7.82, 'case_length_mm' => 51.2, 'aliases' => ['7.62x51mm', '7.62 NATO']],
+            ['name' => '7.62X39', 'bullet_diameter_mm' => 7.92, 'case_length_mm' => 39.0, 'aliases' => ['7.62x39mm']],
+            ['name' => '7.62X54R', 'bullet_diameter_mm' => 7.92, 'case_length_mm' => 54.0, 'aliases' => ['7.62x54mmR', '7.62 Russian']],
+            ['name' => '.30-06 SPRING', 'bullet_diameter_mm' => 7.82, 'case_length_mm' => 63.3, 'aliases' => ['.30-06', '.30-06 Springfield']],
+            ['name' => '.300 WIN MAG', 'bullet_diameter_mm' => 7.82, 'case_length_mm' => 66.7, 'aliases' => ['.300 Winchester Magnum']],
+            ['name' => '.300 WSM', 'bullet_diameter_mm' => 7.82, 'case_length_mm' => 53.3],
+            ['name' => '.300 WEATH MAG', 'bullet_diameter_mm' => 7.82, 'case_length_mm' => 73.0, 'aliases' => ['.300 Weatherby Magnum']],
+            ['name' => '.300 REM ULTRA MAG', 'bullet_diameter_mm' => 7.82, 'case_length_mm' => 72.4, 'aliases' => ['.300 RUM']],
+            ['name' => '.300 PRC', 'bullet_diameter_mm' => 7.82, 'case_length_mm' => 58.0, 'aliases' => ['.300 Precision Rifle Cartridge']],
+            ['name' => '.303 BRITISH', 'bullet_diameter_mm' => 7.7, 'case_length_mm' => 56.4],
+            ['name' => '8X57 MAUSER', 'bullet_diameter_mm' => 8.22, 'case_length_mm' => 57.0, 'aliases' => ['8mm Mauser', '7.92x57mm']],
+            ['name' => '.338 WIN MAG', 'bullet_diameter_mm' => 8.58, 'case_length_mm' => 63.3, 'aliases' => ['.338 Winchester Magnum']],
+            ['name' => '.338 LAPUA MAG', 'bullet_diameter_mm' => 8.58, 'case_length_mm' => 70.0, 'aliases' => ['.338 Lapua', '8.6x70mm']],
+            ['name' => '.375 H&H MAG', 'bullet_diameter_mm' => 9.53, 'case_length_mm' => 72.4, 'aliases' => ['.375 Holland & Holland', '.375 H&H']],
+            ['name' => '.375 RUGER', 'bullet_diameter_mm' => 9.53, 'case_length_mm' => 65.0],
+            ['name' => '.404 JEFFERY', 'bullet_diameter_mm' => 10.3, 'case_length_mm' => 73.0, 'aliases' => ['10.75x73mm']],
+            ['name' => '.416 RIGBY', 'bullet_diameter_mm' => 10.57, 'case_length_mm' => 74.0],
+            ['name' => '.458 WIN MAG', 'bullet_diameter_mm' => 11.63, 'case_length_mm' => 63.3, 'aliases' => ['.458 Winchester Magnum']],
+            ['name' => '.458 LOTT', 'bullet_diameter_mm' => 11.63, 'case_length_mm' => 72.4],
+            ['name' => '.470 NE', 'bullet_diameter_mm' => 12.0, 'case_length_mm' => 83.0, 'aliases' => ['.470 Nitro Express']],
+            ['name' => '.500 NE', 'bullet_diameter_mm' => 12.7, 'case_length_mm' => 83.0, 'aliases' => ['.500 Nitro Express']],
+            ['name' => '.50 BMG', 'bullet_diameter_mm' => 12.7, 'case_length_mm' => 99.0, 'aliases' => ['12.7x99mm NATO', '.50 Browning']],
+
+            // Shotgun
+            ['name' => '10 GA', 'bullet_diameter_mm' => 19.7, 'aliases' => ['10 Gauge']],
+            ['name' => '12 GA', 'bullet_diameter_mm' => 18.5, 'aliases' => ['12 Gauge']],
+            ['name' => '16 GA', 'bullet_diameter_mm' => 16.8, 'aliases' => ['16 Gauge']],
+            ['name' => '20 GA', 'bullet_diameter_mm' => 15.6, 'aliases' => ['20 Gauge']],
+            ['name' => '28 GA', 'bullet_diameter_mm' => 14.0, 'aliases' => ['28 Gauge']],
+            ['name' => '.410 BORE', 'bullet_diameter_mm' => 10.41, 'aliases' => ['.410', '410 Gauge']],
+        ];
+    }
+
+    /**
      * Determine if a SAPS entry should be skipped (not a real calibre).
      */
     protected function shouldSkipSapsEntry(string $name): bool
     {
         $upper = strtoupper($name);
 
-        // Skip barrel billets, barrel components, frames, receivers, etc.
         $skipPrefixes = [
             'BARREL',
             'FRAME',
@@ -223,9 +378,6 @@ class FirearmCalibreSeeder extends Seeder
         if (str_contains($upper, 'BORE') && !str_contains($upper, '30 BORE')) {
             return 'shotgun';
         }
-        if (preg_match('/^(10|11|12|13|14|15|16|17|20|24|25|28|32|54)\s+GA$/i', trim($name))) {
-            return 'shotgun';
-        }
 
         // Muzzle loader indicators
         if (str_contains($upper, 'MUZZLE LOADER') || str_contains($upper, 'CAP&BALL')) {
@@ -237,7 +389,7 @@ class FirearmCalibreSeeder extends Seeder
             return 'rifle';
         }
 
-        // Handgun indicators - specific calibres that are primarily handgun
+        // Handgun indicators
         $handgunPatterns = [
             '.25 ACP', '6.35MM BROWNING', '6.35MM BROW',
             '.32 ACP', '.32 S&W', '.32 LONG', '.32 SHORT', '.32 RIM-FIRE',
@@ -264,12 +416,10 @@ class FirearmCalibreSeeder extends Seeder
             }
         }
 
-        // Check for pistol/revolver mention in calibre name
         if (str_contains($upper, '(PISTOL)') || str_contains($upper, 'REVOLVER')) {
             return 'handgun';
         }
 
-        // Everything else defaults to rifle
         return 'rifle';
     }
 
@@ -280,7 +430,6 @@ class FirearmCalibreSeeder extends Seeder
     {
         $upper = strtoupper($name);
 
-        // Rimfire patterns
         $rimfirePatterns = [
             '.22 SHORT', '.22 LONG', '.22 LR', '.22 S/L/LR',
             '.22 EXTRA LONG', '.22 WIN MAG RIM', '.22 WMR',
@@ -296,208 +445,10 @@ class FirearmCalibreSeeder extends Seeder
             }
         }
 
-        // Pinfire is neither, but treat as centerfire for our purposes
-        // Air guns
         if (str_contains($upper, 'AIR/WIND')) {
-            return 'centerfire'; // technically neither, but needs a value
+            return 'centerfire';
         }
 
         return 'centerfire';
-    }
-
-    /**
-     * Seed additional calibres not in CSV.
-     */
-    protected function seedAdditionalCalibres(): void
-    {
-        $calibres = [
-            // ===== HANDGUN - RIMFIRE =====
-            ['name' => '.17 HM2', 'category' => 'handgun', 'ignition' => 'rimfire', 'bullet_diameter_mm' => 4.37, 'aliases' => ['.17 Hornady Mach 2']],
-            ['name' => '.17 HMR', 'category' => 'handgun', 'ignition' => 'rimfire', 'bullet_diameter_mm' => 4.37, 'aliases' => ['.17 Hornady Magnum Rimfire']],
-            ['name' => '.22 Short', 'category' => 'handgun', 'ignition' => 'rimfire', 'bullet_diameter_mm' => 5.7],
-            ['name' => '.22 Long', 'category' => 'handgun', 'ignition' => 'rimfire', 'bullet_diameter_mm' => 5.7],
-            ['name' => '.22 LR', 'category' => 'handgun', 'ignition' => 'rimfire', 'bullet_diameter_mm' => 5.7, 'aliases' => ['.22 Long Rifle', '.22']],
-            ['name' => '.22 WMR', 'category' => 'handgun', 'ignition' => 'rimfire', 'bullet_diameter_mm' => 5.7, 'aliases' => ['.22 Magnum', '.22 Winchester Magnum Rimfire', '.22 Mag']],
-
-            // ===== HANDGUN - CENTERFIRE (Revolvers) =====
-            ['name' => '.32 S&W', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.94],
-            ['name' => '.32 S&W Long', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.94],
-            ['name' => '.32 H&R Magnum', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.94],
-            ['name' => '.327 Federal Magnum', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.94],
-            ['name' => '.38 S&W', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 9.04],
-            ['name' => '.38 Special', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 9.04, 'aliases' => ['.38 Spl', '.38 Spc']],
-            ['name' => '.357 Magnum', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 9.04, 'aliases' => ['.357 Mag']],
-            ['name' => '.41 Magnum', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 10.41, 'aliases' => ['.41 Rem Mag']],
-            ['name' => '.44 Russian', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 10.92, 'is_obsolete' => true],
-            ['name' => '.44 Special', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 10.92, 'aliases' => ['.44 Spl']],
-            ['name' => '.44 Magnum', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 10.92, 'aliases' => ['.44 Mag', '.44 Rem Mag']],
-            ['name' => '.45 Colt', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 11.48, 'aliases' => ['.45 Long Colt', '.45 LC']],
-            ['name' => '.454 Casull', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 11.48],
-            ['name' => '.460 S&W Magnum', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 11.63],
-            ['name' => '.475 Linebaugh', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 12.07],
-            ['name' => '.480 Ruger', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 12.19],
-            ['name' => '.500 S&W Magnum', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 12.7],
-            ['name' => '.500 Linebaugh', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 12.7],
-
-            // ===== HANDGUN - CENTERFIRE (Semi-auto) =====
-            ['name' => '.25 ACP', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 6.35, 'aliases' => ['6.35mm Browning', '.25 Auto']],
-            ['name' => '.30 Luger', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.65, 'aliases' => ['7.65x21mm Parabellum']],
-            ['name' => '.32 ACP', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.65, 'aliases' => ['7.65mm Browning', '.32 Auto']],
-            ['name' => '.380 ACP', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 9.0, 'aliases' => ['9mm Short', '9mm Kurz', '9x17mm']],
-            ['name' => '9x18 Makarov', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 9.27, 'aliases' => ['9mm Makarov', '9x18mm']],
-            ['name' => '9x19 Parabellum', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 9.01, 'aliases' => ['9mm', '9mm Luger', '9x19mm', '9mm Para']],
-            ['name' => '9x21 IMI', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 9.01, 'aliases' => ['9x21mm']],
-            ['name' => '.357 SIG', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 9.04],
-            ['name' => '.40 S&W', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 10.16, 'aliases' => ['10x22mm']],
-            ['name' => '10mm Auto', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 10.16, 'aliases' => ['10mm']],
-            ['name' => '.45 ACP', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 11.48, 'aliases' => ['.45 Auto', '11.43x23mm']],
-            ['name' => '.45 GAP', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 11.48, 'aliases' => ['.45 Glock']],
-            ['name' => '.50 Action Express', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 12.7, 'aliases' => ['.50 AE']],
-            ['name' => '5.7x28mm', 'category' => 'handgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 5.7, 'aliases' => ['5.7x28mm FN']],
-
-            // ===== SHOTGUN =====
-            ['name' => '.410 Bore', 'category' => 'shotgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 10.41, 'aliases' => ['.410', '410 Gauge']],
-            ['name' => '28 Gauge', 'category' => 'shotgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 14.0],
-            ['name' => '24 Gauge', 'category' => 'shotgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 14.7, 'is_obsolete' => true],
-            ['name' => '20 Gauge', 'category' => 'shotgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 15.6],
-            ['name' => '16 Gauge', 'category' => 'shotgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 16.8],
-            ['name' => '12 Gauge', 'category' => 'shotgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 18.5],
-            ['name' => '10 Gauge', 'category' => 'shotgun', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 19.7],
-
-            // ===== RIFLE - RIMFIRE =====
-            ['name' => '.17 WSM', 'category' => 'rifle', 'ignition' => 'rimfire', 'bullet_diameter_mm' => 4.37, 'case_length_mm' => 27.0],
-            ['name' => '.17 HMR (Rifle)', 'category' => 'rifle', 'ignition' => 'rimfire', 'bullet_diameter_mm' => 4.37, 'case_length_mm' => 26.7, 'aliases' => ['.17 HMR']],
-            ['name' => '.22 LR (Rifle)', 'category' => 'rifle', 'ignition' => 'rimfire', 'bullet_diameter_mm' => 5.7, 'case_length_mm' => 15.6, 'aliases' => ['.22 Long Rifle']],
-            ['name' => '.22 WMR (Rifle)', 'category' => 'rifle', 'ignition' => 'rimfire', 'bullet_diameter_mm' => 5.7, 'case_length_mm' => 26.8, 'aliases' => ['.22 Magnum']],
-
-            // ===== RIFLE - CENTERFIRE (Small/Varmint) =====
-            ['name' => '.17 Hornet', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 4.37],
-            ['name' => '.17 Remington', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 4.37],
-            ['name' => '.204 Ruger', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 5.2, 'case_length_mm' => 47.0],
-            ['name' => '.218 Bee', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 5.7],
-            ['name' => '.220 Swift', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 5.7, 'case_length_mm' => 56.0],
-            ['name' => '.221 Fireball', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 5.7],
-            ['name' => '.222 Remington', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 5.7, 'case_length_mm' => 43.2, 'aliases' => ['.222 Rem']],
-            ['name' => '.223 Remington', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 5.7, 'case_length_mm' => 45.0, 'aliases' => ['.223 Rem', '.223']],
-            ['name' => '5.56x45 NATO', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 5.7, 'case_length_mm' => 45.0, 'aliases' => ['5.56x45mm', '5.56 NATO']],
-            ['name' => '.22-250 Remington', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 5.7, 'case_length_mm' => 48.6, 'aliases' => ['.22-250', '.22-250 Rem']],
-            ['name' => '.224 Valkyrie', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 5.7, 'case_length_mm' => 39.0],
-
-            // ===== RIFLE - CENTERFIRE (6mm) =====
-            ['name' => '.243 Winchester', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 6.17, 'case_length_mm' => 51.9, 'aliases' => ['.243 Win', '.243']],
-            ['name' => '6mm Remington', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 6.17, 'case_length_mm' => 56.0],
-            ['name' => '6mm Creedmoor', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 6.17, 'case_length_mm' => 48.0, 'aliases' => ['6mm CM']],
-            ['name' => '6mm BR', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 6.0, 'case_length_mm' => 47.0],
-            ['name' => '6mm GT', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 6.0, 'case_length_mm' => 47.0],
-            ['name' => '6mm Dasher', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 6.0, 'case_length_mm' => 47.0],
-
-            // ===== RIFLE - CENTERFIRE (6.5mm) =====
-            ['name' => '.25-06 Remington', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 6.53, 'case_length_mm' => 63.3, 'aliases' => ['.25-06 Rem']],
-            ['name' => '6.5 Creedmoor', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 6.72, 'case_length_mm' => 48.0, 'aliases' => ['6.5 CM', '6.5mm Creedmoor']],
-            ['name' => '6.5x47 Lapua', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 6.72, 'case_length_mm' => 47.0],
-            ['name' => '6.5x55 Swedish', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 6.72, 'case_length_mm' => 55.0, 'aliases' => ['6.5x55 Swede', '6.5x55mm']],
-            ['name' => '6.5 PRC', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 6.72, 'case_length_mm' => 51.0, 'aliases' => ['6.5 Precision Rifle Cartridge']],
-            ['name' => '6.5-284 Norma', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 6.72, 'case_length_mm' => 55.0],
-            ['name' => '.264 Winchester Magnum', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 6.72, 'case_length_mm' => 63.5],
-
-            // ===== RIFLE - CENTERFIRE (.270/7mm) =====
-            ['name' => '.270 Winchester', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.04, 'case_length_mm' => 64.5, 'aliases' => ['.270 Win', '.270']],
-            ['name' => '.270 WSM', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.04, 'case_length_mm' => 53.3],
-            ['name' => '.270 Weatherby Magnum', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.04, 'case_length_mm' => 64.8],
-            ['name' => '7x57 Mauser', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.24, 'case_length_mm' => 57.0, 'aliases' => ['7x57mm', '7mm Mauser']],
-            ['name' => '7mm-08 Remington', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.24, 'case_length_mm' => 51.2, 'aliases' => ['7mm-08']],
-            ['name' => '7mm Remington Magnum', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.24, 'case_length_mm' => 64.0, 'aliases' => ['7mm Rem Mag']],
-            ['name' => '7mm WSM', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.24, 'case_length_mm' => 53.3],
-            ['name' => '.280 Remington', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.24, 'case_length_mm' => 64.5],
-            ['name' => '28 Nosler', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.24, 'case_length_mm' => 54.0],
-            ['name' => '7mm SAUM', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.24, 'case_length_mm' => 51.0, 'aliases' => ['7 SAUM']],
-            ['name' => '7mm PRC', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.24, 'case_length_mm' => 51.0],
-
-            // ===== RIFLE - CENTERFIRE (.30 cal) =====
-            ['name' => '.30 Carbine', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.82, 'case_length_mm' => 33.0],
-            ['name' => '.30-30 Winchester', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.82, 'case_length_mm' => 51.8, 'aliases' => ['.30-30', '.30-30 Win']],
-            ['name' => '.300 AAC Blackout', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.82, 'case_length_mm' => 35.0, 'aliases' => ['.300 BLK', '300 Blackout']],
-            ['name' => '.308 Winchester', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.82, 'case_length_mm' => 51.2, 'aliases' => ['.308 Win', '.308']],
-            ['name' => '7.62x51 NATO', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.82, 'case_length_mm' => 51.2, 'aliases' => ['7.62x51mm', '7.62 NATO']],
-            ['name' => '7.62x39', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.92, 'case_length_mm' => 39.0, 'aliases' => ['7.62x39mm', '7.62 Soviet']],
-            ['name' => '7.62x54R', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.92, 'case_length_mm' => 54.0, 'aliases' => ['7.62x54mmR', '7.62 Russian']],
-            ['name' => '.30-06 Springfield', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.82, 'case_length_mm' => 63.3, 'aliases' => ['.30-06', '.30-06 Sprg']],
-            ['name' => '.300 WSM', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.82, 'case_length_mm' => 53.3],
-            ['name' => '.300 Winchester Magnum', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.82, 'case_length_mm' => 66.7, 'aliases' => ['.300 Win Mag']],
-            ['name' => '.300 Weatherby Magnum', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.82, 'case_length_mm' => 73.0],
-            ['name' => '.300 RUM', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.82, 'case_length_mm' => 72.4, 'aliases' => ['.300 Remington Ultra Mag']],
-            ['name' => '.300 PRC', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.82, 'case_length_mm' => 58.0, 'aliases' => ['.300 Precision Rifle Cartridge']],
-            ['name' => '.300 Norma Magnum', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.82, 'case_length_mm' => 65.0],
-            ['name' => '.303 British', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 7.7, 'case_length_mm' => 56.4],
-
-            // ===== RIFLE - CENTERFIRE (8mm/.33) =====
-            ['name' => '8x57 Mauser', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 8.22, 'case_length_mm' => 57.0, 'aliases' => ['8mm Mauser', '7.92x57mm']],
-            ['name' => '.338 Winchester Magnum', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 8.58, 'case_length_mm' => 63.3, 'aliases' => ['.338 Win Mag']],
-            ['name' => '.338 Federal', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 8.58, 'case_length_mm' => 51.2],
-            ['name' => '.338 Lapua Magnum', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 8.58, 'case_length_mm' => 70.0, 'aliases' => ['.338 Lapua', '8.6x70mm']],
-            ['name' => '.338 Norma Magnum', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 8.58, 'case_length_mm' => 63.5],
-            ['name' => '.340 Weatherby Magnum', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 8.58, 'case_length_mm' => 73.0],
-
-            // ===== RIFLE - CENTERFIRE (.35 and larger) =====
-            ['name' => '.35 Remington', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 9.12, 'case_length_mm' => 51.8],
-            ['name' => '.35 Whelen', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 9.12, 'case_length_mm' => 63.3],
-            ['name' => '.375 Holland & Holland Magnum', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 9.53, 'case_length_mm' => 72.4, 'aliases' => ['.375 H&H', '.375 H&H Mag']],
-            ['name' => '.375 Ruger', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 9.53, 'case_length_mm' => 65.0],
-            ['name' => '.378 Weatherby Magnum', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 9.53, 'case_length_mm' => 73.0],
-            ['name' => '.404 Jeffery', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 10.3, 'case_length_mm' => 73.0, 'aliases' => ['10.75x73mm']],
-            ['name' => '.416 Rigby', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 10.57, 'case_length_mm' => 74.0],
-            ['name' => '.416 Remington Magnum', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 10.57, 'case_length_mm' => 72.4],
-            ['name' => '.416 Ruger', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 10.57, 'case_length_mm' => 65.0],
-            ['name' => '.444 Marlin', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 10.92, 'case_length_mm' => 53.0],
-            ['name' => '.45-70 Government', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 11.63, 'case_length_mm' => 53.0, 'aliases' => ['.45-70 Govt', '.45-70']],
-            ['name' => '.450 Bushmaster', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 11.5, 'case_length_mm' => 39.0],
-            ['name' => '.450 Marlin', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 11.63, 'case_length_mm' => 53.0],
-            ['name' => '.450/400 Nitro Express', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 10.3, 'case_length_mm' => 83.0],
-            ['name' => '.458 Winchester Magnum', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 11.63, 'case_length_mm' => 63.3, 'aliases' => ['.458 Win Mag']],
-            ['name' => '.458 Lott', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 11.63, 'case_length_mm' => 72.4],
-            ['name' => '.460 Weatherby Magnum', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 11.63, 'case_length_mm' => 74.0],
-            ['name' => '.470 Nitro Express', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 12.0, 'case_length_mm' => 83.0],
-            ['name' => '.500 Nitro Express', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 12.7, 'case_length_mm' => 83.0],
-            ['name' => '.50 BMG', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 12.7, 'case_length_mm' => 99.0, 'aliases' => ['12.7x99mm NATO', '.50 Browning']],
-            ['name' => '.50 Beowulf', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 12.7, 'case_length_mm' => 42.0],
-            ['name' => '.577 Nitro Express', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 14.9, 'case_length_mm' => 83.0],
-            ['name' => '.600 Nitro Express', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 15.2, 'case_length_mm' => 83.0],
-            ['name' => '.700 Nitro Express', 'category' => 'rifle', 'ignition' => 'centerfire', 'bullet_diameter_mm' => 17.8, 'case_length_mm' => 89.0],
-        ];
-
-        $count = 0;
-        foreach ($calibres as $data) {
-            $aliases = $data['aliases'] ?? [];
-            unset($data['aliases']);
-            
-            $data['normalized_name'] = FirearmCalibre::normalize($data['name']);
-            $data['is_active'] = true;
-            $data['is_obsolete'] = $data['is_obsolete'] ?? false;
-            $data['is_wildcat'] = $data['is_wildcat'] ?? false;
-            
-            // Use name for lookup since it has unique constraint
-            $calibre = FirearmCalibre::updateOrCreate(
-                ['name' => $data['name']],
-                $data
-            );
-            
-            // Add aliases (skip if normalized alias already exists)
-            foreach ($aliases as $alias) {
-                $normalizedAlias = FirearmCalibre::normalize($alias);
-                // Check if this normalized alias already exists for ANY calibre
-                $existingAlias = FirearmCalibreAlias::where('normalized_alias', $normalizedAlias)->first();
-                if (!$existingAlias) {
-                    FirearmCalibreAlias::create([
-                        'firearm_calibre_id' => $calibre->id,
-                        'alias' => $alias,
-                        'normalized_alias' => $normalizedAlias,
-                    ]);
-                }
-            }
-            
-            $count++;
-        }
-
-        $this->command->info("Seeded {$count} additional calibres.");
     }
 }

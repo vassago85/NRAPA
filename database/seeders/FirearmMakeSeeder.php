@@ -11,22 +11,35 @@ class FirearmMakeSeeder extends Seeder
 {
     /**
      * Run the database seeds.
+     *
+     * SAPS 350A is the sole source of truth for make names/codes.
+     * Curated data (country) is applied as enrichment where a SAPS
+     * entry can be matched. Non-SAPS makes are deactivated.
      */
     public function run(): void
     {
-        // 1. Seed our curated makes (preserves country data)
-        $makesCsvPath = resource_path('data/firearm_makes.csv');
-        if (File::exists($makesCsvPath)) {
-            $this->seedMakesFromCsv($makesCsvPath);
-        }
-
-        // 2. Import SAPS 350A makes (adds saps_code, creates new entries)
+        // 1. Import SAPS 350A makes as the primary (and only) source
         $sapsCsvPath = resource_path('data/saps_makes.csv');
         if (File::exists($sapsCsvPath)) {
             $this->seedSapsMakes($sapsCsvPath);
         }
 
-        // 3. Seed models from CSV
+        // 2. Enrich SAPS makes with curated country data
+        $makesCsvPath = resource_path('data/firearm_makes.csv');
+        if (File::exists($makesCsvPath)) {
+            $this->enrichWithCuratedData($makesCsvPath);
+        }
+
+        // 3. Deactivate any makes without a SAPS code
+        $deactivated = FirearmMake::whereNull('saps_code')
+            ->where('is_active', true)
+            ->update(['is_active' => false]);
+
+        if ($deactivated > 0) {
+            $this->command->info("Deactivated {$deactivated} non-SAPS makes.");
+        }
+
+        // 4. Seed models from CSV (only for active makes)
         $modelsCsvPath = resource_path('data/firearm_models.csv');
         if (File::exists($modelsCsvPath)) {
             $this->seedModelsFromCsv($modelsCsvPath);
@@ -34,67 +47,50 @@ class FirearmMakeSeeder extends Seeder
     }
 
     /**
-     * Seed firearm makes from our curated CSV file.
+     * Enrich SAPS makes with curated data (country of origin).
+     * Only updates existing SAPS makes – never creates new makes.
      */
-    protected function seedMakesFromCsv(string $csvPath): void
+    protected function enrichWithCuratedData(string $csvPath): void
     {
         $handle = fopen($csvPath, 'r');
         if (!$handle) {
             return;
         }
 
-        // Skip header row
         $header = fgetcsv($handle);
-        
-        $count = 0;
-        $seen = []; // Track normalized names to skip duplicates
-        
+        $enriched = 0;
+
         while (($row = fgetcsv($handle)) !== false) {
             if (count($row) < 4) continue;
-            
+
             $name = trim($row[0]);
+            $country = trim($row[2]) ?: null;
+            if (!$country) continue;
+
             $normalizedName = FirearmMake::normalize($name);
-            
-            // Skip if we've already seen this normalized name (handles duplicates in CSV)
-            if (isset($seen[$normalizedName])) {
-                continue;
-            }
-            $seen[$normalizedName] = true;
-            
-            $data = [
-                'name' => $name,
-                'normalized_name' => $normalizedName,
-                'country' => trim($row[2]) ?: null,
-                'is_active' => filter_var($row[3] ?? true, FILTER_VALIDATE_BOOLEAN),
-            ];
 
-            // Try to find existing by name first (handles cases where stored
-            // normalized_name differs from what normalize() produces now)
-            $existing = FirearmMake::where('name', $name)->first()
-                ?? FirearmMake::where('normalized_name', $normalizedName)->first();
+            // Only enrich makes that have a SAPS code
+            $make = FirearmMake::whereNotNull('saps_code')
+                ->where(function ($q) use ($normalizedName, $name) {
+                    $q->where('normalized_name', $normalizedName)
+                      ->orWhereRaw('LOWER(name) = ?', [strtolower($name)]);
+                })
+                ->whereNull('country')
+                ->first();
 
-            if ($existing) {
-                $existing->update($data);
-            } else {
-                try {
-                    FirearmMake::create($data);
-                } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
-                    // Case-insensitive name match – update existing record instead
-                    FirearmMake::whereRaw('LOWER(name) = ?', [strtolower($name)])
-                        ->update($data);
-                }
+            if ($make) {
+                $make->update(['country' => $country]);
+                $enriched++;
             }
-            $count++;
         }
 
         fclose($handle);
-        $this->command->info("Seeded {$count} curated firearm makes.");
+        $this->command->info("Enriched {$enriched} SAPS makes with country data.");
     }
 
     /**
-     * Import SAPS 350A makes.
-     * - Matches existing makes by normalized name and adds saps_code.
-     * - Creates new makes from unmatched SAPS entries.
+     * Import SAPS 350A makes as the sole source.
+     * Creates new makes or updates existing ones with the SAPS code.
      */
     protected function seedSapsMakes(string $csvPath): void
     {
@@ -134,11 +130,13 @@ class FirearmMakeSeeder extends Seeder
             $seen[$normalizedName] = true;
 
             if (isset($existing[$normalizedName])) {
-                // Existing make found – just add the SAPS code
+                // Existing make found – set SAPS code and ensure active
+                $updates = ['is_active' => true];
                 if (empty($existing[$normalizedName]['saps_code'])) {
-                    FirearmMake::where('id', $existing[$normalizedName]['id'])
-                        ->update(['saps_code' => $sapsCode]);
+                    $updates['saps_code'] = $sapsCode;
                 }
+                FirearmMake::where('id', $existing[$normalizedName]['id'])
+                    ->update($updates);
                 $matched++;
             } else {
                 // New make from SAPS – create it
@@ -157,7 +155,7 @@ class FirearmMakeSeeder extends Seeder
                     // Name already exists (case-insensitive match) – update saps_code instead
                     FirearmMake::whereRaw('LOWER(name) = ?', [strtolower($displayName)])
                         ->whereNull('saps_code')
-                        ->update(['saps_code' => $sapsCode]);
+                        ->update(['saps_code' => $sapsCode, 'is_active' => true]);
                     $matched++;
                 }
             }
