@@ -107,6 +107,77 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
     {
         return $this->certificates->filter(fn ($cert) => !$cert->isValid());
     }
+
+    #[Computed]
+    public function isAdmin(): bool
+    {
+        return $this->user->isAdmin() || $this->user->isOwner() || $this->user->isDeveloper();
+    }
+
+    public ?int $deletingCertificateId = null;
+
+    public function confirmDelete(int $id): void
+    {
+        if (!$this->isAdmin) {
+            return;
+        }
+        $this->deletingCertificateId = $id;
+    }
+
+    public function cancelDelete(): void
+    {
+        $this->deletingCertificateId = null;
+    }
+
+    public function deleteCertificate(): void
+    {
+        if (!$this->isAdmin || !$this->deletingCertificateId) {
+            return;
+        }
+
+        $certificate = Certificate::find($this->deletingCertificateId);
+        if (!$certificate) {
+            session()->flash('error', 'Certificate not found.');
+            $this->deletingCertificateId = null;
+            return;
+        }
+
+        try {
+            \App\Models\AuditLog::create([
+                'user_id' => auth()->id(),
+                'event' => 'certificate_deleted',
+                'auditable_type' => Certificate::class,
+                'auditable_id' => $certificate->id,
+                'old_values' => [
+                    'certificate_number' => $certificate->certificate_number,
+                    'certificate_type' => $certificate->certificateType->name ?? null,
+                    'user_id' => $certificate->user_id,
+                    'member_name' => $certificate->user->name ?? 'N/A',
+                ],
+                'new_values' => ['deleted' => true],
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
+
+            if ($certificate->file_path) {
+                $disk = app()->environment(['local', 'development', 'testing']) ? 'local' : 'r2';
+                \Illuminate\Support\Facades\Storage::disk($disk)->delete($certificate->file_path);
+            }
+
+            $certNumber = $certificate->certificate_number;
+            $certificate->delete();
+
+            $this->deletingCertificateId = null;
+            session()->flash('success', "Certificate {$certNumber} has been deleted.");
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to delete certificate', [
+                'certificate_id' => $this->deletingCertificateId,
+                'error' => $e->getMessage(),
+            ]);
+            $this->deletingCertificateId = null;
+            session()->flash('error', 'Failed to delete certificate: ' . $e->getMessage());
+        }
+    }
 }; ?>
 
 <div>
@@ -124,6 +195,18 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
     </x-slot>
 
     <div class="flex flex-col gap-6">
+
+    {{-- Flash Messages --}}
+    @if(session('success'))
+        <div class="p-4 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 rounded-xl text-emerald-800 dark:text-emerald-200 text-sm">
+            {{ session('success') }}
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="p-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-xl text-red-800 dark:text-red-200 text-sm">
+            {{ session('error') }}
+        </div>
+    @endif
 
     {{-- Valid Certificates --}}
     <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
@@ -247,6 +330,16 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
                                 Download PDF
                             </a>
                             @endif
+                            @if($this->isAdmin)
+                            <button wire:click="confirmDelete({{ $certificate->id }})"
+                                class="inline-flex items-center gap-1 rounded-lg border border-red-300 dark:border-red-700 px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                title="Delete certificate">
+                                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                                Delete
+                            </button>
+                            @endif
                             @if($isMembershipCard && $walletEnabled)
                             <div class="flex gap-2">
                                 @if($walletService->isAppleEnabled())
@@ -364,9 +457,19 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
                                     $showRoute = 'admin.certificates.show';
                                 }
                             @endphp
-                            <a href="{{ route($showRoute, $certificate) }}" wire:navigate class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
-                                View
-                            </a>
+                            <div class="flex items-center gap-2">
+                                <a href="{{ route($showRoute, $certificate) }}" wire:navigate class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
+                                    View
+                                </a>
+                                @if($this->isAdmin)
+                                <button wire:click="confirmDelete({{ $certificate->id }})"
+                                    class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors" title="Delete">
+                                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                                @endif
+                            </div>
                         </td>
                     </tr>
                     @endforeach
@@ -396,4 +499,50 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
         </div>
     </div>
     </div>
+
+    {{-- Delete Confirmation Modal --}}
+    @if($deletingCertificateId)
+    @php
+        $deletingCert = $this->certificates->firstWhere('id', $deletingCertificateId);
+    @endphp
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div class="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
+            <div class="bg-red-50 dark:bg-red-900/20 px-6 py-4 border-b border-red-200 dark:border-red-700">
+                <div class="flex items-center gap-3">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-red-800 dark:text-red-200">Delete Certificate</h3>
+                </div>
+            </div>
+            <div class="p-6">
+                @if($deletingCert)
+                <p class="text-zinc-600 dark:text-zinc-400 mb-2">
+                    Are you sure you want to delete this certificate?
+                </p>
+                <div class="bg-zinc-50 dark:bg-zinc-700/50 rounded-lg p-3 mb-4 text-sm space-y-1">
+                    <div><span class="text-zinc-500 dark:text-zinc-400">Type:</span> <span class="font-medium text-zinc-900 dark:text-white">{{ $deletingCert->certificateType->name }}</span></div>
+                    <div><span class="text-zinc-500 dark:text-zinc-400">Number:</span> <span class="font-mono font-medium text-zinc-900 dark:text-white">{{ $deletingCert->certificate_number }}</span></div>
+                    <div><span class="text-zinc-500 dark:text-zinc-400">Member:</span> <span class="font-medium text-zinc-900 dark:text-white">{{ $deletingCert->user->name ?? 'N/A' }}</span></div>
+                </div>
+                <p class="text-sm text-red-600 dark:text-red-400 mb-6">
+                    This action cannot be undone and will permanently remove the certificate and its associated PDF file.
+                </p>
+                @endif
+                <div class="flex gap-3 justify-end">
+                    <button wire:click="cancelDelete"
+                        class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
+                        Cancel
+                    </button>
+                    <button wire:click="deleteCertificate"
+                        class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors">
+                        Delete Certificate
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>
