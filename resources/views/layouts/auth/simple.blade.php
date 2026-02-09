@@ -18,7 +18,7 @@
         <div class="flex min-h-screen flex-col items-center justify-center p-6">
             <div class="w-full max-w-sm">
                 <a href="{{ route('home') }}" class="flex flex-col items-center gap-3 font-medium mb-8" wire:navigate>
-                    <img src="{{ asset('nrapa-logo.png') }}" alt="{{ config('app.name', 'NRAPA') }}" class="h-20 w-auto" />
+                    <img src="{{ asset('nrapa-logo.png') }}" alt="{{ config('app.name', 'NRAPA') }}" class="h-20 w-auto bg-white rounded-xl p-2 shadow-sm" />
                 </a>
                 <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-nrapa-blue/10 dark:border-zinc-700 p-6">
                     {{ $slot }}
