@@ -79,8 +79,8 @@
         <p class="text-red-600">Unable to load member details for this welcome letter.</p>
     @else
     <p><b>{{ $user->name ?? 'Member' }}</b><br/>
-    @if(!empty($user->id_number))
-    ID/Passport: {{ $user->id_number }}<br/>
+    @if($user->getIdNumber())
+    ID/Passport: {{ $user->getIdNumber() }}<br/>
     @endif
     @if(!empty($user->email))
     Email: {{ $user->email }}<br/>

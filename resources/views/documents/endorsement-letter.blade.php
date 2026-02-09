@@ -54,7 +54,7 @@
     <p class="doc-para"><strong>To Whom It May Concern,</strong></p>
     
     <p class="doc-para" style="margin-top:12px;">
-        This letter serves to confirm that <strong>{{ $user->getIdName() }}</strong> (ID: {{ $user->id_number ?? 'N/A' }}, Membership Number: {{ $membership?->membership_number ?? 'N/A' }}) 
+        This letter serves to confirm that <strong>{{ $user->getIdName() }}</strong> (ID: {{ $user->getIdNumber() ?? 'N/A' }}, Membership Number: {{ $membership?->membership_number ?? 'N/A' }}) 
         is a member in good standing of the National Rifle & Pistol Association of South Africa (NRAPA).
     </p>
     

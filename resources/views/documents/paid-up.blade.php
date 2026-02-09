@@ -44,7 +44,7 @@
         <p style="font-size:22pt; font-weight:700; color:#0b1320; margin-bottom:6px;">
             {{ $certificate->user->getIdName() }}
         </p>
-        <p class="doc-label" style="font-size:10pt;">ID Number: {{ $certificate->user->id_number ?? 'N/A' }}</p>
+        <p class="doc-label" style="font-size:10pt;">ID Number: {{ $certificate->user->getIdNumber() ?? 'N/A' }}</p>
     </div>
     
     <div class="doc-row" style="margin-top:16px;">

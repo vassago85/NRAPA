@@ -75,7 +75,7 @@
         <div style="height:4px"></div>
         <div class="kv">
             <div class="k">Full Name</div><div class="v">{{ $certificate->user->getIdName() }}</div>
-            <div class="k">ID / Passport</div><div class="v">{{ $certificate->user->id_number ?? 'N/A' }}</div>
+            <div class="k">ID / Passport</div><div class="v">{{ $certificate->user->getIdNumber() ?? 'N/A' }}</div>
             <div class="k">Member No.</div><div class="v">{{ $membership->membership_number ?? 'N/A' }}</div>
             <div class="k">Membership Type</div><div class="v">{{ $membership->type->name ?? 'N/A' }}</div>
             <div class="k">Valid Until</div><div class="v">{{ $membership->expires_at ? $membership->expires_at->format('d F Y') : 'Lifetime' }}</div>

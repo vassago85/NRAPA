@@ -907,6 +907,22 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get the ID/passport number from verified ID document.
+     * Falls back to the id_number column on the users table.
+     */
+    public function getIdNumber(): ?string
+    {
+        $idDoc = $this->getVerifiedIdDocument();
+        
+        if ($idDoc && $idDoc->metadata && !empty($idDoc->metadata['identity_number'])) {
+            return $idDoc->metadata['identity_number'];
+        }
+        
+        // Fallback to users table column
+        return $this->id_number;
+    }
+
+    /**
      * Check if user can enable 2FA.
      * Regular members must have security questions set up OR have a verified ID document.
      * Admins and owners can always enable 2FA (they need it for security).

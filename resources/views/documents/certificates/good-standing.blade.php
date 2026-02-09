@@ -43,7 +43,7 @@
         <div style="height:6px"></div>
         <div class="kv">
             <div class="k">Member Name</div><div class="v">{{ $certificate->user->getIdName() }}</div>
-            <div class="k">ID Number</div><div class="v">{{ $certificate->user->id_number ?? 'N/A' }}</div>
+            <div class="k">ID Number</div><div class="v">{{ $certificate->user->getIdNumber() ?? 'N/A' }}</div>
             <div class="k">Membership No.</div><div class="v">{{ $certificate->membership->membership_number ?? 'N/A' }}</div>
             <div class="k">Membership Type</div><div class="v">{{ $certificate->membership->type->name ?? 'N/A' }}</div>
         </div>
@@ -63,7 +63,7 @@
 <div style="height:6px"></div>
 
 <section class="notice">
-    This is to certify that <b>{{ $certificate->user->getIdName() }}</b> (ID: {{ $certificate->user->id_number ?? 'N/A' }}) is a <b>member in good standing</b> of the National Rifle &amp; Pistol Association of South Africa (NRAPA).
+    This is to certify that <b>{{ $certificate->user->getIdName() }}</b> (ID: {{ $certificate->user->getIdNumber() ?? 'N/A' }}) is a <b>member in good standing</b> of the National Rifle &amp; Pistol Association of South Africa (NRAPA).
     This confirms that the member's membership is valid, current, and compliant with the Association's requirements at the date of issue.
 </section>
 
