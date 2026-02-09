@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Listeners\LogSentEmail;
+use App\Listeners\RecordLoginLog;
 use App\Listeners\TrackLoginWithout2FA;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Login;
@@ -51,6 +52,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Event::listen(MessageSent::class, LogSentEmail::class);
         Event::listen(Login::class, TrackLoginWithout2FA::class);
+        Event::listen(Login::class, RecordLoginLog::class);
     }
 
     protected function configureDefaults(): void

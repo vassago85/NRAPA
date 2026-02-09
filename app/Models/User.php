@@ -815,6 +815,14 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get login logs for this user.
+     */
+    public function loginLogs(): HasMany
+    {
+        return $this->hasMany(LoginLog::class);
+    }
+
+    /**
      * Check if user has set up security questions.
      */
     public function hasSecurityQuestions(): bool

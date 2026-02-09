@@ -1,11 +1,16 @@
 <?php
 
+use App\Models\AdminActionLog;
+use App\Models\LoginLog;
 use App\Models\User;
 use App\Models\Membership;
 use App\Models\SystemSetting;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 new class extends Component {
+    use WithPagination;
+
     public int $totalUsers = 0;
     public int $totalOwners = 0;
     public int $totalAdmins = 0;
@@ -18,6 +23,9 @@ new class extends Component {
     public string $userSearch = '';
     public ?int $selectedUserId = null;
 
+    public string $loginLogTab = 'all'; // all | admin
+    public string $activitySearch = '';
+
     public function mount(): void
     {
         $this->totalUsers = User::count();
@@ -27,6 +35,45 @@ new class extends Component {
         $this->activeMemberships = Membership::where('status', 'active')->count();
         $this->dailyBackupEnabled = (bool) SystemSetting::get('daily_backup_enabled', false);
         $this->storageSettingsLocked = (bool) SystemSetting::get('storage_settings_locked', false);
+    }
+
+    public function setLoginLogTab(string $tab): void
+    {
+        $this->loginLogTab = $tab;
+        $this->resetPage('loginPage');
+    }
+
+    public function updatedActivitySearch(): void
+    {
+        $this->resetPage('activityPage');
+    }
+
+    public function getLoginLogsProperty()
+    {
+        $query = LoginLog::with('user')->latest('created_at');
+
+        if ($this->loginLogTab === 'admin') {
+            $query->adminLevel();
+        }
+
+        return $query->paginate(15, pageName: 'loginPage');
+    }
+
+    public function getActivityLogsProperty()
+    {
+        $query = AdminActionLog::with('user')->latest('created_at');
+
+        if (strlen($this->activitySearch) >= 2) {
+            $search = $this->activitySearch;
+            $query->where(function ($q) use ($search) {
+                $q->where('action', 'like', "%{$search}%")
+                  ->orWhere('permission_used', 'like', "%{$search}%")
+                  ->orWhere('notes', 'like', "%{$search}%")
+                  ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%"));
+            });
+        }
+
+        return $query->paginate(15, pageName: 'activityPage');
     }
     
     public function toggleDailyBackup(): void
@@ -386,6 +433,169 @@ new class extends Component {
                         @endforeach
                     </tbody>
                 </table>
+            </div>
+        @endif
+    </div>
+
+    {{-- Login Log --}}
+    <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 mt-8">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
+                    <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+                </div>
+                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Login Log</h2>
+            </div>
+            <div class="flex gap-1 bg-zinc-100 dark:bg-zinc-700 rounded-lg p-0.5">
+                <button wire:click="setLoginLogTab('all')"
+                    class="px-3 py-1.5 text-xs font-medium rounded-md transition {{ $loginLogTab === 'all' ? 'bg-white dark:bg-zinc-600 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300' }}">
+                    All Users
+                </button>
+                <button wire:click="setLoginLogTab('admin')"
+                    class="px-3 py-1.5 text-xs font-medium rounded-md transition {{ $loginLogTab === 'admin' ? 'bg-white dark:bg-zinc-600 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300' }}">
+                    Admins Only
+                </button>
+            </div>
+        </div>
+
+        @if($this->loginLogs->isEmpty())
+            <div class="text-center py-8">
+                <svg class="w-12 h-12 text-zinc-300 dark:text-zinc-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <p class="text-zinc-500 dark:text-zinc-400">No login records yet.</p>
+            </div>
+        @else
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-zinc-200 dark:border-zinc-700">
+                            <th class="text-left py-2 font-medium text-zinc-500 dark:text-zinc-400">User</th>
+                            <th class="text-left py-2 font-medium text-zinc-500 dark:text-zinc-400">Role</th>
+                            <th class="text-left py-2 font-medium text-zinc-500 dark:text-zinc-400">IP Address</th>
+                            <th class="text-left py-2 font-medium text-zinc-500 dark:text-zinc-400">Browser</th>
+                            <th class="text-left py-2 font-medium text-zinc-500 dark:text-zinc-400">2FA</th>
+                            <th class="text-left py-2 font-medium text-zinc-500 dark:text-zinc-400">When</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-100 dark:divide-zinc-700/50">
+                        @foreach($this->loginLogs as $log)
+                            <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/30">
+                                <td class="py-2.5">
+                                    <div>
+                                        <p class="font-medium text-zinc-900 dark:text-white">{{ $log->user?->name ?? 'Deleted' }}</p>
+                                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ $log->user?->email ?? '—' }}</p>
+                                    </div>
+                                </td>
+                                <td class="py-2.5">
+                                    <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium {{ $log->role_badge_class }}">
+                                        {{ ucfirst($log->role) }}
+                                    </span>
+                                </td>
+                                <td class="py-2.5 text-zinc-600 dark:text-zinc-400 font-mono text-xs">{{ $log->ip_address ?? '—' }}</td>
+                                <td class="py-2.5 text-zinc-600 dark:text-zinc-400">{{ $log->browser }}</td>
+                                <td class="py-2.5">
+                                    @if($log->via_2fa)
+                                        <span class="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                                            <span class="text-xs">Yes</span>
+                                        </span>
+                                    @else
+                                        <span class="text-xs text-zinc-400 dark:text-zinc-500">No</span>
+                                    @endif
+                                </td>
+                                <td class="py-2.5 text-zinc-500 dark:text-zinc-400 text-xs whitespace-nowrap" title="{{ $log->created_at->format('d M Y H:i:s') }}">
+                                    {{ $log->created_at->diffForHumans() }}
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-4">
+                {{ $this->loginLogs->links() }}
+            </div>
+        @endif
+    </div>
+
+    {{-- Admin Activity Log --}}
+    <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 mt-8">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <div class="flex items-center gap-3">
+                <div class="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30">
+                    <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                </div>
+                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Admin Activity Log</h2>
+            </div>
+            <div class="relative">
+                <input type="text"
+                       wire:model.live.debounce.300ms="activitySearch"
+                       placeholder="Search actions..."
+                       class="w-64 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+            </div>
+        </div>
+
+        @if($this->activityLogs->isEmpty())
+            <div class="text-center py-8">
+                <svg class="w-12 h-12 text-zinc-300 dark:text-zinc-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                <p class="text-zinc-500 dark:text-zinc-400">No admin activity recorded yet.</p>
+            </div>
+        @else
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-zinc-200 dark:border-zinc-700">
+                            <th class="text-left py-2 font-medium text-zinc-500 dark:text-zinc-400">Admin</th>
+                            <th class="text-left py-2 font-medium text-zinc-500 dark:text-zinc-400">Role</th>
+                            <th class="text-left py-2 font-medium text-zinc-500 dark:text-zinc-400">Action</th>
+                            <th class="text-left py-2 font-medium text-zinc-500 dark:text-zinc-400">Permission</th>
+                            <th class="text-left py-2 font-medium text-zinc-500 dark:text-zinc-400">Target</th>
+                            <th class="text-left py-2 font-medium text-zinc-500 dark:text-zinc-400">Notes</th>
+                            <th class="text-left py-2 font-medium text-zinc-500 dark:text-zinc-400">IP</th>
+                            <th class="text-left py-2 font-medium text-zinc-500 dark:text-zinc-400">When</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-100 dark:divide-zinc-700/50">
+                        @foreach($this->activityLogs as $activity)
+                            <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/30">
+                                <td class="py-2.5">
+                                    <p class="font-medium text-zinc-900 dark:text-white">{{ $activity->user?->name ?? 'Deleted' }}</p>
+                                </td>
+                                <td class="py-2.5">
+                                    <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium
+                                        @if($activity->role_at_action === 'developer') bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200
+                                        @elseif($activity->role_at_action === 'owner') bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-200
+                                        @elseif($activity->role_at_action === 'admin') bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200
+                                        @else bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200
+                                        @endif">
+                                        {{ ucfirst($activity->role_at_action) }}
+                                    </span>
+                                </td>
+                                <td class="py-2.5 text-zinc-700 dark:text-zinc-300">{{ $activity->action_display_name }}</td>
+                                <td class="py-2.5">
+                                    <span class="inline-flex px-2 py-0.5 rounded text-xs font-mono bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400">
+                                        {{ $activity->permission_used }}
+                                    </span>
+                                </td>
+                                <td class="py-2.5 text-zinc-600 dark:text-zinc-400 text-xs">
+                                    @if($activity->target_type)
+                                        {{ class_basename($activity->target_type) }} #{{ $activity->target_id }}
+                                    @else
+                                        —
+                                    @endif
+                                </td>
+                                <td class="py-2.5 text-zinc-500 dark:text-zinc-400 text-xs max-w-[200px] truncate" title="{{ $activity->notes }}">
+                                    {{ $activity->notes ?? '—' }}
+                                </td>
+                                <td class="py-2.5 text-zinc-600 dark:text-zinc-400 font-mono text-xs">{{ $activity->ip_address ?? '—' }}</td>
+                                <td class="py-2.5 text-zinc-500 dark:text-zinc-400 text-xs whitespace-nowrap" title="{{ $activity->created_at->format('d M Y H:i:s') }}">
+                                    {{ $activity->created_at->diffForHumans() }}
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-4">
+                {{ $this->activityLogs->links() }}
             </div>
         @endif
     </div>
