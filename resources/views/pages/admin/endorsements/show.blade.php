@@ -146,57 +146,79 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             'user_agent' => request()->userAgent(),
         ]);
 
-        // When compliant, auto-generate and issue the endorsement letter
-        if ($this->isFullyCompliant) {
-            $status = $this->memberDedicatedStatus;
-            $category = $this->selectedDedicatedCategory ?: $status['category'] ?? null;
-            if ($category && $status['compliant']) {
-                try {
-                    $letterReference = EndorsementRequest::generateLetterReference();
-                    $renderer = app(\App\Contracts\DocumentRenderer::class);
-                    $letterPath = $renderer->renderEndorsementLetter($this->request, 'documents.letters.endorsement');
-                    $this->request->issue(
-                        auth()->user(),
-                        $letterReference,
-                        $letterPath,
-                        $status['compliant'],
-                        $category
-                    );
-                    AuditLog::create([
-                        'user_id' => auth()->id(),
-                        'event' => 'endorsement_issued',
-                        'auditable_type' => EndorsementRequest::class,
-                        'auditable_id' => $this->request->id,
-                        'old_values' => ['status' => 'approved'],
-                        'new_values' => [
-                            'status' => 'issued',
-                            'letter_reference' => $letterReference,
-                            'dedicated_status_compliant' => $status['compliant'],
-                            'dedicated_category' => $category,
-                        ],
-                        'ip_address' => request()->ip(),
-                        'user_agent' => request()->userAgent(),
-                    ]);
-                    session()->flash('success', 'Endorsement approved and letter issued successfully. Reference: ' . $letterReference);
-                } catch (\Exception $e) {
-                    Log::error('Auto-issue endorsement letter after approval failed', [
-                        'request_id' => $this->request->id,
-                        'error' => $e->getMessage(),
-                        'trace' => $e->getTraceAsString(),
-                    ]);
-                    session()->flash('success', 'Endorsement request approved. Letter could not be generated automatically: ' . $e->getMessage());
-                }
-            } else {
-                $message = $category
-                    ? 'Endorsement request approved. You can now generate the letter.'
-                    : 'Endorsement request approved. Set dedicated category and generate the letter.';
-                session()->flash('success', $message);
-            }
-        } else {
-            session()->flash('success', 'Endorsement request approved despite non-compliance. You can now generate the letter.');
-        }
+        // Auto-generate and issue the endorsement letter on approval
+        $this->autoIssueEndorsementLetter();
 
         $this->request->refresh();
+    }
+
+    /**
+     * Attempt to auto-issue the endorsement letter after approval.
+     * Determines the dedicated category automatically if not already set.
+     */
+    protected function autoIssueEndorsementLetter(): void
+    {
+        // Determine dedicated category - try multiple sources
+        $category = $this->selectedDedicatedCategory ?: null;
+        
+        if (empty($category)) {
+            $status = $this->memberDedicatedStatus;
+            $category = $status['category'] ?? null;
+        }
+        
+        // Fallback: determine from the member's endorsement purpose or membership
+        if (empty($category)) {
+            $purpose = $this->request->purpose ?? '';
+            $category = match(true) {
+                str_contains(strtolower($purpose), 'sport') && str_contains(strtolower($purpose), 'hunt') => 'Dedicated Sport Shooter & Dedicated Hunter',
+                str_contains(strtolower($purpose), 'hunt') => 'Dedicated Hunter',
+                default => 'Dedicated Sport Shooter', // Sensible default for Section 16
+            };
+        }
+        
+        // Update selectedDedicatedCategory for consistency
+        $this->selectedDedicatedCategory = $category;
+
+        try {
+            $letterReference = EndorsementRequest::generateLetterReference();
+            $renderer = app(\App\Contracts\DocumentRenderer::class);
+            $letterPath = $renderer->renderEndorsementLetter($this->request, 'documents.letters.endorsement');
+            
+            $this->request->issue(
+                auth()->user(),
+                $letterReference,
+                $letterPath,
+                true, // Approved = compliant for letter purposes
+                $category
+            );
+            
+            AuditLog::create([
+                'user_id' => auth()->id(),
+                'event' => 'endorsement_issued',
+                'auditable_type' => EndorsementRequest::class,
+                'auditable_id' => $this->request->id,
+                'old_values' => ['status' => 'approved'],
+                'new_values' => [
+                    'status' => 'issued',
+                    'letter_reference' => $letterReference,
+                    'dedicated_status_compliant' => true,
+                    'dedicated_category' => $category,
+                    'auto_issued' => true,
+                ],
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
+            
+            session()->flash('success', 'Endorsement approved and letter issued automatically. Reference: ' . $letterReference);
+        } catch (\Exception $e) {
+            Log::error('Auto-issue endorsement letter after approval failed', [
+                'request_id' => $this->request->id,
+                'category' => $category,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            session()->flash('warning', 'Endorsement approved but letter could not be generated automatically: ' . $e->getMessage() . '. You can manually issue it using the button below.');
+        }
     }
 
     #[Computed]
@@ -219,6 +241,22 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             'category' => $category,
             'dedicated_type' => $dedicatedType,
         ];
+    }
+
+    public function retryAutoIssue(): void
+    {
+        if (!$this->request->isApproved()) {
+            session()->flash('error', 'Request must be approved before letter can be issued.');
+            return;
+        }
+        
+        if ($this->request->isIssued()) {
+            session()->flash('info', 'Endorsement letter has already been issued.');
+            return;
+        }
+        
+        $this->autoIssueEndorsementLetter();
+        $this->request->refresh();
     }
 
     public function openIssueModal(): void
@@ -919,16 +957,27 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                         </div>
                     @endif
 
-                    {{-- Show approved status --}}
+                    {{-- Show approved status (letter not yet generated) --}}
                     @if($request->isApproved() && !$request->isIssued())
                         <div class="text-center py-4 border-t border-zinc-200 dark:border-zinc-700 mt-4">
-                            <div class="w-16 h-16 mx-auto bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-4">
-                                <svg class="w-8 h-8 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            <div class="w-16 h-16 mx-auto bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-4">
+                                <svg class="w-8 h-8 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                                 </svg>
                             </div>
-                            <p class="text-emerald-600 dark:text-emerald-400 font-semibold">Request Approved</p>
-                            <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Ready for letter generation</p>
+                            <p class="text-amber-600 dark:text-amber-400 font-semibold">Approved - Letter Pending</p>
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Auto-generation may have failed. Use the button above to generate manually, or retry:</p>
+                            <button wire:click="retryAutoIssue"
+                                wire:loading.attr="disabled"
+                                class="mt-3 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors text-sm inline-flex items-center gap-2 disabled:opacity-50">
+                                <span wire:loading.remove wire:target="retryAutoIssue">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                    </svg>
+                                    Retry Auto-Generate
+                                </span>
+                                <span wire:loading wire:target="retryAutoIssue">Generating...</span>
+                            </button>
                         </div>
                     @endif
 
