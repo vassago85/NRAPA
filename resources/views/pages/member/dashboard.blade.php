@@ -245,12 +245,12 @@ new #[Title('Dashboard')] class extends Component {
     }
 }; ?>
 
-<div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
+<div class="flex h-full w-full flex-1 flex-col gap-4 sm:gap-6 p-4 sm:p-6">
     {{-- Welcome Header --}}
-    <div class="flex items-center justify-between gap-4">
-        <div class="flex flex-col gap-2">
-            <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Welcome back, {{ $this->user->name }}!</h1>
-            <p class="text-zinc-500 dark:text-zinc-400">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <div class="flex flex-col gap-1">
+            <h1 class="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white">Welcome back, {{ $this->user->name }}!</h1>
+            <p class="text-sm sm:text-base text-zinc-500 dark:text-zinc-400">
                 Manage your NRAPA membership, certificates, and compliance requirements.
             </p>
         </div>
@@ -258,7 +258,7 @@ new #[Title('Dashboard')] class extends Component {
         <a 
             href="{{ route('admin.dashboard') }}" 
             wire:navigate
-            class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 whitespace-nowrap"
+            class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors inline-flex items-center gap-2 whitespace-nowrap self-start sm:self-center flex-shrink-0"
         >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
@@ -525,7 +525,7 @@ new #[Title('Dashboard')] class extends Component {
             $approvedCount = $eligibility['activity_details']['approved_count'] ?? 0;
             $requiredCount = $eligibility['activity_details']['required'] ?? 2;
         @endphp
-        <div class="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-4 sm:p-5 dark:border-zinc-700 dark:bg-zinc-800">
             {{-- Header --}}
             <div class="flex items-start gap-3 mb-4">
                 <div class="flex size-10 flex-shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-700">
@@ -533,7 +533,7 @@ new #[Title('Dashboard')] class extends Component {
                         <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
                     </svg>
                 </div>
-                <div class="flex-1">
+                <div class="flex-1 min-w-0">
                     <h3 class="font-semibold text-zinc-900 dark:text-white">Dedicated Status Requirements</h3>
                     <p class="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
                         @if($this->allRequirementsComplete)
@@ -560,12 +560,12 @@ new #[Title('Dashboard')] class extends Component {
             {{-- Requirements List --}}
             <div class="space-y-3">
                 {{-- Knowledge Test --}}
-                <div class="flex items-center justify-between py-2 border-b border-zinc-100 dark:border-zinc-700">
-                    <div class="flex items-center gap-3">
-                        <svg class="size-5 text-zinc-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex items-start sm:items-center justify-between gap-2 py-2 border-b border-zinc-100 dark:border-zinc-700">
+                    <div class="flex items-start sm:items-center gap-2 sm:gap-3 min-w-0">
+                        <svg class="size-5 text-zinc-400 dark:text-zinc-500 flex-shrink-0 mt-0.5 sm:mt-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
                         </svg>
-                        <div>
+                        <div class="min-w-0">
                             @if($knowledgeTestPassed)
                                 <span class="text-sm text-zinc-700 dark:text-zinc-300">Knowledge Test</span>
                             @else
@@ -594,12 +594,12 @@ new #[Title('Dashboard')] class extends Component {
                 </div>
 
                 {{-- Documents --}}
-                <div class="flex items-center justify-between py-2 border-b border-zinc-100 dark:border-zinc-700">
-                    <div class="flex items-center gap-3">
-                        <svg class="size-5 text-zinc-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex items-start sm:items-center justify-between gap-2 py-2 border-b border-zinc-100 dark:border-zinc-700">
+                    <div class="flex items-start sm:items-center gap-2 sm:gap-3 min-w-0">
+                        <svg class="size-5 text-zinc-400 dark:text-zinc-500 flex-shrink-0 mt-0.5 sm:mt-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                         </svg>
-                        <div>
+                        <div class="min-w-0">
                             @if($documentsComplete)
                                 <span class="text-sm text-zinc-700 dark:text-zinc-300">Required Documents</span>
                             @else
@@ -607,7 +607,7 @@ new #[Title('Dashboard')] class extends Component {
                                     Required Documents
                                 </a>
                             @endif
-                            <p class="text-xs text-zinc-500 dark:text-zinc-400">ID & Proof of Address (valid within 3 months)</p>
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400">ID & Proof of Address</p>
                         </div>
                     </div>
                     @if($documentsComplete)
@@ -628,12 +628,12 @@ new #[Title('Dashboard')] class extends Component {
                 </div>
 
                 {{-- Activities --}}
-                <div class="flex items-center justify-between py-2">
-                    <div class="flex items-center gap-3">
-                        <svg class="size-5 text-zinc-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex items-start sm:items-center justify-between gap-2 py-2">
+                    <div class="flex items-start sm:items-center gap-2 sm:gap-3 min-w-0">
+                        <svg class="size-5 text-zinc-400 dark:text-zinc-500 flex-shrink-0 mt-0.5 sm:mt-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                         </svg>
-                        <div>
+                        <div class="min-w-0">
                             @if($activitiesMet)
                                 <span class="text-sm text-zinc-700 dark:text-zinc-300">Shooting Activities</span>
                             @else
@@ -641,7 +641,7 @@ new #[Title('Dashboard')] class extends Component {
                                     Shooting Activities
                                 </a>
                             @endif
-                            <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ $requiredCount }} approved activities per year to maintain status</p>
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ $requiredCount }} approved per year</p>
                         </div>
                     </div>
                     @if($activitiesMet)
@@ -801,7 +801,7 @@ new #[Title('Dashboard')] class extends Component {
     @endif
 
     {{-- Membership Status Cards --}}
-    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div class="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
         {{-- Membership Card --}}
         <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
             <div class="mb-4 flex items-center gap-3">
@@ -1066,41 +1066,41 @@ new #[Title('Dashboard')] class extends Component {
 
     {{-- Quick Actions --}}
     @if($this->activeMembership)
-    <div class="mt-4">
-        <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Quick Actions</h2>
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <a href="{{ route('card') }}" wire:navigate class="flex items-center gap-3 rounded-lg bg-emerald-600 px-4 py-3 text-sm font-medium text-white hover:bg-emerald-700">
-                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="mt-2 sm:mt-4">
+        <h2 class="mb-3 sm:mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Quick Actions</h2>
+        <div class="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
+            <a href="{{ route('card') }}" wire:navigate class="flex items-center gap-2 sm:gap-3 rounded-lg bg-emerald-600 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-white hover:bg-emerald-700">
+                <svg class="size-4 sm:size-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
                 </svg>
-                My Digital Card
+                <span class="truncate">Digital Card</span>
             </a>
-            <a href="{{ route('certificates.index') }}" wire:navigate class="flex items-center gap-3 rounded-lg border border-zinc-300 bg-white px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
-                <svg class="size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <a href="{{ route('certificates.index') }}" wire:navigate class="flex items-center gap-2 sm:gap-3 rounded-lg border border-zinc-300 bg-white px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
+                <svg class="size-4 sm:size-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
                 </svg>
-                Download Certificate
+                <span class="truncate">Certificates</span>
             </a>
-            <a href="{{ route('profile.edit') }}" wire:navigate class="flex items-center gap-3 rounded-lg border border-zinc-300 bg-white px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
-                <svg class="size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <a href="{{ route('profile.edit') }}" wire:navigate class="flex items-center gap-2 sm:gap-3 rounded-lg border border-zinc-300 bg-white px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
+                <svg class="size-4 sm:size-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
                 </svg>
-                Update Profile
+                <span class="truncate">Profile</span>
             </a>
             @if($this->activeMembership->requiresRenewal() && $this->activeMembership->isRenewable())
-            <a href="{{ route('membership.apply') }}" wire:navigate class="flex items-center gap-3 rounded-lg border border-zinc-300 bg-white px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
-                <svg class="size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <a href="{{ route('membership.apply') }}" wire:navigate class="flex items-center gap-2 sm:gap-3 rounded-lg border border-zinc-300 bg-white px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
+                <svg class="size-4 sm:size-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
                 </svg>
-                Renew Membership
+                <span class="truncate">Renew</span>
             </a>
             @endif
             @if($this->activeMembership->allowsDedicatedStatus())
-            <a href="{{ route('member.endorsements.index') }}" wire:navigate class="flex items-center gap-3 rounded-lg border border-zinc-300 bg-white px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
-                <svg class="size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <a href="{{ route('member.endorsements.index') }}" wire:navigate class="flex items-center gap-2 sm:gap-3 rounded-lg border border-zinc-300 bg-white px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
+                <svg class="size-4 sm:size-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
                 </svg>
-                Dedicated Status
+                <span class="truncate">Dedicated Status</span>
             </a>
             @endif
         </div>
