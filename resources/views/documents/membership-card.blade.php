@@ -12,11 +12,6 @@
             .doc-card { box-shadow: none !important; margin: 0 !important; }
         }
 
-        :root {
-            --accent: #0f4c81;
-            --accent2: #f28c28;
-        }
-
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
@@ -61,104 +56,116 @@
         .doc-card-bg {
             position: absolute;
             inset: 0;
-            background: linear-gradient(135deg, #0b1320 0%, #1a365d 40%, #0f4c81 70%, #1e3a5f 100%);
+            background: linear-gradient(145deg, #0a1628 0%, #0f2847 30%, #164272 60%, #1a365d 85%, #0d1f3c 100%);
         }
 
-        .doc-card-watermark {
+        /* Subtle light sweep across the card */
+        .doc-card-bg::after {
+            content: '';
             position: absolute;
             inset: 0;
-            pointer-events: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0.08;
-        }
-        .doc-card-watermark img {
-            width: 44mm;
-            height: auto;
-            filter: grayscale(1) contrast(1.1);
+            background: radial-gradient(ellipse at 70% 20%, rgba(255,255,255,0.06) 0%, transparent 60%);
         }
 
         .doc-card-inner {
             position: relative;
-            padding: 7mm 8mm 6mm 8mm;
+            padding: 5.5mm 6mm 5mm 6mm;
             height: 100%;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
         }
 
+        /* ── Top row: logo + org ── */
         .doc-card-top {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             align-items: center;
         }
 
         .doc-card-logo {
-            width: 13mm;
-            height: 13mm;
-            border-radius: 8px;
-            background: #fff;
-            border: 1px solid rgba(255,255,255,.25);
-            overflow: hidden;
+            width: 11mm;
+            height: 11mm;
             flex: 0 0 auto;
         }
         .doc-card-logo img {
             width: 100%;
             height: 100%;
             object-fit: contain;
-            padding: 2px;
+            filter: drop-shadow(0 1px 3px rgba(0,0,0,.35));
         }
 
         .doc-card-org {
             font-weight: 800;
-            font-size: 10pt;
+            font-size: 11pt;
             text-transform: uppercase;
             color: #fff;
             line-height: 1.1;
+            letter-spacing: 0.5px;
         }
 
-        .doc-card-meta {
-            font-size: 8pt;
-            color: rgba(255,255,255,.9);
-            line-height: 1.25;
+        .doc-card-subtitle {
+            font-size: 7.5pt;
+            color: rgba(255,255,255,.85);
+            font-weight: 600;
+            line-height: 1.3;
         }
 
         .doc-card-far {
             font-size: 5.5pt;
-            color: rgba(255,255,255,.8);
-            margin-top: 2px;
+            color: rgba(255,255,255,.7);
+            margin-top: 1.5px;
             line-height: 1.2;
         }
+        .doc-card-far .far-label {
+            color: rgba(255,255,255,.55);
+        }
+        .doc-card-far .far-sport {
+            color: #4ade80;
+            font-weight: 700;
+        }
+        .doc-card-far .far-hunting {
+            color: #f59e0b;
+            font-weight: 700;
+        }
 
+        /* ── Middle: member info + QR ── */
         .doc-card-body {
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
-            gap: 8px;
-            margin-top: 4px;
+            gap: 6px;
         }
 
         .doc-card-name {
             font-weight: 800;
             font-size: 10pt;
             color: #fff;
+            line-height: 1.2;
         }
 
-        .doc-card-small {
-            font-size: 8pt;
-            color: rgba(255,255,255,.88);
-            margin-top: 2px;
+        .doc-card-detail {
+            font-size: 6.5pt;
+            color: rgba(255,255,255,.82);
+            line-height: 1.35;
+        }
+
+        .doc-card-type {
+            font-size: 6.5pt;
+            color: rgba(255,255,255,.72);
+            font-style: italic;
+            margin-top: 1px;
         }
 
         .doc-card-qr {
-            width: 15mm;
-            height: 15mm;
-            border-radius: 8px;
+            width: 14mm;
+            height: 14mm;
+            border-radius: 6px;
             overflow: hidden;
-            background: rgba(255,255,255,.88);
-            border: 1px solid rgba(255,255,255,.35);
+            background: rgba(255,255,255,.92);
+            border: 1px solid rgba(255,255,255,.3);
             flex: 0 0 auto;
+            padding: 1px;
         }
         .doc-card-qr img {
             width: 100%;
@@ -166,15 +173,17 @@
             object-fit: contain;
         }
 
+        /* ── Footer: dates ── */
         .doc-card-footer {
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
-            font-size: 7pt;
-            color: rgba(255,255,255,.88);
+            font-size: 6pt;
+            color: rgba(255,255,255,.65);
         }
-        .doc-card-footer strong {
-            color: #fff;
+        .doc-card-footer .footer-value {
+            color: rgba(255,255,255,.9);
+            font-weight: 600;
         }
     </style>
 </head>
@@ -195,14 +204,6 @@
     <div class="doc-card">
         <div class="doc-card-bg"></div>
 
-        <div class="doc-card-watermark">
-            @if($logoUrl)
-                <img src="{{ $logoUrl }}" alt="NRAPA">
-            @else
-                <div style="font-size: 36pt; font-weight: bold; color: rgba(255,255,255,.5);">NRAPA</div>
-            @endif
-        </div>
-
         <div class="doc-card-inner">
             {{-- Top: Logo + Org Name --}}
             <div class="doc-card-top">
@@ -210,14 +211,15 @@
                     @if($logoUrl)
                         <img src="{{ $logoUrl }}" alt="NRAPA">
                     @else
-                        <div style="width:100%; height:100%; background:linear-gradient(135deg, #0f4c81 0%, #3b82f6 100%); display:grid; place-items:center; color:#fff; font-weight:bold; font-size:7pt;">NRAPA</div>
+                        <div style="width:100%; height:100%; display:grid; place-items:center; color:#fff; font-weight:bold; font-size:8pt; text-shadow: 0 1px 3px rgba(0,0,0,.5);">NRAPA</div>
                     @endif
                 </div>
                 <div>
                     <div class="doc-card-org">NRAPA</div>
-                    <div class="doc-card-meta">Membership Card</div>
+                    <div class="doc-card-subtitle">Membership Card</div>
                     <div class="doc-card-far">
-                        FAR Sport: {{ $farNumbers['sport'] }} | Hunting: {{ $farNumbers['hunting'] }}
+                        <span class="far-label">FAR</span> Sport: <span class="far-sport">{{ $farNumbers['sport'] }}</span>
+                        | Hunting: <span class="far-hunting">{{ $farNumbers['hunting'] }}</span>
                     </div>
                 </div>
             </div>
@@ -226,14 +228,14 @@
             <div class="doc-card-body">
                 <div>
                     <div class="doc-card-name">{{ $certificate->user->getIdName() }}</div>
-                    <div class="doc-card-small">
+                    <div class="doc-card-detail">
                         ID: {{ $certificate->user->id_number ?? 'N/A' }}
                     </div>
-                    <div class="doc-card-small">
+                    <div class="doc-card-detail">
                         #{{ $certificate->membership->membership_number ?? 'N/A' }}
                     </div>
                     @if($certificate->membership->type)
-                    <div class="doc-card-small" style="margin-top:3px;">
+                    <div class="doc-card-type">
                         {{ $certificate->membership->type->name }}
                     </div>
                     @endif
@@ -248,13 +250,13 @@
             {{-- Bottom: Dates --}}
             <div class="doc-card-footer">
                 <div>
-                    Enrolled: {{ $certificate->membership->activated_at?->format('M Y') ?? $certificate->membership->applied_at?->format('M Y') ?? 'N/A' }}
+                    Enrolled: <span class="footer-value">{{ $certificate->membership->activated_at?->format('M Y') ?? $certificate->membership->applied_at?->format('M Y') ?? 'N/A' }}</span>
                 </div>
                 <div style="text-align:right;">
                     @if($certificate->membership->expires_at)
-                        Expires: {{ $certificate->membership->expires_at->format('M Y') }}
+                        Expires: <span class="footer-value">{{ $certificate->membership->expires_at->format('M Y') }}</span>
                     @else
-                        <strong>Lifetime</strong>
+                        <span class="footer-value">Lifetime</span>
                     @endif
                 </div>
             </div>
