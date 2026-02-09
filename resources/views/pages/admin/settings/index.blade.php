@@ -433,12 +433,12 @@ new #[Title('Settings - Admin')] class extends Component {
     </div>
 
     @if(session('success'))
-    <div class="rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+    <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/40">
         <div class="flex items-center gap-3">
-            <svg class="size-5 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <svg class="size-5 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
             </svg>
-            <p class="text-sm text-green-700 dark:text-green-300">{{ session('success') }}</p>
+            <p class="text-sm text-emerald-700 dark:text-emerald-300">{{ session('success') }}</p>
         </div>
     </div>
     @endif
@@ -478,6 +478,12 @@ new #[Title('Settings - Admin')] class extends Component {
                 Membership Types
             </button>
             <button
+                wire:click="$set('activeTab', 'renewal-policy')"
+                class="border-b-2 px-1 py-3 text-sm font-medium transition-colors whitespace-nowrap {{ $activeTab === 'renewal-policy' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300' }}"
+            >
+                Renewal Policy
+            </button>
+            <button
                 wire:click="$set('activeTab', 'document-types')"
                 class="border-b-2 px-1 py-3 text-sm font-medium transition-colors whitespace-nowrap {{ $activeTab === 'document-types' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300' }}"
             >
@@ -503,7 +509,7 @@ new #[Title('Settings - Admin')] class extends Component {
     <div class="space-y-6">
         {{-- Edit/Create Form --}}
         @if($editingMembershipTypeId !== null)
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
             <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">
                 {{ $editingMembershipTypeId ? 'Edit Membership Type' : 'Create Membership Type' }}
             </h3>
@@ -595,7 +601,7 @@ new #[Title('Settings - Admin')] class extends Component {
                 @endif
 
                 <div class="flex gap-3">
-                    <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">
+                    <button type="submit" class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                         {{ $this->canEditDirectly() ? ($editingMembershipTypeId ? 'Update' : 'Create') : 'Submit for Approval' }}
                     </button>
                     <button type="button" wire:click="cancelEditMembershipType" class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
@@ -606,7 +612,7 @@ new #[Title('Settings - Admin')] class extends Component {
         </div>
         @else
         <div class="flex justify-end">
-            <button wire:click="$set('editingMembershipTypeId', 0)" class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">
+            <button wire:click="$set('editingMembershipTypeId', 0)" class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
@@ -616,7 +622,7 @@ new #[Title('Settings - Admin')] class extends Component {
         @endif
 
         {{-- Membership Types List --}}
-        <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
             <div class="overflow-x-auto">
                 <table class="w-full">
                     <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
@@ -659,7 +665,7 @@ new #[Title('Settings - Admin')] class extends Component {
                             <td class="whitespace-nowrap px-6 py-4">
                                 <button wire:click="toggleMembershipTypeActive({{ $type->id }})" @if(!$this->canEditDirectly()) title="Status changes require owner approval" @endif>
                                     @if($type->is_active)
-                                    <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Active</span>
+                                    <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Active</span>
                                     @else
                                     <span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200">Inactive</span>
                                     @endif
@@ -679,12 +685,108 @@ new #[Title('Settings - Admin')] class extends Component {
     </div>
     @endif
 
+    {{-- Renewal Policy Tab --}}
+    @if($activeTab === 'renewal-policy')
+    <div class="space-y-6">
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
+            <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-1">Renewal Policy</h3>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+                Configure when members can renew their membership and what happens when they expire.
+            </p>
+
+            <form wire:submit="saveRenewalPolicy" class="space-y-6">
+                <div class="grid gap-6 md:grid-cols-2">
+                    {{-- Renewal Window --}}
+                    <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="flex size-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                                <svg class="size-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-zinc-900 dark:text-white">Renewal Window</h4>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">How early can members start renewing?</p>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Days before expiry</label>
+                            <input type="number" wire:model="renewalWindowDays" min="1" max="365"
+                                class="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
+                            @error('renewalWindowDays') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
+                            <p class="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                                Members will see "Expiring Soon" and the renewal button {{ $renewalWindowDays }} days before their membership expires.
+                            </p>
+                        </div>
+                    </div>
+
+                    {{-- Grace Period --}}
+                    <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="flex size-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30">
+                                <svg class="size-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-zinc-900 dark:text-white">Grace Period After Expiry</h4>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">How long after expiry can they still renew?</p>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Days after expiry</label>
+                            <input type="number" wire:model="renewalGracePeriodDays" min="0" max="730"
+                                class="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
+                            @error('renewalGracePeriodDays') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
+                            <p class="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                                After {{ $renewalGracePeriodDays }} days past expiry, the member must re-apply as a new member and pay the full sign-up fee. Set to 0 for no grace period.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Visual Timeline --}}
+                <div class="rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 p-5">
+                    <h4 class="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">How it works</h4>
+                    <div class="flex items-center gap-2 text-xs overflow-x-auto pb-2">
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <span class="size-2 rounded-full bg-emerald-500"></span>
+                            <span class="text-zinc-600 dark:text-zinc-400">Active (no renewal)</span>
+                        </div>
+                        <svg class="size-4 text-zinc-300 dark:text-zinc-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <span class="size-2 rounded-full bg-blue-500"></span>
+                            <span class="text-zinc-600 dark:text-zinc-400">{{ $renewalWindowDays }}d before expiry (can renew)</span>
+                        </div>
+                        <svg class="size-4 text-zinc-300 dark:text-zinc-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <span class="size-2 rounded-full bg-amber-500"></span>
+                            <span class="text-zinc-600 dark:text-zinc-400">Expired ({{ $renewalGracePeriodDays }}d grace)</span>
+                        </div>
+                        <svg class="size-4 text-zinc-300 dark:text-zinc-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <span class="size-2 rounded-full bg-red-500"></span>
+                            <span class="text-zinc-600 dark:text-zinc-400">Must rejoin as new (full fee)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end">
+                    <button type="submit" class="rounded-lg bg-nrapa-blue px-6 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors transition-colors">
+                        Save Renewal Policy
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    @endif
+
     {{-- Document Types Tab --}}
     @if($activeTab === 'document-types')
     <div class="space-y-6">
         {{-- Edit/Create Form --}}
         @if($editingDocumentTypeId !== null)
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
             <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">
                 {{ $editingDocumentTypeId ? 'Edit Document Type' : 'Create Document Type' }}
             </h3>
@@ -736,7 +838,7 @@ new #[Title('Settings - Admin')] class extends Component {
                 @endif
 
                 <div class="flex gap-3">
-                    <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">
+                    <button type="submit" class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                         {{ $this->canEditDirectly() ? ($editingDocumentTypeId ? 'Update' : 'Create') : 'Submit for Approval' }}
                     </button>
                     <button type="button" wire:click="cancelEditDocumentType" class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
@@ -747,7 +849,7 @@ new #[Title('Settings - Admin')] class extends Component {
         </div>
         @else
         <div class="flex justify-end">
-            <button wire:click="$set('editingDocumentTypeId', 0)" class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">
+            <button wire:click="$set('editingDocumentTypeId', 0)" class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
@@ -757,7 +859,7 @@ new #[Title('Settings - Admin')] class extends Component {
         @endif
 
         {{-- Document Types List --}}
-        <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
             <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Document Types</h2>
                 <p class="text-sm text-zinc-500 dark:text-zinc-400">Configure required documents for membership applications.</p>
@@ -794,7 +896,7 @@ new #[Title('Settings - Admin')] class extends Component {
                             <td class="whitespace-nowrap px-6 py-4">
                                 <button wire:click="toggleDocumentTypeActive({{ $type->id }})" @if(!$this->canEditDirectly()) title="Status changes require owner approval" @endif>
                                     @if($type->is_active)
-                                    <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Active</span>
+                                    <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Active</span>
                                     @else
                                     <span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200">Inactive</span>
                                     @endif
@@ -826,7 +928,7 @@ new #[Title('Settings - Admin')] class extends Component {
         {{-- Configure Document Requirements Modal/Form --}}
         @if($configuringMembershipTypeId !== null)
         @php $membershipType = $this->membershipTypes->firstWhere('id', $configuringMembershipTypeId); @endphp
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
             <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">
                 Document Requirements for: {{ $membershipType?->name }}
             </h3>
@@ -886,7 +988,7 @@ new #[Title('Settings - Admin')] class extends Component {
                 @endif
 
                 <div class="flex gap-3">
-                    <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">
+                    <button type="submit" class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                         {{ $this->canEditDirectly() ? 'Save Requirements' : 'Submit for Approval' }}
                     </button>
                     <button type="button" wire:click="cancelConfigureDocumentRequirements" class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
@@ -898,7 +1000,7 @@ new #[Title('Settings - Admin')] class extends Component {
         @endif
 
         {{-- Membership Types with Document Requirements --}}
-        <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
             <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Document Requirements by Membership Type</h2>
                 <p class="text-sm text-zinc-500 dark:text-zinc-400">Configure which documents are required for each membership type.</p>
@@ -951,7 +1053,7 @@ new #[Title('Settings - Admin')] class extends Component {
 
     {{-- Certificate Types Tab --}}
     @if($activeTab === 'certificate-types')
-    <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
         <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Certificate Types</h2>
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Configure certificate templates for members.</p>
@@ -982,7 +1084,7 @@ new #[Title('Settings - Admin')] class extends Component {
                         </td>
                         <td class="whitespace-nowrap px-6 py-4">
                             @if($type->is_active)
-                            <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Active</span>
+                            <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Active</span>
                             @else
                             <span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200">Inactive</span>
                             @endif

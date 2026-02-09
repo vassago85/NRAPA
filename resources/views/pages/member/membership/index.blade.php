@@ -46,15 +46,18 @@ new #[Title('My Membership')] class extends Component {
                 'days_to_expiry' => null,
                 'expiring_soon' => false,
                 'expired' => false,
+                'expired_beyond_grace' => false,
             ];
         }
 
         $daysToExpiry = now()->startOfDay()->diffInDays($membership->expires_at->startOfDay(), false);
+        $windowDays = Membership::renewalWindowDays();
         
         return [
             'days_to_expiry' => $daysToExpiry,
-            'expiring_soon' => $daysToExpiry >= 0 && $daysToExpiry <= 30,
+            'expiring_soon' => $daysToExpiry >= 0 && $daysToExpiry <= $windowDays,
             'expired' => $daysToExpiry < 0,
+            'expired_beyond_grace' => $membership->isExpiredBeyondGracePeriod(),
         ];
     }
 
@@ -309,6 +312,36 @@ new #[Title('My Membership')] class extends Component {
         $membership = $this->activeMembership;
         $status = $this->membershipStatus;
     @endphp
+
+    {{-- Lapsed membership alert --}}
+    @if($status['expired_beyond_grace'])
+    <div class="rounded-xl bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700 p-5">
+        <div class="flex items-start gap-4">
+            <div class="flex size-10 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/50 shrink-0">
+                <svg class="size-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h3 class="font-semibold text-red-800 dark:text-red-200">Membership Lapsed</h3>
+                <p class="mt-1 text-sm text-red-700 dark:text-red-300">
+                    Your membership expired on {{ $membership->expires_at->format('d M Y') }} and the renewal grace period has passed.
+                    To continue as an NRAPA member, you will need to rejoin as a new member and pay the full sign-up fee.
+                </p>
+                <div class="mt-3">
+                    <a href="{{ route('membership.apply') }}" wire:navigate 
+                        class="inline-flex items-center gap-2 rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2 text-sm font-medium text-white transition-colors">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Rejoin as New Member
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 overflow-hidden">
         {{-- Top Row: Type & Status --}}
         <div class="p-6 pb-4">
@@ -318,7 +351,12 @@ new #[Title('My Membership')] class extends Component {
                     <h2 class="text-xl font-semibold text-zinc-900 dark:text-white mt-1">{{ $membership->type->name }}</h2>
                 </div>
                 <div class="flex items-center gap-2">
-                    @if($status['expired'])
+                    @if($status['expired_beyond_grace'])
+                        <span class="inline-flex items-center gap-1.5 rounded-full bg-red-100 dark:bg-red-900/50 px-3 py-1 text-sm font-medium text-red-800 dark:text-red-300">
+                            <span class="size-1.5 rounded-full bg-red-500"></span>
+                            Lapsed
+                        </span>
+                    @elseif($status['expired'])
                         <span class="inline-flex items-center gap-1.5 rounded-full bg-red-100 dark:bg-red-900/50 px-3 py-1 text-sm font-medium text-red-800 dark:text-red-300">
                             <span class="size-1.5 rounded-full bg-red-500"></span>
                             Expired
@@ -372,7 +410,15 @@ new #[Title('My Membership')] class extends Component {
 
         {{-- Actions Row --}}
         <div class="px-6 py-4 border-t border-zinc-100 dark:border-zinc-700 flex flex-wrap items-center gap-3">
-            @if($this->canRenew)
+            @if($status['expired_beyond_grace'])
+            <a href="{{ route('membership.apply') }}" wire:navigate
+                class="inline-flex items-center gap-2 rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2 text-sm font-medium text-white transition-colors">
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Rejoin as New Member
+            </a>
+            @elseif($this->canRenew)
             <button wire:click="openRenewalModal"
                 class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue hover:bg-nrapa-blue-dark px-4 py-2 text-sm font-medium text-white transition-colors">
                 <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -351,8 +351,25 @@ class Membership extends Model
     }
 
     /**
+     * Get the configured renewal window (days before expiry).
+     */
+    public static function renewalWindowDays(): int
+    {
+        return (int) SystemSetting::get('renewal_window_days', 30);
+    }
+
+    /**
+     * Get the configured grace period (days after expiry member can still renew).
+     */
+    public static function renewalGracePeriodDays(): int
+    {
+        return (int) SystemSetting::get('renewal_grace_period_days', 90);
+    }
+
+    /**
      * Check if the membership is renewable.
-     * Renewal is only allowed within 30 days before expiry or after expiry.
+     * Renewal is only allowed within the configured window before expiry,
+     * or during the grace period after expiry.
      */
     public function isRenewable(): bool
     {
@@ -371,8 +388,13 @@ class Membership extends Model
             return false;
         }
 
-        // Must be within the renewal window (30 days before expiry or already expired)
+        // Must be within the renewal window (before expiry) or grace period (after expiry)
         if (! $this->isInRenewalWindow()) {
+            return false;
+        }
+
+        // Must NOT be expired beyond the grace period
+        if ($this->isExpiredBeyondGracePeriod()) {
             return false;
         }
 
@@ -381,7 +403,7 @@ class Membership extends Model
 
     /**
      * Check if the membership is within the renewal window.
-     * Returns true if within 30 days of expiry or already expired.
+     * Returns true if within the configured days of expiry or already expired.
      */
     public function isInRenewalWindow(): bool
     {
@@ -390,13 +412,35 @@ class Membership extends Model
             return false;
         }
 
-        // Already expired — can renew
+        // Already expired — in the window (grace period checked separately)
         if ($this->expires_at->isPast()) {
             return true;
         }
 
-        // Within 30 days of expiry — can renew
-        return now()->diffInDays($this->expires_at, false) <= 30;
+        // Within configured window before expiry
+        $windowDays = static::renewalWindowDays();
+
+        return now()->diffInDays($this->expires_at, false) <= $windowDays;
+    }
+
+    /**
+     * Check if the membership expired beyond the grace period.
+     * After this, member must re-apply as new (with full sign-up fee).
+     */
+    public function isExpiredBeyondGracePeriod(): bool
+    {
+        if (! $this->expires_at) {
+            return false;
+        }
+
+        if (! $this->expires_at->isPast()) {
+            return false;
+        }
+
+        $graceDays = static::renewalGracePeriodDays();
+
+        // If grace period is 0, any expiry means they must rejoin
+        return now()->diffInDays($this->expires_at, false) < -$graceDays;
     }
 
     /**
@@ -421,12 +465,14 @@ class Membership extends Model
             return false;
         }
 
-        // Has an expiry in the future but more than 30 days away
-        return ! $this->expires_at->isPast() && now()->diffInDays($this->expires_at, false) > 30;
+        $windowDays = static::renewalWindowDays();
+
+        // Has an expiry in the future but more than the configured window away
+        return ! $this->expires_at->isPast() && now()->diffInDays($this->expires_at, false) > $windowDays;
     }
 
     /**
-     * Get the date when the renewal window opens (30 days before expiry).
+     * Get the date when the renewal window opens.
      */
     public function getRenewalWindowOpensAtAttribute(): ?\Carbon\Carbon
     {
@@ -434,7 +480,19 @@ class Membership extends Model
             return null;
         }
 
-        return $this->expires_at->copy()->subDays(30);
+        return $this->expires_at->copy()->subDays(static::renewalWindowDays());
+    }
+
+    /**
+     * Get the date when the grace period ends (after which member must rejoin as new).
+     */
+    public function getGracePeriodEndsAtAttribute(): ?\Carbon\Carbon
+    {
+        if (! $this->expires_at) {
+            return null;
+        }
+
+        return $this->expires_at->copy()->addDays(static::renewalGracePeriodDays());
     }
 
     /**

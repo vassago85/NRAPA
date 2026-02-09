@@ -97,11 +97,30 @@ new #[Title('Apply for Membership')] class extends Component {
     #[Computed]
     public function canApply()
     {
-        $existingMembership = $this->user->memberships()
-            ->whereIn('status', ['applied', 'approved', 'active'])
+        // Check for pending applications first
+        $hasPending = $this->user->memberships()
+            ->whereIn('status', ['applied', 'approved'])
             ->exists();
 
-        return !$existingMembership;
+        if ($hasPending) {
+            return false;
+        }
+
+        // Check for active membership
+        $activeMembership = $this->user->memberships()
+            ->where('status', 'active')
+            ->first();
+
+        if (!$activeMembership) {
+            return true; // No active membership, can apply
+        }
+
+        // If the active membership has lapsed beyond the grace period, allow re-application
+        if ($activeMembership->isExpiredBeyondGracePeriod()) {
+            return true;
+        }
+
+        return false;
     }
 
     #[Computed]
