@@ -20,10 +20,9 @@ class MailConfigServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Only load from DB if table exists (prevents errors during migration)
-        if (!app()->runningInConsole() || app()->runningUnitTests()) {
-            $this->loadMailConfigFromDatabase();
-        }
+        // Load mail config from database for all contexts (web, queue worker, etc.)
+        // Safe to always call — method checks Schema::hasTable() and wraps in try/catch
+        $this->loadMailConfigFromDatabase();
     }
 
     /**
