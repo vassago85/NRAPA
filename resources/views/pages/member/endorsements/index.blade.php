@@ -220,7 +220,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
         @if($this->dedicatedType)
         <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
             {{-- Status Header --}}
-            <div class="px-6 py-4 {{ $this->complianceStatus['is_compliant'] ? 'bg-gradient-to-r from-nrapa-blue to-nrapa-blue-dark' : 'bg-gradient-to-r from-nrapa-orange to-nrapa-orange-dark' }}">
+            <div class="px-6 py-4 bg-gradient-to-r from-nrapa-blue to-nrapa-blue-dark">
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex items-center gap-3">
                         {{-- Status Icon --}}
