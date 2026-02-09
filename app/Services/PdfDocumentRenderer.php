@@ -31,15 +31,22 @@ class PdfDocumentRenderer implements DocumentRenderer
 
     /**
      * Generate and save a PDF, trying Browsershot first then DomPDF fallback.
+     *
+     * @param  array{width: float, height: float}|null  $customSize  Custom paper size in mm (overrides A4)
      */
-    protected function generatePdf(string $template, array $data, string $filePath): void
+    protected function generatePdf(string $template, array $data, string $filePath, ?array $customSize = null): void
     {
         // Try Browsershot (Chrome) first — best rendering quality
         try {
-            Pdf::view($template, $data)
-                ->format('a4')
-                ->disk($this->disk)
-                ->save($filePath);
+            $pdf = Pdf::view($template, $data);
+            
+            if ($customSize) {
+                $pdf->paperSize($customSize['width'], $customSize['height'], 'mm');
+            } else {
+                $pdf->format('a4');
+            }
+            
+            $pdf->disk($this->disk)->save($filePath);
             return;
         } catch (\Throwable $e) {
             Log::warning('Browsershot PDF generation failed, trying DomPDF fallback', [
@@ -51,11 +58,15 @@ class PdfDocumentRenderer implements DocumentRenderer
 
         // Fallback to DomPDF — pure PHP, no external dependencies
         try {
-            Pdf::view($template, $data)
-                ->driver('dompdf')
-                ->format('a4')
-                ->disk($this->disk)
-                ->save($filePath);
+            $pdf = Pdf::view($template, $data)->driver('dompdf');
+            
+            if ($customSize) {
+                $pdf->paperSize($customSize['width'], $customSize['height'], 'mm');
+            } else {
+                $pdf->format('a4');
+            }
+            
+            $pdf->disk($this->disk)->save($filePath);
             
             Log::info('PDF generated successfully via DomPDF fallback', [
                 'template' => $template,
@@ -102,13 +113,18 @@ class PdfDocumentRenderer implements DocumentRenderer
         $filename = "certificate-{$certificate->uuid}.pdf";
         $filePath = "{$this->pathPrefix}/{$filename}";
 
+        // Use custom paper size for membership cards (portrait card format)
+        $customSize = ($slug === 'membership-card')
+            ? ['width' => 90, 'height' => 148]
+            : null;
+
         $this->generatePdf($template, [
             'certificate' => $certificate,
             'user' => $certificate->user,
             'membership' => $certificate->membership,
             'certificateType' => $certificate->certificateType,
             'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
-        ], $filePath);
+        ], $filePath, $customSize);
 
         return $filePath;
     }
