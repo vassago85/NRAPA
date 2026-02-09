@@ -171,7 +171,7 @@
 
                 <!-- Page Header -->
                 @if(isset($header))
-                <div class="bg-gradient-to-r from-orange-50 via-amber-50 to-orange-50 dark:from-zinc-800 dark:via-zinc-800 dark:to-zinc-800 border-b border-orange-100 dark:border-zinc-700 px-4 sm:px-6 lg:px-8 py-4">
+                <div class="bg-gradient-to-r from-blue-50 via-sky-50 to-blue-50 dark:from-zinc-800 dark:via-zinc-800 dark:to-zinc-800 border-b border-blue-100 dark:border-zinc-700 px-4 sm:px-6 lg:px-8 py-4">
                     <div class="max-w-7xl mx-auto">
                         {{ $header }}
                     </div>
