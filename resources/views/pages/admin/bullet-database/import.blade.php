@@ -161,12 +161,21 @@ new #[Title('Import Bullets - Admin')] class extends Component {
     public function downloadTemplate(): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         $headers = ['manufacturer', 'brand_line', 'bullet_label', 'caliber_label', 'weight_gr', 'diameter_in', 'diameter_mm', 'length_in', 'length_mm', 'bc_g1', 'bc_g7', 'bc_reference', 'construction', 'intended_use', 'twist_note', 'sku_or_part_no', 'source_url', 'status', 'last_verified_at'];
-        $example = ['Hornady', 'ELD Match', '6.5mm 140 gr ELD Match', '6.5mm', '140', '0.264', '6.706', '', '', '0.646', '0.326', 'Mach 2.25', 'cup_and_core', 'match', '', '', 'https://www.hornady.com/bc', 'active', ''];
+        $examples = [
+            ['Hornady', 'ELD Match', '6.5mm 140 gr ELD Match', '6.5mm', '140', '0.264', '6.706', '1.376', '34.950', '0.646', '0.326', 'Mach 2.25', 'cup_and_core', 'match', '1:8"', '2634', 'https://www.hornady.com/bullets/eld-match', 'active', ''],
+            ['Sierra', 'MatchKing', '30 Cal 175 gr HPBT MatchKing', '30 Cal', '175', '0.308', '7.823', '1.240', '31.496', '0.505', '0.264', '', 'otm', 'match', '1:10"', '2275', 'https://www.sierrabullets.com/product/30-caliber-175-gr-hpbt-matchking', 'active', ''],
+            ['Barnes', 'TTSX', '30 Cal 168 gr TTSX BT', '30 Cal', '168', '0.308', '7.823', '', '', '0.470', '', '', 'monolithic_copper', 'hunting', '1:10"', '30846', 'https://www.barnesbullets.com/bullets/ttsx', 'active', ''],
+            ['Nosler', 'AccuBond', '7mm 160 gr AccuBond', '7mm', '160', '0.284', '7.214', '', '', '0.531', '0.270', '', 'bonded', 'hunting', '1:9"', '54932', 'https://www.nosler.com/accubond', 'active', ''],
+            ['Berger', 'Hybrid Target', '6.5mm 140 gr Hybrid Target', '6.5mm', '140', '0.264', '6.706', '1.376', '34.950', '0.607', '0.311', '', 'otm', 'match', '1:8"', '26414', 'https://www.bergerbullets.com/products/6-5mm-140-grain-hybrid-target', 'active', ''],
+            ['Peregrine', 'VRG3', '30 Cal 180 gr VRG3', '30 Cal', '180', '0.308', '7.823', '', '', '0.480', '', '', 'monolithic_copper', 'hunting', '1:10"', '', 'https://www.peregrinebullets.com/vrg3', 'active', ''],
+        ];
 
-        return response()->streamDownload(function () use ($headers, $example) {
+        return response()->streamDownload(function () use ($headers, $examples) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, $headers);
-            fputcsv($handle, $example);
+            foreach ($examples as $row) {
+                fputcsv($handle, $row);
+            }
             fclose($handle);
         }, 'bullets-import-template.csv', ['Content-Type' => 'text/csv']);
     }
@@ -218,8 +227,67 @@ new #[Title('Import Bullets - Admin')] class extends Component {
                     Parse & Preview
                 </button>
                 <button wire:click="downloadTemplate" class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-4 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700">
-                    Download CSV Template
+                    <svg class="inline w-4 h-4 mr-1 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    Download CSV Template (6 examples)
                 </button>
+            </div>
+        </div>
+
+        {{-- Format Reference --}}
+        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-3">CSV Format Reference</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                    <h3 class="font-medium text-zinc-700 dark:text-zinc-300 mb-1">Required Columns</h3>
+                    <ul class="space-y-0.5 text-zinc-600 dark:text-zinc-400">
+                        <li><code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">manufacturer</code> — e.g. Hornady, Sierra, Barnes</li>
+                        <li><code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">brand_line</code> — e.g. ELD Match, MatchKing, TTSX</li>
+                        <li><code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">bullet_label</code> — Full description</li>
+                        <li><code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">caliber_label</code> — e.g. 6.5mm, 30 Cal, 7mm</li>
+                        <li><code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">weight_gr</code> — Weight in grains</li>
+                        <li><code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">construction</code> — See valid values below</li>
+                        <li><code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">intended_use</code> — See valid values below</li>
+                        <li><code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">source_url</code> — Manufacturer product URL</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-medium text-zinc-700 dark:text-zinc-300 mb-1">Optional Columns</h3>
+                    <ul class="space-y-0.5 text-zinc-600 dark:text-zinc-400">
+                        <li><code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">diameter_in</code> / <code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">diameter_mm</code> — Auto-converts if one given</li>
+                        <li><code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">length_in</code> / <code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">length_mm</code> — Auto-converts if one given</li>
+                        <li><code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">bc_g1</code> / <code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">bc_g7</code> — Ballistic coefficients</li>
+                        <li><code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">bc_reference</code> — e.g. Mach 2.25</li>
+                        <li><code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">twist_note</code> — e.g. 1:8", 1:10"</li>
+                        <li><code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">sku_or_part_no</code> — Manufacturer SKU</li>
+                        <li><code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">status</code> — active, discontinued, unknown</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                    <h3 class="font-medium text-zinc-700 dark:text-zinc-300 mb-1">Construction Values</h3>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                        @foreach(App\Models\Bullet::constructionTypes() as $key => $label)
+                            <code class="bg-zinc-100 dark:bg-zinc-700 px-1 rounded">{{ $key }}</code>{{ !$loop->last ? ', ' : '' }}
+                        @endforeach
+                    </p>
+                </div>
+                <div>
+                    <h3 class="font-medium text-zinc-700 dark:text-zinc-300 mb-1">Intended Use Values</h3>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                        @foreach(App\Models\Bullet::intendedUses() as $key => $label)
+                            <code class="bg-zinc-100 dark:bg-zinc-700 px-1 rounded">{{ $key }}</code>{{ !$loop->last ? ', ' : '' }}
+                        @endforeach
+                    </p>
+                </div>
+            </div>
+            <div class="mt-3">
+                <h3 class="font-medium text-zinc-700 dark:text-zinc-300 mb-1 text-sm">Known Caliber Labels (auto-diameter)</h3>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                    @foreach(array_keys(App\Models\Bullet::caliberDiameters()) as $cal)
+                        <code class="bg-zinc-100 dark:bg-zinc-700 px-1 rounded">{{ $cal }}</code>{{ !$loop->last ? ', ' : '' }}
+                    @endforeach
+                </p>
             </div>
         </div>
 
