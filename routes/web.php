@@ -6,6 +6,32 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
+// Custom email verification route - works WITHOUT authentication
+// This allows users to verify their email from any device/browser (e.g. phone)
+// without needing to be logged in on that device.
+Route::get('/email/confirm/{id}/{hash}', function (int $id, string $hash) {
+    $user = \App\Models\User::findOrFail($id);
+
+    // Verify the hash matches the user's email
+    if (! hash_equals(sha1($user->getEmailForVerification()), $hash)) {
+        abort(403, 'Invalid verification link.');
+    }
+
+    // Mark email as verified if not already
+    if (! $user->hasVerifiedEmail()) {
+        $user->markEmailAsVerified();
+        event(new \Illuminate\Auth\Events\Verified($user));
+    }
+
+    // If the user is logged in on this device, redirect to dashboard
+    if (auth()->check() && auth()->id() === $user->id) {
+        return redirect()->route('dashboard')->with('success', 'Email address verified successfully.');
+    }
+
+    // Otherwise show a simple confirmation page (cross-device scenario)
+    return view('pages.auth.email-confirmed');
+})->middleware(['signed', 'throttle:6,1'])->name('verification.confirm');
+
 // Dev/Test Quick Login Routes (only available in non-production)
 if (app()->environment('local', 'development', 'testing')) {
     Route::get('/dev/login/{role}', function (string $role) {
@@ -571,7 +597,7 @@ Route::middleware(['auth', 'verified', 'developer'])->prefix('developer')->name(
                 'trace' => $e->getTraceAsString(),
             ], 500);
         }
-    })->name('developer.test.far-numbers');
+    })->name('test.far-numbers');
     
     // Fix Endorsement Status Enum Route
     Route::get('fix/endorsement-status-enum', function () {
@@ -654,7 +680,7 @@ Route::middleware(['auth', 'verified', 'developer'])->prefix('developer')->name(
                 'trace' => $e->getTraceAsString()
             ], 500);
         }
-    })->name('developer.fix.endorsement-status-enum');
+    })->name('fix.endorsement-status-enum');
     
     Route::livewire('owners', 'pages::developer.owners.index')->name('owners.index');
     Route::livewire('owners/nominate', 'pages::developer.owners.create')->name('owners.create');
@@ -791,7 +817,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         return \Illuminate\Support\Facades\Storage::disk($disk)->download($filePath, 'nrapa-membership-card.pkpass', [
             'Content-Type' => 'application/vnd.apple.pkpass',
         ]);
-    })->name('admin.certificates.wallet.apple');
+    })->name('certificates.wallet.apple');
     
     Route::get('certificates/{certificate}/wallet/google', function (\App\Models\Certificate $certificate) {
         // Only membership cards support wallet passes
@@ -807,7 +833,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         }
         
         return redirect($saveUrl);
-    })->name('admin.certificates.wallet.google');
+    })->name('certificates.wallet.google');
     
     // Certificate PDF download (admin)
     Route::get('certificates/{certificate}/download', function (\App\Models\Certificate $certificate) {
@@ -826,7 +852,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         return \Illuminate\Support\Facades\Storage::disk($disk)->download($certificate->file_path, $filename, [
             'Content-Type' => 'application/pdf',
         ]);
-    })->name('admin.certificates.download');
+    })->name('certificates.download');
     
     // Certificate preview (renders the document template)
     Route::get('certificates/{certificate}/preview', function (\App\Models\Certificate $certificate) {
@@ -870,7 +896,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
             'certificateType' => $certificate->certificateType,
             'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
         ]);
-    })->name('admin.certificates.preview');
+    })->name('certificates.preview');
     
     // Membership Types Management
     Route::livewire('membership-types', 'pages::admin.membership-types.index')->name('membership-types.index');
@@ -908,7 +934,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
             'version' => $version,
             'html' => $version->getHtmlContent(),
         ]);
-    })->name('admin.settings.terms.preview');
+    })->name('settings.terms.preview');
 
     // Calibre Requests
     Route::livewire('calibre-requests', 'pages::admin.calibre-requests.index')->name('calibre-requests.index');
@@ -1006,7 +1032,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
             'Content-Type' => $mimeType,
             'Content-Disposition' => 'inline; filename="' . $filename . '"',
         ]);
-    })->name('admin.endorsements.download');
+    })->name('endorsements.download');
 
     // Bullet Database
     Route::livewire('bullet-database', 'pages::admin.bullet-database.index')->name('bullet-database.index');
