@@ -14,6 +14,8 @@ class EndorsementFirearm extends Model
     public const CATEGORY_HANDGUN = 'handgun';
     public const CATEGORY_COMBINATION = 'combination';
     public const CATEGORY_OTHER = 'other';
+    public const CATEGORY_BARREL = 'barrel';
+    public const CATEGORY_ACTION = 'action';
 
     // Ignition type constants
     public const IGNITION_RIMFIRE = 'rimfire';
@@ -42,8 +44,9 @@ class EndorsementFirearm extends Model
     protected $fillable = [
         'uuid',
         'endorsement_request_id',
-        'firearm_category',          // 1. Type of Firearm (SAPS 271: rifle|shotgun|handgun|combination|other)
+        'firearm_category',          // 1. Type of Firearm (SAPS 271: rifle|shotgun|handgun|combination|other|barrel|action)
         'firearm_type_other',        // Specification when firearm_category = 'other'
+        'component_diameter',        // Barrel diameter for barrel component endorsements
         'ignition_type',
         'action_type',               // 1.1 Action
         'action_other_specify',      // 1.1 Other action (specify)
@@ -160,9 +163,17 @@ class EndorsementFirearm extends Model
             self::CATEGORY_RIFLE => 'Rifle',
             self::CATEGORY_SHOTGUN => 'Shotgun',
             self::CATEGORY_HANDGUN => 'Handgun',
-            self::CATEGORY_COMBINATION => 'Combination',
-            self::CATEGORY_OTHER => 'Other',
+            self::CATEGORY_BARREL => 'Barrel (component)',
+            self::CATEGORY_ACTION => 'Action (component)',
         ];
+    }
+
+    /**
+     * Check if a category is a component (barrel or action) rather than a full firearm.
+     */
+    public static function isComponentCategory(?string $category): bool
+    {
+        return in_array($category, [self::CATEGORY_BARREL, self::CATEGORY_ACTION]);
     }
 
     /**

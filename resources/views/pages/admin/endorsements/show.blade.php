@@ -628,14 +628,22 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             @if($request->firearm)
                 <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
                     <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
-                        <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Firearm Details</h2>
+                        <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">
+                            {{ \App\Models\EndorsementFirearm::isComponentCategory($request->firearm->firearm_category) ? 'Component Details' : 'Firearm Details' }}
+                        </h2>
                     </div>
                     <div class="p-6">
                         <dl class="grid grid-cols-2 gap-4 text-sm">
                             <div>
-                                <dt class="text-zinc-500">Category</dt>
+                                <dt class="text-zinc-500">Type</dt>
                                 <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->firearm->category_label }}</dd>
                             </div>
+                            @if($request->firearm->component_diameter)
+                                <div>
+                                    <dt class="text-zinc-500">Barrel Diameter</dt>
+                                    <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->firearm->component_diameter }}</dd>
+                                </div>
+                            @endif
                             @if($request->firearm->calibre_display)
                                 <div>
                                     <dt class="text-zinc-500">Calibre</dt>

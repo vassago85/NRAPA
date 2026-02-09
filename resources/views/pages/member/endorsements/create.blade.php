@@ -49,6 +49,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     public string $receiverSerialNumber = '';  // 1.11 Receiver serial number
     public string $receiverMake = '';          // 1.12 Receiver Make
     public string $serialNumber = '';          // Legacy serial (backward compat)
+    public string $componentDiameter = '';     // Barrel diameter for component endorsements
     public string $licenceSection = '16'; // Always Section 16 for dedicated endorsements
     public string $sapsReference = '';
     public ?int $existingFirearmId = null;
@@ -156,6 +157,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             $this->make = $firearm->make ?? '';
             $this->model = $firearm->model ?? '';
             $this->serialNumber = $firearm->serial_number ?? '';
+            $this->componentDiameter = $firearm->component_diameter ?? '';
             $this->barrelSerialNumber = $firearm->barrel_serial_number ?? '';
             $this->barrelMake = $firearm->barrel_make ?? '';
             $this->frameSerialNumber = $firearm->frame_serial_number ?? '';
@@ -312,6 +314,12 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
 
 
     #[Computed]
+    public function isComponentCategory(): bool
+    {
+        return EndorsementFirearm::isComponentCategory($this->firearmCategory);
+    }
+
+    #[Computed]
     public function actionTypeOptions()
     {
         return EndorsementFirearm::getActionTypeOptions($this->firearmCategory ?: null);
@@ -364,8 +372,9 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         }
         
         if ($this->currentStep < $this->totalSteps) {
-            // Skip component step for new requests
-            if ($this->currentStep === 2 && $this->requestType === 'new') {
+            $isComponent = EndorsementFirearm::isComponentCategory($this->firearmCategory);
+            // Skip component step for new requests and component categories
+            if ($this->currentStep === 2 && ($this->requestType === 'new' || $isComponent)) {
                 $this->currentStep = 4; // Skip to purpose
             } else {
                 $this->currentStep++;
@@ -379,9 +388,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     public function previousStep(): void
     {
         if ($this->currentStep > 1) {
-            // Skip component step for new requests
-            if ($this->currentStep === 4 && $this->requestType === 'new') {
-                $this->currentStep = 2; // Back to firearm
+            $isComponent = EndorsementFirearm::isComponentCategory($this->firearmCategory);
+            // Skip component step for new requests and component categories
+            if ($this->currentStep === 4 && ($this->requestType === 'new' || $isComponent)) {
+                $this->currentStep = 2; // Back to firearm/component
             } else {
                 $this->currentStep--;
             }
@@ -405,14 +415,22 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
 
     protected function validateCurrentStep(): void
     {
+        $isComponent = EndorsementFirearm::isComponentCategory($this->firearmCategory);
+
         $rules = match($this->currentStep) {
             1 => ['requestType' => 'required|in:new,renewal'],
-            2 => [
-                'firearmCategory' => 'required|in:rifle,shotgun,handgun,combination,other',
-                'actionType' => 'required',
-                'make' => 'required|string|max:255',
-                'model' => 'required|string|max:255',
-            ],
+            2 => $isComponent 
+                ? [
+                    'firearmCategory' => 'required|in:rifle,shotgun,handgun,combination,other,barrel,action',
+                    'make' => 'required|string|max:255',
+                    'serialNumber' => 'required|string|max:255',
+                ]
+                : [
+                    'firearmCategory' => 'required|in:rifle,shotgun,handgun,combination,other,barrel,action',
+                    'actionType' => 'required',
+                    'make' => 'required|string|max:255',
+                    'model' => 'required|string|max:255',
+                ],
             3 => [], // Components optional
             4 => [
                 'purpose' => 'required',
@@ -422,23 +440,31 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             default => [],
         };
 
-        // Additional validation for step 2: calibre and serial
+        // Additional validation for step 2
         if ($this->currentStep === 2) {
             // First validate the basic rules
             $this->validate($rules);
             
-            // Then validate calibre (either ID or manual) - custom validation
-            if (empty($this->calibreId) && empty($this->calibreManual)) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'calibre' => 'Calibre/Gauge is required (select from list or enter manually).',
-                ]);
-            }
-            
-            // Validate at least one serial number
-            if (!$this->hasAtLeastOneSerial) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'serial' => 'At least one serial number is required (barrel, frame, or receiver).',
-                ]);
+            if ($isComponent) {
+                // For barrel components, diameter is required
+                if ($this->firearmCategory === 'barrel' && empty($this->componentDiameter)) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'componentDiameter' => 'Barrel diameter is required.',
+                    ]);
+                }
+            } else {
+                // For full firearms, calibre and serial are required
+                if (empty($this->calibreId) && empty($this->calibreManual)) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'calibre' => 'Calibre/Gauge is required (select from list or enter manually).',
+                    ]);
+                }
+                
+                if (!$this->hasAtLeastOneSerial) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'serial' => 'At least one serial number is required (barrel, frame, or receiver).',
+                    ]);
+                }
             }
         } else {
             $this->validate($rules);
@@ -448,14 +474,21 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     #[Computed]
     public function canProceedToNextStep(): bool
     {
+        $isComponent = EndorsementFirearm::isComponentCategory($this->firearmCategory);
+
         return match($this->currentStep) {
             1 => !empty($this->requestType) && in_array($this->requestType, ['new', 'renewal']),
-            2 => !empty($this->firearmCategory) 
-                && !empty($this->actionType)
-                && (!empty($this->calibreId) || !empty($this->calibreManual))
-                && !empty($this->make)
-                && !empty($this->model)
-                && $this->hasAtLeastOneSerial,
+            2 => !empty($this->firearmCategory) && (
+                $isComponent
+                    ? (!empty($this->make) 
+                        && !empty($this->serialNumber)
+                        && ($this->firearmCategory !== 'barrel' || !empty($this->componentDiameter)))
+                    : (!empty($this->actionType)
+                        && (!empty($this->calibreId) || !empty($this->calibreManual))
+                        && !empty($this->make)
+                        && !empty($this->model)
+                        && $this->hasAtLeastOneSerial)
+            ),
             3 => true, // Components are optional
             4 => !empty($this->purpose) 
                 && ($this->purpose !== 'other' || !empty($this->purposeOtherText)),
@@ -482,6 +515,17 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         if ($this->firearmCategory !== 'other') {
             $this->firearmTypeOther = '';
         }
+        
+        // Clear component-specific fields when switching to firearm
+        if (!EndorsementFirearm::isComponentCategory($this->firearmCategory)) {
+            $this->componentDiameter = '';
+        }
+        
+        // Clear computed property cache
+        unset($this->isComponentCategory);
+        unset($this->canProceedToNextStep);
+        unset($this->canSubmit);
+        unset($this->submissionErrors);
     }
 
     // Calibre selected - auto-fill SAPS code if available
@@ -666,15 +710,25 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         if (!$this->declarationAccepted) return false;
         if (empty($this->requestType)) return false;
         if (empty($this->firearmCategory)) return false;
-        if (empty($this->actionType)) return false;
-        // Calibre is mandatory - either from dropdown or manual entry
-        if (empty($this->calibreId) && empty($this->calibreManual)) return false;
-        if (empty($this->make)) return false;
-        if (empty($this->model)) return false;
-        if (!$this->hasAtLeastOneSerial) return false;
+        
+        $isComponent = EndorsementFirearm::isComponentCategory($this->firearmCategory);
+        
+        if ($isComponent) {
+            // Component endorsements: just need make and serial
+            if (empty($this->make)) return false;
+            if (empty($this->serialNumber)) return false;
+            if ($this->firearmCategory === 'barrel' && empty($this->componentDiameter)) return false;
+        } else {
+            // Full firearm endorsements
+            if (empty($this->actionType)) return false;
+            if (empty($this->calibreId) && empty($this->calibreManual)) return false;
+            if (empty($this->make)) return false;
+            if (empty($this->model)) return false;
+            if (!$this->hasAtLeastOneSerial) return false;
+        }
+        
         if (empty($this->purpose)) return false;
         if ($this->purpose === 'other' && empty($this->purposeOtherText)) return false;
-        // Note: SAPS code (calibreCode) is optional
 
         return true;
     }
@@ -691,24 +745,39 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             $errors[] = 'Request type is required.';
         }
         if (empty($this->firearmCategory)) {
-            $errors[] = 'Firearm type is required.';
+            $errors[] = 'Firearm/Component type is required.';
         }
-        if (empty($this->actionType)) {
-            $errors[] = 'Action type is required.';
+        
+        $isComponent = EndorsementFirearm::isComponentCategory($this->firearmCategory);
+        
+        if ($isComponent) {
+            if (empty($this->make)) {
+                $errors[] = ucfirst($this->firearmCategory) . ' make is required.';
+            }
+            if (empty($this->serialNumber)) {
+                $errors[] = 'Serial number is required.';
+            }
+            if ($this->firearmCategory === 'barrel' && empty($this->componentDiameter)) {
+                $errors[] = 'Barrel diameter is required.';
+            }
+        } else {
+            if (empty($this->actionType)) {
+                $errors[] = 'Action type is required.';
+            }
+            if (empty($this->calibreId) && empty($this->calibreManual)) {
+                $errors[] = 'Calibre/Gauge is required (select from list or enter manually).';
+            }
+            if (empty($this->make)) {
+                $errors[] = 'Firearm make is required.';
+            }
+            if (empty($this->model)) {
+                $errors[] = 'Firearm model is required.';
+            }
+            if (!$this->hasAtLeastOneSerial) {
+                $errors[] = 'At least one serial number is required (barrel, frame, or receiver).';
+            }
         }
-        // Calibre is mandatory
-        if (empty($this->calibreId) && empty($this->calibreManual)) {
-            $errors[] = 'Calibre/Gauge is required (select from list or enter manually).';
-        }
-        if (empty($this->make)) {
-            $errors[] = 'Firearm make is required.';
-        }
-        if (empty($this->model)) {
-            $errors[] = 'Firearm model is required.';
-        }
-        if (!$this->hasAtLeastOneSerial) {
-            $errors[] = 'At least one serial number is required (barrel, frame, or receiver).';
-        }
+        
         if (empty($this->purpose)) {
             $errors[] = 'Purpose is required.';
         }
@@ -821,63 +890,87 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
 
         // Save firearm (SAPS 271 Form Section E fields)
         $firearm = $request->firearm ?? new EndorsementFirearm();
+        $isComponent = EndorsementFirearm::isComponentCategory($this->firearmCategory);
         
-        // Get data from FirearmSearchPanel if available, otherwise use legacy fields
-        $firearmData = $this->firearmPanelData ?? $this->getFirearmPanelInitialData();
-        
-        // Map FirearmSearchPanel firearm_type to SAPS 271 compliant category
-        $firearmCategory = match($firearmData['firearm_type'] ?? '') {
-            'rifle' => 'rifle',
-            'shotgun' => 'shotgun',
-            'handgun' => 'handgun',
-            'combination' => 'combination',
-            'other' => 'other',
-            default => $this->firearmCategory,
-        };
-        
-        // Map action type
-        $actionType = match($firearmData['action_type'] ?? '') {
-            'semi_automatic' => 'semi_auto',
-            'automatic' => 'automatic',
-            'manual' => 'bolt_action',
-            'other' => 'other',
-            default => $this->actionType,
-        };
-        
-        $firearm->fill([
-            'endorsement_request_id' => $request->id,
-            'firearm_category' => $firearmCategory,          // 1. Type (SAPS 271 compliant)
-            'firearm_type_other' => ($firearmCategory === 'other' && !empty($firearmData['firearm_type_other'])) 
-                ? $firearmData['firearm_type_other'] 
-                : null,
-            'ignition_type' => $this->ignitionType ?: null,
-            'action_type' => $actionType,                     // 1.1 Action
-            'action_other_specify' => $firearmData['action_type_other'] ?? $this->actionOtherSpecify ?: null,
-            'metal_engraving' => $firearmData['engraved_text'] ?? $this->metalEngraving ?: null,    // 1.2 Engraving
-            // New reference system
-            'firearm_calibre_id' => $firearmData['firearm_calibre_id'] ?? $this->firearmCalibreId,
-            'calibre_text_override' => $firearmData['calibre_text_override'] ?? $this->calibreTextOverride,
-            'firearm_make_id' => $firearmData['firearm_make_id'] ?? $this->firearmMakeId,
-            'make_text_override' => $firearmData['make_text_override'] ?? $this->makeTextOverride,
-            'firearm_model_id' => $firearmData['firearm_model_id'] ?? $this->firearmModelId,
-            'model_text_override' => $firearmData['model_text_override'] ?? $this->modelTextOverride,
-            // Legacy fields (for backward compatibility)
-            'calibre_id' => $this->calibreId,                      // 1.3 Calibre
-            'calibre_manual' => $firearmData['calibre_text_override'] ?? $this->calibreManual ?: null,
-            'calibre_code' => $firearmData['calibre_code'] ?? $this->calibreCode ?: null,          // 1.4 Calibre code
-            'make' => $firearmData['make_text_override'] ?? $this->make ?: null,                         // 1.5 Make
-            'model' => $firearmData['model_text_override'] ?? $this->model ?: null,                       // 1.6 Model
-            'serial_number' => $this->serialNumber ?: null,        // Legacy
-            'barrel_serial_number' => $firearmData['barrel_serial_number'] ?? $this->barrelSerialNumber ?: null,    // 1.7
-            'barrel_make' => $firearmData['barrel_make_text'] ?? $this->barrelMake ?: null,            // 1.8
-            'frame_serial_number' => $firearmData['frame_serial_number'] ?? $this->frameSerialNumber ?: null,      // 1.9
-            'frame_make' => $firearmData['frame_make_text'] ?? $this->frameMake ?: null,              // 1.10
-            'receiver_serial_number' => $firearmData['receiver_serial_number'] ?? $this->receiverSerialNumber ?: null, // 1.11
-            'receiver_make' => $firearmData['receiver_make_text'] ?? $this->receiverMake ?: null,        // 1.12
-            'licence_section' => $this->licenceSection ?: null,
-            'saps_reference' => $this->sapsReference ?: null,
-            'user_firearm_id' => $this->existingFirearmId,
-        ]);
+        if ($isComponent) {
+            // Component endorsement (barrel or action) - simplified data
+            $firearm->fill([
+                'endorsement_request_id' => $request->id,
+                'firearm_category' => $this->firearmCategory,
+                'component_diameter' => $this->firearmCategory === 'barrel' ? ($this->componentDiameter ?: null) : null,
+                'make' => $this->make ?: null,
+                'serial_number' => $this->serialNumber ?: null,
+                'barrel_serial_number' => $this->firearmCategory === 'barrel' ? ($this->serialNumber ?: null) : null,
+                'licence_section' => $this->licenceSection ?: null,
+                'saps_reference' => $this->sapsReference ?: null,
+                // Clear firearm-specific fields
+                'firearm_type_other' => null,
+                'ignition_type' => null,
+                'action_type' => null,
+                'action_other_specify' => null,
+                'metal_engraving' => null,
+                'model' => null,
+            ]);
+        } else {
+            // Full firearm endorsement
+            // Get data from FirearmSearchPanel if available, otherwise use legacy fields
+            $firearmData = $this->firearmPanelData ?? $this->getFirearmPanelInitialData();
+            
+            // Map FirearmSearchPanel firearm_type to SAPS 271 compliant category
+            $firearmCategory = match($firearmData['firearm_type'] ?? '') {
+                'rifle' => 'rifle',
+                'shotgun' => 'shotgun',
+                'handgun' => 'handgun',
+                'combination' => 'combination',
+                'other' => 'other',
+                default => $this->firearmCategory,
+            };
+            
+            // Map action type
+            $actionType = match($firearmData['action_type'] ?? '') {
+                'semi_automatic' => 'semi_auto',
+                'automatic' => 'automatic',
+                'manual' => 'bolt_action',
+                'other' => 'other',
+                default => $this->actionType,
+            };
+            
+            $firearm->fill([
+                'endorsement_request_id' => $request->id,
+                'firearm_category' => $firearmCategory,          // 1. Type (SAPS 271 compliant)
+                'firearm_type_other' => ($firearmCategory === 'other' && !empty($firearmData['firearm_type_other'])) 
+                    ? $firearmData['firearm_type_other'] 
+                    : null,
+                'ignition_type' => $this->ignitionType ?: null,
+                'action_type' => $actionType,                     // 1.1 Action
+                'action_other_specify' => $firearmData['action_type_other'] ?? $this->actionOtherSpecify ?: null,
+                'metal_engraving' => $firearmData['engraved_text'] ?? $this->metalEngraving ?: null,    // 1.2 Engraving
+                // New reference system
+                'firearm_calibre_id' => $firearmData['firearm_calibre_id'] ?? $this->firearmCalibreId,
+                'calibre_text_override' => $firearmData['calibre_text_override'] ?? $this->calibreTextOverride,
+                'firearm_make_id' => $firearmData['firearm_make_id'] ?? $this->firearmMakeId,
+                'make_text_override' => $firearmData['make_text_override'] ?? $this->makeTextOverride,
+                'firearm_model_id' => $firearmData['firearm_model_id'] ?? $this->firearmModelId,
+                'model_text_override' => $firearmData['model_text_override'] ?? $this->modelTextOverride,
+                // Legacy fields (for backward compatibility)
+                'calibre_id' => $this->calibreId,                      // 1.3 Calibre
+                'calibre_manual' => $firearmData['calibre_text_override'] ?? $this->calibreManual ?: null,
+                'calibre_code' => $firearmData['calibre_code'] ?? $this->calibreCode ?: null,          // 1.4 Calibre code
+                'make' => $firearmData['make_text_override'] ?? $this->make ?: null,                         // 1.5 Make
+                'model' => $firearmData['model_text_override'] ?? $this->model ?: null,                       // 1.6 Model
+                'serial_number' => $this->serialNumber ?: null,        // Legacy
+                'barrel_serial_number' => $firearmData['barrel_serial_number'] ?? $this->barrelSerialNumber ?: null,    // 1.7
+                'barrel_make' => $firearmData['barrel_make_text'] ?? $this->barrelMake ?: null,            // 1.8
+                'frame_serial_number' => $firearmData['frame_serial_number'] ?? $this->frameSerialNumber ?: null,      // 1.9
+                'frame_make' => $firearmData['frame_make_text'] ?? $this->frameMake ?: null,              // 1.10
+                'receiver_serial_number' => $firearmData['receiver_serial_number'] ?? $this->receiverSerialNumber ?: null, // 1.11
+                'receiver_make' => $firearmData['receiver_make_text'] ?? $this->receiverMake ?: null,        // 1.12
+                'licence_section' => $this->licenceSection ?: null,
+                'saps_reference' => $this->sapsReference ?: null,
+                'user_firearm_id' => $this->existingFirearmId,
+                'component_diameter' => null,
+            ]);
+        }
         $firearm->save();
         
         // Refresh the request to ensure relationships are loaded
@@ -1079,12 +1172,12 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             @php
                 $steps = [
                     1 => 'Type',
-                    2 => 'Firearm',
+                    2 => 'Firearm / Component',
                     3 => 'Components',
                     4 => 'Purpose',
                     5 => 'Review',
                 ];
-                $skipStep3 = $requestType === 'new';
+                $skipStep3 = $requestType === 'new' || \App\Models\EndorsementFirearm::isComponentCategory($firearmCategory);
             @endphp
             @foreach($steps as $num => $label)
                 @if($num === 3 && $skipStep3)
@@ -1176,70 +1269,23 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             </div>
         @endif
 
-        {{-- Step 2: Firearm Details --}}
+        {{-- Step 2: Firearm / Component Details --}}
         @if($currentStep === 2)
             <div class="p-6" 
                  x-data="{ panelData: @entangle('firearmPanelData') }"
                  @firearm-data-updated.window="panelData = $event.detail.data; $wire.syncFirearmPanelData(panelData)">
-                <h2 class="text-xl font-semibold text-zinc-900 dark:text-white mb-6">Firearm Details (SAPS 271 Form Section E)</h2>
+                <h2 class="text-xl font-semibold text-zinc-900 dark:text-white mb-6">
+                    {{ $this->isComponentCategory ? 'What are you requesting endorsement for?' : 'Firearm Details (SAPS 271 Form Section E)' }}
+                </h2>
 
-                @if($this->userFirearms->count() > 0)
-                    <div class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                        <label class="block text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">Load from your Virtual Safe</label>
-                        <div class="flex gap-3">
-                            <select wire:model="existingFirearmId" class="flex-1 px-4 py-2 border border-blue-300 dark:border-blue-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white">
-                                <option value="">Select a firearm...</option>
-                                @foreach($this->userFirearms as $uf)
-                                    <option value="{{ $uf->id }}">
-                                        {{ $uf->make }} {{ $uf->model }} 
-                                        @if($uf->calibre_display) ({{ $uf->calibre_display }}) @endif
-                                    </option>
-                                @endforeach
-                            </select>
-                            <button wire:click="loadExistingFirearm" type="button"
-                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
-                                Load
-                            </button>
-                        </div>
-                    </div>
-                @endif
-                
-                {{-- Use new FirearmSearchPanel component --}}
-                @php
-                    $firearmPanelData = $this->firearmPanelData ?? [];
-                @endphp
-                <livewire:firearm-search-panel 
-                    wire:key="endorsement-firearm-panel-{{ $editingRequest?->id ?? 'new' }}"
-                    :initial-data="$firearmPanelData"
-                />
-
-                @if($this->userFirearms->count() > 0)
-                    <div class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                        <label class="block text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">Load from your Virtual Safe</label>
-                        <div class="flex gap-3">
-                            <select wire:model="existingFirearmId" class="flex-1 px-4 py-2 border border-blue-300 dark:border-blue-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white">
-                                <option value="">Select a firearm...</option>
-                                @foreach($this->userFirearms as $uf)
-                                    <option value="{{ $uf->id }}">
-                                        {{ $uf->make }} {{ $uf->model }} 
-                                        @if($uf->calibre_display) ({{ $uf->calibre_display }}) @endif
-                                    </option>
-                                @endforeach
-                            </select>
-                            <button wire:click="loadExistingFirearm" type="button"
-                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
-                                Load
-                            </button>
-                        </div>
-                    </div>
-                @endif
+                <p class="mb-4 text-sm text-zinc-500 dark:text-zinc-400">All endorsements are Section 16 for dedicated sport or hunting.</p>
 
                 <div class="space-y-6">
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                            Firearm Category <span class="text-red-500">*</span>
+                            Type <span class="text-red-500">*</span>
                         </label>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                             @foreach($categoryOptions as $value => $label)
                                 <label class="relative cursor-pointer">
                                     <input type="radio" wire:model.live="firearmCategory" value="{{ $value }}" class="peer sr-only">
@@ -1252,7 +1298,76 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                         @error('firearmCategory') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
 
-                    @if($firearmCategory)
+                    @if($firearmCategory && $this->isComponentCategory)
+                        {{-- Component-specific fields (barrel or action) --}}
+                        <div class="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg mb-4">
+                            <p class="text-sm text-emerald-700 dark:text-emerald-300">
+                                <strong>{{ ucfirst($firearmCategory) }} endorsement.</strong> 
+                                Please provide the {{ $firearmCategory }} details below.
+                            </p>
+                        </div>
+
+                        @if($firearmCategory === 'barrel')
+                            <div>
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                    Barrel diameter <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text" wire:model.live="componentDiameter" placeholder="e.g., 6.5mm, .308, 7mm" 
+                                    class="w-full max-w-md px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                                @error('componentDiameter') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                        @endif
+
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                Make <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" wire:model.live="make" placeholder="e.g., Bartlein, Krieger, Bighorn" 
+                                class="w-full max-w-md px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                            @error('make') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                Serial number <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" wire:model.live="serialNumber" placeholder="Serial number" 
+                                class="w-full max-w-md px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono">
+                            @error('serialNumber') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                        </div>
+
+                    @elseif($firearmCategory)
+                        {{-- Full firearm: show Virtual Safe loader, FirearmSearchPanel, and SAPS 271 fields --}}
+                        @if($this->userFirearms->count() > 0)
+                            <div class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                <label class="block text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">Load from your Virtual Safe</label>
+                                <div class="flex gap-3">
+                                    <select wire:model="existingFirearmId" class="flex-1 px-4 py-2 border border-blue-300 dark:border-blue-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white">
+                                        <option value="">Select a firearm...</option>
+                                        @foreach($this->userFirearms as $uf)
+                                            <option value="{{ $uf->id }}">
+                                                {{ $uf->make }} {{ $uf->model }} 
+                                                @if($uf->calibre_display) ({{ $uf->calibre_display }}) @endif
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <button wire:click="loadExistingFirearm" type="button"
+                                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                                        Load
+                                    </button>
+                                </div>
+                            </div>
+                        @endif
+
+                        {{-- FirearmSearchPanel component --}}
+                        @php
+                            $firearmPanelData = $this->firearmPanelData ?? [];
+                        @endphp
+                        <livewire:firearm-search-panel 
+                            wire:key="endorsement-firearm-panel-{{ $editingRequest?->id ?? 'new' }}"
+                            :initial-data="$firearmPanelData"
+                        />
+
                         {{-- SAPS 271 Form Section E Fields --}}
                         <div class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-4">
                             <p class="text-sm text-blue-700 dark:text-blue-300">
@@ -1677,33 +1792,56 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                         </dl>
                     </div>
 
-                    {{-- Firearm Summary --}}
+                    {{-- Firearm/Component Summary --}}
                     <div class="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg">
-                        <h3 class="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-3">Firearm Details</h3>
+                        <h3 class="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-3">
+                            {{ $this->isComponentCategory ? 'Component Details' : 'Firearm Details' }}
+                        </h3>
                         <dl class="grid grid-cols-2 gap-4 text-sm">
                             <div>
-                                <dt class="text-zinc-500">Category</dt>
+                                <dt class="text-zinc-500">Type</dt>
                                 <dd class="font-medium text-zinc-900 dark:text-white">{{ $categoryOptions[$firearmCategory] ?? $firearmCategory }}</dd>
                             </div>
-                            @if($calibreId || $calibreManual)
-                                <div>
-                                    <dt class="text-zinc-500">Calibre</dt>
-                                    <dd class="font-medium text-zinc-900 dark:text-white">
-                                        {{ $calibreId ? $this->calibres->find($calibreId)?->name : $calibreManual }}
-                                    </dd>
-                                </div>
-                            @endif
-                            @if($make || $model)
-                                <div>
-                                    <dt class="text-zinc-500">Make/Model</dt>
-                                    <dd class="font-medium text-zinc-900 dark:text-white">{{ $make }} {{ $model }}</dd>
-                                </div>
-                            @endif
-                            @if($serialNumber)
-                                <div>
-                                    <dt class="text-zinc-500">Serial Number</dt>
-                                    <dd class="font-medium font-mono text-zinc-900 dark:text-white">{{ $serialNumber }}</dd>
-                                </div>
+                            @if($this->isComponentCategory)
+                                @if($firearmCategory === 'barrel' && $componentDiameter)
+                                    <div>
+                                        <dt class="text-zinc-500">Barrel Diameter</dt>
+                                        <dd class="font-medium text-zinc-900 dark:text-white">{{ $componentDiameter }}</dd>
+                                    </div>
+                                @endif
+                                @if($make)
+                                    <div>
+                                        <dt class="text-zinc-500">Make</dt>
+                                        <dd class="font-medium text-zinc-900 dark:text-white">{{ $make }}</dd>
+                                    </div>
+                                @endif
+                                @if($serialNumber)
+                                    <div>
+                                        <dt class="text-zinc-500">Serial Number</dt>
+                                        <dd class="font-medium font-mono text-zinc-900 dark:text-white">{{ $serialNumber }}</dd>
+                                    </div>
+                                @endif
+                            @else
+                                @if($calibreId || $calibreManual)
+                                    <div>
+                                        <dt class="text-zinc-500">Calibre</dt>
+                                        <dd class="font-medium text-zinc-900 dark:text-white">
+                                            {{ $calibreId ? $this->calibres->find($calibreId)?->name : $calibreManual }}
+                                        </dd>
+                                    </div>
+                                @endif
+                                @if($make || $model)
+                                    <div>
+                                        <dt class="text-zinc-500">Make/Model</dt>
+                                        <dd class="font-medium text-zinc-900 dark:text-white">{{ $make }} {{ $model }}</dd>
+                                    </div>
+                                @endif
+                                @if($serialNumber)
+                                    <div>
+                                        <dt class="text-zinc-500">Serial Number</dt>
+                                        <dd class="font-medium font-mono text-zinc-900 dark:text-white">{{ $serialNumber }}</dd>
+                                    </div>
+                                @endif
                             @endif
                         </dl>
                     </div>
