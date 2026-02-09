@@ -138,8 +138,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Calibre Requests')] class extends 
             <p class="text-sm text-zinc-600 dark:text-zinc-400">Pending</p>
         </button>
         <button wire:click="$set('statusFilter', 'approved')"
-            class="p-4 rounded-xl border {{ $statusFilter === 'approved' ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800' }} text-left transition-colors">
-            <p class="text-2xl font-bold {{ $statusFilter === 'approved' ? 'text-green-600 dark:text-green-400' : 'text-zinc-900 dark:text-white' }}">{{ $this->stats['approved'] }}</p>
+            class="p-4 rounded-xl border {{ $statusFilter === 'approved' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800' }} text-left transition-colors">
+            <p class="text-2xl font-bold {{ $statusFilter === 'approved' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-900 dark:text-white' }}">{{ $this->stats['approved'] }}</p>
             <p class="text-sm text-zinc-600 dark:text-zinc-400">Approved</p>
         </button>
         <button wire:click="$set('statusFilter', 'rejected')"
@@ -151,7 +151,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Calibre Requests')] class extends 
 
     {{-- Flash Messages --}}
     @if(session('success'))
-        <div class="mb-6 p-4 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg text-green-700 dark:text-green-300">
+        <div class="mb-6 p-4 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 rounded-lg text-emerald-700 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
@@ -164,7 +164,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Calibre Requests')] class extends 
 
     {{-- Requests List --}}
     @if($this->requests->count() > 0)
-        <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
             <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
                 <thead class="bg-zinc-50 dark:bg-zinc-900/50">
                     <tr>
@@ -195,7 +195,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Calibre Requests')] class extends 
                                 @php $badge = $request->status_badge; @endphp
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                     {{ $badge['color'] === 'amber' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' : '' }}
-                                    {{ $badge['color'] === 'green' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : '' }}
+                                    {{ $badge['color'] === 'green' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' : '' }}
                                     {{ $badge['color'] === 'red' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : '' }}">
                                     {{ $badge['text'] }}
                                 </span>
@@ -222,7 +222,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Calibre Requests')] class extends 
             </table>
         </div>
     @else
-        <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-12 text-center">
+        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-12 text-center">
             <svg class="mx-auto h-12 w-12 text-zinc-300 dark:text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
             </svg>
@@ -374,7 +374,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Calibre Requests')] class extends 
                                 Reject
                             </button>
                             <button type="button" wire:click="approve"
-                                class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors">
+                                class="px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors">
                                 Approve & Create
                             </button>
                         </div>

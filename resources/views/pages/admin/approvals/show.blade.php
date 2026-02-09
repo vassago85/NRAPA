@@ -142,32 +142,42 @@ new #[Title('Review Application - Admin')] class extends Component {
 
     protected function issueCertificates(): void
     {
-        $entitlements = $this->membership->type->certificate_entitlements ?? [];
-        $certificateEntitlements = is_array($entitlements) ? $entitlements : (array) json_decode($entitlements ?: '[]', true);
+        $user = $this->membership->user;
+        $admin = Auth::user();
+        $service = app(\App\Services\CertificateIssueService::class);
 
-        foreach ($certificateEntitlements as $certificateTypeId) {
-            $certificateType = \App\Models\CertificateType::find($certificateTypeId);
-            if (!$certificateType) continue;
+        // Issue membership certificate immediately (skip terms/standing checks — admin is approving)
+        try {
+            $service->issueMembershipCertificate($user, $admin, skipChecks: true);
+        } catch (\Exception $e) {
+            // Fallback: create certificate record directly without PDF
+            $certType = \App\Models\CertificateType::firstOrCreate(
+                ['slug' => 'membership-certificate'],
+                [
+                    'name' => 'Membership Certificate',
+                    'description' => 'Certificate confirming member is paid-up, active, and in good standing',
+                    'template' => 'documents.certificates.good-standing',
+                    'validity_months' => 12,
+                    'is_active' => true,
+                    'sort_order' => 12,
+                ]
+            );
 
-            // Calculate certificate validity
-            $validUntil = null;
-            if ($certificateType->validity_months) {
-                $validUntil = now()->addMonths($certificateType->validity_months);
-            } elseif ($this->membership->expires_at) {
-                $validUntil = $this->membership->expires_at;
-            }
+            $validUntil = $this->membership->expires_at
+                ? min(now()->addMonths(12), $this->membership->expires_at)
+                : now()->addMonths(12);
 
             Certificate::create([
-                'user_id' => $this->membership->user_id,
+                'user_id' => $user->id,
                 'membership_id' => $this->membership->id,
-                'certificate_type_id' => $certificateType->id,
-                'certificate_number' => 'CERT-' . strtoupper(substr(md5(uniqid()), 0, 8)),
-                'qr_code' => bin2hex(random_bytes(16)),
+                'certificate_type_id' => $certType->id,
                 'issued_at' => now(),
                 'valid_from' => now(),
                 'valid_until' => $validUntil,
-                'issued_by' => Auth::id(),
+                'issued_by' => $admin->id,
             ]);
+
+            Log::info('Membership certificate created via fallback', ['user_id' => $user->id, 'reason' => $e->getMessage()]);
         }
     }
 

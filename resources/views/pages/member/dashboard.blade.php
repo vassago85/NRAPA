@@ -288,6 +288,27 @@ new #[Title('Dashboard')] class extends Component {
     }
 
     /**
+     * Get the QR code image URL for the member's digital card.
+     */
+    #[Computed]
+    public function cardQrCodeUrl(): ?string
+    {
+        $membership = $this->activeMembership;
+        if (!$membership) return null;
+
+        $card = $this->user->certificates()
+            ->whereHas('certificateType', fn ($q) => $q->where('slug', 'membership-card'))
+            ->valid()
+            ->latest()
+            ->first();
+
+        if (!$card || !$card->qr_code) return null;
+
+        $verifyUrl = route('certificates.verify', ['qr_code' => $card->qr_code]);
+        return \App\Helpers\QrCodeHelper::generateUrl($verifyUrl, 200);
+    }
+
+    /**
      * Check if the welcome letter prompt should be shown.
      */
     #[Computed]
@@ -1036,96 +1057,157 @@ new #[Title('Dashboard')] class extends Component {
     </div>
     @endif
 
-    {{-- Membership Status Cards --}}
-    <div class="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {{-- Membership Card --}}
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
-            <div class="mb-4 flex items-center gap-3">
-                <div class="flex size-10 items-center justify-center rounded-lg bg-nrapa-blue/10 dark:bg-nrapa-blue/20">
-                    <svg class="size-5 text-nrapa-blue dark:text-nrapa-blue-light" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm1.294 6.336a6.721 6.721 0 0 1-3.17.789 6.721 6.721 0 0 1-3.168-.789 3.376 3.376 0 0 1 6.338 0Z" />
-                    </svg>
+    {{-- Embedded Digital Card --}}
+    @if($this->activeMembership)
+    <div class="flex flex-col items-center sm:items-start sm:flex-row gap-4 sm:gap-6">
+        {{-- Card Widget --}}
+        <div class="w-full max-w-xs flex-shrink-0 overflow-hidden rounded-2xl shadow-lg border border-zinc-200 dark:border-zinc-700">
+            {{-- Blue Header --}}
+            <div class="flex items-center justify-between bg-gradient-to-br from-[#0B4EA2] to-[#0a3d80] px-5 py-3.5">
+                <div class="flex items-center gap-3">
+                    <div class="flex size-9 items-center justify-center rounded-lg bg-white/90">
+                        @php $logoUrl = \App\Helpers\DocumentHelper::getLogoUrl(); @endphp
+                        @if ($logoUrl)
+                            <img src="{{ $logoUrl }}" alt="NRAPA" class="size-7 object-contain" />
+                        @else
+                            <span class="text-[10px] font-extrabold text-[#0B4EA2]">NRAPA</span>
+                        @endif
+                    </div>
+                    <div>
+                        <div class="text-sm font-extrabold text-white tracking-wide">NRAPA</div>
+                        <div class="text-[10px] font-semibold text-white/80">Member Card</div>
+                    </div>
                 </div>
-                <h3 class="font-semibold text-zinc-900 dark:text-white">Membership Status</h3>
+                <span class="rounded-full bg-[#F58220] px-2.5 py-0.5 text-[10px] font-bold uppercase text-white tracking-wide">Active</span>
             </div>
+            {{-- Orange Stripe --}}
+            <div class="h-1 bg-gradient-to-r from-[#F58220] via-[#f9a825] to-[#F58220]"></div>
+            {{-- Card Body --}}
+            <div class="bg-white px-5 py-4 dark:bg-zinc-800">
+                <div class="mb-3">
+                    <div class="text-[10px] font-semibold uppercase tracking-wider text-[#0B4EA2]">Member Name</div>
+                    <div class="text-base font-bold text-zinc-900 dark:text-white">{{ $this->user->name }}</div>
+                </div>
+                <div class="mb-3 flex gap-4">
+                    <div class="flex-1">
+                        <div class="text-[10px] font-semibold uppercase tracking-wider text-[#0B4EA2]">Membership No.</div>
+                        <div class="font-mono text-xs font-semibold text-zinc-800 dark:text-zinc-200">{{ $this->activeMembership->membership_number }}</div>
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-[10px] font-semibold uppercase tracking-wider text-[#0B4EA2]">Type</div>
+                        <div class="text-xs font-semibold text-zinc-800 dark:text-zinc-200">{{ $this->activeMembership->type->name }}</div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="text-[10px] font-semibold uppercase tracking-wider text-[#0B4EA2]">Valid Until</div>
+                    @if($this->activeMembership->type->is_lifetime ?? false)
+                        <div class="text-xs font-bold text-[#0B4EA2]">Lifetime</div>
+                    @else
+                        <div class="text-xs font-semibold text-zinc-800 dark:text-zinc-200">{{ $this->activeMembership->expires_at?->format('d M Y') ?? 'N/A' }}</div>
+                    @endif
+                </div>
+                @if($this->cardQrCodeUrl)
+                <div class="flex flex-col items-center pt-2">
+                    <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-1.5 dark:border-zinc-600 dark:bg-zinc-700">
+                        <img src="{{ $this->cardQrCodeUrl }}" alt="QR Code" class="size-24 rounded" loading="lazy" />
+                    </div>
+                    <span class="mt-1.5 text-[10px] text-zinc-500 dark:text-zinc-400">Scan to verify membership</span>
+                </div>
+                @endif
+            </div>
+            {{-- Blue Footer --}}
+            <div class="bg-[#0B4EA2] px-5 py-2 text-center">
+                <div class="text-[10px] font-semibold text-white/90">{{ $this->activeMembership->membership_number }}</div>
+            </div>
+        </div>
 
-            @if($this->activeMembership)
-                <div class="space-y-3">
+        {{-- Card actions + membership info beside the card --}}
+        <div class="flex flex-1 flex-col gap-3 min-w-0">
+            <div class="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-800">
+                <h3 class="mb-3 font-semibold text-zinc-900 dark:text-white">Membership Details</h3>
+                <div class="space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-zinc-500 dark:text-zinc-400">Status</span>
+                        <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Active</span>
+                    </div>
                     <div class="flex items-center justify-between">
                         <span class="text-sm text-zinc-500 dark:text-zinc-400">Type</span>
-                        <span class="inline-flex items-center rounded-full bg-nrapa-blue/10 px-2.5 py-0.5 text-xs font-medium text-nrapa-blue dark:bg-nrapa-blue/20 dark:text-nrapa-blue-light">{{ $this->activeMembership->type->name }}</span>
+                        <span class="text-sm font-medium text-zinc-900 dark:text-white">{{ $this->activeMembership->type->name }}</span>
                     </div>
                     <div class="flex items-center justify-between">
                         <span class="text-sm text-zinc-500 dark:text-zinc-400">Member #</span>
                         <span class="font-mono text-sm font-semibold text-zinc-900 dark:text-white">{{ $this->activeMembership->membership_number }}</span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm text-zinc-500 dark:text-zinc-400">Status</span>
-                        <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Active</span>
                     </div>
                     @if($this->activeMembership->expires_at)
                     <div class="flex items-center justify-between">
                         <span class="text-sm text-zinc-500 dark:text-zinc-400">Expires</span>
                         <span class="text-sm text-zinc-900 dark:text-white">{{ $this->activeMembership->expires_at->format('d M Y') }}</span>
                     </div>
-                    @else
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm text-zinc-500 dark:text-zinc-400">Validity</span>
-                        <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Lifetime</span>
-                    </div>
                     @endif
                 </div>
-                <div class="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-700 space-y-2">
-                    {{-- Digital Card Button - Prominent --}}
-                    <a href="{{ route('card') }}" wire:navigate class="flex w-full items-center justify-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2.5 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
-                        <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
-                        </svg>
-                        My Digital Card
+                <div class="mt-4 flex flex-col gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-700">
+                    <a href="{{ route('card') }}" class="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0B4EA2] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#0a3d80] transition-colors">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+                        Open Fullscreen Card
                     </a>
                     <a href="{{ route('membership.index') }}" wire:navigate class="block w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-center text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
-                        View Details
+                        Membership Details
                     </a>
                 </div>
-            @elseif($this->latestMembership)
-                <div class="space-y-3">
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm text-zinc-500 dark:text-zinc-400">Application</span>
-                        @switch($this->latestMembership->status)
-                            @case('applied')
-                                <span class="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Pending Review</span>
-                                @break
-                            @case('approved')
-                                <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">Approved - Awaiting Activation</span>
-                                @break
-                            @case('suspended')
-                                <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">Suspended</span>
-                                @break
-                            @case('revoked')
-                                <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">Revoked</span>
-                                @break
-                            @case('expired')
-                                <span class="inline-flex items-center rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900 dark:text-orange-200">Expired</span>
-                                @break
-                            @default
-                                <span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200">{{ ucfirst($this->latestMembership->status) }}</span>
-                        @endswitch
-                    </div>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">
-                        Applied on {{ $this->latestMembership->applied_at->format('d M Y') }}
-                    </p>
-                </div>
-            @else
-                <div class="space-y-3">
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">
-                        You don't have an active membership yet. Select a membership below to get started.
-                    </p>
-                    <a href="{{ route('membership.apply') }}" wire:navigate class="block w-full rounded-lg bg-nrapa-blue px-4 py-2 text-center text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
-                        View All Memberships
-                    </a>
-                </div>
-            @endif
+            </div>
         </div>
+    </div>
+    @elseif($this->latestMembership)
+    <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="mb-4 flex items-center gap-3">
+            <div class="flex size-10 items-center justify-center rounded-lg bg-nrapa-blue/10 dark:bg-nrapa-blue/20">
+                <svg class="size-5 text-nrapa-blue dark:text-nrapa-blue-light" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm1.294 6.336a6.721 6.721 0 0 1-3.17.789 6.721 6.721 0 0 1-3.168-.789 3.376 3.376 0 0 1 6.338 0Z" />
+                </svg>
+            </div>
+            <h3 class="font-semibold text-zinc-900 dark:text-white">Membership Status</h3>
+        </div>
+        <div class="space-y-3">
+            <div class="flex items-center justify-between">
+                <span class="text-sm text-zinc-500 dark:text-zinc-400">Application</span>
+                @switch($this->latestMembership->status)
+                    @case('applied')
+                        <span class="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Pending Review</span>
+                        @break
+                    @case('approved')
+                        <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">Approved</span>
+                        @break
+                    @case('suspended')
+                        <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">Suspended</span>
+                        @break
+                    @case('revoked')
+                        <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">Revoked</span>
+                        @break
+                    @case('expired')
+                        <span class="inline-flex items-center rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900 dark:text-orange-200">Expired</span>
+                        @break
+                    @default
+                        <span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200">{{ ucfirst($this->latestMembership->status) }}</span>
+                @endswitch
+            </div>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                Applied on {{ $this->latestMembership->applied_at->format('d M Y') }}
+            </p>
+        </div>
+    </div>
+    @else
+    <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
+        <p class="text-sm text-zinc-500 dark:text-zinc-400">
+            You don't have an active membership yet. Select a membership below to get started.
+        </p>
+        <a href="{{ route('membership.apply') }}" wire:navigate class="mt-3 block w-full rounded-lg bg-nrapa-blue px-4 py-2 text-center text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
+            View All Memberships
+        </a>
+    </div>
+    @endif
+
+    {{-- Membership Status Cards --}}
+    <div class="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
 
         {{-- Knowledge Test Card --}}
         @if($this->requiresTest)
@@ -1320,13 +1402,7 @@ new #[Title('Dashboard')] class extends Component {
     <div class="mt-2 sm:mt-4">
         <h2 class="mb-3 sm:mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Quick Actions</h2>
         <div class="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-            <a href="{{ route('card') }}" wire:navigate class="flex items-center gap-2 sm:gap-3 rounded-lg bg-nrapa-blue px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
-                <svg class="size-4 sm:size-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
-                </svg>
-                <span class="truncate">Digital Card</span>
-            </a>
-            <a href="{{ route('certificates.index') }}" wire:navigate class="flex items-center gap-2 sm:gap-3 rounded-lg border border-zinc-300 bg-white px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
+            <a href="{{ route('certificates.index') }}" wire:navigate class="flex items-center gap-2 sm:gap-3 rounded-lg bg-nrapa-blue px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                 <svg class="size-4 sm:size-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
                 </svg>

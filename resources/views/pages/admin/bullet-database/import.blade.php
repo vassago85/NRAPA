@@ -190,16 +190,16 @@ new #[Title('Import Bullets - Admin')] class extends Component {
     </div>
 
     @if($showResults)
-    <div class="rounded-lg border border-green-300 bg-green-50 dark:bg-green-900/20 dark:border-green-800 p-4">
-        <h3 class="font-semibold text-green-800 dark:text-green-200">Import Complete</h3>
-        <p class="text-sm text-green-700 dark:text-green-300 mt-1">{{ $importedCount }} bullets imported/updated, {{ $skippedCount }} skipped.</p>
+    <div class="rounded-lg border border-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-800 p-4">
+        <h3 class="font-semibold text-emerald-800 dark:text-emerald-200">Import Complete</h3>
+        <p class="text-sm text-emerald-700 dark:text-emerald-300 mt-1">{{ $importedCount }} bullets imported/updated, {{ $skippedCount }} skipped.</p>
         <a href="{{ route('admin.bullet-database.index') }}" wire:navigate class="mt-2 inline-block text-sm text-nrapa-blue hover:underline">View Database</a>
     </div>
     @endif
 
     <div class="max-w-4xl space-y-6">
         {{-- Upload --}}
-        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Upload File</h2>
             <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div>
@@ -223,7 +223,7 @@ new #[Title('Import Bullets - Admin')] class extends Component {
                 </div>
             </div>
             <div class="mt-4 flex items-center gap-3">
-                <button wire:click="parseFile" class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark" @if(!$file) disabled @endif>
+                <button wire:click="parseFile" class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors" @if(!$file) disabled @endif>
                     Parse & Preview
                 </button>
                 <button wire:click="downloadTemplate" class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-4 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700">
@@ -234,7 +234,7 @@ new #[Title('Import Bullets - Admin')] class extends Component {
         </div>
 
         {{-- Format Reference --}}
-        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-3">CSV Format Reference</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
@@ -305,11 +305,11 @@ new #[Title('Import Bullets - Admin')] class extends Component {
 
         {{-- Preview --}}
         @if(count($preview) > 0)
-        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Preview ({{ count($preview) }} rows)</h2>
                 <button wire:click="import" wire:confirm="Import {{ count($preview) }} bullets? Existing matches will be updated."
-                        class="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700">
+                        class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                     Import {{ count($preview) }} Bullets
                 </button>
             </div>

@@ -43,6 +43,13 @@
             .bx-info { background-color: #1e1b4b !important; border-color: #6366f1 !important; }
             .bx-info h3, .bx-info td, .bx-info p, .bx-info li, .bx-info ol, .bx-info span { color: #a5b4fc !important; }
 
+            .bx-nrapa { background-color: #0a2a52 !important; border-color: #1a5cb8 !important; }
+            .bx-nrapa h3, .bx-nrapa td, .bx-nrapa p, .bx-nrapa span { color: #93bbef !important; }
+
+            .bx-nrapa-card { background-color: #1a1a1a !important; border-color: #F58220 !important; }
+            .bx-nrapa-card h3 { color: #F58220 !important; }
+            .bx-nrapa-card p, .bx-nrapa-card td, .bx-nrapa-card span { color: #e5e7eb !important; }
+
             .bx-warning { background-color: #451a03 !important; border-color: #d97706 !important; }
             .bx-warning h3, .bx-warning td, .bx-warning p, .bx-warning li, .bx-warning strong, .bx-warning span { color: #fcd34d !important; }
 

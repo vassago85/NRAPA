@@ -6,6 +6,14 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
+Route::get('/terms-and-conditions', function () {
+    return view('pages.terms');
+})->name('terms-and-conditions');
+
+Route::get('/privacy-policy', function () {
+    return view('pages.privacy');
+})->name('privacy-policy');
+
 // Custom email verification route - works WITHOUT authentication
 // This allows users to verify their email from any device/browser (e.g. phone)
 // without needing to be logged in on that device.

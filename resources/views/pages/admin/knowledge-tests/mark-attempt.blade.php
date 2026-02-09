@@ -98,7 +98,7 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
     {{-- Header --}}
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-4">
-            <a href="{{ route('admin.knowledge-tests.marking') }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
+            <a href="{{ route('admin.knowledge-tests.marking') }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
                 </svg>
@@ -119,7 +119,7 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
 
     <div class="grid gap-6 lg:grid-cols-3">
         {{-- Member Info --}}
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
             <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Member</h2>
             <div class="flex items-center gap-4">
                 <div class="flex size-14 items-center justify-center rounded-full bg-emerald-100 text-lg font-semibold text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
@@ -151,7 +151,7 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
         </div>
 
         {{-- Score Summary --}}
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800 lg:col-span-2">
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800 lg:col-span-2">
             <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Score Summary</h2>
             <div class="grid gap-4 sm:grid-cols-3">
                 <div class="rounded-lg bg-blue-50 p-4 dark:bg-blue-900/20">
@@ -174,7 +174,7 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
 
     {{-- Auto-Marked Answers (Multiple Choice, Multiple Select, Priority Order) --}}
     @if($this->autoMarkedAnswers->count() > 0)
-    <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
         <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Auto-Marked Answers</h2>
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Multiple choice, multi-select, and priority order questions</p>
@@ -186,7 +186,7 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
                 $qType = $answer->question->question_type;
                 $typeColors = [
                     'multiple_choice' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-                    'multiple_select' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                    'multiple_select' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
                     'priority_order' => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
                     'matching' => 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200',
                     'written' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
@@ -216,7 +216,7 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
                     <div class="flex-1">
                         <div class="flex items-center gap-2">
                             @if($answer->is_correct)
-                            <svg class="size-5 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <svg class="size-5 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                             </svg>
                             @else
@@ -248,15 +248,15 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
                                     $isCorrect = $answer->question->correct_answer === $optionKey;
                                 @endphp
                                 <div class="flex items-start gap-2 rounded-lg border p-2 text-sm
-                                    {{ $isCorrect ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/30' : '' }}
+                                    {{ $isCorrect ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/40' : '' }}
                                     {{ $isSelected && !$isCorrect ? 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/30' : '' }}
                                     {{ !$isSelected && !$isCorrect ? 'border-zinc-200 dark:border-zinc-700' : '' }}">
-                                    <span class="{{ $isCorrect ? 'text-green-700 dark:text-green-300' : ($isSelected ? 'text-red-700 dark:text-red-300' : 'text-zinc-600 dark:text-zinc-400') }}">
+                                    <span class="{{ $isCorrect ? 'text-emerald-700 dark:text-emerald-300' : ($isSelected ? 'text-red-700 dark:text-red-300' : 'text-zinc-600 dark:text-zinc-400') }}">
                                         <span class="font-semibold">{{ $optionKey }}.</span> {{ $optionText }}
                                         @if($isCorrect && $isSelected)
-                                        <span class="ml-1 text-xs font-semibold text-green-600 dark:text-green-400">(Correct!)</span>
+                                        <span class="ml-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">(Correct!)</span>
                                         @elseif($isCorrect)
-                                        <span class="ml-1 text-xs font-semibold text-green-600 dark:text-green-400">(Correct)</span>
+                                        <span class="ml-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">(Correct)</span>
                                         @elseif($isSelected)
                                         <span class="ml-1 text-xs font-semibold text-red-600 dark:text-red-400">(Selected)</span>
                                         @endif
@@ -281,15 +281,15 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
                                     $isCorrect = in_array($optionKey, $correctAnswers);
                                 @endphp
                                 <div class="flex items-start gap-2 rounded-lg border p-2 text-sm
-                                    {{ $isCorrect && $isSelected ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/30' : '' }}
+                                    {{ $isCorrect && $isSelected ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/40' : '' }}
                                     {{ $isCorrect && !$isSelected ? 'border-yellow-300 bg-yellow-50 dark:border-yellow-700 dark:bg-yellow-900/30' : '' }}
                                     {{ $isSelected && !$isCorrect ? 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/30' : '' }}
                                     {{ !$isSelected && !$isCorrect ? 'border-zinc-200 dark:border-zinc-700' : '' }}">
                                     <input type="checkbox" disabled {{ $isSelected ? 'checked' : '' }} class="mt-0.5 size-4 rounded border-zinc-300">
-                                    <span class="{{ $isCorrect ? 'text-green-700 dark:text-green-300' : ($isSelected ? 'text-red-700 dark:text-red-300' : 'text-zinc-600 dark:text-zinc-400') }}">
+                                    <span class="{{ $isCorrect ? 'text-emerald-700 dark:text-emerald-300' : ($isSelected ? 'text-red-700 dark:text-red-300' : 'text-zinc-600 dark:text-zinc-400') }}">
                                         <span class="font-semibold">{{ $optionKey }}.</span> {{ $optionText }}
                                         @if($isCorrect && $isSelected)
-                                        <span class="ml-1 text-xs font-semibold text-green-600 dark:text-green-400">(Correct!)</span>
+                                        <span class="ml-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">(Correct!)</span>
                                         @elseif($isCorrect)
                                         <span class="ml-1 text-xs font-semibold text-yellow-600 dark:text-yellow-400">(Missed)</span>
                                         @elseif($isSelected)
@@ -317,19 +317,19 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
                                     $optionText = $options[$key] ?? $key;
                                 @endphp
                                 <div class="flex items-center gap-2 rounded-lg border p-2 text-sm
-                                    {{ $isCorrectPosition ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/30' : 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/30' }}">
-                                    <span class="flex size-5 items-center justify-center rounded-full {{ $isCorrectPosition ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800' }} text-xs font-bold">{{ $idx + 1 }}</span>
-                                    <span class="{{ $isCorrectPosition ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300' }}"><span class="font-semibold">{{ $key }}.</span> {{ $optionText }}</span>
+                                    {{ $isCorrectPosition ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/40' : 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/30' }}">
+                                    <span class="flex size-5 items-center justify-center rounded-full {{ $isCorrectPosition ? 'bg-emerald-200 text-emerald-800' : 'bg-red-200 text-red-800' }} text-xs font-bold">{{ $idx + 1 }}</span>
+                                    <span class="{{ $isCorrectPosition ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300' }}"><span class="font-semibold">{{ $key }}.</span> {{ $optionText }}</span>
                                 </div>
                                 @endforeach
                             </div>
                             <div class="space-y-2">
-                                <p class="text-sm font-medium text-green-700 dark:text-green-400">Correct Order:</p>
+                                <p class="text-sm font-medium text-emerald-700 dark:text-emerald-400">Correct Order:</p>
                                 @foreach($correctOrder as $idx => $key)
                                 @php $optionText = $options[$key] ?? $key; @endphp
-                                <div class="flex items-center gap-2 rounded-lg border border-green-300 bg-green-50 p-2 text-sm dark:border-green-700 dark:bg-green-900/30">
-                                    <span class="flex size-5 items-center justify-center rounded-full bg-green-200 text-xs font-bold text-green-800">{{ $idx + 1 }}</span>
-                                    <span class="text-green-700 dark:text-green-300"><span class="font-semibold">{{ $key }}.</span> {{ $optionText }}</span>
+                                <div class="flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 p-2 text-sm dark:border-emerald-700 dark:bg-emerald-900/40">
+                                    <span class="flex size-5 items-center justify-center rounded-full bg-emerald-200 text-xs font-bold text-emerald-800">{{ $idx + 1 }}</span>
+                                    <span class="text-emerald-700 dark:text-emerald-300"><span class="font-semibold">{{ $key }}.</span> {{ $optionText }}</span>
                                 </div>
                                 @endforeach
                             </div>
@@ -350,7 +350,7 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
                                 $isCorrect = $memberMatch === $correctMatch;
                             @endphp
                             <div class="flex items-start gap-3 rounded-lg border p-3 text-sm
-                                {{ $isCorrect ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/30' : 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/30' }}">
+                                {{ $isCorrect ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/40' : 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/30' }}">
                                 <div class="flex-1">
                                     <div class="flex items-center gap-2 mb-1">
                                         <span class="flex size-5 items-center justify-center rounded-full bg-zinc-200 text-xs font-bold text-zinc-700 dark:bg-zinc-600 dark:text-zinc-200">{{ $key }}</span>
@@ -359,16 +359,16 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
                                     <div class="flex items-center gap-2 pl-7 text-xs">
                                         <span class="text-zinc-500 dark:text-zinc-400">Member:</span>
                                         @if($memberMatch)
-                                        <span class="{{ $isCorrect ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300' }}">{{ $memberMatch }}</span>
+                                        <span class="{{ $isCorrect ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300' }}">{{ $memberMatch }}</span>
                                         @else
                                         <span class="text-zinc-400 italic">Not matched</span>
                                         @endif
                                         @if(!$isCorrect && $correctMatch)
                                         <span class="text-zinc-400">→</span>
-                                        <span class="text-green-600 dark:text-green-400">Correct: {{ $correctMatch }}</span>
+                                        <span class="text-emerald-600 dark:text-emerald-400">Correct: {{ $correctMatch }}</span>
                                         @endif
                                         @if($isCorrect)
-                                        <span class="text-green-600 dark:text-green-400 font-semibold">✓</span>
+                                        <span class="text-emerald-600 dark:text-emerald-400 font-semibold">✓</span>
                                         @endif
                                     </div>
                                 </div>
@@ -378,7 +378,7 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
                         @endif
                     </div>
                     <div class="text-right">
-                        <span class="text-lg font-bold {{ $answer->is_correct ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
+                        <span class="text-lg font-bold {{ $answer->is_correct ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' }}">
                             {{ $answer->points_awarded ?? 0 }} / {{ $answer->question->points }}
                         </span>
                     </div>
@@ -392,7 +392,7 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
     {{-- Written Answers --}}
     @if($this->writtenAnswers->count() > 0)
     <form wire:submit="saveMarking">
-        <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
             <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Written Answers</h2>
                 <p class="text-sm text-zinc-500 dark:text-zinc-400">Review and score each written answer</p>
@@ -424,9 +424,9 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
                             {{-- Expected Answer (Model Answer) --}}
                             @if($answer->question->correct_answer)
                             <div class="mt-3">
-                                <p class="text-xs font-medium text-green-600 dark:text-green-400 mb-1">Expected Answer (Reference):</p>
-                                <div class="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/30">
-                                    <p class="text-sm text-green-700 dark:text-green-300">{{ $answer->question->correct_answer }}</p>
+                                <p class="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">Expected Answer (Reference):</p>
+                                <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/40">
+                                    <p class="text-sm text-emerald-700 dark:text-emerald-300">{{ $answer->question->correct_answer }}</p>
                                 </div>
                             </div>
                             @endif
@@ -461,11 +461,11 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
                             $willPass = $percentage >= $attempt->knowledgeTest->passing_score;
                         @endphp
                         Projected result:
-                        <span class="font-semibold {{ $willPass ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
+                        <span class="font-semibold {{ $willPass ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' }}">
                             {{ number_format($percentage, 1) }}% — {{ $willPass ? 'PASS' : 'FAIL' }}
                         </span>
                     </div>
-                    <button type="submit" class="rounded-lg bg-emerald-600 px-6 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">
+                    <button type="submit" class="rounded-lg bg-nrapa-blue px-6 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                         Complete Marking
                     </button>
                 </div>
@@ -474,14 +474,14 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
     </form>
     @else
     {{-- No written questions, auto-finalize --}}
-    <div class="rounded-xl border border-green-200 bg-green-50 p-6 dark:border-green-800 dark:bg-green-900/20">
+    <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-6 dark:border-emerald-800 dark:bg-emerald-900/40">
         <div class="flex items-center gap-3">
-            <svg class="size-6 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <svg class="size-6 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
             </svg>
             <div>
-                <p class="font-medium text-green-700 dark:text-green-300">This test has no written questions</p>
-                <p class="text-sm text-green-600 dark:text-green-400">All answers were auto-marked. The result has been finalized.</p>
+                <p class="font-medium text-emerald-700 dark:text-emerald-300">This test has no written questions</p>
+                <p class="text-sm text-emerald-600 dark:text-emerald-400">All answers were auto-marked. The result has been finalized.</p>
             </div>
         </div>
     </div>

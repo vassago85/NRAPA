@@ -158,7 +158,7 @@ new class extends Component {
     </div>
 
     @if(session('success'))
-        <div class="mb-6 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4 text-green-700 dark:text-green-300">
+        <div class="mb-6 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 text-emerald-700 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
@@ -179,7 +179,7 @@ new class extends Component {
     @if($activeTab === 'activity-types')
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <!-- Form -->
-            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
                 <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">{{ $editingActivityTypeId ? 'Edit' : 'Add' }} Activity Type</h3>
                 <form wire:submit="saveActivityType" class="space-y-4">
                     <div>
@@ -211,7 +211,7 @@ new class extends Component {
                         <input type="number" wire:model="activityTypeSortOrder" min="0" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
                     </div>
                     <div class="flex gap-2">
-                        <button type="submit" class="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">Save</button>
+                        <button type="submit" class="flex-1 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">Save</button>
                         @if($editingActivityTypeId)
                             <button type="button" wire:click="resetActivityTypeForm" class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700">Cancel</button>
                         @endif
@@ -220,7 +220,7 @@ new class extends Component {
             </div>
 
             <!-- List -->
-            <div class="lg:col-span-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800">
+            <div class="lg:col-span-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800">
                 <div class="p-4 border-b border-zinc-200 dark:border-zinc-700">
                     <h3 class="text-sm font-semibold text-zinc-900 dark:text-white">Activity Types</h3>
                 </div>
@@ -267,7 +267,7 @@ new class extends Component {
     @if($activeTab === 'activity-tags')
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <!-- Form -->
-            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
                 <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">{{ $editingActivityTagId ? 'Edit' : 'Add' }} Activity Tag</h3>
                 <form wire:submit="saveActivityTag" class="space-y-4">
                     <div>
@@ -295,7 +295,7 @@ new class extends Component {
                         <input type="number" wire:model="activityTagSortOrder" min="0" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
                     </div>
                     <div class="flex gap-2">
-                        <button type="submit" class="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">Save</button>
+                        <button type="submit" class="flex-1 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">Save</button>
                         @if($editingActivityTagId)
                             <button type="button" wire:click="resetActivityTagForm" class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700">Cancel</button>
                         @endif
@@ -304,7 +304,7 @@ new class extends Component {
             </div>
 
             <!-- List -->
-            <div class="lg:col-span-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800">
+            <div class="lg:col-span-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800">
                 <div class="p-4 border-b border-zinc-200 dark:border-zinc-700">
                     <h3 class="text-sm font-semibold text-zinc-900 dark:text-white">Activity Tags</h3>
                     <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Optional tags that members can select when logging activities (e.g., PRS, IPSC, IDPA)</p>

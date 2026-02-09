@@ -146,7 +146,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         <div class="mb-4 flex justify-end">
             <button 
                 wire:click="createNew"
-                class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors"
             >
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -155,7 +155,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             </button>
         </div>
 
-        <div class="rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
             <div class="overflow-x-auto">
                 <table class="w-full">
                     <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
@@ -224,7 +224,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             </div>
         </div>
     @else
-        <div class="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
             <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">
                 {{ $editingVersion ? 'Edit Terms Version' : 'Create New Terms Version' }}
             </h2>
@@ -315,14 +315,14 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                 <div class="flex gap-3">
                     <button 
                         type="submit"
-                        class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                        class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors"
                     >
                         {{ $editingVersion ? 'Update' : 'Create' }} Version
                     </button>
                     <button 
                         type="button"
                         wire:click="cancel"
-                        class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600"
+                        class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600 transition-colors"
                     >
                         Cancel
                     </button>

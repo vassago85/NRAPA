@@ -87,7 +87,7 @@ new #[Title('Knowledge Tests - Admin')] class extends Component {
             <p class="text-zinc-600 dark:text-zinc-400">Manage online knowledge tests and questions.</p>
         </div>
         <div class="flex gap-3">
-            <a href="{{ route('admin.knowledge-tests.marking') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
+            <a href="{{ route('admin.knowledge-tests.marking') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
                 </svg>
@@ -98,7 +98,7 @@ new #[Title('Knowledge Tests - Admin')] class extends Component {
                 </span>
                 @endif
             </a>
-            <a href="{{ route('admin.knowledge-tests.create') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">
+            <a href="{{ route('admin.knowledge-tests.create') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
@@ -108,8 +108,8 @@ new #[Title('Knowledge Tests - Admin')] class extends Component {
     </div>
 
     @if(session('success'))
-    <div class="rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
-        <p class="text-sm text-green-700 dark:text-green-300">{{ session('success') }}</p>
+    <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/40">
+        <p class="text-sm text-emerald-700 dark:text-emerald-300">{{ session('success') }}</p>
     </div>
     @endif
 
@@ -121,23 +121,23 @@ new #[Title('Knowledge Tests - Admin')] class extends Component {
 
     {{-- Stats --}}
     <div class="grid gap-4 sm:grid-cols-5">
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Total Tests</p>
             <p class="mt-1 text-2xl font-bold text-zinc-900 dark:text-white">{{ $this->stats['total_tests'] }}</p>
         </div>
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Active Tests</p>
-            <p class="mt-1 text-2xl font-bold text-green-600 dark:text-green-400">{{ $this->stats['active_tests'] }}</p>
+            <p class="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ $this->stats['active_tests'] }}</p>
         </div>
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Pending Marking</p>
             <p class="mt-1 text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ $this->stats['pending_marking'] }}</p>
         </div>
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Total Attempts</p>
             <p class="mt-1 text-2xl font-bold text-zinc-900 dark:text-white">{{ $this->stats['total_attempts'] }}</p>
         </div>
-        <button wire:click="toggleShowArchived" class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-left">
+        <button wire:click="toggleShowArchived" class="rounded-xl border border-zinc-200 bg-white p-4 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-left">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Archived Tests</p>
             <p class="mt-1 text-2xl font-bold text-zinc-500 dark:text-zinc-400">{{ $this->stats['archived_tests'] }}</p>
             <p class="text-xs text-blue-600 dark:text-blue-400 mt-1">{{ $showArchived ? 'View Active' : 'View Archived' }}</p>
@@ -145,7 +145,7 @@ new #[Title('Knowledge Tests - Admin')] class extends Component {
     </div>
 
     {{-- Tests List --}}
-    <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
         @if($showArchived)
         <div class="border-b border-zinc-200 bg-amber-50 px-6 py-3 dark:border-zinc-700 dark:bg-amber-900/20">
             <p class="text-sm font-medium text-amber-800 dark:text-amber-200">
@@ -206,7 +206,7 @@ new #[Title('Knowledge Tests - Admin')] class extends Component {
                             <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Archived</span>
                             @elseif($test->is_active)
                             <button wire:click="toggleActive({{ $test->id }})">
-                                <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Active</span>
+                                <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Active</span>
                             </button>
                             @else
                             <button wire:click="toggleActive({{ $test->id }})">
@@ -253,7 +253,7 @@ new #[Title('Knowledge Tests - Admin')] class extends Component {
                             </svg>
                             <h3 class="mt-4 font-semibold text-zinc-900 dark:text-white">No knowledge tests</h3>
                             <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Get started by creating your first test.</p>
-                            <a href="{{ route('admin.knowledge-tests.create') }}" wire:navigate class="mt-4 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                            <a href="{{ route('admin.knowledge-tests.create') }}" wire:navigate class="mt-4 inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                                 </svg>

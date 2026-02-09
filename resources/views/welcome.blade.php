@@ -436,6 +436,13 @@
                                     <li><a href="{{ route('register') }}" class="text-sm text-zinc-400 hover:text-white transition">Register</a></li>
                                 </ul>
                             </div>
+                            <div>
+                                <h4 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Legal</h4>
+                                <ul class="mt-3 space-y-2">
+                                    <li><a href="{{ route('terms-and-conditions') }}" class="text-sm text-zinc-400 hover:text-white transition">Terms &amp; Conditions</a></li>
+                                    <li><a href="{{ route('privacy-policy') }}" class="text-sm text-zinc-400 hover:text-white transition">Privacy Policy</a></li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>

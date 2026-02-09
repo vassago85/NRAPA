@@ -265,18 +265,22 @@ class CertificateIssueService
 
     /**
      * Issue a Membership Certificate (proof of paid-up, active member in good standing).
+     *
+     * @param bool $skipChecks When true, skips terms and good-standing checks (used during admin approval).
      */
-    public function issueMembershipCertificate(User $user, User $issuer): ?Certificate
+    public function issueMembershipCertificate(User $user, User $issuer, bool $skipChecks = false): ?Certificate
     {
-        // Check terms acceptance
-        $activeTerms = \App\Models\TermsVersion::active();
-        if ($activeTerms && !$user->hasAcceptedActiveTerms()) {
-            throw new \Exception('User must accept Terms & Conditions before certificates can be issued.');
-        }
+        if (!$skipChecks) {
+            // Check terms acceptance
+            $activeTerms = \App\Models\TermsVersion::active();
+            if ($activeTerms && !$user->hasAcceptedActiveTerms()) {
+                throw new \Exception('User must accept Terms & Conditions before certificates can be issued.');
+            }
 
-        // Check good standing
-        if (!$this->standingService->isInGoodStanding($user)) {
-            throw new \Exception('User is not in good standing.');
+            // Check good standing
+            if (!$this->standingService->isInGoodStanding($user)) {
+                throw new \Exception('User is not in good standing.');
+            }
         }
 
         $membership = $user->activeMembership;

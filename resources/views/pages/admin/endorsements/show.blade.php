@@ -441,7 +441,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
 <div>
     <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-4">
-            <a href="{{ route('admin.endorsements.index') }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
+            <a href="{{ route('admin.endorsements.index') }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
                 <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/>
                 </svg>
@@ -458,7 +458,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
     </div>
 
     @if(session('success'))
-        <div class="mb-6 p-4 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg text-green-800 dark:text-green-200">
+        <div class="mb-6 p-4 bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-700 rounded-lg text-emerald-800 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
@@ -472,7 +472,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
         {{-- Main Content --}}
         <div class="lg:col-span-2 space-y-6">
             {{-- Member Info --}}
-            <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
                 <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Member Information</h2>
                 </div>
@@ -504,7 +504,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             </div>
 
             {{-- Compliance Status Card --}}
-            <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border {{ $this->isFullyCompliant ? 'border-emerald-300 dark:border-emerald-700' : 'border-amber-300 dark:border-amber-700' }} overflow-hidden">
+            <div class="bg-white dark:bg-zinc-800 rounded-xl border {{ $this->isFullyCompliant ? 'border-emerald-300 dark:border-emerald-700' : 'border-amber-300 dark:border-amber-700' }} overflow-hidden">
                 <div class="px-6 py-4 border-b {{ $this->isFullyCompliant ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20' : 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20' }}">
                     <div class="flex items-center justify-between">
                         <h2 class="text-lg font-semibold {{ $this->isFullyCompliant ? 'text-emerald-800 dark:text-emerald-200' : 'text-amber-800 dark:text-amber-200' }}">
@@ -622,7 +622,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             </div>
 
             {{-- Request Details --}}
-            <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
                 <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Request Details</h2>
                 </div>
@@ -646,7 +646,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                             <dt class="text-zinc-500">Declaration</dt>
                             <dd class="font-medium text-zinc-900 dark:text-white">
                                 @if($request->declaration_accepted_at)
-                                    <span class="text-green-600 dark:text-green-400">Accepted {{ $request->declaration_accepted_at->format('d M Y H:i') }}</span>
+                                    <span class="text-emerald-600 dark:text-emerald-400">Accepted {{ $request->declaration_accepted_at->format('d M Y H:i') }}</span>
                                 @else
                                     <span class="text-red-600">Not accepted</span>
                                 @endif
@@ -664,7 +664,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
 
             {{-- Firearm Details --}}
             @if($request->firearm)
-                <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+                <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
                     <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
                         <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">
                             {{ \App\Models\EndorsementFirearm::isComponentCategory($request->firearm->firearm_category) ? 'Component Details' : 'Firearm Details' }}
@@ -731,7 +731,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
 
             {{-- Components --}}
             @if($request->components->count() > 0)
-                <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+                <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
                     <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
                         <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Component Endorsements</h2>
                     </div>
@@ -778,7 +778,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             @endif
 
             {{-- Documents --}}
-            <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
                 <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Documents</h2>
                 </div>
@@ -788,8 +788,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-3">
                                     @if($doc->isVerified())
-                                        <div class="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                                            <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <div class="p-2 bg-emerald-100 dark:bg-emerald-900/40 rounded-lg">
+                                            <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                             </svg>
                                         </div>
@@ -832,7 +832,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
 
                                     @if($doc->isUploaded() && !$doc->isVerified())
                                         <button wire:click="verifyDocument({{ $doc->id }})"
-                                            class="p-1.5 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg transition-colors"
+                                            class="p-1.5 text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-lg transition-colors"
                                             title="Verify">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
@@ -850,7 +850,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
         {{-- Sidebar - Actions --}}
         <div class="space-y-6">
             {{-- Actions Card --}}
-            <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
                 <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
                     <h3 class="font-semibold text-zinc-900 dark:text-white">Actions</h3>
                 </div>
@@ -899,7 +899,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                             <button wire:click="approveEndorsement"
                                 wire:confirm="{{ !$this->isFullyCompliant ? 'WARNING: This member is NOT fully compliant. Are you sure you want to approve this endorsement request despite the missing prerequisites?' : 'Are you sure you want to approve this endorsement request?' }}"
                                 wire:loading.attr="disabled"
-                                class="w-full px-4 py-2 {{ !$this->isFullyCompliant ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-600 hover:bg-emerald-700' }} text-white rounded-lg transition-colors flex items-center justify-center gap-2 mb-3 disabled:opacity-50 disabled:cursor-not-allowed">
+                                class="w-full px-4 py-2 {{ !$this->isFullyCompliant ? 'bg-amber-600 hover:bg-amber-700' : 'bg-nrapa-blue hover:bg-nrapa-blue-dark' }} text-white rounded-lg transition-colors flex items-center justify-center gap-2 mb-3 disabled:opacity-50 disabled:cursor-not-allowed">
                                 <span wire:loading.remove wire:target="approveEndorsement">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -923,7 +923,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                                 </div>
                             @else
                                 <button wire:click="openIssueModal"
-                                    class="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 mb-3">
+                                    class="w-full px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors flex items-center justify-center gap-2 mb-3">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                     </svg>
@@ -969,7 +969,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                             <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Auto-generation may have failed. Use the button above to generate manually, or retry:</p>
                             <button wire:click="retryAutoIssue"
                                 wire:loading.attr="disabled"
-                                class="mt-3 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors text-sm inline-flex items-center gap-2 disabled:opacity-50">
+                                class="mt-3 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors text-sm inline-flex items-center gap-2 disabled:opacity-50">
                                 <span wire:loading.remove wire:target="retryAutoIssue">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -983,12 +983,12 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
 
                     @if($request->isIssued())
                         <div class="text-center py-4">
-                            <div class="w-16 h-16 mx-auto bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
-                                <svg class="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="w-16 h-16 mx-auto bg-emerald-100 dark:bg-emerald-900/40 rounded-full flex items-center justify-center mb-4">
+                                <svg class="w-8 h-8 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
                             </div>
-                            <p class="text-green-600 dark:text-green-400 font-semibold">Endorsement Issued</p>
+                            <p class="text-emerald-600 dark:text-emerald-400 font-semibold">Endorsement Issued</p>
                             <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Endorsement letter has been generated</p>
                             @if($request->expires_at)
                                 <p class="text-sm mt-2 {{ $request->is_expired ? 'text-red-600 dark:text-red-400' : ($request->is_expiring_soon ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-500 dark:text-zinc-400') }}">
@@ -1004,7 +1004,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                             @if($request->isIssued())
                                 <div class="flex gap-2 mt-4">
                                     <a href="{{ route('admin.endorsements.preview', $request) }}" target="_blank"
-                                        class="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2">
+                                        class="flex-1 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors flex items-center justify-center gap-2">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
@@ -1058,7 +1058,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
 
             {{-- Request Info --}}
             @if($request->letter_reference || $request->reviewer || $request->issuer)
-                <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+                <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
                     <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
                         <h3 class="font-semibold text-zinc-900 dark:text-white">Processing Info</h3>
                     </div>
@@ -1116,11 +1116,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                     </div>
                     <div class="flex justify-end gap-3">
                         <button wire:click="$set('showRejectModal', false)"
-                            class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                            class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                             Cancel
                         </button>
                         <button wire:click="rejectRequest"
-                            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg">
+                            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
                             Reject Request
                         </button>
                     </div>
@@ -1171,12 +1171,12 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                     
                     <div class="flex justify-end gap-3">
                         <button wire:click="$set('showIssueModal', false)"
-                            class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                            class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                             Cancel
                         </button>
                         <button wire:click="issueEndorsement"
                             wire:loading.attr="disabled"
-                            class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg disabled:opacity-50">
+                            class="px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors disabled:opacity-50">
                             <span wire:loading.remove wire:target="issueEndorsement">Issue Letter</span>
                             <span wire:loading wire:target="issueEndorsement">Processing...</span>
                         </button>
@@ -1207,11 +1207,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                     </p>
                     <div class="flex gap-3 justify-end">
                         <button wire:click="$set('showDeleteModal', false)" 
-                            class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                            class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                             Cancel
                         </button>
                         <button wire:click="deleteEndorsement" 
-                            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg">
+                            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
                             Delete Request
                         </button>
                     </div>

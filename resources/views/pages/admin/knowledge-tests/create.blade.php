@@ -71,7 +71,7 @@ new #[Title('Create Knowledge Test - Admin')] class extends Component {
 <div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
     {{-- Header --}}
     <div class="flex items-center gap-4">
-        <a href="{{ route('admin.knowledge-tests.index') }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
+        <a href="{{ route('admin.knowledge-tests.index') }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
             <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
             </svg>
@@ -85,7 +85,7 @@ new #[Title('Create Knowledge Test - Admin')] class extends Component {
 
     {{-- Form --}}
     <form wire:submit="save" class="max-w-2xl space-y-6">
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
             <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Test Details</h2>
 
             <div class="space-y-4">
@@ -158,7 +158,7 @@ new #[Title('Create Knowledge Test - Admin')] class extends Component {
             </div>
         </div>
 
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
             <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Dedicated Status Type</h2>
             <p class="mb-4 text-sm text-zinc-500 dark:text-zinc-400">Knowledge tests are required for members applying for Dedicated Status. Select which type of dedicated status this test applies to.</p>
 
@@ -173,7 +173,7 @@ new #[Title('Create Knowledge Test - Admin')] class extends Component {
             </div>
         </div>
 
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
             <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Test Configuration</h2>
 
             <div class="grid gap-4 sm:grid-cols-3">
@@ -207,10 +207,10 @@ new #[Title('Create Knowledge Test - Admin')] class extends Component {
         </div>
 
         <div class="flex gap-3">
-            <button type="submit" class="rounded-lg bg-emerald-600 px-6 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">
+            <button type="submit" class="rounded-lg bg-nrapa-blue px-6 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                 Create Test
             </button>
-            <a href="{{ route('admin.knowledge-tests.index') }}" wire:navigate class="rounded-lg border border-zinc-300 bg-white px-6 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
+            <a href="{{ route('admin.knowledge-tests.index') }}" wire:navigate class="rounded-lg border border-zinc-300 bg-white px-6 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
                 Cancel
             </a>
         </div>

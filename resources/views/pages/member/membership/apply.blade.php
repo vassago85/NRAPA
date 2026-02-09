@@ -371,7 +371,7 @@ new #[Title('Apply for Membership')] class extends Component {
                 <div class="space-y-4">
                     <label class="flex items-start gap-3">
                         <input type="checkbox" wire:model.live="agreedToTerms" class="mt-1 size-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700">
-                        <span class="text-sm text-zinc-700 dark:text-zinc-300">I agree to the NRAPA membership terms and conditions, code of conduct, and privacy policy.</span>
+                        <span class="text-sm text-zinc-700 dark:text-zinc-300">I agree to the NRAPA membership <a href="{{ route('terms-and-conditions') }}" target="_blank" class="text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300">terms and conditions</a>, code of conduct, and <a href="{{ route('privacy-policy') }}" target="_blank" class="text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300">privacy policy</a>.</span>
                     </label>
                     @error('agreedToTerms')
                         <p class="text-sm text-red-500">{{ $message }}</p>

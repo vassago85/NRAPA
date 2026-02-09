@@ -365,7 +365,7 @@ new class extends Component {
             <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Billing & Stats</h1>
             <p class="mt-2 text-zinc-600 dark:text-zinc-400">Track new members, renewals, and billing trends.</p>
         </div>
-        <a href="{{ route('admin.dashboard') }}" wire:navigate class="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white">
+        <a href="{{ route('admin.dashboard') }}" wire:navigate class="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors">
             ← Back to Dashboard
         </a>
     </div>
@@ -580,7 +580,7 @@ new class extends Component {
                 </svg>
                 Apply
             </button>
-            <button wire:click="$set('selected', []); $set('selectAll', false)" class="text-sm text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200">
+            <button wire:click="$set('selected', []); $set('selectAll', false)" class="text-sm text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors">
                 Clear selection
             </button>
         </div>

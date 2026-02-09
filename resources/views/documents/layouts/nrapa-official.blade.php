@@ -340,6 +340,255 @@ div[style*="height:14px"] { height: 8px !important; }
 div[style*="height:10px"] { height: 6px !important; }
 div[style*="height:8px"] { height: 4px !important; }
 
+/* ============================================
+   CARD-INSPIRED DESIGN SYSTEM (v2)
+   ============================================ */
+
+/* Blue gradient header bar */
+.doc-header {
+  background: linear-gradient(135deg, var(--blue) 0%, #0a3d80 100%);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 10px 10px 0 0;
+  color: #fff;
+}
+.doc-header .doc-logo {
+  width: 36px;
+  height: 36px;
+  background: rgba(255,255,255,0.9);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.doc-header .doc-logo img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+.doc-header .doc-logo-fallback {
+  font-weight: 800;
+  font-size: 9px;
+  color: var(--blue);
+}
+.doc-header .doc-org {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.doc-header .doc-org-text {
+  display: grid;
+  gap: 1px;
+}
+.doc-header .doc-org-name {
+  font-weight: 800;
+  font-size: 14px;
+  color: #fff;
+  letter-spacing: 0.3px;
+}
+.doc-header .doc-org-sub {
+  font-size: 9px;
+  color: rgba(255,255,255,0.8);
+  font-weight: 600;
+}
+.doc-header .doc-badge {
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--orange);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+/* Orange accent stripe */
+.doc-accent {
+  height: 3px;
+  background: linear-gradient(90deg, var(--orange), #f9a825, var(--orange));
+}
+
+/* Document title bar */
+.doc-title {
+  padding: 10px 16px;
+  text-align: center;
+}
+.doc-title h1 {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--blue);
+  text-transform: uppercase;
+  margin: 0;
+}
+.doc-title .doc-subtitle {
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* Sections with card-style fields */
+.doc-section {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: #fff;
+}
+.doc-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--blue);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Field label/value pattern (card-style) */
+.doc-field {
+  margin-bottom: 6px;
+}
+.doc-field:last-child { margin-bottom: 0; }
+.doc-field-label {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--blue);
+  font-weight: 600;
+  margin-bottom: 1px;
+}
+.doc-field-value {
+  font-size: 11px;
+  color: var(--text);
+  font-weight: 600;
+  line-height: 1.3;
+}
+.doc-field-value.name {
+  font-size: 13px;
+  font-weight: 700;
+}
+.doc-field-value.mono {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 10px;
+}
+
+/* Field row (side-by-side) */
+.doc-field-row {
+  display: flex;
+  gap: 12px;
+}
+.doc-field-row .doc-field { flex: 1; }
+
+/* Two-column document grid */
+.doc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* Notice / certification statement */
+.doc-notice {
+  border-left: 3px solid var(--blue);
+  background: var(--soft);
+  padding: 10px 14px;
+  border-radius: 0 8px 8px 0;
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+/* QR verification section */
+.doc-qr-section {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+.doc-qr-box {
+  width: 70px;
+  height: 70px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #fff;
+  padding: 2px;
+}
+.doc-qr-box img { width: 100%; height: 100%; object-fit: contain; }
+.doc-qr-text {
+  font-size: 9px;
+  color: var(--muted);
+}
+.doc-qr-text .verify-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  display: block;
+  margin-bottom: 2px;
+}
+
+/* Signatory section */
+.doc-signatory {
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+.doc-signatory .sig-name {
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--text);
+}
+.doc-signatory .sig-title {
+  font-size: 10px;
+  color: var(--muted);
+}
+.doc-signatory .sig-line {
+  height: 1px;
+  background: var(--line);
+  margin: 6px 0;
+}
+
+/* Blue footer bar */
+.doc-footer {
+  background: var(--blue);
+  padding: 8px 16px;
+  border-radius: 0 0 10px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: rgba(255,255,255,0.9);
+  font-size: 8px;
+  font-weight: 600;
+}
+.doc-footer .doc-footer-cert {
+  font-size: 9px;
+  font-weight: 700;
+}
+.doc-footer .doc-footer-far {
+  font-size: 7px;
+  color: rgba(255,255,255,0.7);
+}
+.doc-footer .doc-footer-far .far-sport { color: var(--orange); font-weight: 700; }
+.doc-footer .doc-footer-far .far-hunting { color: #fbbf24; font-weight: 700; }
+
+/* Document wrapper (adds the rounded border + shadow effect for screen viewing) */
+.doc-wrapper {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
 /* Print styles */
 @media print {
   html, body {

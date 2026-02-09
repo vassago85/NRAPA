@@ -646,7 +646,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
     {{-- Header --}}
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-4">
-            <a href="{{ route('admin.knowledge-tests.index') }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
+            <a href="{{ route('admin.knowledge-tests.index') }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
                 </svg>
@@ -665,13 +665,13 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                 </svg>
                 Import JSON
             </button>
-            <button wire:click="exportQuestionsToJson" class="inline-flex items-center gap-2 rounded-lg border border-green-300 bg-white px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-50 dark:border-green-600 dark:bg-zinc-700 dark:text-green-400 dark:hover:bg-zinc-600">
+            <button wire:click="exportQuestionsToJson" class="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50 dark:border-emerald-600 dark:bg-zinc-700 dark:text-emerald-400 dark:hover:bg-zinc-600">
                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
                 </svg>
                 Export JSON
             </button>
-            <button wire:click="openAddQuestion" class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">
+            <button wire:click="openAddQuestion" class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
@@ -682,8 +682,8 @@ new #[Title('Manage Questions - Admin')] class extends Component {
     </div>
 
     @if(session('success'))
-    <div class="rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
-        <p class="text-sm text-green-700 dark:text-green-300">{{ session('success') }}</p>
+    <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/40">
+        <p class="text-sm text-emerald-700 dark:text-emerald-300">{{ session('success') }}</p>
     </div>
     @endif
 
@@ -695,7 +695,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
 
     {{-- Question Form --}}
     @if($editingQuestionId !== null)
-    <div id="question-form" class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+    <div id="question-form" class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
         <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">
             {{ $editingQuestionId ? 'Edit Question' : 'Add Question' }}
         </h2>
@@ -823,7 +823,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                     + Add Option
                 </button>
                 @if(count($correctAnswers) > 0)
-                <p class="mt-2 text-xs text-green-600 dark:text-green-400">{{ count($correctAnswers) }} correct answer(s) selected</p>
+                <p class="mt-2 text-xs text-emerald-600 dark:text-emerald-400">{{ count($correctAnswers) }} correct answer(s) selected</p>
                 @endif
                 @error('correctAnswers') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
             </div>
@@ -943,10 +943,10 @@ new #[Title('Manage Questions - Admin')] class extends Component {
             @endif
 
             <div class="flex gap-3">
-                <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">
+                <button type="submit" class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                     {{ $editingQuestionId ? 'Update Question' : 'Add Question' }}
                 </button>
-                <button type="button" wire:click="cancelEdit" class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
+                <button type="button" wire:click="cancelEdit" class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
                     Cancel
                 </button>
             </div>
@@ -957,7 +957,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
     {{-- Questions List --}}
     <div class="space-y-4">
         @forelse($this->questions as $index => $question)
-        <div class="rounded-xl border {{ $question->is_active ? 'border-zinc-200 dark:border-zinc-700' : 'border-zinc-100 dark:border-zinc-800 opacity-60' }} bg-white p-6 shadow-sm dark:bg-zinc-800">
+        <div class="rounded-xl border {{ $question->is_active ? 'border-zinc-200 dark:border-zinc-700' : 'border-zinc-100 dark:border-zinc-800 opacity-60' }} bg-white p-6 dark:bg-zinc-800">
             <div class="flex items-start justify-between gap-4">
                 <div class="flex items-start gap-4">
                     <div class="flex flex-col gap-1">
@@ -980,7 +980,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                             @php
                                 $typeColors = [
                                     'multiple_choice' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-                                    'multiple_select' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                                    'multiple_select' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
                                     'priority_order' => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
                                     'matching' => 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200',
                                     'written' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
@@ -1024,10 +1024,10 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                                 @if($question->question_type === 'multiple_choice')
                                     {{-- Single correct answer - compare key to correct_answer --}}
                                     @if($optionKey === $question->correct_answer)
-                                    <svg class="size-4 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <svg class="size-4 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                     </svg>
-                                    <span class="font-medium text-green-700 dark:text-green-400"><span class="font-bold">{{ $optionKey }}.</span> {{ $optionText }}</span>
+                                    <span class="font-medium text-emerald-700 dark:text-emerald-400"><span class="font-bold">{{ $optionKey }}.</span> {{ $optionText }}</span>
                                     @else
                                     <svg class="size-4 text-zinc-300 dark:text-zinc-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
@@ -1037,10 +1037,10 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                                 @elseif($question->question_type === 'multiple_select')
                                     {{-- Multiple correct answers - compare key to correct_answers array --}}
                                     @if(in_array($optionKey, $question->correct_answers ?? []))
-                                    <svg class="size-4 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <svg class="size-4 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                     </svg>
-                                    <span class="font-medium text-green-700 dark:text-green-400"><span class="font-bold">{{ $optionKey }}.</span> {{ $optionText }}</span>
+                                    <span class="font-medium text-emerald-700 dark:text-emerald-400"><span class="font-bold">{{ $optionKey }}.</span> {{ $optionText }}</span>
                                     @else
                                     <svg class="size-4 text-zinc-300 dark:text-zinc-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
@@ -1060,7 +1060,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button wire:click="toggleQuestionActive({{ $question->id }})" class="text-sm {{ $question->is_active ? 'text-amber-600 hover:text-amber-700 dark:text-amber-400' : 'text-green-600 hover:text-green-700 dark:text-green-400' }}">
+                    <button wire:click="toggleQuestionActive({{ $question->id }})" class="text-sm {{ $question->is_active ? 'text-amber-600 hover:text-amber-700 dark:text-amber-400' : 'text-emerald-600 hover:text-emerald-700 dark:text-emerald-400' }}">
                         {{ $question->is_active ? 'Deactivate' : 'Activate' }}
                     </button>
                     <button wire:click="editQuestion({{ $question->id }})" class="text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
@@ -1075,13 +1075,13 @@ new #[Title('Manage Questions - Admin')] class extends Component {
             </div>
         </div>
         @empty
-        <div class="rounded-xl border border-zinc-200 bg-white p-12 text-center shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-12 text-center dark:border-zinc-700 dark:bg-zinc-800">
             <svg class="mx-auto size-12 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />
             </svg>
             <h3 class="mt-4 font-semibold text-zinc-900 dark:text-white">No questions yet</h3>
             <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Add questions to your test to get started.</p>
-            <button wire:click="openAddQuestion" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+            <button wire:click="openAddQuestion" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
@@ -1163,7 +1163,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                     </div>
 
                     <div class="flex gap-3">
-                        <button wire:click="importQuestionsFromJson" class="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                        <button wire:click="importQuestionsFromJson" class="flex-1 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                             Import Questions
                         </button>
                         <button wire:click="closeJsonImportModal" class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200">

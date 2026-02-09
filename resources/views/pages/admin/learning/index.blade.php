@@ -613,31 +613,31 @@ new #[Title('Learning Center - Admin')] class extends Component {
             <p class="text-zinc-600 dark:text-zinc-400">Manage educational content for members</p>
         </div>
         <div class="flex gap-2">
-            <button wire:click="editCategory()" class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
+            <button wire:click="editCategory()" class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
                 New Category
             </button>
-            <button wire:click="editArticle()" class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">
+            <button wire:click="editArticle()" class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
                 New Article
             </button>
-            <button wire:click="openWordImportModal" class="inline-flex items-center gap-2 rounded-lg border border-purple-300 bg-white px-4 py-2 text-sm font-medium text-purple-700 hover:bg-purple-50 dark:border-purple-600 dark:bg-zinc-700 dark:text-purple-400 dark:hover:bg-zinc-600">
+            <button wire:click="openWordImportModal" class="inline-flex items-center gap-2 rounded-lg border border-purple-300 bg-white px-4 py-2 text-sm font-medium text-purple-700 hover:bg-purple-50 dark:border-purple-600 dark:bg-zinc-700 dark:text-purple-400 dark:hover:bg-zinc-600 transition-colors">
                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                 </svg>
                 Import Word Doc
             </button>
-            <button wire:click="openJsonImportModal" class="inline-flex items-center gap-2 rounded-lg border border-blue-300 bg-white px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:bg-zinc-700 dark:text-blue-400 dark:hover:bg-zinc-600">
+            <button wire:click="openJsonImportModal" class="inline-flex items-center gap-2 rounded-lg border border-blue-300 bg-white px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:bg-zinc-700 dark:text-blue-400 dark:hover:bg-zinc-600 transition-colors">
                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
                 </svg>
                 Import JSON
             </button>
-            <button wire:click="exportToJson" class="inline-flex items-center gap-2 rounded-lg border border-green-300 bg-white px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-50 dark:border-green-600 dark:bg-zinc-700 dark:text-green-400 dark:hover:bg-zinc-600">
+            <button wire:click="exportToJson" class="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50 dark:border-emerald-600 dark:bg-zinc-700 dark:text-emerald-400 dark:hover:bg-zinc-600 transition-colors">
                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
                 </svg>
@@ -648,27 +648,27 @@ new #[Title('Learning Center - Admin')] class extends Component {
 
     {{-- Stats --}}
     <div class="grid gap-4 sm:grid-cols-4">
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Categories</p>
             <p class="mt-1 text-2xl font-bold text-zinc-900 dark:text-white">{{ $this->stats['categories'] }}</p>
         </div>
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Total Articles</p>
             <p class="mt-1 text-2xl font-bold text-zinc-900 dark:text-white">{{ $this->stats['articles'] }}</p>
         </div>
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Published</p>
             <p class="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ $this->stats['published'] }}</p>
         </div>
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Featured</p>
             <p class="mt-1 text-2xl font-bold text-amber-600 dark:text-amber-400">{{ $this->stats['featured'] }}</p>
         </div>
     </div>
 
     @if(session('success'))
-    <div class="rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
-        <p class="text-sm text-green-700 dark:text-green-300">{{ session('success') }}</p>
+    <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
+        <p class="text-sm text-emerald-700 dark:text-emerald-300">{{ session('success') }}</p>
     </div>
     @endif
 
@@ -680,7 +680,7 @@ new #[Title('Learning Center - Admin')] class extends Component {
 
     {{-- Category Form --}}
     @if($editingCategoryId !== null)
-    <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
         <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">
             {{ $editingCategoryId ? 'Edit Category' : 'New Category' }}
         </h2>
@@ -753,10 +753,10 @@ new #[Title('Learning Center - Admin')] class extends Component {
             </div>
 
             <div class="flex gap-3">
-                <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                <button type="submit" class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                     {{ $editingCategoryId ? 'Update Category' : 'Create Category' }}
                 </button>
-                <button type="button" wire:click="cancelCategoryEdit" class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200">
+                <button type="button" wire:click="cancelCategoryEdit" class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 transition-colors">
                     Cancel
                 </button>
             </div>
@@ -766,7 +766,7 @@ new #[Title('Learning Center - Admin')] class extends Component {
 
     {{-- Article Form --}}
     @if($editingArticleId !== null)
-    <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
         <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">
             {{ $editingArticleId ? 'Edit Article' : 'New Article' }}
         </h2>
@@ -935,10 +935,10 @@ new #[Title('Learning Center - Admin')] class extends Component {
             </div>
 
             <div class="flex gap-3">
-                <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                <button type="submit" class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                     {{ $editingArticleId ? 'Update Article' : 'Create Article' }}
                 </button>
-                <button type="button" wire:click="cancelArticleEdit" class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200">
+                <button type="button" wire:click="cancelArticleEdit" class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 transition-colors">
                     Cancel
                 </button>
             </div>
@@ -962,7 +962,7 @@ new #[Title('Learning Center - Admin')] class extends Component {
     @if($tab === 'categories')
     <div class="space-y-4">
         @forelse($this->categories as $category)
-        <div class="rounded-xl border {{ $category->is_active ? 'border-zinc-200 dark:border-zinc-700' : 'border-zinc-100 dark:border-zinc-800 opacity-60' }} bg-white p-6 shadow-sm dark:bg-zinc-800">
+        <div class="rounded-xl border {{ $category->is_active ? 'border-zinc-200 dark:border-zinc-700' : 'border-zinc-100 dark:border-zinc-800 opacity-60' }} bg-white p-6 dark:bg-zinc-800">
             <div class="flex items-start justify-between gap-4">
                 <div class="flex items-start gap-4">
                     @if($category->hasImage())
@@ -988,15 +988,15 @@ new #[Title('Learning Center - Admin')] class extends Component {
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button wire:click="toggleCategoryActive({{ $category->id }})" class="text-sm {{ $category->is_active ? 'text-amber-600 hover:text-amber-700 dark:text-amber-400' : 'text-green-600 hover:text-green-700 dark:text-green-400' }}">
+                    <button wire:click="toggleCategoryActive({{ $category->id }})" class="text-sm transition-colors {{ $category->is_active ? 'text-amber-600 hover:text-amber-700 dark:text-amber-400' : 'text-emerald-600 hover:text-emerald-700 dark:text-emerald-400' }}">
                         {{ $category->is_active ? 'Deactivate' : 'Activate' }}
                     </button>
-                    <button wire:click="editCategory({{ $category->id }})" class="text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400">
+                    <button wire:click="editCategory({{ $category->id }})" class="text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 transition-colors">
                         Edit
                     </button>
                     @if($category->articles_count > 0)
                     <div x-data="{ showDeleteModal: false, moveToCategoryId: '', deleteMode: 'delete_all' }" class="relative">
-                        <button @click="showDeleteModal = true" class="text-sm text-red-600 hover:text-red-700 dark:text-red-400">
+                        <button @click="showDeleteModal = true" class="text-sm text-red-600 hover:text-red-700 dark:text-red-400 transition-colors">
                             Delete ({{ $category->articles_count }} articles)
                         </button>
                         <div x-show="showDeleteModal" x-cloak @click.away="showDeleteModal = false" class="absolute right-0 top-full mt-2 z-10 w-72 rounded-lg border border-zinc-200 bg-white p-4 shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
@@ -1023,20 +1023,20 @@ new #[Title('Learning Center - Admin')] class extends Component {
                             </div>
                             
                             <div class="flex gap-2">
-                                <button @click="showDeleteModal = false" class="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200">
+                                <button @click="showDeleteModal = false" class="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 transition-colors">
                                     Cancel
                                 </button>
                                 <button 
                                     @click="if(deleteMode === 'delete_all') { if(confirm('Are you sure? This will permanently delete the category and all {{ $category->articles_count }} articles.')) { $wire.deleteCategory({{ $category->id }}); showDeleteModal = false; } } else if(deleteMode === 'move' && moveToCategoryId) { $wire.deleteCategory({{ $category->id }}, parseInt(moveToCategoryId)); showDeleteModal = false; }" 
                                     :disabled="deleteMode === 'move' && !moveToCategoryId" 
-                                    class="flex-1 rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    class="flex-1 rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                                     <span x-text="deleteMode === 'delete_all' ? 'Delete All' : 'Delete & Move'"></span>
                                 </button>
                             </div>
                         </div>
                     </div>
                     @else
-                    <button wire:click="deleteCategory({{ $category->id }})" wire:confirm="Are you sure you want to delete this category?" class="text-sm text-red-600 hover:text-red-700 dark:text-red-400">
+                    <button wire:click="deleteCategory({{ $category->id }})" wire:confirm="Are you sure you want to delete this category?" class="text-sm text-red-600 hover:text-red-700 dark:text-red-400 transition-colors">
                         Delete
                     </button>
                     @endif
@@ -1044,13 +1044,13 @@ new #[Title('Learning Center - Admin')] class extends Component {
             </div>
         </div>
         @empty
-        <div class="rounded-xl border border-zinc-200 bg-white p-12 text-center shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-12 text-center dark:border-zinc-700 dark:bg-zinc-800">
             <svg class="mx-auto size-12 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
             </svg>
             <h3 class="mt-4 font-semibold text-zinc-900 dark:text-white">No categories yet</h3>
             <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Create categories to organize your learning content.</p>
-            <button wire:click="editCategory()" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+            <button wire:click="editCategory()" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
@@ -1065,7 +1065,7 @@ new #[Title('Learning Center - Admin')] class extends Component {
     @if($tab === 'articles')
     <div class="space-y-4">
         @forelse($this->articles as $article)
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
             <div class="flex items-start justify-between gap-4">
                 <div class="flex items-start gap-4">
                     @if($article->hasFeaturedImage())
@@ -1081,7 +1081,7 @@ new #[Title('Learning Center - Admin')] class extends Component {
                         <div class="flex flex-wrap items-center gap-2">
                             <h3 class="font-semibold text-zinc-900 dark:text-white">{{ $article->title }}</h3>
                             @if($article->is_published)
-                            <span class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Published</span>
+                            <span class="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Published</span>
                             @else
                             <span class="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400">Draft</span>
                             @endif
@@ -1119,33 +1119,33 @@ new #[Title('Learning Center - Admin')] class extends Component {
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <a href="{{ route('admin.learning.pages', $article) }}" wire:navigate class="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                    <a href="{{ route('admin.learning.pages', $article) }}" wire:navigate class="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 transition-colors">
                         Pages{{ $article->pages_count > 0 ? " ({$article->pages_count})" : '' }}
                     </a>
-                    <button wire:click="toggleArticlePublished({{ $article->id }})" class="text-sm {{ $article->is_published ? 'text-amber-600 hover:text-amber-700 dark:text-amber-400' : 'text-green-600 hover:text-green-700 dark:text-green-400' }}">
+                    <button wire:click="toggleArticlePublished({{ $article->id }})" class="text-sm transition-colors {{ $article->is_published ? 'text-amber-600 hover:text-amber-700 dark:text-amber-400' : 'text-emerald-600 hover:text-emerald-700 dark:text-emerald-400' }}">
                         {{ $article->is_published ? 'Unpublish' : 'Publish' }}
                     </button>
-                    <button wire:click="toggleArticleFeatured({{ $article->id }})" class="text-sm {{ $article->is_featured ? 'text-zinc-600 hover:text-zinc-700 dark:text-zinc-400' : 'text-amber-600 hover:text-amber-700 dark:text-amber-400' }}">
+                    <button wire:click="toggleArticleFeatured({{ $article->id }})" class="text-sm transition-colors {{ $article->is_featured ? 'text-zinc-600 hover:text-zinc-700 dark:text-zinc-400' : 'text-amber-600 hover:text-amber-700 dark:text-amber-400' }}">
                         {{ $article->is_featured ? 'Unfeature' : 'Feature' }}
                     </button>
-                    <button wire:click="editArticle({{ $article->id }})" class="text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400">
+                    <button wire:click="editArticle({{ $article->id }})" class="text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 transition-colors">
                         Edit
                     </button>
-                    <button wire:click="deleteArticle({{ $article->id }})" wire:confirm="Are you sure you want to delete this article?" class="text-sm text-red-600 hover:text-red-700 dark:text-red-400">
+                    <button wire:click="deleteArticle({{ $article->id }})" wire:confirm="Are you sure you want to delete this article?" class="text-sm text-red-600 hover:text-red-700 dark:text-red-400 transition-colors">
                         Delete
                     </button>
                 </div>
             </div>
         </div>
         @empty
-        <div class="rounded-xl border border-zinc-200 bg-white p-12 text-center shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-12 text-center dark:border-zinc-700 dark:bg-zinc-800">
             <svg class="mx-auto size-12 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
             </svg>
             <h3 class="mt-4 font-semibold text-zinc-900 dark:text-white">No articles yet</h3>
             <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Create articles to share knowledge with your members.</p>
             @if($this->categories->count() > 0)
-            <button wire:click="editArticle()" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+            <button wire:click="editArticle()" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
@@ -1231,10 +1231,10 @@ new #[Title('Learning Center - Admin')] class extends Component {
                     </div>
 
                     <div class="flex gap-3">
-                        <button wire:click="importFromJson" class="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                        <button wire:click="importFromJson" class="flex-1 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                             Import Articles
                         </button>
-                        <button wire:click="closeJsonImportModal" class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200">
+                        <button wire:click="closeJsonImportModal" class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 transition-colors">
                             Cancel
                         </button>
                     </div>
@@ -1336,10 +1336,10 @@ new #[Title('Learning Center - Admin')] class extends Component {
                     </div>
 
                     <div class="flex gap-3">
-                        <button wire:click="importFromWord" class="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                        <button wire:click="importFromWord" class="flex-1 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                             Convert & Import Articles
                         </button>
-                        <button wire:click="closeWordImportModal" class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200">
+                        <button wire:click="closeWordImportModal" class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 transition-colors">
                             Cancel
                         </button>
                     </div>
