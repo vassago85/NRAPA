@@ -305,6 +305,19 @@ Route::middleware(['auth', 'verified', 'membership.required', 'terms.accepted'])
     Route::livewire('load-data/ladder-tests', 'pages::member.load-data.ladder-test.index')->name('ladder-test.index');
     Route::livewire('load-data/ladder-tests/create', 'pages::member.load-data.ladder-test.create')->name('ladder-test.create');
     Route::livewire('load-data/ladder-tests/{test}', 'pages::member.load-data.ladder-test.show')->name('ladder-test.show');
+    Route::get('load-data/ladder-tests/{test}/labels', function (\App\Models\LadderTest $test) {
+        if ($test->user_id !== auth()->id()) {
+            abort(403);
+        }
+        $test->load('steps');
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('documents.ladder-test-label', [
+            'test' => $test,
+            'steps' => $test->steps,
+        ]);
+        $pdf->setPaper('a4', 'portrait');
+        $filename = 'ladder-labels-' . str_replace(' ', '-', strtolower($test->name)) . '.pdf';
+        return $pdf->download($filename);
+    })->name('ladder-test.labels');
     Route::livewire('load-data/{load}', 'pages::member.load-data.show')->name('load-data.show');
     Route::livewire('load-data/{load}/edit', 'pages::member.load-data.edit')->name('load-data.edit');
 

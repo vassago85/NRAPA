@@ -5,6 +5,7 @@ use App\Models\MembershipType;
 use App\Models\MemberDocument;
 use App\Models\EndorsementRequest;
 use App\Models\Certificate;
+use App\Models\NotificationDismissal;
 use App\Models\ShootingActivity;
 use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Auth;
@@ -14,27 +15,36 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Title('Dashboard')] class extends Component {
-    public bool $rejectedDocumentsAlertDismissed = false;
-    public bool $rejectedActivitiesAlertDismissed = false;
+    public bool $showDismissedNotifications = false;
 
-    public function mount(): void
-    {
-        // Check if user has dismissed the rejected documents alert in this session
-        $this->rejectedDocumentsAlertDismissed = session()->get('rejected_documents_alert_dismissed', false);
-        // Check if user has dismissed the rejected activities alert in this session
-        $this->rejectedActivitiesAlertDismissed = session()->get('rejected_activities_alert_dismissed', false);
-    }
-
-    public function dismissRejectedDocumentsAlert(): void
-    {
-        $this->rejectedDocumentsAlertDismissed = true;
-        session()->put('rejected_documents_alert_dismissed', true);
-    }
-
+    /**
+     * Dismiss all currently visible rejected activities.
+     */
     public function dismissRejectedActivitiesAlert(): void
     {
-        $this->rejectedActivitiesAlertDismissed = true;
-        session()->put('rejected_activities_alert_dismissed', true);
+        $ids = $this->rejectedActivities->pluck('id')->toArray();
+        if (!empty($ids)) {
+            NotificationDismissal::dismissMany(auth()->id(), ShootingActivity::class, $ids);
+        }
+    }
+
+    /**
+     * Dismiss all currently visible rejected documents.
+     */
+    public function dismissRejectedDocumentsAlert(): void
+    {
+        $ids = $this->rejectedDocuments->pluck('id')->toArray();
+        if (!empty($ids)) {
+            NotificationDismissal::dismissMany(auth()->id(), MemberDocument::class, $ids);
+        }
+    }
+
+    /**
+     * Restore a single dismissed notification so it appears in the active alerts again.
+     */
+    public function restoreNotification(string $type, int $id): void
+    {
+        NotificationDismissal::restore(auth()->id(), $type, $id);
     }
 
     #[Computed]
@@ -140,6 +150,51 @@ new #[Title('Dashboard')] class extends Component {
             ->with('activityType')
             ->orderBy('updated_at', 'desc')
             ->get();
+    }
+
+    /**
+     * IDs that the user has dismissed.
+     */
+    #[Computed]
+    public function dismissedDocumentIds()
+    {
+        return NotificationDismissal::getDismissedIds(auth()->id(), MemberDocument::class);
+    }
+
+    #[Computed]
+    public function dismissedActivityIds()
+    {
+        return NotificationDismissal::getDismissedIds(auth()->id(), ShootingActivity::class);
+    }
+
+    /**
+     * Active (non-dismissed) rejected items.
+     */
+    #[Computed]
+    public function activeRejectedDocuments()
+    {
+        return $this->rejectedDocuments->reject(fn ($doc) => in_array($doc->id, $this->dismissedDocumentIds));
+    }
+
+    #[Computed]
+    public function activeRejectedActivities()
+    {
+        return $this->rejectedActivities->reject(fn ($a) => in_array($a->id, $this->dismissedActivityIds));
+    }
+
+    /**
+     * Dismissed rejected items (for the "Dismissed" section).
+     */
+    #[Computed]
+    public function dismissedRejectedDocuments()
+    {
+        return $this->rejectedDocuments->filter(fn ($doc) => in_array($doc->id, $this->dismissedDocumentIds));
+    }
+
+    #[Computed]
+    public function dismissedRejectedActivities()
+    {
+        return $this->rejectedActivities->filter(fn ($a) => in_array($a->id, $this->dismissedActivityIds));
     }
 
     #[Computed]
@@ -302,10 +357,18 @@ new #[Title('Dashboard')] class extends Component {
     @endif
 
     {{-- Action Required Notifications --}}
-    @if($this->pendingDocuments->count() > 0 || $this->rejectedDocuments->count() > 0 || $this->rejectedActivities->count() > 0 || $this->showEndorsementStatus)
+    @php
+        $activeActivities = $this->activeRejectedActivities;
+        $activeDocuments = $this->activeRejectedDocuments;
+        $dismissedActivities = $this->dismissedRejectedActivities;
+        $dismissedDocuments = $this->dismissedRejectedDocuments;
+        $totalDismissed = $dismissedActivities->count() + $dismissedDocuments->count();
+    @endphp
+
+    @if($this->pendingDocuments->count() > 0 || $activeDocuments->count() > 0 || $activeActivities->count() > 0 || $this->showEndorsementStatus || $totalDismissed > 0)
     <div class="space-y-4">
-        {{-- Rejected Activities Alert --}}
-        @if($this->rejectedActivities->count() > 0 && !$this->rejectedActivitiesAlertDismissed)
+        {{-- Rejected Activities Alert (active / not dismissed) --}}
+        @if($activeActivities->count() > 0)
         <div class="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20 relative">
             <button wire:click="dismissRejectedActivitiesAlert" 
                 class="absolute top-3 right-3 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200 transition-colors"
@@ -323,10 +386,10 @@ new #[Title('Dashboard')] class extends Component {
                 <div class="flex-1">
                     <h3 class="font-semibold text-red-800 dark:text-red-200">Activities Rejected</h3>
                     <p class="mt-1 text-sm text-red-700 dark:text-red-300">
-                        You have {{ $this->rejectedActivities->count() }} activit{{ $this->rejectedActivities->count() > 1 ? 'ies' : 'y' }} that {{ $this->rejectedActivities->count() > 1 ? 'were' : 'was' }} rejected and need attention:
+                        You have {{ $activeActivities->count() }} activit{{ $activeActivities->count() > 1 ? 'ies' : 'y' }} that {{ $activeActivities->count() > 1 ? 'were' : 'was' }} rejected and need attention:
                     </p>
                     <ul class="mt-2 space-y-2 text-sm text-red-700 dark:text-red-300">
-                        @foreach($this->rejectedActivities->take(3) as $activity)
+                        @foreach($activeActivities->take(3) as $activity)
                             <li class="flex flex-col gap-1 rounded-lg bg-red-100/50 dark:bg-red-900/30 p-2">
                                 <div class="flex items-center gap-2 font-medium">
                                     <svg class="size-3" fill="currentColor" viewBox="0 0 8 8">
@@ -342,8 +405,8 @@ new #[Title('Dashboard')] class extends Component {
                                 @endif
                             </li>
                         @endforeach
-                        @if($this->rejectedActivities->count() > 3)
-                            <li class="text-xs italic">and {{ $this->rejectedActivities->count() - 3 }} more...</li>
+                        @if($activeActivities->count() > 3)
+                            <li class="text-xs italic">and {{ $activeActivities->count() - 3 }} more...</li>
                         @endif
                     </ul>
                     <a href="{{ route('activities.index') }}" wire:navigate 
@@ -358,8 +421,8 @@ new #[Title('Dashboard')] class extends Component {
         </div>
         @endif
 
-        {{-- Rejected Documents Alert --}}
-        @if($this->rejectedDocuments->count() > 0 && !$this->rejectedDocumentsAlertDismissed)
+        {{-- Rejected Documents Alert (active / not dismissed) --}}
+        @if($activeDocuments->count() > 0)
         <div class="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20 relative">
             <button wire:click="dismissRejectedDocumentsAlert" 
                 class="absolute top-3 right-3 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200 transition-colors"
@@ -377,10 +440,10 @@ new #[Title('Dashboard')] class extends Component {
                 <div class="flex-1">
                     <h3 class="font-semibold text-red-800 dark:text-red-200">Documents Rejected</h3>
                     <p class="mt-1 text-sm text-red-700 dark:text-red-300">
-                        You have {{ $this->rejectedDocuments->count() }} document{{ $this->rejectedDocuments->count() > 1 ? 's' : '' }} that {{ $this->rejectedDocuments->count() > 1 ? 'were' : 'was' }} rejected and need attention:
+                        You have {{ $activeDocuments->count() }} document{{ $activeDocuments->count() > 1 ? 's' : '' }} that {{ $activeDocuments->count() > 1 ? 'were' : 'was' }} rejected and need attention:
                     </p>
                     <ul class="mt-2 space-y-2 text-sm text-red-700 dark:text-red-300">
-                        @foreach($this->rejectedDocuments->take(3) as $doc)
+                        @foreach($activeDocuments->take(3) as $doc)
                             <li class="flex flex-col gap-1 rounded-lg bg-red-100/50 dark:bg-red-900/30 p-2">
                                 <div class="flex items-center gap-2 font-medium">
                                     <svg class="size-3" fill="currentColor" viewBox="0 0 8 8">
@@ -396,8 +459,8 @@ new #[Title('Dashboard')] class extends Component {
                                 @endif
                             </li>
                         @endforeach
-                        @if($this->rejectedDocuments->count() > 3)
-                            <li class="text-xs italic">and {{ $this->rejectedDocuments->count() - 3 }} more...</li>
+                        @if($activeDocuments->count() > 3)
+                            <li class="text-xs italic">and {{ $activeDocuments->count() - 3 }} more...</li>
                         @endif
                     </ul>
                     <a href="{{ route('documents.index') }}" wire:navigate 
@@ -673,6 +736,65 @@ new #[Title('Dashboard')] class extends Component {
                     </svg>
                 </a>
             </div>
+        </div>
+        @endif
+
+        {{-- Dismissed Notifications Toggle --}}
+        @if($totalDismissed > 0)
+        <div>
+            <button wire:click="$toggle('showDismissedNotifications')"
+                class="inline-flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors">
+                <svg class="size-4 transition-transform {{ $showDismissedNotifications ? 'rotate-90' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
+                </svg>
+                {{ $totalDismissed }} dismissed notification{{ $totalDismissed > 1 ? 's' : '' }}
+            </button>
+
+            @if($showDismissedNotifications)
+            <div class="mt-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 p-4">
+                <h4 class="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-3">Dismissed Notifications</h4>
+                <div class="space-y-2">
+                    @foreach($dismissedActivities as $activity)
+                        <div class="flex items-center justify-between rounded-lg bg-white dark:bg-zinc-800 px-4 py-2.5 border border-zinc-100 dark:border-zinc-700">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <span class="inline-flex items-center rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-0.5 text-[10px] font-semibold text-red-700 dark:text-red-300 whitespace-nowrap">Activity</span>
+                                <span class="text-sm text-zinc-700 dark:text-zinc-300 truncate">
+                                    {{ $activity->activityType?->name ?? 'Activity' }} - {{ $activity->activity_date->format('d M Y') }}
+                                </span>
+                                @if($activity->rejection_reason)
+                                    <span class="text-xs text-zinc-400 italic truncate hidden sm:inline">"{{ Str::limit($activity->rejection_reason, 60) }}"</span>
+                                @endif
+                            </div>
+                            <button wire:click="restoreNotification('{{ addslashes(App\Models\ShootingActivity::class) }}', {{ $activity->id }})"
+                                class="ml-2 text-xs text-nrapa-blue hover:text-nrapa-blue-dark font-medium whitespace-nowrap">
+                                Show Again
+                            </button>
+                        </div>
+                    @endforeach
+
+                    @foreach($dismissedDocuments as $doc)
+                        <div class="flex items-center justify-between rounded-lg bg-white dark:bg-zinc-800 px-4 py-2.5 border border-zinc-100 dark:border-zinc-700">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <span class="inline-flex items-center rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-0.5 text-[10px] font-semibold text-red-700 dark:text-red-300 whitespace-nowrap">Document</span>
+                                <span class="text-sm text-zinc-700 dark:text-zinc-300 truncate">
+                                    {{ $doc->documentType?->name ?? 'Document' }}
+                                </span>
+                                @if($doc->rejection_reason)
+                                    <span class="text-xs text-zinc-400 italic truncate hidden sm:inline">"{{ Str::limit($doc->rejection_reason, 60) }}"</span>
+                                @endif
+                            </div>
+                            <button wire:click="restoreNotification('{{ addslashes(App\Models\MemberDocument::class) }}', {{ $doc->id }})"
+                                class="ml-2 text-xs text-nrapa-blue hover:text-nrapa-blue-dark font-medium whitespace-nowrap">
+                                Show Again
+                            </button>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
         </div>
         @endif
     </div>

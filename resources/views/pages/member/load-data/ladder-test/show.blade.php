@@ -4,7 +4,6 @@ use App\Models\LadderTest;
 use App\Models\LadderTestStep;
 use App\Models\LoadData;
 use App\Models\UserFirearm;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -50,9 +49,16 @@ new class extends Component {
         }
 
         $this->test = $test->load(['steps', 'userFirearm', 'loadData']);
+        $roundsPerStep = max(1, $this->test->rounds_per_step ?? 3);
 
         foreach ($test->steps as $step) {
-            $this->stepVelocities[$step->id] = $step->velocities ? implode(', ', $step->velocities) : '';
+            // Build individual velocity slots (pad to rounds_per_step)
+            $vels = $step->velocities ?? [];
+            $slots = [];
+            for ($i = 0; $i < $roundsPerStep; $i++) {
+                $slots[$i] = $vels[$i] ?? null;
+            }
+            $this->stepVelocities[$step->id] = $slots;
             $this->stepGroupSize[$step->id] = $step->group_size;
             $this->stepNotes[$step->id] = $step->notes ?? '';
         }
@@ -127,18 +133,17 @@ new class extends Component {
 
     public function updatedVelocityUnit($value): void
     {
-        // Convert all displayed velocity strings
-        foreach ($this->stepVelocities as $id => $velStr) {
-            if (!$velStr) continue;
-            $parts = array_filter(array_map('trim', explode(',', $velStr)), fn ($v) => is_numeric($v));
-            if (empty($parts)) continue;
-
-            if ($value === 'ms') {
-                $converted = array_map(fn ($v) => round($v * 0.3048, 1), $parts);
-            } else {
-                $converted = array_map(fn ($v) => (int) round($v / 0.3048), $parts);
+        // Convert all displayed velocity values between fps and m/s
+        foreach ($this->stepVelocities as $id => $slots) {
+            if (!is_array($slots)) continue;
+            foreach ($slots as $i => $v) {
+                if ($v === null || $v === '' || !is_numeric($v)) continue;
+                if ($value === 'ms') {
+                    $this->stepVelocities[$id][$i] = round($v * 0.3048, 1);
+                } else {
+                    $this->stepVelocities[$id][$i] = (int) round($v / 0.3048);
+                }
             }
-            $this->stepVelocities[$id] = implode(', ', $converted);
         }
     }
 
@@ -158,14 +163,19 @@ new class extends Component {
     {
         // Reload fresh data from DB into form fields (in case they were stale)
         $step = LadderTestStep::findOrFail($stepId);
+        $roundsPerStep = max(1, $this->test->rounds_per_step ?? 3);
 
-        // If user has a non-default unit selected, convert for display
-        if ($this->velocity_unit === 'ms' && $step->velocities) {
-            $converted = array_map(fn ($v) => round($v * 0.3048, 1), $step->velocities);
-            $this->stepVelocities[$stepId] = implode(', ', $converted);
-        } else {
-            $this->stepVelocities[$stepId] = $step->velocities ? implode(', ', $step->velocities) : '';
+        $vels = $step->velocities ?? [];
+        $slots = [];
+        for ($i = 0; $i < $roundsPerStep; $i++) {
+            $v = $vels[$i] ?? null;
+            // Convert to display unit if needed
+            if ($v !== null && $this->velocity_unit === 'ms') {
+                $v = round($v * 0.3048, 1);
+            }
+            $slots[$i] = $v;
         }
+        $this->stepVelocities[$stepId] = $slots;
 
         if ($this->group_unit === 'mm' && $step->group_size !== null) {
             $this->stepGroupSize[$stepId] = $this->inToMm((float) $step->group_size);
@@ -188,11 +198,15 @@ new class extends Component {
             ->whereHas('ladderTest', fn ($q) => $q->where('user_id', auth()->id()))
             ->firstOrFail();
 
-        $velocitiesRaw = $this->stepVelocities[$stepId] ?? '';
-        $velocities = array_filter(
-            array_map('trim', explode(',', $velocitiesRaw)),
-            fn ($v) => is_numeric($v) && $v > 0
-        );
+        // Collect individual velocity values, filtering out empty/non-numeric
+        $rawSlots = $this->stepVelocities[$stepId] ?? [];
+        $velocities = [];
+        foreach ($rawSlots as $v) {
+            $v = is_string($v) ? trim($v) : $v;
+            if ($v !== null && $v !== '' && is_numeric($v) && (float) $v > 0) {
+                $velocities[] = $v;
+            }
+        }
 
         // Convert velocities to canonical fps if entered in m/s
         if ($this->velocity_unit === 'ms') {
@@ -231,20 +245,6 @@ new class extends Component {
         unset($this->editingSteps[$stepId]);
 
         session()->flash('step_saved_' . $stepId, 'Step ' . $step->step_number . ' results saved.');
-    }
-
-    public function printLadderLabels()
-    {
-        $pdf = Pdf::loadView('documents.ladder-test-label', [
-            'test' => $this->test,
-            'steps' => $this->test->steps,
-        ]);
-
-        $pdf->setPaper('a4', 'portrait');
-
-        return response()->streamDownload(function () use ($pdf) {
-            echo $pdf->output();
-        }, 'ladder-labels-' . str_replace(' ', '-', strtolower($this->test->name)) . '.pdf');
     }
 
     public function downloadCsvTemplate()
@@ -374,7 +374,8 @@ new class extends Component {
             'notes' => null,
         ]);
 
-        $this->stepVelocities[$stepId] = '';
+        $roundsPerStep = max(1, $this->test->rounds_per_step ?? 3);
+        $this->stepVelocities[$stepId] = array_fill(0, $roundsPerStep, null);
         $this->stepGroupSize[$stepId] = null;
         $this->stepNotes[$stepId] = '';
 
@@ -406,7 +407,13 @@ new class extends Component {
             ]);
 
             // Update local form state to reflect import
-            $this->stepVelocities[$step->id] = !empty($row['velocities']) ? implode(', ', $row['velocities']) : '';
+            $roundsPerStep = max(1, $this->test->rounds_per_step ?? 3);
+            $vels = $row['velocities'] ?? [];
+            $slots = [];
+            for ($i = 0; $i < $roundsPerStep; $i++) {
+                $slots[$i] = $vels[$i] ?? null;
+            }
+            $this->stepVelocities[$step->id] = $slots;
             $this->stepGroupSize[$step->id] = $row['group_size'];
             $this->stepNotes[$step->id] = $row['notes'] ?? '';
 
@@ -489,13 +496,13 @@ new class extends Component {
                     </svg>
                     Import CSV
                 </button>
-                <button wire:click="printLadderLabels"
-                        class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
+                <a href="{{ route('ladder-test.labels', $test) }}" target="_blank"
+                   class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
                     </svg>
                     Print Labels
-                </button>
+                </a>
                 <button wire:click="deleteTest" wire:confirm="Are you sure you want to delete this ladder test? This cannot be undone."
                         class="inline-flex items-center gap-2 rounded-lg border border-red-300 dark:border-red-600 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -506,6 +513,17 @@ new class extends Component {
             </div>
         </div>
     </x-slot>
+
+    @if(session('success'))
+        <div class="mb-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-4 py-3 text-sm text-green-700 dark:text-green-300">
+            {{ session('success') }}
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="mb-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+            {{ session('error') }}
+        </div>
+    @endif
 
     <!-- Summary -->
     <div class="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -896,64 +914,72 @@ new class extends Component {
 
                 @if($step->has_results && !$isEditing)
                     {{-- Read-only display for saved results --}}
-                    <div class="grid grid-cols-1 gap-3 md:grid-cols-6">
-                        <div class="md:col-span-3">
-                            <label class="block text-xs font-medium text-zinc-500 mb-1">Velocities ({{ $velocity_unit === 'ms' ? 'm/s' : 'fps' }})</label>
-                            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
-                                @if($step->velocities)
+                    <div class="space-y-3">
+                    {{-- Shot velocities --}}
+                    @if($step->velocities && count($step->velocities) > 0)
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-500 mb-1.5">Shot Velocities ({{ $velocity_unit === 'ms' ? 'm/s' : 'fps' }})</label>
+                        <div class="flex flex-wrap gap-2">
+                            @foreach($step->velocities as $i => $vel)
+                                <div class="inline-flex items-center gap-1 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 px-3 py-1.5 text-sm">
+                                    <span class="text-[10px] font-semibold text-zinc-400">{{ $i + 1 }}</span>
+                                    <span class="font-medium text-zinc-900 dark:text-white">
+                                        @if($velocity_unit === 'ms')
+                                            {{ number_format($vel * 0.3048, 1) }}
+                                        @else
+                                            {{ $vel }}
+                                        @endif
+                                    </span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- ES / SD / Group Size row --}}
+                    <div class="grid grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-zinc-500 mb-1">ES</label>
+                            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 px-3 py-1.5 text-sm font-semibold text-zinc-900 dark:text-white">
+                                @if($step->es !== null)
                                     @if($velocity_unit === 'ms')
-                                        {{ implode(', ', array_map(fn ($v) => number_format($v * 0.3048, 1), $step->velocities)) }}
+                                        {{ number_format($step->es * 0.3048, 1) }}
                                     @else
-                                        {{ implode(', ', $step->velocities) }}
+                                        {{ $step->es }}
                                     @endif
                                 @else
                                     <span class="text-zinc-400">&mdash;</span>
                                 @endif
                             </div>
                         </div>
-                        <div class="grid grid-cols-3 gap-3 md:col-span-3">
-                            <div>
-                                <label class="block text-xs font-medium text-zinc-500 mb-1">ES</label>
-                                <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 px-3 py-1.5 text-sm font-semibold text-zinc-900 dark:text-white">
-                                    @if($step->es !== null)
-                                        @if($velocity_unit === 'ms')
-                                            {{ number_format($step->es * 0.3048, 1) }}
-                                        @else
-                                            {{ $step->es }}
-                                        @endif
-                                    @else
-                                        <span class="text-zinc-400">&mdash;</span>
-                                    @endif
-                                </div>
+                        <div>
+                            <label class="block text-xs font-medium text-zinc-500 mb-1">SD</label>
+                            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 px-3 py-1.5 text-sm font-semibold {{ $step->sd !== null ? ($step->sd <= 10 ? 'text-green-600' : ($step->sd <= 20 ? 'text-amber-600' : 'text-red-600')) : '' }}">
+                                @if($step->sd !== null)
+                                    {{ $step->sd }}
+                                @else
+                                    <span class="text-zinc-400">&mdash;</span>
+                                @endif
                             </div>
-                            <div>
-                                <label class="block text-xs font-medium text-zinc-500 mb-1">SD</label>
-                                <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 px-3 py-1.5 text-sm font-semibold {{ $step->sd !== null ? ($step->sd <= 10 ? 'text-green-600' : ($step->sd <= 20 ? 'text-amber-600' : 'text-red-600')) : '' }}">
-                                    @if($step->sd !== null)
-                                        {{ $step->sd }}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-zinc-500 mb-1">Group Size</label>
+                            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                                @if($step->group_size)
+                                    @if($group_unit === 'mm')
+                                        {{ number_format($step->group_size * 25.4, 1) }}mm
                                     @else
-                                        <span class="text-zinc-400">&mdash;</span>
+                                        {{ $step->group_size }}"
                                     @endif
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-zinc-500 mb-1">Group Size</label>
-                                <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
-                                    @if($step->group_size)
-                                        @if($group_unit === 'mm')
-                                            {{ number_format($step->group_size * 25.4, 1) }}mm
-                                        @else
-                                            {{ $step->group_size }}"
-                                        @endif
-                                    @else
-                                        <span class="text-zinc-400">&mdash;</span>
-                                    @endif
-                                </div>
+                                @else
+                                    <span class="text-zinc-400">&mdash;</span>
+                                @endif
                             </div>
                         </div>
                     </div>
+                    </div>
                     {{-- Notes row + actions --}}
-                    <div class="mt-3 flex items-center gap-3">
+                    <div class="flex items-center gap-3">
                         @if($step->notes)
                             <span class="text-xs text-zinc-500"><strong class="font-medium">Notes:</strong> {{ $step->notes }}</span>
                         @endif
@@ -970,32 +996,54 @@ new class extends Component {
                     </div>
                 @else
                     {{-- Editable form: first entry or edit mode --}}
-                    <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-medium text-zinc-500 mb-1">Velocities (comma-separated, {{ $velocity_unit === 'ms' ? 'm/s' : 'fps' }})</label>
-                            <input type="text" wire:model="stepVelocities.{{ $step->id }}" placeholder="{{ $velocity_unit === 'ms' ? 'e.g., 836.7, 838.2, 837.5' : 'e.g., 2745, 2752, 2748' }}"
-                                   class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
-                        </div>
+                    @php $roundsPerStep = max(1, $test->rounds_per_step ?? 3); @endphp
+                    <div class="space-y-3">
+                        {{-- Individual velocity inputs --}}
                         <div>
-                            <label class="block text-xs font-medium text-zinc-500 mb-1">Group Size ({{ $group_unit === 'mm' ? 'mm' : 'inches' }})</label>
-                            <input type="number" wire:model="stepGroupSize.{{ $step->id }}" step="{{ $group_unit === 'mm' ? '0.1' : '0.01' }}" placeholder="{{ $group_unit === 'mm' ? 'e.g., 19.1' : 'e.g., 0.75' }}"
-                                   class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                            <label class="block text-xs font-medium text-zinc-500 mb-1.5">
+                                Shot Velocities ({{ $velocity_unit === 'ms' ? 'm/s' : 'fps' }})
+                            </label>
+                            <div class="flex flex-wrap gap-2">
+                                @for($i = 0; $i < $roundsPerStep; $i++)
+                                    <div class="flex-1 min-w-[80px] max-w-[120px]">
+                                        <div class="relative">
+                                            <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-zinc-400">{{ $i + 1 }}</span>
+                                            <input type="number" wire:model="stepVelocities.{{ $step->id }}.{{ $i }}"
+                                                   step="{{ $velocity_unit === 'ms' ? '0.1' : '1' }}" min="0"
+                                                   placeholder="{{ $velocity_unit === 'ms' ? '838' : '2750' }}"
+                                                   class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 pl-6 pr-2 py-1.5 text-sm text-zinc-900 dark:text-white text-center">
+                                        </div>
+                                    </div>
+                                @endfor
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-medium text-zinc-500 mb-1">Notes</label>
-                            <div class="flex gap-2">
+
+                        {{-- Group size + Notes + Actions --}}
+                        <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+                            <div>
+                                <label class="block text-xs font-medium text-zinc-500 mb-1">
+                                    Group Size ({{ $group_unit === 'mm' ? 'mm' : 'inches' }})
+                                    <span class="text-zinc-400 font-normal">- optional</span>
+                                </label>
+                                <input type="number" wire:model="stepGroupSize.{{ $step->id }}" step="{{ $group_unit === 'mm' ? '0.1' : '0.01' }}" min="0" placeholder="{{ $group_unit === 'mm' ? 'e.g., 19.1' : 'e.g., 0.75' }}"
+                                       class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-zinc-500 mb-1">Notes <span class="text-zinc-400 font-normal">- optional</span></label>
                                 <input type="text" wire:model="stepNotes.{{ $step->id }}" placeholder="Notes..."
                                        class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                            </div>
+                            <div class="flex items-end gap-2">
                                 <button wire:click="saveStepResults({{ $step->id }})"
                                         wire:loading.attr="disabled"
                                         wire:loading.class="opacity-50 cursor-not-allowed"
-                                        class="rounded-lg bg-nrapa-blue px-3 py-1.5 text-xs font-medium text-white hover:bg-nrapa-blue-dark whitespace-nowrap">
+                                        class="rounded-lg bg-nrapa-blue px-4 py-1.5 text-xs font-medium text-white hover:bg-nrapa-blue-dark whitespace-nowrap">
                                     <span wire:loading.remove wire:target="saveStepResults({{ $step->id }})">Save</span>
                                     <span wire:loading wire:target="saveStepResults({{ $step->id }})">Saving...</span>
                                 </button>
                                 @if($isEditing)
                                     <button wire:click="cancelEditStep({{ $step->id }})"
-                                            class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700 whitespace-nowrap">
+                                            class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-4 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700 whitespace-nowrap">
                                         Cancel
                                     </button>
                                 @endif
@@ -1019,9 +1067,19 @@ Alpine.data('ladderChart', (initialData, unitLabel = 'gr', typeLabel = 'Powder C
     data: initialData,
     unitLabel: unitLabel,
     typeLabel: typeLabel,
+    retryCount: 0,
 
     init() {
-        this.$nextTick(() => this.renderChart());
+        this.$nextTick(() => this.waitForChartJs());
+    },
+
+    waitForChartJs() {
+        if (window.Chart) {
+            this.renderChart();
+        } else if (this.retryCount < 50) {
+            this.retryCount++;
+            setTimeout(() => this.waitForChartJs(), 100);
+        }
     },
 
     renderChart() {
