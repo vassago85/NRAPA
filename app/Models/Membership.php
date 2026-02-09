@@ -352,6 +352,7 @@ class Membership extends Model
 
     /**
      * Check if the membership is renewable.
+     * Renewal is only allowed within 30 days before expiry or after expiry.
      */
     public function isRenewable(): bool
     {
@@ -370,7 +371,70 @@ class Membership extends Model
             return false;
         }
 
+        // Must be within the renewal window (30 days before expiry or already expired)
+        if (! $this->isInRenewalWindow()) {
+            return false;
+        }
+
         return true;
+    }
+
+    /**
+     * Check if the membership is within the renewal window.
+     * Returns true if within 30 days of expiry or already expired.
+     */
+    public function isInRenewalWindow(): bool
+    {
+        // No expiry date means not in a renewal window
+        if (! $this->expires_at) {
+            return false;
+        }
+
+        // Already expired — can renew
+        if ($this->expires_at->isPast()) {
+            return true;
+        }
+
+        // Within 30 days of expiry — can renew
+        return now()->diffInDays($this->expires_at, false) <= 30;
+    }
+
+    /**
+     * Check if the membership will eventually require renewal but is not yet in the window.
+     * Useful for showing "renewal opens on X" messaging.
+     */
+    public function isRenewalUpcoming(): bool
+    {
+        if (! $this->requiresRenewal()) {
+            return false;
+        }
+
+        if (! in_array($this->status, ['active'])) {
+            return false;
+        }
+
+        if ($this->nextMembership()->exists()) {
+            return false;
+        }
+
+        if (! $this->expires_at) {
+            return false;
+        }
+
+        // Has an expiry in the future but more than 30 days away
+        return ! $this->expires_at->isPast() && now()->diffInDays($this->expires_at, false) > 30;
+    }
+
+    /**
+     * Get the date when the renewal window opens (30 days before expiry).
+     */
+    public function getRenewalWindowOpensAtAttribute(): ?\Carbon\Carbon
+    {
+        if (! $this->expires_at) {
+            return null;
+        }
+
+        return $this->expires_at->copy()->subDays(30);
     }
 
     /**

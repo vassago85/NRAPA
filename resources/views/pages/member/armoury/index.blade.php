@@ -93,7 +93,7 @@ new class extends Component {
     <x-slot name="header">
         <div class="mb-4">
             <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Virtual Safe</h1>
-            <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Manage your firearms, loads, and reloading inventory</p>
+            <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Manage your firearms, loads, and reloading inventory.</p>
         </div>
         <x-virtual-safe-tabs current="firearms" />
     </x-slot>
@@ -111,7 +111,7 @@ new class extends Component {
 
     <!-- License Expiry Notification Feature Banner -->
     @if($showNotificationBanner)
-        <div class="mb-6 rounded-lg border border-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-800 p-4">
+        <div class="mb-6 rounded-xl border border-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-800 p-4">
             <div class="flex items-start gap-3">
                 <div class="flex-shrink-0 mt-0.5">
                     <svg class="h-6 w-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -126,7 +126,7 @@ new class extends Component {
                     </p>
                     <div class="mt-3 flex flex-wrap items-center gap-3">
                         <a href="{{ route('notifications.edit') }}" wire:navigate
-                           class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors">
+                           class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -150,7 +150,7 @@ new class extends Component {
 
     <!-- Alert banners for expiring licenses -->
     @if($expiredCount > 0)
-        <div class="mb-6 rounded-lg border border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800 p-4">
+        <div class="mb-6 rounded-xl border border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800 p-4">
             <div class="flex items-center gap-3">
                 <svg class="h-6 w-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
@@ -164,7 +164,7 @@ new class extends Component {
     @endif
 
     @if($expiringCount > 0)
-        <div class="mb-6 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 p-4">
+        <div class="mb-6 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 p-4">
             <div class="flex items-center gap-3">
                 <svg class="h-6 w-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -181,7 +181,7 @@ new class extends Component {
     <div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
         <div>
             <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search firearms..."
-                   class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white placeholder-zinc-500">
+                   class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-nrapa-blue/50 focus:border-nrapa-blue transition-colors">
         </div>
         <div>
             <select wire:model.live="filterStatus"
@@ -207,7 +207,7 @@ new class extends Component {
     @if($firearms->count() > 0)
         <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             @foreach($firearms as $firearm)
-                <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 overflow-hidden">
+                <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 overflow-hidden">
                     <!-- Firearm Image or Placeholder -->
                     <div class="h-40 bg-zinc-100 dark:bg-zinc-700 flex items-center justify-center">
                         @if($firearm->image_path)
@@ -228,10 +228,10 @@ new class extends Component {
                             </div>
                             @php $badge = $firearm->license_status_badge; @endphp
                             <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
-                                @if($badge['color'] === 'green') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
-                                @elseif($badge['color'] === 'red') bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
-                                @elseif($badge['color'] === 'amber') bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200
-                                @else bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                @if($badge['color'] === 'green') bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300
+                                @elseif($badge['color'] === 'red') bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300
+                                @elseif($badge['color'] === 'amber') bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300
+                                @else bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300
                                 @endif">
                                 {{ $badge['text'] }}
                             </span>
@@ -254,11 +254,11 @@ new class extends Component {
 
                         <div class="flex items-center gap-2">
                             <a href="{{ route('armoury.show', $firearm) }}" wire:navigate
-                               class="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-600 px-3 py-2 text-center text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                               class="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-600 px-3 py-2 text-center text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                                 View
                             </a>
                             <a href="{{ route('armoury.edit', $firearm) }}" wire:navigate
-                               class="flex-1 rounded-lg bg-emerald-600 px-3 py-2 text-center text-sm font-medium text-white hover:bg-emerald-700">
+                               class="flex-1 rounded-lg bg-nrapa-blue px-3 py-2 text-center text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                                 Edit
                             </a>
                         </div>
@@ -271,14 +271,14 @@ new class extends Component {
             {{ $firearms->links() }}
         </div>
     @else
-        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-12 text-center">
+        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-12 text-center">
             <svg class="mx-auto h-16 w-16 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
             </svg>
             <h3 class="mt-4 text-lg font-semibold text-zinc-900 dark:text-white">Your Virtual Safe is empty</h3>
             <p class="mt-2 text-zinc-600 dark:text-zinc-400">Add your first firearm to start tracking licenses, expiry dates, and managing your collection.</p>
             <a href="{{ route('armoury.create') }}" wire:navigate
-               class="mt-6 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+               class="mt-6 inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>

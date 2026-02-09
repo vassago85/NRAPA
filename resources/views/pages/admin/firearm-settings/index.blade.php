@@ -114,7 +114,7 @@ new #[Title('Firearm Settings')] class extends Component {
     </div>
 
     @if(session('success'))
-        <div class="mb-6 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4 text-green-700 dark:text-green-300">
+        <div class="mb-6 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 text-emerald-700 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
@@ -150,7 +150,7 @@ new #[Title('Firearm Settings')] class extends Component {
     {{-- Firearm Types --}}
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {{-- Form --}}
-            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
                 <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">{{ $editingFirearmTypeId ? 'Edit' : 'Add' }} Firearm Type</h3>
                 <form wire:submit="saveFirearmType" class="space-y-4">
                     <div>
@@ -199,16 +199,16 @@ new #[Title('Firearm Settings')] class extends Component {
                     </div>
 
                     <div class="flex gap-2">
-                        <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Save</button>
+                        <button type="submit" class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">Save</button>
                         @if($editingFirearmTypeId)
-                            <button type="button" wire:click="resetFirearmTypeForm" class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700">Cancel</button>
+                            <button type="button" wire:click="resetFirearmTypeForm" class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors">Cancel</button>
                         @endif
                     </div>
                 </form>
             </div>
 
             {{-- List --}}
-            <div class="lg:col-span-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 overflow-hidden">
+            <div class="lg:col-span-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
                         <thead class="bg-zinc-50 dark:bg-zinc-800/50">
@@ -251,7 +251,7 @@ new #[Title('Firearm Settings')] class extends Component {
                                     <td class="px-4 py-3 text-center">
                                         <button wire:click="toggleFirearmTypeActive({{ $type->id }})" class="text-lg">
                                             @if($type->is_active)
-                                                <span class="text-green-500">✓</span>
+                                                <span class="text-emerald-500">✓</span>
                                             @else
                                                 <span class="text-zinc-300">○</span>
                                             @endif

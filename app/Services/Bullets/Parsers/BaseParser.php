@@ -56,7 +56,7 @@ abstract class BaseParser
             '/22\s*Cal/i' => '22 Cal',
             '/6mm/i' => '6mm',
             '/25\s*Cal/i' => '25 Cal',
-            '/6\.5\s*mm/i' => '6.5mm',
+            '/\b6\.5[\s\-]*(?:mm|grendel|creedmoor|prc|swede)\b/i' => '6.5mm',
             '/270\s*Cal/i' => '270 Cal',
             '/7mm/i' => '7mm',
             '/30\s*Cal/i' => '30 Cal',

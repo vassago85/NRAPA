@@ -42,7 +42,7 @@ new class extends Component {
     <!-- Action Bar -->
     <div class="mb-6">
         <a href="{{ route('ladder-test.create') }}" wire:navigate
-           class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
+           class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
             </svg>
@@ -51,7 +51,7 @@ new class extends Component {
     </div>
 
     @if(session('success'))
-        <div class="mb-6 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-4 py-3 text-sm text-green-700 dark:text-green-300">
+        <div class="mb-6 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
@@ -64,7 +64,7 @@ new class extends Component {
 
     <!-- Tests List -->
     @forelse($tests as $test)
-        <div class="mb-4 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+        <div class="mb-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
             <div class="flex items-start justify-between">
                 <div>
                     <a href="{{ route('ladder-test.show', $test) }}" wire:navigate
@@ -85,7 +85,7 @@ new class extends Component {
                         <p class="mt-1 text-xs text-zinc-400">{{ $test->userFirearm->display_name }}</p>
                     @endif
                     @if($test->best_step)
-                        <p class="mt-1 text-xs text-green-600 dark:text-green-400">
+                        <p class="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
                             Best: Step {{ $test->best_step->step_number }} ({{ rtrim(rtrim($test->best_step->charge_weight, '0'), '.') }}{{ $test->unit_label }}) &mdash; SD: {{ $test->best_step->sd }}
                         </p>
                     @endif
@@ -99,14 +99,14 @@ new class extends Component {
             </div>
         </div>
     @empty
-        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-12 text-center">
+        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-12 text-center">
             <svg class="mx-auto h-12 w-12 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
             </svg>
             <h3 class="mt-4 text-sm font-medium text-zinc-900 dark:text-white">No ladder tests yet</h3>
             <p class="mt-2 text-sm text-zinc-500">Create a ladder test to find the optimal charge weight for your loads.</p>
             <a href="{{ route('ladder-test.create') }}" wire:navigate
-               class="mt-4 inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
+               class="mt-4 inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                 Create First Test
             </a>
         </div>

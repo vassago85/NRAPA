@@ -545,7 +545,7 @@ new #[Title('Member Details - Admin')] class extends Component {
     public function getStatusClasses(string $status): string
     {
         return match($status) {
-            'active' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+            'active' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
             'applied' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
             'approved' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
             'suspended', 'revoked' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
@@ -558,7 +558,7 @@ new #[Title('Member Details - Admin')] class extends Component {
 <div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
     {{-- Flash Messages --}}
     @if(session('success'))
-        <div class="rounded-lg border border-green-300 bg-green-100 p-4 text-green-800 dark:border-green-700 dark:bg-green-900/30 dark:text-green-200">
+        <div class="rounded-lg border border-emerald-300 bg-emerald-100 p-4 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200">
             {{ session('success') }}
         </div>
     @endif
@@ -596,7 +596,7 @@ new #[Title('Member Details - Admin')] class extends Component {
             @endif
             
             @if($this->user->has2FAEnabled())
-            <span class="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800 dark:bg-green-900 dark:text-green-200">
+            <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
                 2FA Enabled
             </span>
             @endif
@@ -646,7 +646,7 @@ new #[Title('Member Details - Admin')] class extends Component {
 
     <div class="grid gap-6 lg:grid-cols-3">
         {{-- Member Info --}}
-        <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
             <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Member Information</h2>
             </div>
@@ -686,7 +686,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                         <dt class="text-sm text-zinc-500 dark:text-zinc-400">Email Verified</dt>
                         <dd class="mt-1">
                             @if($this->user->email_verified_at)
-                            <span class="inline-flex items-center gap-1 text-green-600 dark:text-green-400">
+                            <span class="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                                 </svg>
@@ -702,7 +702,7 @@ new #[Title('Member Details - Admin')] class extends Component {
         </div>
 
         {{-- Current Membership --}}
-        <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800 lg:col-span-2">
+        <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800 lg:col-span-2">
             <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Current Membership</h2>
             </div>
@@ -720,7 +720,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                     <div>
                         <dt class="text-sm text-zinc-500 dark:text-zinc-400">Status</dt>
                         <dd class="mt-1">
-                            <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-sm font-medium text-green-800 dark:bg-green-900 dark:text-green-200">
+                            <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-sm font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
                                 Active
                             </span>
                         </dd>
@@ -762,7 +762,7 @@ new #[Title('Member Details - Admin')] class extends Component {
     </div>
 
     {{-- Membership History --}}
-    <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
         <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Membership History</h2>
         </div>
@@ -821,7 +821,7 @@ new #[Title('Member Details - Admin')] class extends Component {
 
     {{-- Document Issuance --}}
     @if($this->activeMembership)
-    <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
         <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
             <div class="flex items-center justify-between">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Document Issuance</h2>
@@ -853,7 +853,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                     @endif
                     <button wire:click="issueDocument('dedicated-hunter')" 
                             @disabled(!$hasHunterStatus || $hasHunterCert)
-                            class="w-full px-3 py-2 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            class="w-full px-3 py-2 text-xs font-medium text-white bg-nrapa-blue hover:bg-nrapa-blue-dark rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                         @if($hasHunterCert) Already Issued @else Issue Certificate @endif
                     </button>
                 </div>
@@ -880,7 +880,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                     @endif
                     <button wire:click="issueDocument('dedicated-sport')" 
                             @disabled(!$hasSportStatus || $hasSportCert)
-                            class="w-full px-3 py-2 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            class="w-full px-3 py-2 text-xs font-medium text-white bg-nrapa-blue hover:bg-nrapa-blue-dark rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                         @if($hasSportCert) Already Issued @else Issue Certificate @endif
                     </button>
                 </div>
@@ -899,7 +899,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                     <h3 class="text-sm font-semibold text-zinc-900 dark:text-white mb-2">Membership Certificate</h3>
                     <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Certificate confirming member is paid-up, active, and in good standing</p>
                     <button wire:click="issueDocument('membership-certificate')" 
-                            class="w-full px-3 py-2 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">
+                            class="w-full px-3 py-2 text-xs font-medium text-white bg-nrapa-blue hover:bg-nrapa-blue-dark rounded-lg transition-colors">
                         Issue Certificate
                     </button>
                 </div>
@@ -915,7 +915,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                     <h3 class="text-sm font-semibold text-zinc-900 dark:text-white mb-2">Membership Card</h3>
                     <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Simple membership identification card (credit card format, wallet compatible)</p>
                     <button wire:click="issueDocument('membership-card')" 
-                            class="w-full px-3 py-2 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">
+                            class="w-full px-3 py-2 text-xs font-medium text-white bg-nrapa-blue hover:bg-nrapa-blue-dark rounded-lg transition-colors">
                         Issue Card
                     </button>
                 </div>
@@ -930,7 +930,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                     <h3 class="text-sm font-semibold text-zinc-900 dark:text-white mb-2">Welcome Letter</h3>
                     <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Informational welcome letter for new members</p>
                     <button wire:click="issueDocument('welcome-letter')" 
-                            class="w-full px-3 py-2 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">
+                            class="w-full px-3 py-2 text-xs font-medium text-white bg-nrapa-blue hover:bg-nrapa-blue-dark rounded-lg transition-colors">
                         Generate Letter
                     </button>
                 </div>
@@ -941,7 +941,7 @@ new #[Title('Member Details - Admin')] class extends Component {
 
     {{-- Certificates & Endorsements --}}
     @if($this->user->certificates->count() > 0 || $this->issuedEndorsements->count() > 0)
-    <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
         <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Issued Certificates & Endorsements</h2>
         </div>
@@ -973,7 +973,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                         </td>
                         <td class="whitespace-nowrap px-6 py-4">
                             @if($certificate->isValid())
-                                <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Valid</span>
+                                <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Valid</span>
                             @elseif($certificate->isRevoked())
                                 <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">Revoked</span>
                             @else
@@ -1033,7 +1033,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                             @elseif($endorsement->is_expiring_soon)
                                 <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Expiring Soon</span>
                             @else
-                                <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Issued</span>
+                                <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Issued</span>
                             @endif
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-sm">
@@ -1097,12 +1097,12 @@ new #[Title('Member Details - Admin')] class extends Component {
     @endif
 
     {{-- Knowledge Test Status --}}
-    <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
         <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
             <div class="flex items-center justify-between">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Knowledge Test Status</h2>
                 @if(!$this->user->hasPassedKnowledgeTest())
-                    <button wire:click="openMarkKnowledgeTestModal" class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                    <button wire:click="openMarkKnowledgeTestModal" class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
@@ -1114,11 +1114,11 @@ new #[Title('Member Details - Admin')] class extends Component {
         <div class="p-6">
             @if($this->user->hasPassedKnowledgeTest())
                 <div class="flex items-center gap-3">
-                    <svg class="size-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="size-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                     </svg>
                     <div>
-                        <p class="font-medium text-green-800 dark:text-green-200">Knowledge Test Passed</p>
+                        <p class="font-medium text-emerald-800 dark:text-emerald-200">Knowledge Test Passed</p>
                         <p class="text-sm text-zinc-500 dark:text-zinc-400">
                             @php
                                 $passedAttempt = $this->user->knowledgeTestAttempts->where('passed', true)->first();
@@ -1145,7 +1145,7 @@ new #[Title('Member Details - Admin')] class extends Component {
 
     {{-- Knowledge Test Attempts Summary --}}
     @if(count($this->testAttemptSummary) > 0)
-    <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
         <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Knowledge Test Attempts</h2>
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Overview of test attempts by test type</p>
@@ -1154,7 +1154,7 @@ new #[Title('Member Details - Admin')] class extends Component {
         {{-- Summary Cards --}}
         <div class="p-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             @foreach($this->testAttemptSummary as $testId => $summary)
-            <div class="rounded-lg border {{ $summary['passed'] ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : ($summary['count'] >= $summary['max'] ? 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' : 'border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800') }} p-4">
+            <div class="rounded-lg border {{ $summary['passed'] ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : ($summary['count'] >= $summary['max'] ? 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' : 'border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800') }} p-4">
                 <div class="flex items-start justify-between">
                     <div>
                         <h3 class="font-medium text-zinc-900 dark:text-white">{{ $summary['test']->name ?? 'Unknown Test' }}</h3>
@@ -1164,7 +1164,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                             </span>
                         </p>
                         @if($summary['passed'])
-                        <span class="mt-2 inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-800 dark:text-green-200">
+                        <span class="mt-2 inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200">
                             <svg class="mr-1 size-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                             Passed
                         </span>
@@ -1221,7 +1221,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                             </td>
                             <td class="whitespace-nowrap px-6 py-4">
                                 @if($attempt->passed === true)
-                                    <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Passed</span>
+                                    <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Passed</span>
                                 @elseif($attempt->passed === false)
                                     <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">Failed</span>
                                 @else
@@ -1417,7 +1417,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                             @endif
 
                             @if($verificationPassed)
-                                <div class="mb-3 p-2 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm flex items-center gap-2">
+                                <div class="mb-3 p-2 rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-sm flex items-center gap-2">
                                     <svg class="size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                                     </svg>
@@ -1539,7 +1539,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                         Cancel
                     </button>
                     <button wire:click="markKnowledgeTestComplete"
-                        class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                        class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                         Mark as Complete
                     </button>
                 </div>

@@ -92,7 +92,7 @@ new class extends Component {
     <!-- Action Bar -->
     <div class="mb-6">
         <a href="{{ route('load-data.create') }}" wire:navigate
-           class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
+           class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
             </svg>
@@ -131,7 +131,7 @@ new class extends Component {
     @if($loads->count() > 0)
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             @foreach($loads as $load)
-                <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-5">
+                <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-5">
                     <div class="flex items-start justify-between mb-3">
                         <div class="flex-1">
                             <div class="flex items-center gap-2">
@@ -146,7 +146,7 @@ new class extends Component {
                         </div>
                         @php $badge = $load->status_badge; @endphp
                         <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
-                            @if($badge['color'] === 'green') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                            @if($badge['color'] === 'green') bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300
                             @elseif($badge['color'] === 'blue') bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
                             @elseif($badge['color'] === 'amber') bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200
                             @else bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-300
@@ -175,7 +175,7 @@ new class extends Component {
 
                     <div class="flex items-center gap-2">
                         <button wire:click="toggleFavorite({{ $load->id }})"
-                                class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                                class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                             @if($load->is_favorite)
                                 <svg class="h-4 w-4 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
@@ -187,11 +187,11 @@ new class extends Component {
                             @endif
                         </button>
                         <a href="{{ route('load-data.show', $load) }}" wire:navigate
-                           class="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-600 px-3 py-2 text-center text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                           class="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-600 px-3 py-2 text-center text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                             View
                         </a>
                         <a href="{{ route('load-data.edit', $load) }}" wire:navigate
-                           class="flex-1 rounded-lg bg-nrapa-blue px-3 py-2 text-center text-sm font-medium text-white hover:bg-nrapa-blue-dark">
+                           class="flex-1 rounded-lg bg-nrapa-blue px-3 py-2 text-center text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                             Edit
                         </a>
                     </div>
@@ -203,14 +203,14 @@ new class extends Component {
             {{ $loads->links() }}
         </div>
     @else
-        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-12 text-center">
+        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-12 text-center">
             <svg class="mx-auto h-16 w-16 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
             </svg>
             <h3 class="mt-4 text-lg font-semibold text-zinc-900 dark:text-white">No load data yet</h3>
             <p class="mt-2 text-zinc-600 dark:text-zinc-400">Start documenting your reloading recipes and load development.</p>
             <a href="{{ route('load-data.create') }}" wire:navigate
-               class="mt-6 inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
+               class="mt-6 inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>

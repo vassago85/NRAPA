@@ -62,7 +62,7 @@ new class extends Component {
         <div class="mt-2 flex items-center justify-between">
             <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Review Activity</h1>
             @if($activity->status === 'approved')
-                <span class="inline-flex items-center gap-1 rounded-full bg-green-100 dark:bg-green-900/30 px-3 py-1 text-sm font-medium text-green-800 dark:text-green-400">
+                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1 text-sm font-medium text-emerald-800 dark:text-emerald-400">
                     <svg class="size-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                     Approved
                 </span>
@@ -81,7 +81,7 @@ new class extends Component {
     </div>
 
     @if(session('success'))
-        <div class="mb-6 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4 text-green-700 dark:text-green-300">
+        <div class="mb-6 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 text-emerald-700 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
@@ -102,7 +102,7 @@ new class extends Component {
         <!-- Main Content -->
         <div class="lg:col-span-2 space-y-6">
             <!-- Member Information -->
-            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Member Information</h2>
 
                 <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -124,7 +124,7 @@ new class extends Component {
             </div>
 
             <!-- Activity Information -->
-            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Activity Information</h2>
 
                 <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -167,7 +167,7 @@ new class extends Component {
             </div>
 
             <!-- Location -->
-            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Location</h2>
 
                 <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -194,7 +194,7 @@ new class extends Component {
             </div>
 
             <!-- Firearm/Calibre -->
-            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Firearm / Calibre</h2>
 
                 <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -220,7 +220,7 @@ new class extends Component {
 
             <!-- Additional Information -->
             @if($activity->description)
-                <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+                <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Additional Information</h2>
                     <p class="text-sm text-zinc-700 dark:text-zinc-300">{{ $activity->description }}</p>
                 </div>
@@ -230,7 +230,7 @@ new class extends Component {
         <!-- Sidebar -->
         <div class="space-y-6">
             <!-- Supporting Documents -->
-            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Supporting Documents</h2>
 
                 <div class="space-y-3">
@@ -247,7 +247,7 @@ new class extends Component {
                                 </div>
                             </div>
                             <div class="mt-3">
-                                <button wire:click="$set('showEvidencePreview', true)" class="w-full inline-flex items-center justify-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 transition-colors">
+                                <button wire:click="$set('showEvidencePreview', true)" class="w-full inline-flex items-center justify-center gap-1 rounded-lg bg-nrapa-blue px-3 py-1.5 text-xs font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                     Preview & Review
                                 </button>
@@ -277,7 +277,7 @@ new class extends Component {
                                 </div>
                             </div>
                             <div class="mt-3">
-                                <button wire:click="$set('showAdditionalPreview', true)" class="w-full inline-flex items-center justify-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 transition-colors">
+                                <button wire:click="$set('showAdditionalPreview', true)" class="w-full inline-flex items-center justify-center gap-1 rounded-lg bg-nrapa-blue px-3 py-1.5 text-xs font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                     Preview & Review
                                 </button>
@@ -289,7 +289,7 @@ new class extends Component {
 
             <!-- Verification Details -->
             @if($activity->verified_at)
-                <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+                <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Verification Details</h2>
 
                     <dl class="space-y-3">
@@ -308,11 +308,11 @@ new class extends Component {
 
             <!-- Actions -->
             @if($activity->status === 'pending')
-                <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+                <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Actions</h2>
 
                     <div class="space-y-4">
-                        <button wire:click="approve" class="w-full rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 transition-colors">
+                        <button wire:click="approve" class="w-full rounded-lg bg-nrapa-blue px-4 py-2.5 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                             Approve Activity
                         </button>
 
@@ -478,7 +478,7 @@ new class extends Component {
                                 <h4 class="text-sm font-semibold text-zinc-900 dark:text-white mb-3">Review Actions</h4>
                                 
                                 <div class="space-y-3">
-                                    <button wire:click="approve" class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 transition-colors">
+                                    <button wire:click="approve" class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2.5 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                                         <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                         </svg>

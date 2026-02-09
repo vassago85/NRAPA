@@ -4,6 +4,7 @@ use App\Models\MembershipType;
 use App\Models\DocumentType;
 use App\Models\CertificateType;
 use App\Models\ConfigurationChangeRequest;
+use App\Models\SystemSetting;
 use App\Models\User;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -11,6 +12,10 @@ use Livewire\Component;
 
 new #[Title('Settings - Admin')] class extends Component {
     public string $activeTab = 'membership-types';
+
+    // Renewal Policy
+    public int $renewalWindowDays = 30;
+    public int $renewalGracePeriodDays = 90;
 
     // Membership Type Form
     public ?int $editingMembershipTypeId = null;
@@ -70,10 +75,34 @@ new #[Title('Settings - Admin')] class extends Component {
             ->get();
     }
 
+    public function mount(): void
+    {
+        $this->renewalWindowDays = (int) SystemSetting::get('renewal_window_days', 30);
+        $this->renewalGracePeriodDays = (int) SystemSetting::get('renewal_grace_period_days', 90);
+    }
+
     // Check if user is owner or developer (can directly edit without approval)
     protected function canEditDirectly(): bool
     {
         return auth()->user()->hasRoleLevel(User::ROLE_OWNER);
+    }
+
+    // ==================== RENEWAL POLICY METHODS ====================
+
+    public function saveRenewalPolicy(): void
+    {
+        $this->validate([
+            'renewalWindowDays' => ['required', 'integer', 'min:1', 'max:365'],
+            'renewalGracePeriodDays' => ['required', 'integer', 'min:0', 'max:730'],
+        ], [
+            'renewalWindowDays.min' => 'Renewal window must be at least 1 day.',
+            'renewalGracePeriodDays.min' => 'Grace period cannot be negative.',
+        ]);
+
+        SystemSetting::set('renewal_window_days', $this->renewalWindowDays, 'integer', 'renewal', 'Days before expiry when renewal becomes available');
+        SystemSetting::set('renewal_grace_period_days', $this->renewalGracePeriodDays, 'integer', 'renewal', 'Days after expiry a member can still renew (0 = no grace period)');
+
+        session()->flash('success', 'Renewal policy updated successfully.');
     }
 
     // ==================== MEMBERSHIP TYPE METHODS ====================

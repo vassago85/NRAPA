@@ -68,7 +68,7 @@ new class extends Component {
         </div>
 
         @if(session('error'))
-            <div class="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg max-w-2xl mx-auto">
+            <div class="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl max-w-2xl mx-auto">
                 <p class="text-red-700 dark:text-red-300">{{ session('error') }}</p>
             </div>
         @endif
@@ -100,7 +100,7 @@ new class extends Component {
             <!-- Membership Packages Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @foreach($membershipTypes as $type)
-                    <div class="relative rounded-xl border {{ $type->is_featured ? 'border-emerald-500 ring-2 ring-emerald-500' : 'border-zinc-200 dark:border-zinc-700' }} bg-white p-6 shadow-sm dark:bg-zinc-800">
+                    <div class="relative rounded-xl border {{ $type->is_featured ? 'border-emerald-500 ring-2 ring-emerald-500' : 'border-zinc-200 dark:border-zinc-700' }} bg-white p-6 dark:bg-zinc-800">
                         @if($type->is_featured)
                             <div class="absolute -top-3 left-1/2 -translate-x-1/2 transform">
                                 <span class="inline-flex items-center rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-white">
@@ -183,7 +183,7 @@ new class extends Component {
                         </ul>
                         
                         <button wire:click="selectPackage({{ $type->id }})"
-                                class="block w-full rounded-lg {{ $type->is_featured ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'border border-emerald-600 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-500 dark:text-emerald-400 dark:hover:bg-emerald-900/20' }} px-4 py-2.5 text-center text-sm font-semibold transition-colors">
+                                class="block w-full rounded-lg {{ $type->is_featured ? 'bg-nrapa-blue text-white hover:bg-nrapa-blue-dark' : 'border border-emerald-600 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-500 dark:text-emerald-400 dark:hover:bg-emerald-900/20' }} px-4 py-2.5 text-center text-sm font-semibold transition-colors">
                             Select Membership
                         </button>
                     </div>

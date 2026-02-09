@@ -373,7 +373,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
 
 <div wire:key="firearm-reference-main">
     @if(session('success'))
-        <div class="mb-6 p-4 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg text-green-800 dark:text-green-200">
+        <div class="mb-6 p-4 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 rounded-lg text-emerald-800 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
@@ -417,7 +417,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
                 <button 
                     wire:click="openUploadModal"
                     type="button"
-                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
+                    class="px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors"
                 >
                     Upload CSV
                 </button>
@@ -468,15 +468,15 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
     {{-- Calibres Tab --}}
     @if($activeTab === 'calibres')
         @if(!$this->tablesExist)
-            <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-8 text-center">
+            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-8 text-center">
                 <p class="text-zinc-600 dark:text-zinc-400">Please run migrations to create the firearm reference tables.</p>
             </div>
         @elseif($calibres->count() === 0)
-            <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-8 text-center">
+            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-8 text-center">
                 <p class="text-zinc-600 dark:text-zinc-400">No calibres found. Import reference data using the "Upload CSV" button.</p>
             </div>
         @else
-            <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full">
                         <thead class="bg-zinc-50 dark:bg-zinc-900">
@@ -530,7 +530,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     @if($calibre->is_active)
-                                        <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded">Active</span>
+                                        <span class="px-2 py-1 text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 rounded">Active</span>
                                     @else
                                         <span class="px-2 py-1 text-xs font-medium bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200 rounded">Inactive</span>
                                     @endif
@@ -552,15 +552,15 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
     {{-- Makes Tab --}}
     @if($activeTab === 'makes')
         @if(!$this->tablesExist)
-            <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-8 text-center">
+            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-8 text-center">
                 <p class="text-zinc-600 dark:text-zinc-400">Please run migrations to create the firearm reference tables.</p>
             </div>
         @elseif($makes->count() === 0)
-            <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-8 text-center">
+            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-8 text-center">
                 <p class="text-zinc-600 dark:text-zinc-400">No makes found. Import reference data using the "Upload CSV" button.</p>
             </div>
         @else
-            <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full">
                         <thead class="bg-zinc-50 dark:bg-zinc-900">
@@ -589,7 +589,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     @if($make->is_active)
-                                        <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded">Active</span>
+                                        <span class="px-2 py-1 text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 rounded">Active</span>
                                     @else
                                         <span class="px-2 py-1 text-xs font-medium bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200 rounded">Inactive</span>
                                     @endif
@@ -634,10 +634,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
                         </div>
 
                         <div class="flex gap-3 justify-end">
-                            <button type="button" wire:click="closeUploadModal" class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                            <button type="button" wire:click="closeUploadModal" class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                                 Cancel
                             </button>
-                            <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg">
+                            <button type="submit" class="px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors">
                                 Upload
                             </button>
                         </div>
@@ -731,10 +731,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
                         </div>
 
                         <div class="flex gap-3 justify-end pt-4 border-t border-zinc-200 dark:border-zinc-700">
-                            <button type="button" wire:click="closeAddCalibreModal" class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                            <button type="button" wire:click="closeAddCalibreModal" class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                                 Cancel
                             </button>
-                            <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                            <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
                                 Add Calibre
                             </button>
                         </div>
@@ -773,10 +773,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
                         </div>
 
                         <div class="flex gap-3 justify-end pt-4 border-t border-zinc-200 dark:border-zinc-700">
-                            <button type="button" wire:click="closeAddMakeModal" class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                            <button type="button" wire:click="closeAddMakeModal" class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                                 Cancel
                             </button>
-                            <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                            <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
                                 Add Make
                             </button>
                         </div>
@@ -826,10 +826,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
                         </div>
 
                         <div class="flex gap-3 justify-end pt-4 border-t border-zinc-200 dark:border-zinc-700">
-                            <button type="button" wire:click="closeAddModelModal" class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                            <button type="button" wire:click="closeAddModelModal" class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                                 Cancel
                             </button>
-                            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg">
+                            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors">
                                 Add Model
                             </button>
                         </div>

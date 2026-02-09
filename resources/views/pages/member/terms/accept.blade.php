@@ -62,12 +62,12 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         </div>
 
         @if(session('error'))
-            <div class="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
+            <div class="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
                 <p class="text-sm text-red-800 dark:text-red-200">{{ session('error') }}</p>
             </div>
         @endif
 
-        <div class="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
             <div class="mb-4">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">
                     {{ $termsVersion->title }}
@@ -102,14 +102,14 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                 <div class="flex gap-3">
                     <button 
                         type="submit"
-                        class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50"
+                        class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2.5 text-sm font-medium text-white hover:bg-nrapa-blue-dark focus:outline-none focus:ring-2 focus:ring-nrapa-blue focus:ring-offset-2 disabled:opacity-50 transition-colors"
                         :disabled="!$wire.accepted"
                     >
                         Accept & Continue
                     </button>
                     <a 
                         href="{{ route('dashboard') }}"
-                        class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600"
+                        class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600 transition-colors"
                     >
                         Cancel
                     </a>

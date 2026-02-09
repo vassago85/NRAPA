@@ -42,7 +42,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
     </div>
 
     @if(session('success'))
-        <div class="mb-6 p-4 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg text-green-800 dark:text-green-200">
+        <div class="mb-6 p-4 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 rounded-xl text-emerald-800 dark:text-emerald-200">
             {{ session('success') }}
         </div>
     @endif
@@ -56,7 +56,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
         {{-- Main Content --}}
         <div class="lg:col-span-2 space-y-6">
             {{-- Request Details --}}
-            <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
                 <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Request Details</h2>
                 </div>
@@ -118,7 +118,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
 
             {{-- Firearm Details --}}
             @if($request->firearm)
-                <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+                <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
                     <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
                         <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Firearm Details</h2>
                     </div>
@@ -177,7 +177,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
 
             {{-- Components --}}
             @if($request->components->count() > 0)
-                <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+                <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
                     <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
                         <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Component Endorsements</h2>
                     </div>
@@ -208,7 +208,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
             @endif
 
             {{-- Documents --}}
-            <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
                 <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Documents</h2>
                 </div>
@@ -217,8 +217,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
                         <div class="p-4 flex items-center justify-between">
                             <div class="flex items-center gap-3">
                                 @if($doc->isUploaded())
-                                    <div class="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                                        <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+                                        <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                         </svg>
                                     </div>
@@ -254,32 +254,32 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
         {{-- Sidebar --}}
         <div class="space-y-6">
             {{-- Status Card --}}
-            <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
                 <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
                     <h3 class="font-semibold text-zinc-900 dark:text-white">Status</h3>
                 </div>
                 <div class="p-6">
                     @if($request->isIssued())
                         <div class="text-center">
-                            <div class="w-16 h-16 mx-auto bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
-                                <svg class="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="w-16 h-16 mx-auto bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-4">
+                                <svg class="w-8 h-8 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
                             </div>
-                            <h4 class="text-lg font-semibold text-green-600 dark:text-green-400 mb-2">Endorsement Issued</h4>
+                            <h4 class="text-lg font-semibold text-emerald-600 dark:text-emerald-400 mb-2">Endorsement Issued</h4>
                             <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4">Your endorsement letter is ready for download.</p>
                             
                             @if($request->letter_file_path)
                                 <div class="flex flex-col gap-2">
                                     <a href="{{ route('member.endorsements.letter', $request) }}"
-                                        class="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2">
+                                        class="w-full px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors flex items-center justify-center gap-2">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
                                         </svg>
                                         Download PDF
                                     </a>
                                     <a href="{{ route('member.endorsements.preview', $request) }}" target="_blank"
-                                        class="w-full px-4 py-2 border border-emerald-600 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                        class="w-full px-4 py-2 border border-nrapa-blue text-nrapa-blue hover:bg-nrapa-blue-light dark:hover:bg-nrapa-blue/10 rounded-lg transition-colors flex items-center justify-center gap-2">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
@@ -315,7 +315,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
                             @if($request->letter_file_path)
                                 <div class="flex gap-2">
                                     <a href="{{ route('member.endorsements.letter', $request) }}"
-                                        class="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2">
+                                        class="flex-1 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors flex items-center justify-center gap-2">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
                                         </svg>
@@ -344,7 +344,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
                             <h4 class="text-lg font-semibold text-zinc-700 dark:text-zinc-300 mb-2">Draft</h4>
                             <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4">This request hasn't been submitted yet.</p>
                             <a href="{{ route('member.endorsements.edit', $request) }}" wire:navigate
-                                class="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2">
+                                class="w-full px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors flex items-center justify-center gap-2">
                                 Continue Editing
                             </a>
                         </div>
@@ -364,7 +364,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
 
             {{-- Admin Notes --}}
             @if($request->admin_notes)
-                <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+                <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
                     <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
                         <h3 class="font-semibold text-zinc-900 dark:text-white">Admin Notes</h3>
                     </div>
@@ -375,7 +375,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
             @endif
 
             {{-- Timeline --}}
-            <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
                 <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
                     <h3 class="font-semibold text-zinc-900 dark:text-white">Timeline</h3>
                 </div>
@@ -418,8 +418,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
 
                         @if($request->issued_at)
                             <li class="ml-6">
-                                <span class="absolute flex items-center justify-center w-6 h-6 bg-green-100 rounded-full -left-3 dark:bg-green-900">
-                                    <svg class="w-3 h-3 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                <span class="absolute flex items-center justify-center w-6 h-6 bg-emerald-100 rounded-full -left-3 dark:bg-emerald-900">
+                                    <svg class="w-3 h-3 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                                     </svg>
                                 </span>

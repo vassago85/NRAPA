@@ -107,7 +107,7 @@ new #[Title('Learning Center')] class extends Component {
         @if($this->searchResults->count() > 0)
         <div class="space-y-4">
             @foreach($this->searchResults as $article)
-            <a href="{{ route('learning.show', $article) }}" wire:navigate class="block rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:border-emerald-300 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-emerald-600">
+            <a href="{{ route('learning.show', $article) }}" wire:navigate class="block rounded-xl border border-zinc-200 bg-white p-4 transition hover:border-emerald-300 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-emerald-600">
                 <div class="flex items-start gap-4">
                     @if($article->hasFeaturedImage())
                     <img src="{{ $article->featured_image_url }}" alt="{{ $article->title }}" class="h-16 w-24 rounded-lg object-cover">
@@ -116,7 +116,7 @@ new #[Title('Learning Center')] class extends Component {
                         <div class="flex items-center gap-2">
                             <span class="text-xs text-emerald-600 dark:text-emerald-400">{{ $article->category->name }}</span>
                             @if(in_array($article->id, $this->readArticleIds))
-                            <span class="inline-flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                            <span class="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
                                 <svg class="size-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                                 </svg>
@@ -144,7 +144,7 @@ new #[Title('Learning Center')] class extends Component {
         <h2 class="mb-4 text-xl font-semibold text-zinc-900 dark:text-white">Featured</h2>
         <div class="grid gap-6 md:grid-cols-3">
             @foreach($this->featuredArticles as $article)
-            <a href="{{ route('learning.show', $article) }}" wire:navigate class="group relative overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition hover:shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
+            <a href="{{ route('learning.show', $article) }}" wire:navigate class="group relative overflow-hidden rounded-xl border border-zinc-200 bg-white transition hover:shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
                 @if($article->hasFeaturedImage())
                 <div class="aspect-video overflow-hidden">
                     <img src="{{ $article->featured_image_url }}" alt="{{ $article->title }}" class="h-full w-full object-cover transition group-hover:scale-105">
@@ -167,7 +167,7 @@ new #[Title('Learning Center')] class extends Component {
                     <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400 line-clamp-2">{{ $article->excerpt_or_summary }}</p>
                 </div>
                 @if(in_array($article->id, $this->readArticleIds))
-                <div class="absolute right-2 top-2 rounded-full bg-green-500 p-1">
+                <div class="absolute right-2 top-2 rounded-full bg-emerald-500 p-1">
                     <svg class="size-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                     </svg>
@@ -184,7 +184,7 @@ new #[Title('Learning Center')] class extends Component {
         <h2 class="mb-4 text-xl font-semibold text-zinc-900 dark:text-white">Browse by Category</h2>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             @forelse($this->categories as $category)
-            <a href="{{ route('learning.category', $category) }}" wire:navigate class="group flex items-center gap-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:border-emerald-300 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-emerald-600">
+            <a href="{{ route('learning.category', $category) }}" wire:navigate class="group flex items-center gap-4 rounded-xl border border-zinc-200 bg-white p-4 transition hover:border-emerald-300 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-emerald-600">
                 @if($category->hasImage())
                 <img src="{{ $category->image_url }}" alt="{{ $category->name }}" class="h-16 w-24 rounded-lg object-cover">
                 @else
@@ -223,11 +223,11 @@ new #[Title('Learning Center')] class extends Component {
         <h2 class="mb-4 text-xl font-semibold text-zinc-900 dark:text-white">Recent Articles</h2>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             @foreach($this->recentArticles as $article)
-            <a href="{{ route('learning.show', $article) }}" wire:navigate class="group rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:border-emerald-300 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-emerald-600">
+            <a href="{{ route('learning.show', $article) }}" wire:navigate class="group rounded-xl border border-zinc-200 bg-white p-4 transition hover:border-emerald-300 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-emerald-600">
                 <div class="flex items-center justify-between gap-2">
                     <span class="text-xs font-medium text-emerald-600 dark:text-emerald-400">{{ $article->category->name }}</span>
                     @if(in_array($article->id, $this->readArticleIds))
-                    <span class="inline-flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                    <span class="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
                         <svg class="size-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                         </svg>

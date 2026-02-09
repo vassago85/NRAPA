@@ -16,6 +16,7 @@ use Livewire\Component;
 
 new #[Title('Dashboard')] class extends Component {
     public bool $showDismissedNotifications = false;
+    public bool $showWelcomeLetterModal = false;
 
     /**
      * Dismiss all currently visible rejected activities.
@@ -243,14 +244,97 @@ new #[Title('Dashboard')] class extends Component {
             && $this->endorsementEligibility['documents_complete'] 
             && $this->endorsementEligibility['activities_met'];
     }
+
+    /**
+     * Check if the member is newly approved (approved within last 30 days).
+     */
+    #[Computed]
+    public function isNewlyApproved(): bool
+    {
+        if (!$this->activeMembership) {
+            return false;
+        }
+
+        return $this->activeMembership->approved_at
+            && $this->activeMembership->approved_at->isAfter(now()->subDays(30));
+    }
+
+    /**
+     * Get the membership certificate (good standing / membership type entitlement).
+     * This excludes welcome letters and membership cards.
+     */
+    #[Computed]
+    public function membershipCertificate()
+    {
+        return $this->user->certificates()
+            ->valid()
+            ->with('certificateType')
+            ->whereHas('certificateType', fn ($q) => $q->whereNotIn('slug', ['welcome-letter', 'membership-card']))
+            ->latest()
+            ->first();
+    }
+
+    /**
+     * Get the welcome letter certificate.
+     */
+    #[Computed]
+    public function welcomeLetterCertificate()
+    {
+        return $this->user->certificates()
+            ->with('certificateType')
+            ->whereHas('certificateType', fn ($q) => $q->where('slug', 'welcome-letter'))
+            ->latest()
+            ->first();
+    }
+
+    /**
+     * Check if the welcome letter prompt should be shown.
+     */
+    #[Computed]
+    public function shouldShowWelcomeLetterPrompt(): bool
+    {
+        return $this->activeMembership
+            && $this->welcomeLetterCertificate
+            && is_null($this->user->welcome_letter_seen_at);
+    }
+
+    /**
+     * Dismiss the welcome letter prompt.
+     */
+    public function dismissWelcomeLetterPrompt(): void
+    {
+        $this->user->update(['welcome_letter_seen_at' => now()]);
+        $this->showWelcomeLetterModal = false;
+    }
+
+    /**
+     * Open the welcome letter modal.
+     */
+    public function openWelcomeLetterModal(): void
+    {
+        $this->showWelcomeLetterModal = true;
+    }
+
+    /**
+     * View and dismiss the welcome letter.
+     */
+    public function viewWelcomeLetter(): void
+    {
+        $this->user->update(['welcome_letter_seen_at' => now()]);
+        $this->showWelcomeLetterModal = false;
+        
+        if ($this->welcomeLetterCertificate) {
+            $this->redirect(route('certificates.show', $this->welcomeLetterCertificate), navigate: true);
+        }
+    }
 }; ?>
 
-<div class="flex h-full w-full flex-1 flex-col gap-4 sm:gap-6 p-4 sm:p-6">
+<div class="flex h-full w-full flex-1 flex-col gap-6">
     {{-- Welcome Header --}}
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div class="flex flex-col gap-1">
-            <h1 class="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white">Welcome back, {{ $this->user->name }}!</h1>
-            <p class="text-sm sm:text-base text-zinc-500 dark:text-zinc-400">
+            <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Welcome back, {{ $this->user->name }}!</h1>
+            <p class="text-sm text-zinc-600 dark:text-zinc-400">
                 Manage your NRAPA membership, certificates, and compliance requirements.
             </p>
         </div>
@@ -258,7 +342,7 @@ new #[Title('Dashboard')] class extends Component {
         <a 
             href="{{ route('admin.dashboard') }}" 
             wire:navigate
-            class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors inline-flex items-center gap-2 whitespace-nowrap self-start sm:self-center flex-shrink-0"
+            class="px-4 py-2 text-sm font-medium text-white bg-nrapa-blue rounded-lg hover:bg-nrapa-blue-dark transition-colors inline-flex items-center gap-2 whitespace-nowrap self-start sm:self-center flex-shrink-0"
         >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
@@ -267,6 +351,111 @@ new #[Title('Dashboard')] class extends Component {
         </a>
         @endif
     </div>
+
+    {{-- Welcome Letter Prompt (first login after approval) --}}
+    @if($this->shouldShowWelcomeLetterPrompt)
+    <div class="rounded-xl border-2 border-emerald-300 bg-gradient-to-r from-emerald-50 to-teal-50 p-6 dark:border-emerald-600 dark:from-emerald-900/20 dark:to-teal-900/20">
+        <div class="flex items-start gap-4">
+            <div class="flex size-14 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-200 dark:bg-emerald-800">
+                <svg class="size-7 text-emerald-700 dark:text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-lg font-bold text-emerald-800 dark:text-emerald-200">Welcome to NRAPA!</h3>
+                <p class="mt-1 text-sm text-emerald-700 dark:text-emerald-300">
+                    Your membership has been approved. A personalised welcome letter has been prepared for you with your membership details and important information.
+                </p>
+                <div class="mt-4 flex flex-wrap items-center gap-3">
+                    <button wire:click="openWelcomeLetterModal"
+                        class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 transition-colors shadow-sm">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        View Welcome Letter
+                    </button>
+                    <button wire:click="dismissWelcomeLetterPrompt"
+                        class="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:text-emerald-900 dark:text-emerald-300 dark:hover:text-emerald-100 transition-colors">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        Dismiss
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Welcome Letter Modal --}}
+    @if($showWelcomeLetterModal && $this->welcomeLetterCertificate)
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4" x-data x-init="document.body.classList.add('overflow-hidden')" x-on:remove="document.body.classList.remove('overflow-hidden')">
+        {{-- Backdrop --}}
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" wire:click="dismissWelcomeLetterPrompt"></div>
+        
+        {{-- Modal --}}
+        <div class="relative w-full max-w-lg rounded-2xl bg-white p-8 shadow-2xl dark:bg-zinc-800">
+            {{-- Close button --}}
+            <button wire:click="dismissWelcomeLetterPrompt" class="absolute right-4 top-4 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors">
+                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+
+            {{-- Content --}}
+            <div class="text-center">
+                <div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/50">
+                    <svg class="size-8 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                
+                <h2 class="text-2xl font-bold text-zinc-900 dark:text-white">Welcome to NRAPA!</h2>
+                <p class="mt-2 text-zinc-600 dark:text-zinc-400">
+                    Congratulations, <span class="font-semibold">{{ $this->user->name }}</span>! Your membership has been approved.
+                </p>
+
+                @if($this->activeMembership)
+                <div class="mt-6 rounded-xl bg-zinc-50 dark:bg-zinc-700/50 p-4 text-left">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-zinc-500 dark:text-zinc-400">Member Number</span>
+                            <span class="font-mono text-sm font-semibold text-zinc-900 dark:text-white">{{ $this->activeMembership->membership_number }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-zinc-500 dark:text-zinc-400">Membership Type</span>
+                            <span class="text-sm font-medium text-zinc-900 dark:text-white">{{ $this->activeMembership->type->name }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-zinc-500 dark:text-zinc-400">Status</span>
+                            <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Active</span>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                <p class="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
+                    Your personalised welcome letter contains important details about your membership, including your rights, responsibilities, and how to get the most out of your NRAPA membership.
+                </p>
+
+                <div class="mt-6 flex flex-col gap-3">
+                    <button wire:click="viewWelcomeLetter"
+                        class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors shadow-sm">
+                        <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.125 2.25h-4.5c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125v-9M10.125 2.25h.375a9 9 0 019 9v.375M10.125 2.25A3.375 3.375 0 0113.5 5.625v1.5c0 .621.504 1.125 1.125 1.125h1.5a3.375 3.375 0 013.375 3.375M9 15l2.25 2.25L15 12"/>
+                        </svg>
+                        View My Welcome Letter
+                    </button>
+                    <button wire:click="dismissWelcomeLetterPrompt"
+                        class="w-full inline-flex items-center justify-center rounded-lg border border-zinc-300 bg-white px-5 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
+                        Maybe Later
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
     {{-- Payment Awaiting Confirmation Banner --}}
     @if($this->pendingPaymentMembership)
@@ -298,7 +487,7 @@ new #[Title('Dashboard')] class extends Component {
                                     <svg x-show="!copied" class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                                     </svg>
-                                    <svg x-show="copied" x-cloak class="size-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg x-show="copied" x-cloak class="size-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                     </svg>
                                     <span x-text="copied ? 'Copied!' : 'Copy'" class="text-xs font-medium"></span>
@@ -525,11 +714,11 @@ new #[Title('Dashboard')] class extends Component {
             $approvedCount = $eligibility['activity_details']['approved_count'] ?? 0;
             $requiredCount = $eligibility['activity_details']['required'] ?? 2;
         @endphp
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 sm:p-5 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-5 sm:p-6 dark:border-zinc-700 dark:bg-zinc-800">
             {{-- Header --}}
             <div class="flex items-start gap-3 mb-4">
-                <div class="flex size-10 flex-shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-700">
-                    <svg class="size-5 text-zinc-600 dark:text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <div class="flex size-10 flex-shrink-0 items-center justify-center rounded-lg bg-nrapa-orange/10 dark:bg-nrapa-orange/20">
+                    <svg class="size-5 text-nrapa-orange dark:text-nrapa-orange" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
                     </svg>
                 </div>
@@ -706,7 +895,7 @@ new #[Title('Dashboard')] class extends Component {
                         @if(!$activitiesMet)
                             <div class="mt-3">
                                 <a href="{{ route('activities.submit') }}" wire:navigate 
-                                    class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors">
+                                    class="inline-flex items-center gap-2 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white text-sm font-medium rounded-lg transition-colors">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                                     </svg>
@@ -722,7 +911,7 @@ new #[Title('Dashboard')] class extends Component {
             {{-- Action Buttons --}}
             <div class="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-700 flex flex-col sm:flex-row gap-3">
                 <a href="{{ route('member.endorsements.create') }}" wire:navigate 
-                    class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors">
+                    class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-nrapa-blue hover:bg-nrapa-blue-dark text-white text-sm font-medium transition-colors">
                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>
@@ -800,13 +989,60 @@ new #[Title('Dashboard')] class extends Component {
     </div>
     @endif
 
+    {{-- Newly Approved: Prominent Certificate Banner --}}
+    @if($this->isNewlyApproved && $this->certificates->count() > 0)
+    <div class="rounded-xl border-2 border-nrapa-blue/30 bg-gradient-to-r from-blue-50 to-indigo-50 p-6 dark:border-nrapa-blue/40 dark:from-blue-900/10 dark:to-indigo-900/10">
+        <div class="flex items-start gap-4">
+            <div class="flex size-12 flex-shrink-0 items-center justify-center rounded-xl bg-nrapa-blue/15 dark:bg-nrapa-blue/25">
+                <svg class="size-6 text-nrapa-blue dark:text-nrapa-blue-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.125 2.25h-4.5c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125v-9M10.125 2.25h.375a9 9 0 019 9v.375M10.125 2.25A3.375 3.375 0 0113.5 5.625v1.5c0 .621.504 1.125 1.125 1.125h1.5a3.375 3.375 0 013.375 3.375M9 15l2.25 2.25L15 12"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-lg font-bold text-zinc-900 dark:text-white">Your Certificates Are Ready</h3>
+                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                    Your membership certificates have been issued and are available for viewing and download.
+                </p>
+                <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    @foreach($this->certificates as $certificate)
+                    <a href="{{ route('certificates.show', $certificate) }}" wire:navigate
+                        class="group flex items-center gap-3 rounded-lg border border-zinc-200 bg-white p-3 hover:border-nrapa-blue/50 hover:shadow-sm transition-all dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-nrapa-blue/40">
+                        <div class="flex size-9 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/40">
+                            <svg class="size-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-sm font-medium text-zinc-900 dark:text-white truncate group-hover:text-nrapa-blue dark:group-hover:text-nrapa-blue-light transition-colors">{{ $certificate->certificateType->name }}</p>
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400">Issued {{ $certificate->issued_at->format('d M Y') }}</p>
+                        </div>
+                        <svg class="size-4 ml-auto flex-shrink-0 text-zinc-400 group-hover:text-nrapa-blue transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+                    @endforeach
+                </div>
+                <div class="mt-3">
+                    <a href="{{ route('certificates.index') }}" wire:navigate 
+                        class="inline-flex items-center gap-1.5 text-sm font-medium text-nrapa-blue hover:text-nrapa-blue-dark dark:text-nrapa-blue-light dark:hover:text-white transition-colors">
+                        View All Certificates
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     {{-- Membership Status Cards --}}
     <div class="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
         {{-- Membership Card --}}
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
             <div class="mb-4 flex items-center gap-3">
-                <div class="flex size-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900">
-                    <svg class="size-5 text-emerald-600 dark:text-emerald-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <div class="flex size-10 items-center justify-center rounded-lg bg-nrapa-blue/10 dark:bg-nrapa-blue/20">
+                    <svg class="size-5 text-nrapa-blue dark:text-nrapa-blue-light" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm1.294 6.336a6.721 6.721 0 0 1-3.17.789 6.721 6.721 0 0 1-3.168-.789 3.376 3.376 0 0 1 6.338 0Z" />
                     </svg>
                 </div>
@@ -817,7 +1053,7 @@ new #[Title('Dashboard')] class extends Component {
                 <div class="space-y-3">
                     <div class="flex items-center justify-between">
                         <span class="text-sm text-zinc-500 dark:text-zinc-400">Type</span>
-                        <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">{{ $this->activeMembership->type->name }}</span>
+                        <span class="inline-flex items-center rounded-full bg-nrapa-blue/10 px-2.5 py-0.5 text-xs font-medium text-nrapa-blue dark:bg-nrapa-blue/20 dark:text-nrapa-blue-light">{{ $this->activeMembership->type->name }}</span>
                     </div>
                     <div class="flex items-center justify-between">
                         <span class="text-sm text-zinc-500 dark:text-zinc-400">Member #</span>
@@ -825,7 +1061,7 @@ new #[Title('Dashboard')] class extends Component {
                     </div>
                     <div class="flex items-center justify-between">
                         <span class="text-sm text-zinc-500 dark:text-zinc-400">Status</span>
-                        <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Active</span>
+                        <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Active</span>
                     </div>
                     @if($this->activeMembership->expires_at)
                     <div class="flex items-center justify-between">
@@ -841,7 +1077,7 @@ new #[Title('Dashboard')] class extends Component {
                 </div>
                 <div class="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-700 space-y-2">
                     {{-- Digital Card Button - Prominent --}}
-                    <a href="{{ route('card') }}" wire:navigate class="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 transition-colors">
+                    <a href="{{ route('card') }}" wire:navigate class="flex w-full items-center justify-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2.5 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                         <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
                         </svg>
@@ -884,7 +1120,7 @@ new #[Title('Dashboard')] class extends Component {
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">
                         You don't have an active membership yet. Select a membership below to get started.
                     </p>
-                    <a href="{{ route('membership.apply') }}" wire:navigate class="block w-full rounded-lg bg-emerald-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">
+                    <a href="{{ route('membership.apply') }}" wire:navigate class="block w-full rounded-lg bg-nrapa-blue px-4 py-2 text-center text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                         View All Memberships
                     </a>
                 </div>
@@ -893,10 +1129,10 @@ new #[Title('Dashboard')] class extends Component {
 
         {{-- Knowledge Test Card --}}
         @if($this->requiresTest)
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
             <div class="mb-4 flex items-center gap-3">
-                <div class="flex size-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900">
-                    <svg class="size-5 text-blue-600 dark:text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <div class="flex size-10 items-center justify-center rounded-lg bg-nrapa-blue/10 dark:bg-nrapa-blue/20">
+                    <svg class="size-5 text-nrapa-blue dark:text-nrapa-blue-light" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
                     </svg>
                 </div>
@@ -906,10 +1142,10 @@ new #[Title('Dashboard')] class extends Component {
             @if($this->hasPassedTest)
                 <div class="space-y-3">
                     <div class="flex items-center gap-2">
-                        <svg class="size-5 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <svg class="size-5 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                         </svg>
-                        <span class="font-medium text-green-600 dark:text-green-400">Test Passed</span>
+                        <span class="font-medium text-emerald-600 dark:text-emerald-400">Test Passed</span>
                     </div>
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">
                         You have successfully completed the knowledge test requirement.
@@ -926,7 +1162,7 @@ new #[Title('Dashboard')] class extends Component {
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">
                         Complete the knowledge test to finalize your membership.
                     </p>
-                    <a href="{{ route('knowledge-test.index') }}" wire:navigate class="block w-full rounded-lg bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
+                    <a href="{{ route('knowledge-test.index') }}" wire:navigate class="block w-full rounded-lg bg-nrapa-blue px-4 py-2 text-center text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                         Take Test
                     </a>
                 </div>
@@ -935,10 +1171,10 @@ new #[Title('Dashboard')] class extends Component {
         @endif
 
         {{-- Certificates & Endorsements Card --}}
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
             <div class="mb-4 flex items-center gap-3">
-                <div class="flex size-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900">
-                    <svg class="size-5 text-purple-600 dark:text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <div class="flex size-10 items-center justify-center rounded-lg bg-nrapa-blue/10 dark:bg-nrapa-blue/20">
+                    <svg class="size-5 text-nrapa-blue dark:text-nrapa-blue-light" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M10.125 2.25h-4.5c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125v-9M10.125 2.25h.375a9 9 0 0 1 9 9v.375M10.125 2.25A3.375 3.375 0 0 1 13.5 5.625v1.5c0 .621.504 1.125 1.125 1.125h1.5a3.375 3.375 0 0 1 3.375 3.375M9 15l2.25 2.25L15 12" />
                     </svg>
                 </div>
@@ -955,7 +1191,7 @@ new #[Title('Dashboard')] class extends Component {
                                     Issued {{ $certificate->issued_at->format('d M Y') }}
                                 </p>
                             </div>
-                            <span class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Valid</span>
+                            <span class="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Valid</span>
                         </div>
                     @endforeach
                 </div>
@@ -982,7 +1218,7 @@ new #[Title('Dashboard')] class extends Component {
     <div class="mt-2">
         <div class="mb-4 flex items-center justify-between">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Choose Your Membership</h2>
-            <a href="{{ route('membership.apply') }}" wire:navigate class="text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+            <a href="{{ route('membership.apply') }}" wire:navigate class="text-sm font-medium text-nrapa-blue hover:text-nrapa-blue-dark dark:text-nrapa-blue-light dark:hover:text-white">
                 View all options &rarr;
             </a>
         </div>
@@ -991,10 +1227,10 @@ new #[Title('Dashboard')] class extends Component {
         </p>
         <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             @foreach($this->availableMembershipTypes as $type)
-                <div class="relative rounded-xl border {{ $type->is_featured ? 'border-emerald-500 ring-2 ring-emerald-500' : 'border-zinc-200 dark:border-zinc-700' }} bg-white p-6 shadow-sm dark:bg-zinc-800">
+                <div class="relative rounded-xl border {{ $type->is_featured ? 'border-nrapa-blue ring-2 ring-nrapa-blue' : 'border-zinc-200 dark:border-zinc-700' }} bg-white p-6 dark:bg-zinc-800">
                     @if($type->is_featured)
                         <div class="absolute -top-3 left-1/2 -translate-x-1/2 transform">
-                            <span class="inline-flex items-center rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-white">
+                            <span class="inline-flex items-center rounded-full bg-nrapa-orange px-3 py-1 text-xs font-semibold text-white">
                                 Recommended
                             </span>
                         </div>
@@ -1041,28 +1277,28 @@ new #[Title('Dashboard')] class extends Component {
                     
                     <ul class="mb-6 space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
                         <li class="flex items-center gap-2">
-                            <svg class="h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="h-4 w-4 flex-shrink-0 text-nrapa-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                             </svg>
                             Virtual Safe
                         </li>
                         @if($type->allows_dedicated_status)
                         <li class="flex items-center gap-2">
-                            <svg class="h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="h-4 w-4 flex-shrink-0 text-nrapa-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                             </svg>
                             Virtual Loading Bench
                         </li>
                         @endif
                         <li class="flex items-center gap-2">
-                            <svg class="h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="h-4 w-4 flex-shrink-0 text-nrapa-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                             </svg>
                             Learning Center
                         </li>
                         @if($type->allows_dedicated_status)
                         <li class="flex items-center gap-2">
-                            <svg class="h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="h-4 w-4 flex-shrink-0 text-nrapa-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                             </svg>
                             Dedicated Status support
@@ -1070,7 +1306,7 @@ new #[Title('Dashboard')] class extends Component {
                         @endif
                     </ul>
                     
-                    <a href="{{ route('membership.apply', ['type' => $type->slug]) }}" wire:navigate class="block w-full rounded-lg {{ $type->is_featured ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'border border-emerald-600 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-500 dark:text-emerald-400 dark:hover:bg-emerald-900/20' }} px-4 py-2.5 text-center text-sm font-semibold transition-colors">
+                    <a href="{{ route('membership.apply', ['type' => $type->slug]) }}" wire:navigate class="block w-full rounded-lg {{ $type->is_featured ? 'bg-nrapa-blue text-white hover:bg-nrapa-blue-dark' : 'border border-nrapa-blue text-nrapa-blue hover:bg-nrapa-blue/5 dark:border-nrapa-blue-light dark:text-nrapa-blue-light dark:hover:bg-nrapa-blue/10' }} px-4 py-2.5 text-center text-sm font-semibold transition-colors">
                         Select Membership
                     </a>
                 </div>
@@ -1084,7 +1320,7 @@ new #[Title('Dashboard')] class extends Component {
     <div class="mt-2 sm:mt-4">
         <h2 class="mb-3 sm:mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Quick Actions</h2>
         <div class="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-            <a href="{{ route('card') }}" wire:navigate class="flex items-center gap-2 sm:gap-3 rounded-lg bg-emerald-600 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-white hover:bg-emerald-700">
+            <a href="{{ route('card') }}" wire:navigate class="flex items-center gap-2 sm:gap-3 rounded-lg bg-nrapa-blue px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                 <svg class="size-4 sm:size-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
                 </svg>

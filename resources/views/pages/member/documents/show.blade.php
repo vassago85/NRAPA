@@ -39,7 +39,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     {
         return match($status) {
             'pending' => 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
-            'verified' => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+            'verified' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
             'rejected' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
             'expired' => 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-300',
             'archived' => 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
@@ -57,7 +57,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
 <div>
     <div class="mb-8 flex items-center justify-between">
         <div>
-            <a href="{{ route('documents.index') }}" class="text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 flex items-center gap-1 mb-2">
+            <a href="{{ route('documents.index') }}" class="text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 flex items-center gap-1 mb-2 transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                 Back to Documents
             </a>
@@ -73,7 +73,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         {{-- Document Preview --}}
-        <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 flex flex-col h-full">
+        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6 flex flex-col h-full">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Preview</h2>
             <div class="bg-zinc-100 dark:bg-zinc-900 rounded-lg overflow-hidden flex-1 flex items-center justify-center" style="min-height: 500px;">
                 @php $previewUrl = $this->getPreviewUrl(); @endphp
@@ -89,7 +89,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                         </iframe>
                         <div class="absolute bottom-2 right-2">
                             <a href="{{ $previewUrl }}" target="_blank" 
-                                class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg shadow-lg">
+                                class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg shadow-lg transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
                                 </svg>
@@ -102,7 +102,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                         <svg class="w-24 h-24 text-zinc-400 mb-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></svg>
                         <p class="text-zinc-600 dark:text-zinc-400">Preview not available</p>
                         @if($previewUrl)
-                            <a href="{{ $previewUrl }}" target="_blank" class="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                            <a href="{{ $previewUrl }}" target="_blank" class="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
                                 Download File
                             </a>
                         @endif
@@ -112,7 +112,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         </div>
 
         {{-- Document Details --}}
-        <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 flex flex-col h-full">
+        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6 flex flex-col h-full">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Details</h2>
             
             <dl class="space-y-4">

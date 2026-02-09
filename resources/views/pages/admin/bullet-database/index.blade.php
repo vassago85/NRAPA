@@ -158,13 +158,13 @@ new #[Title('Bullet Database - Admin')] class extends Component {
     </div>
 
     @if(session('success'))
-        <div class="rounded-lg border border-green-300 bg-green-50 p-3 text-sm text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-200">
+        <div class="rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-800 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
 
     {{-- Filters --}}
-    <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-4" x-data="{ showFilters: false }">
+    <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-4" x-data="{ showFilters: false }">
         <div class="flex items-center gap-4">
             <div class="flex-1">
                 <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search bullets, SKUs, manufacturers..."
@@ -264,7 +264,7 @@ new #[Title('Bullet Database - Admin')] class extends Component {
     </div>
 
     {{-- Table --}}
-    <div class="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800">
+    <div class="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800">
         <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
             <thead class="bg-zinc-50 dark:bg-zinc-800/50 sticky top-0">
                 <tr>
@@ -320,7 +320,7 @@ new #[Title('Bullet Database - Admin')] class extends Component {
                     <td class="px-4 py-3 whitespace-nowrap">
                         <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
                             {{ match($bullet->intended_use) {
-                                'match' => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+                                'match' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300',
                                 'hunting' => 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
                                 'tactical' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
                                 default => 'bg-zinc-100 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400',
@@ -330,7 +330,7 @@ new #[Title('Bullet Database - Admin')] class extends Component {
                     </td>
                     <td class="px-4 py-3 whitespace-nowrap">
                         <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
-                            {{ $bullet->status === 'active' ? 'bg-green-100 text-green-800' : ($bullet->status === 'discontinued' ? 'bg-red-100 text-red-800' : 'bg-zinc-100 text-zinc-600') }}">
+                            {{ $bullet->status === 'active' ? 'bg-emerald-100 text-emerald-800' : ($bullet->status === 'discontinued' ? 'bg-red-100 text-red-800' : 'bg-zinc-100 text-zinc-600') }}">
                             {{ ucfirst($bullet->status) }}
                         </span>
                     </td>

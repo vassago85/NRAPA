@@ -158,7 +158,7 @@ new class extends Component {
         try {
             $memberships = Membership::billable()
                 ->approvedInMonth($this->selectedYear, $this->selectedMonth)
-                ->with(['user', 'type', 'previousMembership.type'])
+                ->with(['user', 'type', 'previousMembership.type', 'affiliatedClub'])
                 ->orderBy('approved_at', 'desc')
                 ->paginate(20);
         } catch (\Exception $e) {
@@ -307,48 +307,12 @@ new class extends Component {
     {
         $memberships = Membership::billable()
             ->approvedInMonth($this->selectedYear, $this->selectedMonth)
-            ->with(['user', 'type', 'previousMembership.type'])
+            ->with(['user', 'type', 'previousMembership.type', 'affiliatedClub'])
             ->orderBy('approved_at', 'desc')
             ->get();
         
         $monthName = date('F', mktime(0, 0, 0, $this->selectedMonth, 1));
         $filename = "billing-report-{$monthName}-{$this->selectedYear}.csv";
-        
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-        ];
-        
-        $callback = function () use ($memberships) {
-            $file = fopen('php://output', 'w');
-            
-            // Header row
-            fputcsv($file, [
-                'Date Approved',
-                'Membership Number',
-                'Member Name',
-                'Email',
-                'Membership Type',
-                'Type (New/Renewal)',
-                'Previous Membership',
-                'Source',
-            ]);
-            
-            foreach ($memberships as $membership) {
-                fputcsv($file, [
-                    $membership->approved_at?->format('Y-m-d H:i:s') ?? '',
-                    $membership->membership_number,
-                    $membership->user->name ?? '',
-                    $membership->user->email ?? '',
-                    $membership->type->name ?? '',
-                    $membership->isRenewal() ? 'Renewal' : 'New',
-                    $membership->previousMembership?->type?->name ?? 'N/A',
-                    ucfirst($membership->source ?? 'web'),
-                ]);
-            }
-            
-            fclose($file);
-        };
         
         // Stream the response
         $this->dispatch('download-csv', [
@@ -359,13 +323,14 @@ new class extends Component {
                     $m->user->name ?? '',
                     $m->user->email ?? '',
                     $m->type->name ?? '',
+                    $m->affiliatedClub?->name ?? '',
                     $m->isRenewal() ? 'Renewal' : 'New',
                     $m->previousMembership?->type?->name ?? 'N/A',
                     ucfirst($m->source ?? 'web'),
                 ];
             })->toArray(),
             'filename' => $filename,
-            'headers' => ['Date Approved', 'Membership Number', 'Member Name', 'Email', 'Membership Type', 'Type (New/Renewal)', 'Previous Membership', 'Source'],
+            'headers' => ['Date Approved', 'Membership Number', 'Member Name', 'Email', 'Membership Type', 'Affiliated Club', 'Type (New/Renewal)', 'Previous Membership', 'Source'],
         ]);
     }
 }; ?>
@@ -639,6 +604,7 @@ new class extends Component {
                         <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Member</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Membership #</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Type</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Club</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Category</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Source</th>
                     </tr>
@@ -662,6 +628,15 @@ new class extends Component {
                             </td>
                             <td class="px-4 py-4 whitespace-nowrap text-sm text-zinc-600 dark:text-zinc-300">
                                 {{ $membership->type?->name ?? '-' }}
+                            </td>
+                            <td class="px-4 py-4 whitespace-nowrap text-sm">
+                                @if($membership->affiliatedClub)
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300">
+                                        {{ $membership->affiliatedClub->name }}
+                                    </span>
+                                @else
+                                    <span class="text-zinc-400 dark:text-zinc-500">—</span>
+                                @endif
                             </td>
                             <td class="px-4 py-4 whitespace-nowrap">
                                 @if($membership->isRenewal())
@@ -695,7 +670,7 @@ new class extends Component {
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-6 py-12 text-center text-zinc-500 dark:text-zinc-400">
+                            <td colspan="8" class="px-6 py-12 text-center text-zinc-500 dark:text-zinc-400">
                                 No billable memberships for this period.
                             </td>
                         </tr>

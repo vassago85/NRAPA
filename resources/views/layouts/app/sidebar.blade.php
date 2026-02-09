@@ -65,7 +65,7 @@
                         @if($logoUrl)
                             <img src="{{ $logoUrl }}" alt="NRAPA Logo" class="h-8 w-auto object-contain" />
                         @else
-                            <div class="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700">
+                            <div class="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-nrapa-blue to-nrapa-blue-dark">
                                 <svg class="size-5 text-white" viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M12 2L4 6V12C4 16.42 7.58 20.58 12 22C16.42 20.58 20 16.42 20 12V6L12 2Z"/>
                                 </svg>
@@ -106,7 +106,7 @@
                 <!-- User Menu -->
                 <div class="border-t border-zinc-200 dark:border-zinc-700 p-4 flex-shrink-0">
                     <div class="flex items-center gap-3">
-                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white font-semibold">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-nrapa-blue flex items-center justify-center text-white font-semibold">
                             {{ substr(auth()->user()->name, 0, 1) }}
                         </div>
                         <div class="flex-1 min-w-0">
@@ -155,7 +155,7 @@
                         </svg>
                     </button>
                     <div class="flex items-center gap-3">
-                        <div class="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700">
+                        <div class="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-nrapa-blue to-nrapa-blue-dark">
                             <svg class="size-5 text-white" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M12 2L4 6V12C4 16.42 7.58 20.58 12 22C16.42 20.58 20 16.42 20 12V6L12 2Z"/>
                             </svg>

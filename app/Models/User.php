@@ -75,6 +75,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'logins_without_2fa',
         'last_2fa_reminder_at',
         'email_verified_at',
+        'welcome_letter_seen_at',
     ];
 
     /**
@@ -104,6 +105,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'is_admin' => 'boolean',
             'nominated_at' => 'datetime',
             'last_2fa_reminder_at' => 'datetime',
+            'welcome_letter_seen_at' => 'datetime',
         ];
     }
 

@@ -542,14 +542,14 @@ new class extends Component {
     </div>
 
     @if(session('success'))
-        <div class="mb-6 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-4 py-3 text-sm text-green-700 dark:text-green-300">
+        <div class="mb-6 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
 
     <!-- Low Stock Warning -->
     @if($lowStockCount > 0)
-        <div class="mb-6 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 p-4">
+        <div class="mb-6 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 p-4">
             <div class="flex items-center gap-3">
                 <svg class="h-6 w-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
@@ -561,7 +561,7 @@ new class extends Component {
 
     <!-- Estimated Rounds per Load -->
     @if(!empty($loadEstimates))
-        <div class="mb-6 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-5">
+        <div class="mb-6 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-5">
             <div class="flex items-center gap-2 mb-4">
                 <svg class="h-5 w-5 text-nrapa-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
@@ -576,7 +576,7 @@ new class extends Component {
                                class="text-sm font-semibold text-nrapa-blue hover:text-nrapa-blue-dark truncate mr-2">
                                 {{ $est['load']->name }}
                             </a>
-                            <span class="text-lg font-bold {{ $est['estimated_rounds'] < 20 ? 'text-amber-600' : ($est['estimated_rounds'] < 100 ? 'text-nrapa-orange' : 'text-green-600') }} whitespace-nowrap">
+                            <span class="text-lg font-bold {{ $est['estimated_rounds'] < 20 ? 'text-amber-600' : ($est['estimated_rounds'] < 100 ? 'text-nrapa-orange' : 'text-emerald-600') }} whitespace-nowrap">
                                 {{ number_format($est['estimated_rounds']) }}
                             </span>
                         </div>
@@ -723,7 +723,7 @@ new class extends Component {
                 </div>
 
                 <div class="flex gap-2">
-                    <button type="submit" class="rounded-lg bg-nrapa-blue px-6 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
+                    <button type="submit" class="rounded-lg bg-nrapa-blue px-6 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                         Add to Inventory
                     </button>
                     <button type="button" wire:click="$set('showForm', false)"
@@ -737,7 +737,7 @@ new class extends Component {
 
     <!-- Edit Item Form (details only, not purchase) -->
     @if($showForm && $editingId)
-        <div class="mb-6 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+        <div class="mb-6 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Edit Item Details</h2>
             <form wire:submit="save" class="space-y-4">
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -816,7 +816,7 @@ new class extends Component {
                 @endif
 
                 <div class="flex gap-2">
-                    <button type="submit" class="rounded-lg bg-nrapa-blue px-6 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">Update</button>
+                    <button type="submit" class="rounded-lg bg-nrapa-blue px-6 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">Update</button>
                     <button type="button" wire:click="$set('showForm', false)"
                             class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-6 py-2 text-sm text-zinc-600 dark:text-zinc-400">Cancel</button>
                 </div>
@@ -871,7 +871,7 @@ new class extends Component {
                                class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
                     </div>
                     <div class="flex gap-2">
-                        <button type="submit" class="rounded-lg bg-nrapa-orange px-6 py-2 text-sm font-medium text-white hover:bg-nrapa-orange-dark">
+                        <button type="submit" class="rounded-lg bg-nrapa-orange px-6 py-2 text-sm font-medium text-white hover:bg-nrapa-orange-dark transition-colors">
                             Record Purchase
                         </button>
                         <button type="button" wire:click="$set('showRestockForm', false)"
@@ -976,7 +976,7 @@ new class extends Component {
                         <div class="rounded-lg bg-zinc-50 dark:bg-zinc-700/50 border border-zinc-200 dark:border-zinc-600 px-4 py-3 text-sm">
                             <span class="text-zinc-500">Preview:</span>
                             @if($adjust_type === 'add')
-                                <span class="font-medium text-green-600">+{{ $previewDisplay }}</span>
+                                <span class="font-medium text-emerald-600">+{{ $previewDisplay }}</span>
                             @elseif($adjust_type === 'remove')
                                 <span class="font-medium text-red-600">-{{ $previewDisplay }}</span>
                             @else
@@ -989,7 +989,7 @@ new class extends Component {
 
                     <div class="flex gap-2">
                         <button type="submit"
-                                class="rounded-lg bg-purple-600 px-6 py-2 text-sm font-medium text-white hover:bg-purple-700">
+                                class="rounded-lg bg-purple-600 px-6 py-2 text-sm font-medium text-white hover:bg-purple-700 transition-colors">
                             Apply Adjustment
                         </button>
                         <button type="button" wire:click="$set('showAdjustForm', false)"
@@ -1026,7 +1026,7 @@ new class extends Component {
             </h3>
             <div class="space-y-3">
                 @foreach($typeItems as $item)
-                    <div class="rounded-lg border {{ $item->is_low_stock ? 'border-amber-300 dark:border-amber-700' : 'border-zinc-200 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 overflow-hidden">
+                    <div class="rounded-xl border {{ $item->is_low_stock ? 'border-amber-300 dark:border-amber-700' : 'border-zinc-200 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 overflow-hidden">
                         <!-- Item Row -->
                         <div class="flex items-center justify-between px-5 py-4">
                             <div class="flex-1 min-w-0">
@@ -1166,14 +1166,14 @@ new class extends Component {
             </div>
         </div>
     @empty
-        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-12 text-center">
+        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-12 text-center">
             <svg class="mx-auto h-12 w-12 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
             </svg>
             <h3 class="mt-4 text-sm font-medium text-zinc-900 dark:text-white">No inventory items yet</h3>
             <p class="mt-2 text-sm text-zinc-500">Start tracking your reloading components and purchase prices.</p>
             <button wire:click="addItem"
-                    class="mt-4 inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
+                    class="mt-4 inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                 Add First Component
             </button>
         </div>

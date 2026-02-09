@@ -302,7 +302,7 @@ new #[Title('Club Membership Application')] class extends Component {
                 <a href="{{ route('membership.apply') }}" wire:navigate class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
                     Apply for Standard Membership Instead
                 </a>
-                <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-emerald-500 dark:hover:bg-emerald-600" {{ !$this->agreedToTerms ? 'disabled' : '' }}>
+                <button type="submit" class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark disabled:cursor-not-allowed disabled:opacity-50 transition-colors" {{ !$this->agreedToTerms ? 'disabled' : '' }}>
                     Submit Club Application
                 </button>
             </div>

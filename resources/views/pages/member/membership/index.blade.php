@@ -1,8 +1,11 @@
 <?php
 
+use App\Mail\PaymentInstructions;
 use App\Models\Membership;
 use App\Models\MembershipType;
+use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -12,6 +15,8 @@ new #[Title('My Membership')] class extends Component {
     public ?int $selectedNewTypeId = null;
     public string $changeReason = '';
     public bool $showDetails = false;
+    public bool $showRenewalModal = false;
+    public bool $agreedToRenewalTerms = false;
 
     #[Computed]
     public function user()
@@ -103,6 +108,15 @@ new #[Title('My Membership')] class extends Component {
     }
 
     #[Computed]
+    public function renewalUpcoming(): bool
+    {
+        $membership = $this->activeMembership;
+        if (!$membership) return false;
+
+        return $membership->isRenewalUpcoming();
+    }
+
+    #[Computed]
     public function canChangeMembership(): bool
     {
         return $this->availableMembershipTypes->count() > 0 && !$this->hasPendingChangeRequest;
@@ -111,6 +125,89 @@ new #[Title('My Membership')] class extends Component {
     public function toggleDetails(): void
     {
         $this->showDetails = !$this->showDetails;
+    }
+
+    #[Computed]
+    public function renewalAmountDue(): float
+    {
+        $membership = $this->activeMembership;
+        if (!$membership) return 0;
+
+        // Affiliated club membership: use club renewal fee
+        if ($membership->isAffiliatedClubMembership() && $membership->affiliatedClub) {
+            return (float) $membership->affiliatedClub->renewal_fee;
+        }
+
+        // Standard membership: use type renewal price
+        return (float) $membership->type->renewal_price;
+    }
+
+    public function openRenewalModal(): void
+    {
+        if (!$this->canRenew) {
+            session()->flash('error', 'This membership is not eligible for renewal.');
+            return;
+        }
+
+        $this->agreedToRenewalTerms = false;
+        $this->showRenewalModal = true;
+    }
+
+    public function submitRenewal(): void
+    {
+        if (!$this->canRenew) {
+            session()->flash('error', 'This membership is not eligible for renewal.');
+            return;
+        }
+
+        $this->validate([
+            'agreedToRenewalTerms' => ['accepted'],
+        ], [
+            'agreedToRenewalTerms.accepted' => 'You must agree to the terms and conditions.',
+        ]);
+
+        $current = $this->activeMembership;
+
+        // Create renewal membership - billable (source: web), linked to previous membership
+        $renewal = Membership::create([
+            'user_id' => $this->user->id,
+            'membership_type_id' => $current->membership_type_id,
+            'status' => 'applied',
+            'applied_at' => now(),
+            'source' => 'web', // Billable - member renewal via website
+            'previous_membership_id' => $current->id,
+            'affiliated_club_id' => $current->affiliated_club_id, // Carry over club affiliation
+            'notes' => $current->isAffiliatedClubMembership()
+                ? "Renewal of {$current->type->name} (Club: {$current->affiliatedClub->name})"
+                : "Renewal of {$current->type->name}",
+        ]);
+
+        // Send payment instructions email
+        $this->sendRenewalPaymentEmail($renewal);
+
+        $this->showRenewalModal = false;
+        session()->flash('success', 'Your renewal application has been submitted! Payment instructions have been sent to your email.');
+    }
+
+    protected function sendRenewalPaymentEmail(Membership $membership): void
+    {
+        try {
+            $bankAccount = SystemSetting::getBankAccount();
+
+            Mail::to($membership->user->email)
+                ->queue(new PaymentInstructions(
+                    $membership->load('type', 'user', 'affiliatedClub'),
+                    $bankAccount,
+                    $membership->payment_reference
+                ));
+
+            $membership->update(['payment_email_sent_at' => now()]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to send renewal payment instructions email', [
+                'membership_id' => $membership->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     public function openChangeModal(): void
@@ -175,7 +272,7 @@ new #[Title('My Membership')] class extends Component {
         </div>
         @if(!$this->activeMembership)
         <a href="{{ route('membership.apply') }}" wire:navigate 
-            class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors">
+            class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
@@ -185,7 +282,7 @@ new #[Title('My Membership')] class extends Component {
     </div>
 
     @if(session('success'))
-    <div class="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4">
+    <div class="rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4">
         <div class="flex items-center gap-3">
             <svg class="size-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -196,7 +293,7 @@ new #[Title('My Membership')] class extends Component {
     @endif
 
     @if(session('error'))
-    <div class="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4">
+    <div class="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4">
         <div class="flex items-center gap-3">
             <svg class="size-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -212,7 +309,7 @@ new #[Title('My Membership')] class extends Component {
         $membership = $this->activeMembership;
         $status = $this->membershipStatus;
     @endphp
-    <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-sm overflow-hidden">
+    <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 overflow-hidden">
         {{-- Top Row: Type & Status --}}
         <div class="p-6 pb-4">
             <div class="flex items-start justify-between gap-4">
@@ -276,13 +373,20 @@ new #[Title('My Membership')] class extends Component {
         {{-- Actions Row --}}
         <div class="px-6 py-4 border-t border-zinc-100 dark:border-zinc-700 flex flex-wrap items-center gap-3">
             @if($this->canRenew)
-            <a href="{{ route('membership.apply') }}" wire:navigate 
-                class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-sm font-medium text-white transition-colors">
+            <button wire:click="openRenewalModal"
+                class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue hover:bg-nrapa-blue-dark px-4 py-2 text-sm font-medium text-white transition-colors">
                 <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                 </svg>
                 Renew Membership
-            </a>
+            </button>
+            @elseif($this->renewalUpcoming)
+            <span class="inline-flex items-center gap-2 rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 px-4 py-2 text-sm text-zinc-500 dark:text-zinc-400">
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Renewal opens {{ $membership->renewal_window_opens_at->format('d M Y') }}
+            </span>
             @endif
             
             @if($this->canChangeMembership)
@@ -362,7 +466,7 @@ new #[Title('My Membership')] class extends Component {
 
     {{-- Upgrade to Dedicated Status --}}
     @if($this->canUpgradeToDedicated && $this->dedicatedUpgradeTypes->count() > 0)
-    <div class="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 shadow-sm overflow-hidden">
+    <div class="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 overflow-hidden">
         <div class="px-6 py-4 border-b border-blue-200 dark:border-blue-800">
             <h2 class="font-semibold text-blue-900 dark:text-blue-100">Upgrade to Dedicated Status</h2>
             <p class="text-sm text-blue-700 dark:text-blue-300 mt-1">As a basic member, you can upgrade to a dedicated status by paying a once-off upgrade fee.</p>
@@ -394,7 +498,7 @@ new #[Title('My Membership')] class extends Component {
     @endif
 
     {{-- Membership History --}}
-    <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-sm overflow-hidden">
+    <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 overflow-hidden">
         <div class="px-6 py-4 border-b border-zinc-100 dark:border-zinc-700">
             <h2 class="font-semibold text-zinc-900 dark:text-white">Membership History</h2>
         </div>
@@ -472,12 +576,87 @@ new #[Title('My Membership')] class extends Component {
             <h3 class="mt-4 font-medium text-zinc-900 dark:text-white">No Membership History</h3>
             <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">You haven't applied for a membership yet.</p>
             <a href="{{ route('membership.apply') }}" wire:navigate 
-                class="mt-4 inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors">
+                class="mt-4 inline-flex items-center rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                 Apply Now
             </a>
         </div>
         @endif
     </div>
+
+    {{-- Renewal Modal --}}
+    @if($showRenewalModal)
+    <div class="fixed inset-0 z-50 overflow-y-auto" x-data x-init="document.body.classList.add('overflow-hidden')" x-on:remove="document.body.classList.remove('overflow-hidden')">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div wire:click="$set('showRenewalModal', false)" class="fixed inset-0 bg-black/50 transition-opacity"></div>
+            <div class="relative w-full max-w-lg rounded-xl bg-white dark:bg-zinc-800 p-6 shadow-xl">
+                <h2 class="text-xl font-bold text-zinc-900 dark:text-white mb-2">Renew Membership</h2>
+                <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+                    Renew your <strong class="text-zinc-700 dark:text-zinc-300">{{ $this->activeMembership->type->name }}</strong> membership
+                    @if($this->activeMembership->isAffiliatedClubMembership() && $this->activeMembership->affiliatedClub)
+                        with <strong class="text-zinc-700 dark:text-zinc-300">{{ $this->activeMembership->affiliatedClub->name }}</strong>
+                    @endif
+                    for another period.
+                </p>
+
+                <form wire:submit="submitRenewal" class="space-y-4">
+                    {{-- Renewal Summary --}}
+                    <div class="rounded-lg bg-zinc-50 dark:bg-zinc-900/50 p-4 space-y-3 text-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="text-zinc-500 dark:text-zinc-400">Membership Type</span>
+                            <span class="font-semibold text-zinc-900 dark:text-white">{{ $this->activeMembership->type->name }}</span>
+                        </div>
+                        @if($this->activeMembership->isAffiliatedClubMembership() && $this->activeMembership->affiliatedClub)
+                        <div class="flex items-center justify-between">
+                            <span class="text-zinc-500 dark:text-zinc-400">Affiliated Club</span>
+                            <span class="font-medium text-zinc-900 dark:text-white">{{ $this->activeMembership->affiliatedClub->name }}</span>
+                        </div>
+                        @endif
+                        <div class="flex items-center justify-between">
+                            <span class="text-zinc-500 dark:text-zinc-400">Duration</span>
+                            <span class="text-zinc-900 dark:text-white">{{ $this->activeMembership->type->duration_months }} months</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-zinc-500 dark:text-zinc-400">Current Expiry</span>
+                            <span class="text-zinc-900 dark:text-white">{{ $this->activeMembership->expires_at?->format('d M Y') ?? 'N/A' }}</span>
+                        </div>
+                        <hr class="border-zinc-200 dark:border-zinc-700">
+                        <div class="flex items-center justify-between text-base">
+                            <span class="font-semibold text-zinc-900 dark:text-white">Renewal Amount</span>
+                            <span class="font-bold text-emerald-600 dark:text-emerald-400">R{{ number_format($this->renewalAmountDue, 2) }}</span>
+                        </div>
+                    </div>
+
+                    {{-- Terms --}}
+                    <div>
+                        <label class="flex items-start gap-3">
+                            <input type="checkbox" wire:model.live="agreedToRenewalTerms" class="mt-1 size-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700">
+                            <span class="text-sm text-zinc-700 dark:text-zinc-300">I agree to the NRAPA membership terms and conditions, code of conduct, and privacy policy.</span>
+                        </label>
+                        @error('agreedToRenewalTerms') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                        <p class="text-sm text-blue-800 dark:text-blue-300">
+                            <strong>Note:</strong> Payment instructions will be sent to your email. Your renewal will be activated after admin approval and payment confirmation.
+                        </p>
+                    </div>
+
+                    <div class="flex justify-end gap-3 pt-2">
+                        <button type="button" wire:click="$set('showRenewalModal', false)" 
+                            class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
+                            Cancel
+                        </button>
+                        <button type="submit" 
+                            class="rounded-lg bg-nrapa-blue hover:bg-nrapa-blue-dark px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            {{ !$this->agreedToRenewalTerms ? 'disabled' : '' }}>
+                            Submit Renewal
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endif
 
     {{-- Change Membership Modal --}}
     @if($showChangeModal)
@@ -542,7 +721,7 @@ new #[Title('My Membership')] class extends Component {
                             Cancel
                         </button>
                         <button type="submit" 
-                            class="rounded-lg bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-sm font-medium text-white transition-colors">
+                            class="rounded-lg bg-nrapa-blue hover:bg-nrapa-blue-dark px-4 py-2 text-sm font-medium text-white transition-colors">
                             Submit Request
                         </button>
                     </div>

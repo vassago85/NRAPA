@@ -1194,7 +1194,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                         @disabled($num > $this->getMaxAllowedStep())
                         class="flex items-center justify-center w-10 h-10 rounded-full text-sm font-semibold transition-colors
                             {{ $currentStep === $num 
-                                ? 'bg-emerald-600 text-white' 
+                                ? 'bg-nrapa-blue text-white' 
                                 : ($currentStep > $num 
                                     ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' 
                                     : 'bg-zinc-200 text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400') }}
@@ -1220,7 +1220,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     </div>
 
     {{-- Step Content --}}
-    <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700">
+    <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700">
         {{-- Step 1: Request Type --}}
         @if($currentStep === 1)
             <div class="p-6">
@@ -1294,7 +1294,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                             @foreach($categoryOptions as $value => $label)
                                 <label class="relative cursor-pointer">
                                     <input type="radio" wire:model.live="firearmCategory" value="{{ $value }}" class="peer sr-only">
-                                    <div class="p-4 text-center border-2 rounded-lg transition-all peer-checked:border-emerald-600 peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:shadow-lg peer-checked:shadow-emerald-200/50 dark:peer-checked:bg-emerald-600 dark:peer-checked:text-white dark:peer-checked:shadow-emerald-900/50 border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 bg-white dark:bg-zinc-800">
+                                    <div class="p-4 text-center border-2 rounded-lg transition-all peer-checked:border-nrapa-blue peer-checked:bg-nrapa-blue peer-checked:text-white peer-checked:shadow-lg peer-checked:shadow-nrapa-blue/20 dark:peer-checked:bg-nrapa-blue dark:peer-checked:text-white dark:peer-checked:shadow-nrapa-blue/30 border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 bg-white dark:bg-zinc-800">
                                         <span class="text-sm font-medium text-zinc-900 dark:text-white peer-checked:text-white">{{ $label }}</span>
                                     </div>
                                 </label>
@@ -1956,7 +1956,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                         <button wire:click="nextStep" type="button"
                             @disabled(!$this->canProceedToNextStep)
                             wire:loading.attr="disabled"
-                            class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-600">
+                            class="px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-nrapa-blue">
                             <span wire:loading.remove wire:target="nextStep">Next</span>
                             <span wire:loading wire:target="nextStep">Processing...</span>
                         </button>
@@ -1965,7 +1965,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                     <button wire:click="submitRequest" type="button"
                         @disabled(!$this->canSubmit)
                         wire:loading.attr="disabled"
-                        class="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-600">
+                        class="px-6 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-nrapa-blue">
                         <span wire:loading.remove wire:target="submitRequest">Submit Request</span>
                         <span wire:loading wire:target="submitRequest">Submitting...</span>
                     </button>

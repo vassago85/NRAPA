@@ -59,7 +59,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     {
         return match($status) {
             'pending' => 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
-            'verified' => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+            'verified' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300',
             'rejected' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
             'expired' => 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-300',
             'archived' => 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
@@ -100,7 +100,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         {{-- Document Preview --}}
-        <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 flex flex-col h-full">
+        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6 flex flex-col h-full">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Preview</h2>
             <div class="bg-zinc-100 dark:bg-zinc-900 rounded-lg overflow-hidden flex-1 flex items-center justify-center" style="min-height: 500px;">
                 @php $previewUrl = $this->getPreviewUrl(); @endphp
@@ -139,7 +139,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         </div>
 
         {{-- Document Details & Actions --}}
-        <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 flex flex-col h-full">
+        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6 flex flex-col h-full">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Details</h2>
             
             <dl class="space-y-4 flex-1">
@@ -292,7 +292,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                     
                     <div class="flex gap-3">
                         <button wire:click="verifyDocument"
-                            class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
+                            class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                             Verify Document
                         </button>

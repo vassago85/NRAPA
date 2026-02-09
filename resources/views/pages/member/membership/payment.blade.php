@@ -80,19 +80,19 @@ new class extends Component {
         </div>
 
         @if(session('success'))
-            <div class="mb-6 p-4 bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
-                <p class="text-green-700 dark:text-green-300">{{ session('success') }}</p>
+            <div class="mb-6 p-4 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-xl">
+                <p class="text-emerald-700 dark:text-emerald-300">{{ session('success') }}</p>
             </div>
         @endif
 
         @if(session('error'))
-            <div class="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
+            <div class="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl">
                 <p class="text-red-700 dark:text-red-300">{{ session('error') }}</p>
             </div>
         @endif
 
         <!-- Selected Package Summary -->
-        <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 mb-6">
+        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6 mb-6">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Selected Membership</h2>
             <div class="flex items-center justify-between p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
                 <div>
@@ -113,7 +113,7 @@ new class extends Component {
         </div>
 
         <!-- Bank Account Details -->
-        <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 mb-6">
+        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6 mb-6">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Bank Account Details</h2>
 
             @if(empty($bankAccount['bank_name']) && empty($bankAccount['account_number']))

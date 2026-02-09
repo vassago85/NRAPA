@@ -27,14 +27,14 @@ new class extends Component {
 
 <div>
     <div class="mb-8">
-        <a href="{{ route('activities.index') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-zinc-600 dark:text-zinc-400 hover:text-nrapa-blue">
+        <a href="{{ route('activities.index') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-zinc-600 dark:text-zinc-400 hover:text-nrapa-blue transition-colors">
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             Back to Activities
         </a>
         <div class="mt-2 flex items-center justify-between">
             <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Activity Details</h1>
             @if($activity->status === 'approved')
-                <span class="inline-flex items-center gap-1 rounded-full bg-green-100 dark:bg-green-900/30 px-3 py-1 text-sm font-medium text-green-800 dark:text-green-400">
+                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-3 py-1 text-sm font-medium text-emerald-800 dark:text-emerald-300">
                     <svg class="size-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                     Approved
                 </span>
@@ -53,7 +53,7 @@ new class extends Component {
     </div>
 
     @if($activity->status === 'rejected' && $activity->rejection_reason)
-        <div class="mb-6 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4">
+        <div class="mb-6 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4">
             <div class="flex items-start gap-3">
                 <svg class="size-5 text-red-600 dark:text-red-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                 <div>
@@ -66,7 +66,7 @@ new class extends Component {
 
     <div class="space-y-6">
         <!-- Activity Information -->
-        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Activity Information</h2>
 
             <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -112,7 +112,7 @@ new class extends Component {
         </div>
 
         <!-- Location -->
-        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Location</h2>
 
             <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -139,7 +139,7 @@ new class extends Component {
         </div>
 
         <!-- Firearm/Calibre -->
-        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Firearm / Calibre</h2>
 
             <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -157,7 +157,7 @@ new class extends Component {
 
         <!-- Additional Information -->
         @if($activity->description)
-            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Additional Information</h2>
                 <p class="text-sm text-zinc-700 dark:text-zinc-300">{{ $activity->description }}</p>
             </div>
@@ -165,7 +165,7 @@ new class extends Component {
 
         <!-- Verification Details -->
         @if($activity->verified_at)
-            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Verification Details</h2>
 
                 <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">

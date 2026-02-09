@@ -211,7 +211,7 @@ new class extends Component {
             </div>
             <div class="flex items-center gap-2">
                 <button wire:click="toggleFavorite"
-                        class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 dark:border-zinc-600 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                        class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 dark:border-zinc-600 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                     @if($load->is_favorite)
                         <svg class="h-4 w-4 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
@@ -225,14 +225,14 @@ new class extends Component {
                     @endif
                 </button>
                 <a href="{{ route('load-data.edit', $load) }}" wire:navigate
-                   class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
+                   class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                     </svg>
                     Edit
                 </a>
                 <button wire:click="deleteLoad" wire:confirm="Are you sure you want to delete this load data?"
-                        class="inline-flex items-center gap-2 rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20">
+                        class="inline-flex items-center gap-2 rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                     </svg>
@@ -243,13 +243,13 @@ new class extends Component {
     </x-slot>
 
     @if(session('success'))
-        <div class="mb-6 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-4 py-3 text-sm text-green-700 dark:text-green-300">
+        <div class="mb-6 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
 
     @if($load->is_max_load)
-        <div class="mb-6 rounded-lg border border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800 p-4">
+        <div class="mb-6 rounded-xl border border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800 p-4">
             <div class="flex items-center gap-3">
                 <svg class="h-6 w-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
@@ -270,7 +270,7 @@ new class extends Component {
         <!-- Main Details -->
         <div class="lg:col-span-2 space-y-6">
             <!-- Projectile -->
-            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Projectile / Bullet</h2>
                 <dl class="grid grid-cols-2 gap-4 md:grid-cols-3">
                     <div>
@@ -304,7 +304,7 @@ new class extends Component {
             </div>
 
             <!-- Powder & Primer -->
-            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Powder & Primer</h2>
                 <dl class="grid grid-cols-2 gap-4 md:grid-cols-3">
                     <div>
@@ -338,7 +338,7 @@ new class extends Component {
             </div>
 
             <!-- Brass & Seating -->
-            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Brass & Seating</h2>
                 <dl class="grid grid-cols-2 gap-4 md:grid-cols-3">
                     <div>
@@ -472,7 +472,7 @@ new class extends Component {
 
             <!-- Notes -->
             @if($load->notes)
-                <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+                <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Notes</h2>
                     <p class="text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap">{{ $load->notes }}</p>
                 </div>
@@ -480,7 +480,7 @@ new class extends Component {
 
             <!-- Loading Sessions -->
             @if($loadingSessions->count() > 0)
-                <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+                <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Recent Loading Sessions</h2>
                     <div class="space-y-2">
                         @foreach($loadingSessions as $session)
@@ -499,12 +499,12 @@ new class extends Component {
         <!-- Sidebar -->
         <div class="space-y-6">
             <!-- Status -->
-            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Status</h2>
                 @php $badge = $load->status_badge; @endphp
                 <div class="text-center mb-4">
                     <span class="inline-flex items-center rounded-full px-4 py-2 text-sm font-medium
-                        @if($badge['color'] === 'green') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                        @if($badge['color'] === 'green') bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300
                         @elseif($badge['color'] === 'blue') bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
                         @elseif($badge['color'] === 'amber') bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200
                         @else bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-300
@@ -526,7 +526,7 @@ new class extends Component {
 
             <!-- Performance -->
             @if($load->muzzle_velocity || $load->velocity_sd || $load->group_size)
-                <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+                <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Performance</h2>
                     <dl class="space-y-3">
                         @if($load->muzzle_velocity)
@@ -573,7 +573,7 @@ new class extends Component {
 
             <!-- Testing Conditions -->
             @if($load->tested_date || $load->tested_distance || $load->tested_temperature)
-                <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+                <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Testing Conditions</h2>
                     <dl class="space-y-3">
                         @if($load->tested_date)
@@ -605,13 +605,13 @@ new class extends Component {
             @endif
 
             <!-- Actions -->
-            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Actions</h2>
                 <div class="space-y-2">
                     <!-- Load Ammo Button -->
                     @if(!$showLoadAmmoForm)
                         <button wire:click="$set('showLoadAmmoForm', true)"
-                                class="block w-full rounded-lg bg-nrapa-orange px-4 py-2 text-center text-sm font-medium text-white hover:bg-nrapa-orange-dark">
+                                class="block w-full rounded-lg bg-nrapa-orange px-4 py-2 text-center text-sm font-medium text-white hover:bg-nrapa-orange-dark transition-colors">
                             Load Ammo
                         </button>
                     @else
@@ -635,7 +635,7 @@ new class extends Component {
                                 <span class="text-xs text-zinc-600 dark:text-zinc-400">Deduct from inventory</span>
                             </label>
                             <div class="flex gap-2">
-                                <button type="submit" class="flex-1 rounded-lg bg-nrapa-blue px-3 py-1.5 text-sm font-medium text-white hover:bg-nrapa-blue-dark">Save</button>
+                                <button type="submit" class="flex-1 rounded-lg bg-nrapa-blue px-3 py-1.5 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">Save</button>
                                 <button type="button" wire:click="$set('showLoadAmmoForm', false)" class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-3 py-1.5 text-sm text-zinc-600 dark:text-zinc-400">Cancel</button>
                             </div>
                         </form>
@@ -644,7 +644,7 @@ new class extends Component {
                     <!-- Print Labels Button -->
                     @if(!$showPrintForm)
                         <button wire:click="$set('showPrintForm', true)"
-                                class="block w-full rounded-lg border border-nrapa-blue text-nrapa-blue px-4 py-2 text-center text-sm font-medium hover:bg-nrapa-blue-light dark:hover:bg-nrapa-blue/10">
+                                class="block w-full rounded-lg border border-nrapa-blue text-nrapa-blue px-4 py-2 text-center text-sm font-medium hover:bg-nrapa-blue-light dark:hover:bg-nrapa-blue/10 transition-colors">
                             Print Labels
                         </button>
                     @else
@@ -664,7 +664,7 @@ new class extends Component {
                                 </select>
                             </div>
                             <div class="flex gap-2">
-                                <button type="submit" class="flex-1 rounded-lg bg-nrapa-blue px-3 py-1.5 text-sm font-medium text-white hover:bg-nrapa-blue-dark">Download PDF</button>
+                                <button type="submit" class="flex-1 rounded-lg bg-nrapa-blue px-3 py-1.5 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">Download PDF</button>
                                 <button type="button" wire:click="$set('showPrintForm', false)" class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-3 py-1.5 text-sm text-zinc-600 dark:text-zinc-400">Cancel</button>
                             </div>
                         </form>

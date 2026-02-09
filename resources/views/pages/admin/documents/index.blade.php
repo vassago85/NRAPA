@@ -121,7 +121,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     {
         return match($status) {
             'pending' => 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
-            'verified' => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+            'verified' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300',
             'rejected' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
             'expired' => 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-300',
             'archived' => 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
@@ -144,7 +144,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
 
     {{-- Flash Messages --}}
     @if(session('success'))
-        <div class="mb-6 p-4 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg text-green-800 dark:text-green-200">
+        <div class="mb-6 p-4 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 rounded-lg text-emerald-800 dark:text-emerald-200">
             {{ session('success') }}
         </div>
     @endif
@@ -162,7 +162,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         </div>
         <div class="bg-white dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700">
             <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Verified Today</p>
-            <p class="text-2xl font-bold text-green-600 dark:text-green-400">
+            <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                 {{ \App\Models\MemberDocument::where('status', 'verified')->whereDate('verified_at', today())->count() }}
             </p>
         </div>
@@ -204,7 +204,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     </div>
 
     {{-- Documents Table --}}
-    <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+    <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
         <table class="w-full">
             <thead class="bg-zinc-50 dark:bg-zinc-700/50">
                 <tr>
@@ -426,7 +426,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                                     <div class="mt-2 pt-2 border-t border-emerald-200 dark:border-emerald-700 flex items-center gap-2">
                                         <span class="text-xs text-emerald-600 dark:text-emerald-400">Activity Status:</span>
                                         <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
-                                            {{ $activity->status === 'approved' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : ($activity->status === 'rejected' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300') }}">
+                                            {{ $activity->status === 'approved' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' : ($activity->status === 'rejected' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300') }}">
                                             {{ ucfirst($activity->status) }}
                                         </span>
                                     </div>
@@ -512,11 +512,11 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                                     
                                     <div class="flex justify-end gap-3">
                                         <button wire:click="rejectDocument"
-                                            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg">
+                                            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
                                             Reject
                                         </button>
                                         <button wire:click="verifyDocument"
-                                            class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg">
+                                            class="px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors">
                                             Verify
                                         </button>
                                     </div>
@@ -530,9 +530,9 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                                 @endif
                                 
                                 @if($reviewingDocument->verified_at)
-                                    <div class="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                                        <p class="text-sm font-medium text-green-800 dark:text-green-200">Verified</p>
-                                        <p class="mt-1 text-sm text-green-700 dark:text-green-300">
+                                    <div class="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                                        <p class="text-sm font-medium text-emerald-800 dark:text-emerald-200">Verified</p>
+                                        <p class="mt-1 text-sm text-emerald-700 dark:text-emerald-300">
                                             {{ $reviewingDocument->verified_at->format('d M Y H:i') }} by {{ $reviewingDocument->verifier?->name ?? 'System' }}
                                         </p>
                                     </div>

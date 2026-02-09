@@ -271,7 +271,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     {
         return match($status) {
             'pending' => 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
-            'verified' => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+            'verified' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
             'rejected' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
             'expired' => 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-300',
             'archived' => 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
@@ -287,7 +287,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             <p class="mt-2 text-zinc-600 dark:text-zinc-400">Upload and manage your documents for membership and firearm applications.</p>
         </div>
         <button wire:click="openUploadModal()"
-            class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors">
+            class="inline-flex items-center gap-2 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
             </svg>
@@ -297,19 +297,19 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
 
     {{-- Flash Messages --}}
     @if(session('success'))
-        <div class="mb-6 p-4 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg text-green-800 dark:text-green-200">
+        <div class="mb-6 p-4 bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-700 rounded-xl text-emerald-800 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
     @if(session('error'))
-        <div class="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg text-red-800 dark:text-red-200">
+        <div class="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-xl text-red-800 dark:text-red-200">
             {{ session('error') }}
         </div>
     @endif
 
     {{-- Documents List --}}
     @if($documents->count() > 0)
-        <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
             <div class="divide-y divide-zinc-200 dark:divide-zinc-700">
                 @foreach($documents as $doc)
                     <div class="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-700/30 transition-colors">
@@ -371,7 +371,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         </div>
     @else
         {{-- Empty State --}}
-        <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-12 text-center">
+        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-12 text-center">
             <svg class="mx-auto h-16 w-16 text-zinc-300 dark:text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
             </svg>
@@ -380,7 +380,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                 You haven't uploaded any documents yet. Click the button above to upload your first document.
             </p>
             <button wire:click="openUploadModal()"
-                class="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors">
+                class="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
                 </svg>
@@ -604,11 +604,11 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                         
                         <div class="flex justify-end gap-3 pt-4">
                             <button type="button" wire:click="$set('showUploadModal', false)"
-                                class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                                class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                                 Cancel
                             </button>
                             <button type="submit"
-                                class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg disabled:opacity-50"
+                                class="px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors disabled:opacity-50"
                                 wire:loading.attr="disabled">
                                 <span wire:loading.remove wire:target="uploadDocument">Upload</span>
                                 <span wire:loading wire:target="uploadDocument">Uploading...</span>
@@ -732,17 +732,17 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                             <button type="button" 
                                 wire:click="deleteDocument('{{ $viewingDocument->uuid }}')" 
                                 wire:confirm="Are you sure you want to delete this document? This action cannot be undone."
-                                class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg inline-flex items-center gap-2">
+                                class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors inline-flex items-center gap-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                 Delete
                             </button>
                             <div class="flex gap-3">
                                 <button type="button" wire:click="$set('showViewModal', false)"
-                                    class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                                    class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                                     Close
                                 </button>
                                 <a href="{{ route('documents.show', $viewingDocument) }}" target="_blank"
-                                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg inline-flex items-center gap-2">
+                                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors inline-flex items-center gap-2">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                     View File
                                 </a>

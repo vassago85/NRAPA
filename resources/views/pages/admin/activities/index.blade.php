@@ -49,7 +49,7 @@ new class extends Component {
     </div>
 
     @if(session('success'))
-        <div class="mb-6 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4 text-green-700 dark:text-green-300">
+        <div class="mb-6 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 text-emerald-700 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
@@ -68,10 +68,10 @@ new class extends Component {
             </div>
         </button>
 
-        <button wire:click="$set('statusFilter', 'approved')" class="rounded-lg border p-4 text-left transition-colors {{ $statusFilter === 'approved' ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700' : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-green-300' }}">
+        <button wire:click="$set('statusFilter', 'approved')" class="rounded-lg border p-4 text-left transition-colors {{ $statusFilter === 'approved' ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700' : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-emerald-300' }}">
             <div class="flex items-center gap-3">
-                <div class="rounded-full bg-green-100 dark:bg-green-900/30 p-2">
-                    <svg class="size-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                <div class="rounded-full bg-emerald-100 dark:bg-emerald-900/30 p-2">
+                    <svg class="size-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                 </div>
                 <div>
                     <p class="text-2xl font-bold text-zinc-900 dark:text-white">{{ $approvedCount }}</p>
@@ -102,7 +102,7 @@ new class extends Component {
     </div>
 
     <!-- Activities List -->
-    <div class="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800">
+    <div class="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800">
         @if($activities->isEmpty())
             <div class="p-8 text-center">
                 <svg class="mx-auto size-12 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -153,7 +153,7 @@ new class extends Component {
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4">
                                     @if($activity->status === 'approved')
-                                        <span class="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/30 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:text-green-400">Approved</span>
+                                        <span class="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:text-emerald-400">Approved</span>
                                     @elseif($activity->status === 'pending')
                                         <span class="inline-flex items-center rounded-full bg-yellow-100 dark:bg-yellow-900/30 px-2.5 py-0.5 text-xs font-medium text-yellow-800 dark:text-yellow-400">Pending</span>
                                     @else
@@ -161,9 +161,9 @@ new class extends Component {
                                     @endif
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4 text-right text-sm">
-                                    <a href="{{ route('admin.activities.show', $activity) }}" wire:navigate class="text-emerald-600 hover:text-emerald-700">Review</a>
+                                    <a href="{{ route('admin.activities.show', $activity) }}" wire:navigate class="text-emerald-600 hover:text-emerald-700 transition-colors">Review</a>
                                     @if($activity->status === 'pending')
-                                        <button wire:click="approve({{ $activity->id }})" class="ml-4 text-green-600 hover:text-green-700">Quick Approve</button>
+                                        <button wire:click="approve({{ $activity->id }})" class="ml-4 text-emerald-600 hover:text-emerald-700 transition-colors">Quick Approve</button>
                                     @endif
                                 </td>
                             </tr>

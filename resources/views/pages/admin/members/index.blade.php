@@ -86,7 +86,7 @@ new #[Title('Members - Admin')] class extends Component {
     {
         $activeMembership = $user->activeMembership;
         if ($activeMembership) {
-            return ['status' => 'Active', 'class' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'];
+            return ['status' => 'Active', 'class' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'];
         }
 
         $latestMembership = $user->memberships->first();
@@ -209,11 +209,11 @@ new #[Title('Members - Admin')] class extends Component {
                 <span class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold text-white bg-amber-500 rounded-full">{{ $this->unresolvedFailuresCount }}</span>
             </a>
             @endif
-            <button wire:click="downloadTemplate" class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-200 dark:border-zinc-600 dark:hover:bg-zinc-700">
+            <button wire:click="downloadTemplate" class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-200 dark:border-zinc-600 dark:hover:bg-zinc-700 transition-colors">
                 <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 Download Template
             </button>
-            <button wire:click="openImportModal" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700">
+            <button wire:click="openImportModal" class="px-4 py-2 text-sm font-medium text-white bg-nrapa-blue rounded-lg hover:bg-nrapa-blue-dark transition-colors">
                 <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                 Import Members
             </button>
@@ -221,8 +221,8 @@ new #[Title('Members - Admin')] class extends Component {
     </div>
     
     @if(session('success'))
-        <div class="p-4 bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
-            <p class="text-green-700 dark:text-green-300">{{ session('success') }}</p>
+        <div class="p-4 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+            <p class="text-emerald-700 dark:text-emerald-300">{{ session('success') }}</p>
         </div>
     @endif
     
@@ -234,19 +234,19 @@ new #[Title('Members - Admin')] class extends Component {
 
     {{-- Stats Cards --}}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Total Users</p>
             <p class="mt-1 text-2xl font-bold text-zinc-900 dark:text-white">{{ $this->stats['total'] }}</p>
         </div>
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Active Members</p>
-            <p class="mt-1 text-2xl font-bold text-green-600 dark:text-green-400">{{ $this->stats['active'] }}</p>
+            <p class="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ $this->stats['active'] }}</p>
         </div>
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Pending Approval</p>
             <p class="mt-1 text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ $this->stats['pending'] }}</p>
         </div>
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Expired</p>
             <p class="mt-1 text-2xl font-bold text-orange-600 dark:text-orange-400">{{ $this->stats['expired'] }}</p>
         </div>
@@ -277,7 +277,7 @@ new #[Title('Members - Admin')] class extends Component {
     </div>
 
     {{-- Members Table --}}
-    <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
         <div class="overflow-x-auto">
             <table class="w-full">
                 <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
@@ -452,18 +452,18 @@ new #[Title('Members - Admin')] class extends Component {
                         {{-- Import Results --}}
                         @if($importResults)
                         <div class="border-t border-zinc-200 pt-4 dark:border-zinc-700">
-                            <div class="rounded-lg p-4 {{ $importResults['success'] ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20' }}">
+                            <div class="rounded-lg p-4 {{ $importResults['success'] ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-red-50 dark:bg-red-900/20' }}">
                                 <div class="flex items-start gap-3">
                                     @if($importResults['success'])
-                                    <svg class="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                     @else
                                     <svg class="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                     @endif
                                     <div class="flex-1">
-                                        <p class="font-medium {{ $importResults['success'] ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200' }}">
+                                        <p class="font-medium {{ $importResults['success'] ? 'text-emerald-800 dark:text-emerald-200' : 'text-red-800 dark:text-red-200' }}">
                                             Import {{ $importResults['success'] ? 'Completed' : 'Failed' }}
                                         </p>
-                                        <p class="mt-1 text-sm {{ $importResults['success'] ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300' }}">
+                                        <p class="mt-1 text-sm {{ $importResults['success'] ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300' }}">
                                             Imported: {{ $importResults['imported'] }},
                                             Skipped: {{ $importResults['skipped'] ?? 0 }},
                                             Failed: {{ $importResults['failed'] ?? 0 }}
@@ -499,7 +499,7 @@ new #[Title('Members - Admin')] class extends Component {
                             <button type="button" wire:click="closeImportModal" class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 dark:hover:bg-zinc-600">
                                 Cancel
                             </button>
-                            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700">
+                            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-nrapa-blue rounded-lg hover:bg-nrapa-blue-dark transition-colors">
                                 Import Members
                             </button>
                         </div>

@@ -217,7 +217,7 @@ new #[Title('Take Test')] class extends Component {
                     <span class="font-mono text-lg font-bold" :class="timeRemaining < 300 ? 'text-red-600 dark:text-red-400' : 'text-zinc-900 dark:text-white'" x-text="formatTime(timeRemaining)"></span>
                 </div>
                 @endif
-                <button wire:click="submitTest" wire:confirm="Are you sure you want to submit your test? You cannot change your answers after submitting." class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                <button wire:click="submitTest" wire:confirm="Are you sure you want to submit your test? You cannot change your answers after submitting." class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                     Submit Test
                 </button>
             </div>
@@ -245,7 +245,7 @@ new #[Title('Take Test')] class extends Component {
                     wire:click="goToQuestion({{ $index }})"
                     class="flex size-10 items-center justify-center rounded-lg text-sm font-medium transition-colors
                         {{ $index === $currentQuestionIndex
-                            ? 'bg-emerald-600 text-white'
+                            ? 'bg-nrapa-blue text-white'
                             : (!empty($this->answers[$question->id] ?? '')
                                 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300'
                                 : 'bg-white text-zinc-600 hover:bg-zinc-100 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700') }}"
@@ -256,7 +256,7 @@ new #[Title('Take Test')] class extends Component {
             </div>
             <div class="mt-4 space-y-2 text-xs text-zinc-500 dark:text-zinc-400">
                 <div class="flex items-center gap-2">
-                    <div class="size-4 rounded bg-emerald-600"></div>
+                    <div class="size-4 rounded bg-nrapa-blue"></div>
                     <span>Current</span>
                 </div>
                 <div class="flex items-center gap-2">
@@ -274,11 +274,11 @@ new #[Title('Take Test')] class extends Component {
         <div class="flex-1 overflow-y-auto p-6">
             @if($this->currentQuestion)
             <div class="mx-auto max-w-3xl">
-                <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+                <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
                     @php
                         $typeColors = [
                             'multiple_choice' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-                            'multiple_select' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                            'multiple_select' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
                             'priority_order' => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
                             'written' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
                         ];
@@ -538,7 +538,7 @@ new #[Title('Take Test')] class extends Component {
                     <button
                         wire:click="previousQuestion"
                         {{ $currentQuestionIndex === 0 ? 'disabled' : '' }}
-                        class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600"
+                        class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors"
                     >
                         <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
@@ -551,7 +551,7 @@ new #[Title('Take Test')] class extends Component {
                         @foreach($this->questions as $index => $question)
                         <button
                             wire:click="goToQuestion({{ $index }})"
-                            class="size-2 rounded-full transition-colors {{ $index === $currentQuestionIndex ? 'bg-emerald-600' : (!empty($this->answers[$question->id] ?? '') ? 'bg-emerald-300' : 'bg-zinc-300 dark:bg-zinc-600') }}"
+                            class="size-2 rounded-full transition-colors {{ $index === $currentQuestionIndex ? 'bg-nrapa-blue' : (!empty($this->answers[$question->id] ?? '') ? 'bg-nrapa-blue/40' : 'bg-zinc-300 dark:bg-zinc-600') }}"
                         ></button>
                         @endforeach
                     </div>
@@ -559,7 +559,7 @@ new #[Title('Take Test')] class extends Component {
                     @if($currentQuestionIndex < $this->questions->count() - 1)
                     <button
                         wire:click="nextQuestion"
-                        class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600"
+                        class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors"
                     >
                         Next
                         <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -570,7 +570,7 @@ new #[Title('Take Test')] class extends Component {
                     <button
                         wire:click="submitTest"
                         wire:confirm="Are you sure you want to submit your test? You cannot change your answers after submitting."
-                        class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600"
+                        class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors"
                     >
                         Submit Test
                         <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">

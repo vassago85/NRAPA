@@ -29,7 +29,7 @@ new #[Title('Membership Details')] class extends Component {
     public function getStatusClasses(): string
     {
         return match($this->membership->status) {
-            'active' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+            'active' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
             'applied' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
             'approved' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
             'suspended', 'revoked' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
@@ -43,7 +43,7 @@ new #[Title('Membership Details')] class extends Component {
     {{-- Header --}}
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-4">
-            <a href="{{ route('membership.index') }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
+            <a href="{{ route('membership.index') }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
                 </svg>
@@ -60,12 +60,12 @@ new #[Title('Membership Details')] class extends Component {
     </div>
 
     @if(session('success'))
-    <div class="rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+    <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
         <div class="flex items-center gap-3">
-            <svg class="size-5 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <svg class="size-5 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
             </svg>
-            <p class="text-sm text-green-700 dark:text-green-300">{{ session('success') }}</p>
+            <p class="text-sm text-emerald-700 dark:text-emerald-300">{{ session('success') }}</p>
         </div>
     </div>
     @endif
@@ -99,7 +99,7 @@ new #[Title('Membership Details')] class extends Component {
                         <svg x-show="!copied" class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                         </svg>
-                        <svg x-show="copied" x-cloak class="size-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg x-show="copied" x-cloak class="size-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
                         <span x-text="copied ? 'Copied!' : 'Copy'" class="text-sm font-medium"></span>
@@ -198,7 +198,7 @@ new #[Title('Membership Details')] class extends Component {
 
     <div class="grid gap-6 lg:grid-cols-2">
         {{-- Membership Info --}}
-        <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
             <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Membership Information</h2>
             </div>
@@ -236,7 +236,7 @@ new #[Title('Membership Details')] class extends Component {
         </div>
 
         {{-- Timeline --}}
-        <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
             <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Timeline</h2>
             </div>
@@ -329,7 +329,7 @@ new #[Title('Membership Details')] class extends Component {
 
     {{-- Certificates --}}
     @if($this->membership->certificates->count() > 0)
-    <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
         <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Certificates</h2>
         </div>
@@ -361,7 +361,7 @@ new #[Title('Membership Details')] class extends Component {
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-sm">
                             @if($certificate->isValid())
-                                <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Valid</span>
+                                <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Valid</span>
                             @elseif($certificate->isRevoked())
                                 <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">Revoked</span>
                             @else

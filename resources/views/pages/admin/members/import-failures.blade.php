@@ -163,7 +163,7 @@ new #[Title('Import Failures - Admin')] class extends Component {
         <div class="flex gap-2">
             @if($failures->total() > 0)
             <button wire:click="dismissAll" wire:confirm="Are you sure you want to dismiss all unresolved failures{{ $filterBatch ? ' in this batch' : '' }}?"
-                class="px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-300 rounded-lg hover:bg-red-100 dark:text-red-300 dark:bg-red-900/30 dark:border-red-700 dark:hover:bg-red-900/50">
+                class="px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-300 rounded-lg hover:bg-red-100 dark:text-red-300 dark:bg-red-900/30 dark:border-red-700 dark:hover:bg-red-900/50 transition-colors">
                 Dismiss All
             </button>
             @endif
@@ -172,8 +172,8 @@ new #[Title('Import Failures - Admin')] class extends Component {
 
     {{-- Flash Messages --}}
     @if(session('success'))
-    <div class="p-4 bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
-        <p class="text-green-700 dark:text-green-300">{{ session('success') }}</p>
+    <div class="p-4 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+        <p class="text-emerald-700 dark:text-emerald-300">{{ session('success') }}</p>
     </div>
     @endif
 
@@ -195,7 +195,7 @@ new #[Title('Import Failures - Admin')] class extends Component {
     {{-- Failures Table --}}
     @if($failures->isEmpty())
     <div class="flex flex-col items-center justify-center py-16 text-center">
-        <svg class="w-16 h-16 text-green-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <svg class="w-16 h-16 text-emerald-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         <h3 class="text-lg font-medium text-zinc-900 dark:text-white">No unresolved import failures</h3>
         <p class="mt-1 text-zinc-500 dark:text-zinc-400">All import issues have been resolved.</p>
         <a href="{{ route('admin.members.index') }}" wire:navigate class="mt-4 text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400">
@@ -203,7 +203,7 @@ new #[Title('Import Failures - Admin')] class extends Component {
         </a>
     </div>
     @else
-    <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+    <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead class="bg-zinc-50 dark:bg-zinc-700/50">
@@ -357,7 +357,7 @@ new #[Title('Import Failures - Admin')] class extends Component {
                                 Cancel
                             </button>
                             <button type="submit"
-                                class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700">
+                                class="px-4 py-2 text-sm font-medium text-white bg-nrapa-blue rounded-lg hover:bg-nrapa-blue-dark transition-colors">
                                 Retry Import
                             </button>
                         </div>

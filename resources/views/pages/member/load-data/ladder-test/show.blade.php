@@ -490,21 +490,21 @@ new class extends Component {
             </div>
             <div class="flex items-center gap-2">
                 <button wire:click="$set('showImportForm', true)"
-                        class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 dark:border-zinc-600 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                        class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 dark:border-zinc-600 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
                     </svg>
                     Import CSV
                 </button>
                 <a href="{{ route('ladder-test.labels', $test) }}" target="_blank"
-                   class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
+                   class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
                     </svg>
                     Print Labels
                 </a>
                 <button wire:click="deleteTest" wire:confirm="Are you sure you want to delete this ladder test? This cannot be undone."
-                        class="inline-flex items-center gap-2 rounded-lg border border-red-300 dark:border-red-600 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                        class="inline-flex items-center gap-2 rounded-lg border border-red-300 dark:border-red-600 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                     </svg>
@@ -515,7 +515,7 @@ new class extends Component {
     </x-slot>
 
     @if(session('success'))
-        <div class="mb-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-4 py-3 text-sm text-green-700 dark:text-green-300">
+        <div class="mb-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
@@ -527,25 +527,25 @@ new class extends Component {
 
     <!-- Summary -->
     <div class="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-4 text-center">
+        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-4 text-center">
             <p class="text-2xl font-bold text-nrapa-blue">{{ $steps->count() }}</p>
             <p class="text-xs text-zinc-500">Steps</p>
         </div>
-        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-4 text-center">
+        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-4 text-center">
             <p class="text-2xl font-bold text-nrapa-orange">{{ $test->total_rounds }}</p>
             <p class="text-xs text-zinc-500">Total Rounds</p>
         </div>
-        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-4 text-center">
+        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-4 text-center">
             <p class="text-2xl font-bold text-zinc-900 dark:text-white">{{ $test->rounds_per_step }}</p>
             <p class="text-xs text-zinc-500">Rounds/Step</p>
         </div>
         @if($test->best_step)
-            <div class="rounded-lg border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20 p-4 text-center">
-                <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ rtrim(rtrim($test->best_step->charge_weight, '0'), '.') }}{{ $test->unit_label }}</p>
-                <p class="text-xs text-green-600 dark:text-green-400">Best (SD: {{ $test->best_step->sd }})</p>
+            <div class="rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 p-4 text-center">
+                <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ rtrim(rtrim($test->best_step->charge_weight, '0'), '.') }}{{ $test->unit_label }}</p>
+                <p class="text-xs text-emerald-600 dark:text-emerald-400">Best (SD: {{ $test->best_step->sd }})</p>
             </div>
         @else
-            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-4 text-center">
+            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-4 text-center">
                 <p class="text-2xl font-bold text-zinc-400">—</p>
                 <p class="text-xs text-zinc-500">Best Step</p>
             </div>
@@ -553,7 +553,7 @@ new class extends Component {
     </div>
 
     <!-- Component Info -->
-    <div class="mb-6 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+    <div class="mb-6 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
         @if($editingComponents)
             {{-- Editable component form --}}
             <div class="flex items-center justify-between mb-4">
@@ -643,7 +643,7 @@ new class extends Component {
                 <div class="flex items-center gap-3 pt-2">
                     <button wire:click="saveComponents"
                             wire:loading.attr="disabled"
-                            class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
+                            class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                         <span wire:loading.remove wire:target="saveComponents">Save Changes</span>
                         <span wire:loading wire:target="saveComponents">Saving...</span>
                     </button>
@@ -782,7 +782,7 @@ new class extends Component {
                                         <td class="px-3 py-1.5">{{ $row['vel_count'] }} shots</td>
                                         <td class="px-3 py-1.5">{{ $row['avg_vel'] ?? '—' }}</td>
                                         <td class="px-3 py-1.5">{{ $row['es'] ?? '—' }}</td>
-                                        <td class="px-3 py-1.5 {{ ($row['sd'] ?? 99) <= 10 ? 'text-green-600' : '' }}">{{ $row['sd'] ?? '—' }}</td>
+                                        <td class="px-3 py-1.5 {{ ($row['sd'] ?? 99) <= 10 ? 'text-emerald-600' : '' }}">{{ $row['sd'] ?? '—' }}</td>
                                         <td class="px-3 py-1.5">{{ $row['group_size'] !== null ? $row['group_size'] . '"' : '—' }}</td>
                                         <td class="px-3 py-1.5 text-zinc-500 truncate max-w-32">{{ $row['notes'] ?: '—' }}</td>
                                     </tr>
@@ -794,7 +794,7 @@ new class extends Component {
 
                 <div class="flex items-center gap-3">
                     <button wire:click="importResults"
-                            class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
+                            class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                         Import {{ count($importPreview) }} Steps
                     </button>
                     <p class="text-xs text-zinc-500">This will overwrite any existing results for the matched steps.</p>
@@ -805,7 +805,7 @@ new class extends Component {
 
     <!-- Velocity / SD / ES Line Graph -->
     @if($hasAnyResults)
-        <div class="mb-6 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6"
+        <div class="mb-6 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6"
              x-data="ladderChart({{ Js::from($chartData) }}, {{ Js::from($test->unit_label) }}, {{ Js::from($test->type_label) }})"
              wire:key="ladder-chart-{{ md5(json_encode($chartData)) }}">
             <div class="flex items-center justify-between mb-4">
@@ -854,16 +854,16 @@ new class extends Component {
     </div>
     <div class="space-y-4">
         @foreach($steps as $step)
-            <div class="rounded-lg border {{ $bestStepId === $step->id ? 'border-green-400 dark:border-green-600 bg-green-50/50 dark:bg-green-900/10' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800' }} p-6">
+            <div class="rounded-lg border {{ $bestStepId === $step->id ? 'border-emerald-400 dark:border-emerald-600 bg-emerald-50/50 dark:bg-emerald-900/10' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800' }} p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-3">
-                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-full {{ $bestStepId === $step->id ? 'bg-green-500 text-white' : 'bg-nrapa-blue text-white' }} text-sm font-bold">
+                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-full {{ $bestStepId === $step->id ? 'bg-emerald-500 text-white' : 'bg-nrapa-blue text-white' }} text-sm font-bold">
                             {{ $step->step_number }}
                         </span>
                         <div>
                             <span class="text-lg font-bold text-zinc-900 dark:text-white">{{ rtrim(rtrim($step->charge_weight, '0'), '.') }}{{ $test->unit_label }}</span>
                             @if($bestStepId === $step->id)
-                                <span class="ml-2 inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Best SD</span>
+                                <span class="ml-2 inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Best SD</span>
                             @endif
                         </div>
                     </div>
@@ -888,7 +888,7 @@ new class extends Component {
                                 </strong></span>
                             @endif
                             @if($step->sd !== null)
-                                <span class="text-zinc-500">SD: <strong class="{{ $step->sd <= 10 ? 'text-green-600' : ($step->sd <= 20 ? 'text-amber-600' : 'text-red-600') }}">{{ $step->sd }}</strong></span>
+                                <span class="text-zinc-500">SD: <strong class="{{ $step->sd <= 10 ? 'text-emerald-600' : ($step->sd <= 20 ? 'text-amber-600' : 'text-red-600') }}">{{ $step->sd }}</strong></span>
                             @endif
                             @if($step->group_size)
                                 <span class="text-zinc-500">Group: <strong class="text-zinc-900 dark:text-white">
@@ -904,7 +904,7 @@ new class extends Component {
                 </div>
 
                 @if(session('step_saved_' . $step->id))
-                    <div class="mb-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-3 py-2 text-xs text-green-700 dark:text-green-300">
+                    <div class="mb-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">
                         {{ session('step_saved_' . $step->id) }}
                     </div>
                 @endif
@@ -953,7 +953,7 @@ new class extends Component {
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-zinc-500 mb-1">SD</label>
-                            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 px-3 py-1.5 text-sm font-semibold {{ $step->sd !== null ? ($step->sd <= 10 ? 'text-green-600' : ($step->sd <= 20 ? 'text-amber-600' : 'text-red-600')) : '' }}">
+                            <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 px-3 py-1.5 text-sm font-semibold {{ $step->sd !== null ? ($step->sd <= 10 ? 'text-emerald-600' : ($step->sd <= 20 ? 'text-amber-600' : 'text-red-600')) : '' }}">
                                 @if($step->sd !== null)
                                     {{ $step->sd }}
                                 @else
@@ -1036,7 +1036,7 @@ new class extends Component {
                                 <button wire:click="saveStepResults({{ $step->id }})"
                                         wire:loading.attr="disabled"
                                         wire:loading.class="opacity-50 cursor-not-allowed"
-                                        class="rounded-lg bg-nrapa-blue px-4 py-1.5 text-xs font-medium text-white hover:bg-nrapa-blue-dark whitespace-nowrap">
+                                        class="rounded-lg bg-nrapa-blue px-4 py-1.5 text-xs font-medium text-white hover:bg-nrapa-blue-dark whitespace-nowrap transition-colors">
                                     <span wire:loading.remove wire:target="saveStepResults({{ $step->id }})">Save</span>
                                     <span wire:loading wire:target="saveStepResults({{ $step->id }})">Saving...</span>
                                 </button>

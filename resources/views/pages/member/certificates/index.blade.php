@@ -122,13 +122,13 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
     </div>
 
     {{-- Valid Certificates --}}
-    <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
         <div class="flex items-center gap-3 border-b border-zinc-200 p-6 dark:border-zinc-700">
             <svg class="size-5 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10.125 2.25h-4.5c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125v-9M10.125 2.25h.375a9 9 0 0 1 9 9v.375M10.125 2.25A3.375 3.375 0 0 1 13.5 5.625v1.5c0 .621.504 1.125 1.125 1.125h1.5a3.375 3.375 0 0 1 3.375 3.375M9 15l2.25 2.25L15 12" />
             </svg>
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Valid Certificates & Endorsements</h2>
-            <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">{{ $this->validDocuments->count() }}</span>
+            <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">{{ $this->validDocuments->count() }}</span>
         </div>
 
         @if($this->validDocuments->count() > 0)
@@ -190,7 +190,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
                                     $downloadRoute = 'member.endorsements.letter';
                                 }
                             @endphp
-                            <a href="{{ route($showRoute, $endorsement->uuid) }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
+                            <a href="{{ route($showRoute, $endorsement->uuid) }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
                                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
@@ -199,7 +199,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
                             </a>
                             @if($endorsement->letter_file_path)
                             <a href="{{ route($downloadRoute, $endorsement->uuid) }}" 
-                                class="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">
+                                class="inline-flex items-center gap-1 rounded-lg bg-nrapa-blue px-3 py-1.5 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
                                 </svg>
@@ -219,7 +219,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
                                 $walletService = app(\App\Services\WalletPassService::class);
                                 $walletEnabled = $walletService->isEnabled();
                             @endphp
-                            <a href="{{ route($showRoute, $certificate) }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
+                            <a href="{{ route($showRoute, $certificate) }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
                                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
@@ -236,7 +236,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
                                 }
                             @endphp
                             <a href="{{ route($downloadRoute, $certificate) }}" 
-                                class="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600">
+                                class="inline-flex items-center gap-1 rounded-lg bg-nrapa-blue px-3 py-1.5 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
                                 </svg>
@@ -246,7 +246,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
                             @if($isMembershipCard && $walletEnabled)
                             <div class="flex gap-2">
                                 @if($walletService->isAppleEnabled())
-                                <a href="{{ route('certificates.wallet.apple', $certificate) }}" class="inline-flex items-center gap-1 rounded-lg bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800">
+                                <a href="{{ route('certificates.wallet.apple', $certificate) }}" class="inline-flex items-center gap-1 rounded-lg bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800 transition-colors">
                                     <svg class="size-4" fill="currentColor" viewBox="0 0 24 24">
                                         <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.96-3.24-.96-1.15 0-1.36.93-2.85.93-1.5 0-2.14-.91-3.27-1.97-1.13-1.05-2.14-2.98-2.14-5.05 0-3.11 2.04-4.85 4.11-4.85 1.02 0 1.84.37 2.49.37.63 0 1.62-.38 2.74-.38 2.35 0 3.98 1.35 3.98 3.89 0 .78-.13 1.56-.38 2.32-.25.75-.56 1.5-.99 2.18zM12.03 3.5c.57-1.29 1.28-2.35 2.31-3.18.99-.81 2.4-1.27 3.44-1.05.11.6.41 1.17.89 1.67.48.5 1.05.86 1.66 1.11.6.25 1.25.38 1.88.38-.08 1.3-.41 2.54-1.03 3.66-.61 1.11-1.45 2.07-2.47 2.83-1.01.75-2.18 1.28-3.4 1.57-.12-.6-.41-1.17-.89-1.67-.48-.5-1.05-.86-1.66-1.11-.6-.25-1.25-.38-1.88-.38.08-1.3.41-2.54 1.03-3.66.61-1.11 1.45-2.07 2.47-2.83z"/>
                                     </svg>
@@ -254,7 +254,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
                                 </a>
                                 @endif
                                 @if($walletService->isGoogleEnabled())
-                                <a href="{{ route('certificates.wallet.google', $certificate) }}" class="inline-flex items-center gap-1 rounded-lg bg-white border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-900 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white dark:hover:bg-zinc-600">
+                                <a href="{{ route('certificates.wallet.google', $certificate) }}" class="inline-flex items-center gap-1 rounded-lg bg-white border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-900 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white dark:hover:bg-zinc-600 transition-colors">
                                     <svg class="size-4" fill="currentColor" viewBox="0 0 24 24">
                                         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                                         <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -291,7 +291,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
 
     {{-- Expired/Revoked Certificates --}}
     @if($this->expiredCertificates->count() > 0)
-    <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
         <div class="flex items-center gap-3 border-b border-zinc-200 p-6 dark:border-zinc-700">
             <svg class="size-5 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m6.75 12H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
@@ -360,7 +360,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
                                     $showRoute = 'admin.certificates.show';
                                 }
                             @endphp
-                            <a href="{{ route($showRoute, $certificate) }}" wire:navigate class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+                            <a href="{{ route($showRoute, $certificate) }}" wire:navigate class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
                                 View
                             </a>
                         </td>
@@ -373,7 +373,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
     @endif
 
     {{-- QR Verification Info --}}
-    <div class="rounded-xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/50">
+    <div class="rounded-xl border border-zinc-200 bg-zinc-50 p-6 dark:border-zinc-700 dark:bg-zinc-900/50">
         <div class="flex items-start gap-4">
             <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900">
                 <svg class="size-5 text-blue-600 dark:text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">

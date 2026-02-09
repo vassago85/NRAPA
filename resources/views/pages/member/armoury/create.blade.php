@@ -144,7 +144,7 @@ new class extends Component {
     </x-slot>
 
     <form wire:submit="save" class="max-w-3xl space-y-6">
-        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
             <div class="space-y-5">
 
                 <!-- Nickname -->
@@ -260,11 +260,11 @@ new class extends Component {
         <!-- Actions -->
         <div class="flex items-center justify-end gap-4">
             <a href="{{ route('armoury.index') }}" wire:navigate
-               class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-6 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700">
+               class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-6 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                 Cancel
             </a>
             <button type="submit"
-                    class="rounded-lg bg-nrapa-blue px-6 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
+                    class="rounded-lg bg-nrapa-blue px-6 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                 Add to Virtual Safe
             </button>
         </div>

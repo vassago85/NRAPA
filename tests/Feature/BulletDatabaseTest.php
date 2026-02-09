@@ -39,6 +39,9 @@ test('bullet unique constraint prevents duplicates', function () {
         'source_url' => 'https://test.com',
         'status' => 'active',
         'last_verified_at' => now(),
+        'sku_or_part_no' => 'TEST-26177',
+        'twist_note' => '1:8',
+        'bc_reference' => 'Mach 2.25',
     ];
 
     Bullet::create($data);

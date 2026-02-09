@@ -354,7 +354,7 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
             <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Affiliated Clubs</h1>
             <p class="text-zinc-600 dark:text-zinc-400">Manage affiliated clubs, invite members, and assign existing members to clubs.</p>
         </div>
-        <button wire:click="openCreateModal" class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors">
+        <button wire:click="openCreateModal" class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             Add Club
         </button>
@@ -362,13 +362,13 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
 
     {{-- Flash Messages --}}
     @if(session('success'))
-        <div class="rounded-lg border border-green-300 bg-green-100 p-4 text-green-800 dark:border-green-700 dark:bg-green-900/30 dark:text-green-200">
+        <div class="rounded-lg border border-emerald-300 bg-emerald-100 p-4 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
 
     {{-- Clubs Table --}}
-    <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
         <div class="overflow-x-auto">
             <table class="w-full">
                 <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
@@ -554,7 +554,7 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
                         <button type="button" wire:click="$set('showEditModal', false)" class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700">
                             Cancel
                         </button>
-                        <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                        <button type="submit" class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                             {{ $editingClub ? 'Update' : 'Create' }}
                         </button>
                     </div>
@@ -704,7 +704,7 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
                             <div class="flex items-center gap-2">
                                 <p class="text-sm font-medium text-zinc-900 dark:text-white truncate">{{ $membership->user->name }}</p>
                                 <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
-                                    {{ $membership->status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : ($membership->status === 'approved' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200') }}">
+                                    {{ $membership->status === 'active' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300' : ($membership->status === 'approved' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200') }}">
                                     {{ ucfirst($membership->status) }}
                                 </span>
                             </div>

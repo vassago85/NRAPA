@@ -203,7 +203,7 @@ new #[Title('Apply for Membership')] class extends Component {
     @else
     <form wire:submit="submit" class="space-y-6">
         {{-- Membership Type Selection --}}
-        <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
             <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Select Membership Type</h2>
                 <p class="text-sm text-zinc-500 dark:text-zinc-400">Choose basic for occasional use, or a dedicated status for full benefits.</p>
@@ -309,7 +309,7 @@ new #[Title('Apply for Membership')] class extends Component {
 
         {{-- Application Summary --}}
         @if($this->selectedType)
-        <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
             <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Application Summary</h2>
             </div>
@@ -347,7 +347,7 @@ new #[Title('Apply for Membership')] class extends Component {
         @endif
 
         {{-- Terms and Submit --}}
-        <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
             <div class="p-6">
                 <div class="space-y-4">
                     <label class="flex items-start gap-3">
@@ -361,10 +361,10 @@ new #[Title('Apply for Membership')] class extends Component {
             </div>
 
             <div class="flex justify-between border-t border-zinc-200 p-6 dark:border-zinc-700">
-                <a href="{{ route('membership.index') }}" wire:navigate class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
+                <a href="{{ route('membership.index') }}" wire:navigate class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
                     Cancel
                 </a>
-                <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-emerald-500 dark:hover:bg-emerald-600" {{ !$this->agreedToTerms ? 'disabled' : '' }}>
+                <button type="submit" class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark disabled:cursor-not-allowed disabled:opacity-50 transition-colors" {{ !$this->agreedToTerms ? 'disabled' : '' }}>
                     Submit Application
                 </button>
             </div>

@@ -305,7 +305,7 @@ new class extends Component {
     <form wire:submit="save" class="max-w-3xl space-y-6">
 
         {{-- ─── Section 1: Essentials (always visible) ─── --}}
-        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Essentials</h2>
             <div class="space-y-5">
 
@@ -424,7 +424,7 @@ new class extends Component {
         </div>
 
         {{-- ─── Section 2: Barrel & Stock (collapsed) ─── --}}
-        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800" x-data="{ open: false }">
+        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800" x-data="{ open: false }">
             <button type="button" @click="open = !open"
                     class="w-full flex items-center justify-between p-6 text-left">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Barrel & Stock Details</h2>
@@ -464,7 +464,7 @@ new class extends Component {
         </div>
 
         {{-- ─── Section 3: Optics (collapsed) ─── --}}
-        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800" x-data="{ open: false }">
+        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800" x-data="{ open: false }">
             <button type="button" @click="open = !open"
                     class="w-full flex items-center justify-between p-6 text-left">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Optics</h2>
@@ -494,7 +494,7 @@ new class extends Component {
         </div>
 
         {{-- ─── Section 4: License Details (collapsed) ─── --}}
-        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800" x-data="{ open: false }">
+        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800" x-data="{ open: false }">
             <button type="button" @click="open = !open"
                     class="w-full flex items-center justify-between p-6 text-left">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">License Details</h2>
@@ -534,7 +534,7 @@ new class extends Component {
         </div>
 
         {{-- ─── Section 5: Notes & Documents (collapsed) ─── --}}
-        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800" x-data="{ open: false }">
+        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800" x-data="{ open: false }">
             <button type="button" @click="open = !open"
                     class="w-full flex items-center justify-between p-6 text-left">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Notes & Documents</h2>
@@ -567,7 +567,7 @@ new class extends Component {
         </div>
 
         {{-- ─── Section 6: SAPS 271 Component Serials (collapsed) ─── --}}
-        <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800" x-data="{ open: false }">
+        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800" x-data="{ open: false }">
             <button type="button" @click="open = !open"
                     class="w-full flex items-center justify-between p-6 text-left">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">SAPS 271 Component Serials</h2>
@@ -610,11 +610,11 @@ new class extends Component {
         <!-- Actions -->
         <div class="flex items-center justify-end gap-4">
             <a href="{{ route('armoury.show', $firearm) }}" wire:navigate
-               class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-6 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700">
+               class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-6 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                 Cancel
             </a>
             <button type="submit"
-                    class="rounded-lg bg-nrapa-blue px-6 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark">
+                    class="rounded-lg bg-nrapa-blue px-6 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                 Save Changes
             </button>
         </div>

@@ -2,9 +2,13 @@
 
 namespace App\Models;
 
+use App\Mail\DocumentRejected;
+use App\Mail\DocumentVerified;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class MemberDocument extends Model
@@ -241,6 +245,9 @@ class MemberDocument extends Model
 
         // Sync ID number to users table when an ID document is verified
         $this->syncIdNumberToUser();
+
+        // Send verification email to member
+        $this->notifyVerification();
     }
 
     /**
@@ -278,6 +285,29 @@ class MemberDocument extends Model
     }
 
     /**
+     * Send notification to member about document verification.
+     */
+    protected function notifyVerification(): void
+    {
+        $user = $this->user;
+        if (!$user) {
+            return;
+        }
+
+        try {
+            Mail::to($user->email)->queue(new DocumentVerified(
+                document: $this->load('documentType', 'user'),
+            ));
+        } catch (\Exception $e) {
+            Log::warning('Failed to send document verified email', [
+                'document_id' => $this->id,
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
      * Send notification to member about document rejection.
      */
     protected function notifyRejection(string $reason): void
@@ -287,11 +317,25 @@ class MemberDocument extends Model
             return;
         }
 
+        // Send rejection email
+        try {
+            Mail::to($user->email)->queue(new DocumentRejected(
+                document: $this->load('documentType', 'user'),
+                reason: $reason,
+            ));
+        } catch (\Exception $e) {
+            Log::warning('Failed to send document rejected email', [
+                'document_id' => $this->id,
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // Also send via NtfyService if available
         $documentTypeName = $this->documentType?->name ?? 'Document';
         $title = "Document Rejected: {$documentTypeName}";
         $message = "Your {$documentTypeName} has been rejected.\n\nReason: {$reason}\n\nPlease review and upload a new document.";
 
-        // Send via NtfyService if available
         if (class_exists(\App\Services\NtfyService::class)) {
             $ntfyService = app(\App\Services\NtfyService::class);
             $ntfyService->notifyUser(

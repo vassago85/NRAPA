@@ -67,7 +67,7 @@ new #[Title('Category - Learning Center')] class extends Component {
     {{-- Articles --}}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         @forelse($this->articles as $article)
-        <a href="{{ route('learning.show', $article) }}" wire:navigate class="group relative overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition hover:border-emerald-300 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-emerald-600">
+        <a href="{{ route('learning.show', $article) }}" wire:navigate class="group relative overflow-hidden rounded-xl border border-zinc-200 bg-white transition hover:border-emerald-300 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-emerald-600">
             @if($article->hasFeaturedImage())
             <div class="aspect-video overflow-hidden">
                 <img src="{{ $article->featured_image_url }}" alt="{{ $article->title }}" class="h-full w-full object-cover transition group-hover:scale-105">
@@ -94,7 +94,7 @@ new #[Title('Category - Learning Center')] class extends Component {
                 </div>
             </div>
             @if(in_array($article->id, $this->readArticleIds))
-            <div class="absolute right-2 top-2 rounded-full bg-green-500 p-1.5 shadow">
+            <div class="absolute right-2 top-2 rounded-full bg-emerald-500 p-1.5 shadow">
                 <svg class="size-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                 </svg>

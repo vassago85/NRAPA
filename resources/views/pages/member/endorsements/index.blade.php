@@ -201,11 +201,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
     <div class="mb-8">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
             <div>
-                <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Dedicated Status</h1>
-                <p class="mt-2 text-zinc-600 dark:text-zinc-400">Manage your dedicated status and request endorsement letters for firearm applications.</p>
+                <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Dedicated Status</h1>
+                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Manage your dedicated status and request endorsement letters for firearm applications.</p>
             </div>
             <a href="{{ route('member.endorsements.create') }}" wire:navigate
-                class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors">
+                class="inline-flex items-center gap-2 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                 </svg>
@@ -217,7 +217,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
         @if($this->dedicatedType)
         <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
             {{-- Status Header --}}
-            <div class="px-6 py-4 {{ $this->complianceStatus['is_compliant'] ? 'bg-gradient-to-r from-emerald-500 to-emerald-600' : 'bg-gradient-to-r from-amber-500 to-amber-600' }}">
+            <div class="px-6 py-4 {{ $this->complianceStatus['is_compliant'] ? 'bg-gradient-to-r from-nrapa-blue to-nrapa-blue-dark' : 'bg-gradient-to-r from-nrapa-orange to-nrapa-orange-dark' }}">
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex items-center gap-3">
                         {{-- Status Icon --}}
@@ -343,7 +343,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                 @if(!$this->complianceStatus['is_compliant'])
                     <div class="mt-4">
                         <a href="{{ route('activities.index') }}" wire:navigate
-                            class="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors text-sm font-medium">
+                            class="inline-flex items-center gap-2 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors text-sm font-medium">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                             </svg>
@@ -361,7 +361,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
         <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700 flex items-center justify-between">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Compliance Status</h2>
             @if($this->eligibility['eligible'])
-                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                     </svg>
@@ -379,11 +379,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
         <div class="p-6">
             <div class="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
                 {{-- Knowledge Test --}}
-                <div class="p-4 rounded-lg border {{ $this->eligibility['knowledge_test_passed'] ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' }}">
+                <div class="p-4 rounded-xl border {{ $this->eligibility['knowledge_test_passed'] ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' }}">
                     <div class="flex items-center gap-3 mb-2">
                         @if($this->eligibility['knowledge_test_passed'])
-                            <div class="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
-                                <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                            <div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
+                                <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                 </svg>
                             </div>
@@ -396,7 +396,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                         @endif
                         <h3 class="font-semibold text-zinc-900 dark:text-white">Knowledge Test</h3>
                     </div>
-                    <p class="text-sm {{ $this->eligibility['knowledge_test_passed'] ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300' }}">
+                    <p class="text-sm {{ $this->eligibility['knowledge_test_passed'] ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300' }}">
                         @if($this->eligibility['knowledge_test_passed'])
                             Completed (once-off requirement)
                         @else
@@ -408,11 +408,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                 </div>
 
                 {{-- Documents --}}
-                <div class="p-4 rounded-lg border {{ $this->eligibility['documents_complete'] ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' }}">
+                <div class="p-4 rounded-xl border {{ $this->eligibility['documents_complete'] ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' }}">
                     <div class="flex items-center gap-3 mb-2">
                         @if($this->eligibility['documents_complete'])
-                            <div class="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
-                                <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                            <div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
+                                <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                 </svg>
                             </div>
@@ -426,7 +426,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                         <h3 class="font-semibold text-zinc-900 dark:text-white">Required Documents</h3>
                     </div>
                     @if($this->eligibility['documents_complete'])
-                        <p class="text-sm text-green-700 dark:text-green-300">All documents verified</p>
+                        <p class="text-sm text-emerald-700 dark:text-emerald-300">All documents verified</p>
                     @else
                         <div class="text-sm text-red-700 dark:text-red-300">
                             <p class="mb-1">Missing:</p>
@@ -444,11 +444,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
 
                 {{-- Proof of Address Compliance (Age Check) --}}
                 @if($this->complianceStatus['poa_compliance']['has_document'])
-                <div class="p-4 rounded-lg border {{ $this->complianceStatus['poa_compliance']['is_compliant'] ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20' }}">
+                <div class="p-4 rounded-xl border {{ $this->complianceStatus['poa_compliance']['is_compliant'] ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20' }}">
                     <div class="flex items-center gap-3 mb-2">
                         @if($this->complianceStatus['poa_compliance']['is_compliant'])
-                        <div class="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
-                            <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                        <div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
+                            <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                             </svg>
                         </div>
@@ -462,7 +462,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                         <h3 class="font-semibold text-zinc-900 dark:text-white">Proof of Address</h3>
                     </div>
                     @if($this->complianceStatus['poa_compliance']['is_compliant'])
-                    <p class="text-sm text-green-700 dark:text-green-300">
+                    <p class="text-sm text-emerald-700 dark:text-emerald-300">
                         Up to date ({{ round($this->complianceStatus['poa_compliance']['age_days'] / 30, 1) }} months old)
                     </p>
                     @else
@@ -477,11 +477,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                 @endif
 
                 {{-- Activities --}}
-                <div class="p-4 rounded-lg border {{ $this->eligibility['activities_met'] ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' }}">
+                <div class="p-4 rounded-xl border {{ $this->eligibility['activities_met'] ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' }}">
                     <div class="flex items-center gap-3 mb-2">
                         @if($this->eligibility['activities_met'])
-                            <div class="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
-                                <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                            <div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
+                                <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                 </svg>
                             </div>
@@ -494,7 +494,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                         @endif
                         <h3 class="font-semibold text-zinc-900 dark:text-white">Approved Activities</h3>
                     </div>
-                    <p class="text-sm {{ $this->eligibility['activities_met'] ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300' }}">
+                    <p class="text-sm {{ $this->eligibility['activities_met'] ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300' }}">
                         {{ $this->eligibility['activity_details']['approved_count'] }} / {{ $this->eligibility['activity_details']['required'] }} required
                         <span class="text-xs">(last {{ $this->eligibility['activity_details']['period_months'] }} months)</span>
                     </p>
@@ -510,12 +510,12 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
 
     {{-- Flash Messages --}}
     @if(session('success'))
-        <div class="mb-6 p-4 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg text-green-800 dark:text-green-200">
+        <div class="mb-6 p-4 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 rounded-xl text-emerald-800 dark:text-emerald-200">
             {{ session('success') }}
         </div>
     @endif
     @if(session('error'))
-        <div class="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg text-red-800 dark:text-red-200">
+        <div class="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-xl text-red-800 dark:text-red-200">
             {{ session('error') }}
         </div>
     @endif
@@ -551,8 +551,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
             </div>
             <div class="bg-white dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700">
                 <div class="flex items-center gap-3">
-                    <div class="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                        <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+                        <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                         </svg>
                     </div>
@@ -564,8 +564,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
             </div>
             <div class="bg-white dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700">
                 <div class="flex items-center gap-3">
-                    <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                        <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="p-2 bg-nrapa-blue/10 dark:bg-nrapa-blue/20 rounded-lg">
+                        <svg class="w-5 h-5 text-nrapa-blue dark:text-nrapa-blue-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                         </svg>
                     </div>
@@ -704,7 +704,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                                     </a>
                                     @if($request->letter_file_path)
                                     <a href="{{ route('member.endorsements.letter', $request) }}"
-                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 rounded-lg transition-colors">
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-nrapa-blue hover:bg-nrapa-blue-dark rounded-lg transition-colors">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
                                         </svg>
@@ -753,7 +753,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                 You haven't submitted any endorsement letter requests yet. Start a new request to get an endorsement letter for your dedicated status firearms.
             </p>
             <a href="{{ route('member.endorsements.create') }}" wire:navigate
-                class="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors">
+                class="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                 </svg>
@@ -763,15 +763,15 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
     @endif
 
     {{-- Info Card --}}
-    <div class="mt-8 p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
+    <div class="mt-8 p-6 bg-nrapa-blue/5 dark:bg-nrapa-blue/10 border border-nrapa-blue/20 dark:border-nrapa-blue/30 rounded-xl">
         <div class="flex gap-4">
             <div class="flex-shrink-0">
-                <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-6 h-6 text-nrapa-blue dark:text-nrapa-blue-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
             </div>
-            <div class="text-sm text-blue-800 dark:text-blue-200">
-                <h4 class="font-semibold mb-1">About Endorsement Letters</h4>
+            <div class="text-sm text-zinc-700 dark:text-zinc-300">
+                <h4 class="font-semibold mb-1 text-zinc-900 dark:text-white">About Endorsement Letters</h4>
                 <p>
                     Endorsement letters confirm your dedicated status and are required when applying for Section 16 firearm licences. 
                     You can request a <strong>New Endorsement</strong> for first-time applications or a <strong>Renewal Endorsement</strong> 

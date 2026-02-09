@@ -41,7 +41,7 @@ new #[Title('Test Results')] class extends Component {
 <div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
     {{-- Header --}}
     <div class="flex items-center gap-4">
-        <a href="{{ route('knowledge-test.index') }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600">
+        <a href="{{ route('knowledge-test.index') }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
             <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
             </svg>
@@ -74,12 +74,12 @@ new #[Title('Test Results')] class extends Component {
     </div>
     @else
     {{-- Result Card --}}
-    <div class="rounded-xl border {{ $attempt->passed ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' }} p-8 text-center">
+    <div class="rounded-xl border {{ $attempt->passed ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' }} p-8 text-center">
         @if($attempt->passed)
-        <svg class="mx-auto size-16 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <svg class="mx-auto size-16 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
         </svg>
-        <h2 class="mt-4 text-2xl font-bold text-green-800 dark:text-green-200">Congratulations! You Passed!</h2>
+        <h2 class="mt-4 text-2xl font-bold text-emerald-800 dark:text-emerald-200">Congratulations! You Passed!</h2>
         @else
         <svg class="mx-auto size-16 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
@@ -89,26 +89,26 @@ new #[Title('Test Results')] class extends Component {
 
         <div class="mt-6 flex items-center justify-center gap-8">
             <div>
-                <p class="text-4xl font-bold {{ $attempt->passed ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300' }}">
+                <p class="text-4xl font-bold {{ $attempt->passed ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300' }}">
                     {{ number_format($this->percentage, 1) }}%
                 </p>
-                <p class="text-sm {{ $attempt->passed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">Your Score</p>
+                <p class="text-sm {{ $attempt->passed ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' }}">Your Score</p>
             </div>
             <div class="h-16 w-px bg-current opacity-20"></div>
             <div>
-                <p class="text-4xl font-bold {{ $attempt->passed ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300' }}">
+                <p class="text-4xl font-bold {{ $attempt->passed ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300' }}">
                     {{ $attempt->total_score }} / {{ $this->totalPossiblePoints }}
                 </p>
-                <p class="text-sm {{ $attempt->passed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">Points</p>
+                <p class="text-sm {{ $attempt->passed ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' }}">Points</p>
             </div>
         </div>
 
-        <p class="mt-4 text-sm {{ $attempt->passed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
+        <p class="mt-4 text-sm {{ $attempt->passed ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' }}">
             Pass mark: {{ $attempt->knowledgeTest->passing_score }}%
         </p>
 
         @if(!$attempt->passed && $attempt->knowledgeTest->canAttempt(auth()->user()))
-        <a href="{{ route('knowledge-test.index') }}" wire:navigate class="mt-6 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-3 text-sm font-medium text-white hover:bg-emerald-700">
+        <a href="{{ route('knowledge-test.index') }}" wire:navigate class="mt-6 inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-6 py-3 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
             Try Again
             <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -120,7 +120,7 @@ new #[Title('Test Results')] class extends Component {
 
     {{-- Test Details --}}
     <div class="grid gap-6 lg:grid-cols-3">
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
             <h3 class="font-semibold text-zinc-900 dark:text-white">Test Information</h3>
             <dl class="mt-4 space-y-3 text-sm">
                 <div class="flex justify-between">
@@ -138,7 +138,7 @@ new #[Title('Test Results')] class extends Component {
             </dl>
         </div>
 
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
             <h3 class="font-semibold text-zinc-900 dark:text-white">Your Attempt</h3>
             <dl class="mt-4 space-y-3 text-sm">
                 <div class="flex justify-between">
@@ -156,7 +156,7 @@ new #[Title('Test Results')] class extends Component {
             </dl>
         </div>
 
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
             <h3 class="font-semibold text-zinc-900 dark:text-white">Score Breakdown</h3>
             <dl class="mt-4 space-y-3 text-sm">
                 <div class="flex justify-between">
@@ -177,7 +177,7 @@ new #[Title('Test Results')] class extends Component {
 
     {{-- Answer Review --}}
     @if($attempt->passed !== null)
-    <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
         <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Answer Review</h2>
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Review your answers and see the correct responses.</p>
@@ -189,7 +189,7 @@ new #[Title('Test Results')] class extends Component {
                 $qType = $answer->question->question_type;
                 $typeColors = [
                     'multiple_choice' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-                    'multiple_select' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                    'multiple_select' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
                     'priority_order' => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
                     'matching' => 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200',
                     'written' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
@@ -217,7 +217,7 @@ new #[Title('Test Results')] class extends Component {
             <div class="p-6">
                 <div class="flex items-start justify-between gap-4">
                     <div class="flex items-start gap-4">
-                        <div class="flex size-8 items-center justify-center rounded-full {{ $answer->points_awarded > 0 ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' }} text-sm font-semibold">
+                        <div class="flex size-8 items-center justify-center rounded-full {{ $answer->points_awarded > 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' }} text-sm font-semibold">
                             {{ $index + 1 }}
                         </div>
                         <div class="flex-1">
@@ -250,19 +250,19 @@ new #[Title('Test Results')] class extends Component {
                                             $isCorrect = $answer->question->correct_answer === $optionKey;
                                         @endphp
                                         <div class="flex items-start gap-3 rounded-lg border p-3 text-sm
-                                            {{ $isCorrect ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/30' : '' }}
+                                            {{ $isCorrect ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/30' : '' }}
                                             {{ $isSelected && !$isCorrect ? 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/30' : '' }}
                                             {{ !$isSelected && !$isCorrect ? 'border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800' : '' }}">
                                             <div class="flex-1">
-                                                <span class="{{ $isCorrect ? 'text-green-800 dark:text-green-200' : ($isSelected ? 'text-red-800 dark:text-red-200' : 'text-zinc-700 dark:text-zinc-300') }}">
+                                                <span class="{{ $isCorrect ? 'text-emerald-800 dark:text-emerald-200' : ($isSelected ? 'text-red-800 dark:text-red-200' : 'text-zinc-700 dark:text-zinc-300') }}">
                                                     <span class="font-semibold">{{ $optionKey }}.</span> {{ $optionText }}
                                                 </span>
                                                 @if($isCorrect && $isSelected)
-                                                <span class="ml-2 inline-flex items-center rounded-full bg-green-200 px-2 py-0.5 text-xs font-semibold text-green-800 dark:bg-green-800 dark:text-green-200">
+                                                <span class="ml-2 inline-flex items-center rounded-full bg-emerald-200 px-2 py-0.5 text-xs font-semibold text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200">
                                                     Your Answer - Correct!
                                                 </span>
                                                 @elseif($isCorrect)
-                                                <span class="ml-2 inline-flex items-center rounded-full bg-green-200 px-2 py-0.5 text-xs font-semibold text-green-800 dark:bg-green-800 dark:text-green-200">
+                                                <span class="ml-2 inline-flex items-center rounded-full bg-emerald-200 px-2 py-0.5 text-xs font-semibold text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200">
                                                     Correct Answer
                                                 </span>
                                                 @elseif($isSelected)
@@ -291,17 +291,17 @@ new #[Title('Test Results')] class extends Component {
                                             $isCorrect = in_array($optionKey, $correctAnswers);
                                         @endphp
                                         <div class="flex items-start gap-3 rounded-lg border p-3 text-sm
-                                            {{ $isCorrect && $isSelected ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/30' : '' }}
+                                            {{ $isCorrect && $isSelected ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/30' : '' }}
                                             {{ $isCorrect && !$isSelected ? 'border-yellow-300 bg-yellow-50 dark:border-yellow-700 dark:bg-yellow-900/30' : '' }}
                                             {{ $isSelected && !$isCorrect ? 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/30' : '' }}
                                             {{ !$isSelected && !$isCorrect ? 'border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800' : '' }}">
                                             <input type="checkbox" disabled {{ $isSelected ? 'checked' : '' }} class="mt-0.5 size-4 rounded border-zinc-300">
                                             <div class="flex-1">
-                                                <span class="{{ $isCorrect ? 'text-green-800 dark:text-green-200' : ($isSelected ? 'text-red-800 dark:text-red-200' : 'text-zinc-700 dark:text-zinc-300') }}">
+                                                <span class="{{ $isCorrect ? 'text-emerald-800 dark:text-emerald-200' : ($isSelected ? 'text-red-800 dark:text-red-200' : 'text-zinc-700 dark:text-zinc-300') }}">
                                                     <span class="font-semibold">{{ $optionKey }}.</span> {{ $optionText }}
                                                 </span>
                                                 @if($isCorrect && $isSelected)
-                                                <span class="ml-2 inline-flex items-center rounded-full bg-green-200 px-2 py-0.5 text-xs font-semibold text-green-800 dark:bg-green-800 dark:text-green-200">
+                                                <span class="ml-2 inline-flex items-center rounded-full bg-emerald-200 px-2 py-0.5 text-xs font-semibold text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200">
                                                     Correct!
                                                 </span>
                                                 @elseif($isCorrect)
@@ -335,19 +335,19 @@ new #[Title('Test Results')] class extends Component {
                                             $optionText = $options[$key] ?? $key;
                                         @endphp
                                         <div class="flex items-center gap-2 rounded-lg border p-2 text-sm
-                                            {{ $isCorrectPosition ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/30' : 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/30' }}">
-                                            <span class="flex size-5 items-center justify-center rounded-full {{ $isCorrectPosition ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800' }} text-xs font-bold">{{ $idx + 1 }}</span>
-                                            <span class="{{ $isCorrectPosition ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300' }}"><span class="font-semibold">{{ $key }}.</span> {{ $optionText }}</span>
+                                            {{ $isCorrectPosition ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/30' : 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/30' }}">
+                                            <span class="flex size-5 items-center justify-center rounded-full {{ $isCorrectPosition ? 'bg-emerald-200 text-emerald-800' : 'bg-red-200 text-red-800' }} text-xs font-bold">{{ $idx + 1 }}</span>
+                                            <span class="{{ $isCorrectPosition ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300' }}"><span class="font-semibold">{{ $key }}.</span> {{ $optionText }}</span>
                                         </div>
                                         @endforeach
                                     </div>
                                     <div class="space-y-2">
-                                        <p class="text-xs font-medium text-green-600 dark:text-green-400">Correct Order:</p>
+                                        <p class="text-xs font-medium text-emerald-600 dark:text-emerald-400">Correct Order:</p>
                                         @foreach($correctOrder as $idx => $key)
                                         @php $optionText = $options[$key] ?? $key; @endphp
-                                        <div class="flex items-center gap-2 rounded-lg border border-green-300 bg-green-50 p-2 text-sm dark:border-green-700 dark:bg-green-900/30">
-                                            <span class="flex size-5 items-center justify-center rounded-full bg-green-200 text-xs font-bold text-green-800">{{ $idx + 1 }}</span>
-                                            <span class="text-green-700 dark:text-green-300"><span class="font-semibold">{{ $key }}.</span> {{ $optionText }}</span>
+                                        <div class="flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 p-2 text-sm dark:border-emerald-700 dark:bg-emerald-900/30">
+                                            <span class="flex size-5 items-center justify-center rounded-full bg-emerald-200 text-xs font-bold text-emerald-800">{{ $idx + 1 }}</span>
+                                            <span class="text-emerald-700 dark:text-emerald-300"><span class="font-semibold">{{ $key }}.</span> {{ $optionText }}</span>
                                         </div>
                                         @endforeach
                                     </div>
@@ -368,7 +368,7 @@ new #[Title('Test Results')] class extends Component {
                                         $isCorrect = $memberMatch === $correctMatch;
                                     @endphp
                                     <div class="flex items-start gap-3 rounded-lg border p-3 text-sm
-                                        {{ $isCorrect ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/30' : 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/30' }}">
+                                        {{ $isCorrect ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/30' : 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/30' }}">
                                         <div class="flex-1">
                                             <div class="flex items-center gap-2 mb-2">
                                                 <span class="flex size-6 items-center justify-center rounded-full bg-zinc-200 text-xs font-bold text-zinc-700 dark:bg-zinc-600 dark:text-zinc-200">{{ $key }}</span>
@@ -377,16 +377,16 @@ new #[Title('Test Results')] class extends Component {
                                             <div class="flex items-center gap-2 pl-8">
                                                 <span class="text-xs text-zinc-500 dark:text-zinc-400">Your answer:</span>
                                                 @if($memberMatch)
-                                                <span class="{{ $isCorrect ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300' }}">{{ $memberMatch }}</span>
+                                                <span class="{{ $isCorrect ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300' }}">{{ $memberMatch }}</span>
                                                 @else
                                                 <span class="text-zinc-400 italic">Not matched</span>
                                                 @endif
                                                 @if(!$isCorrect && $correctMatch)
                                                 <span class="text-xs text-zinc-400">→</span>
-                                                <span class="text-xs text-green-600 dark:text-green-400">Correct: {{ $correctMatch }}</span>
+                                                <span class="text-xs text-emerald-600 dark:text-emerald-400">Correct: {{ $correctMatch }}</span>
                                                 @endif
                                                 @if($isCorrect)
-                                                <span class="inline-flex items-center rounded-full bg-green-200 px-2 py-0.5 text-xs font-semibold text-green-800 dark:bg-green-800 dark:text-green-200">✓</span>
+                                                <span class="inline-flex items-center rounded-full bg-emerald-200 px-2 py-0.5 text-xs font-semibold text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200">✓</span>
                                                 @endif
                                             </div>
                                         </div>
@@ -396,9 +396,9 @@ new #[Title('Test Results')] class extends Component {
 
                                 @elseif($qType === 'written')
                                 {{-- Written answer --}}
-                                <div class="rounded-lg border {{ $answer->is_correct ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 'border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800' }} p-3">
-                                    <p class="text-xs font-medium {{ $answer->is_correct ? 'text-green-600 dark:text-green-400' : 'text-zinc-500 dark:text-zinc-400' }}">Your Answer:</p>
-                                    <p class="mt-1 text-sm {{ $answer->is_correct ? 'text-green-800 dark:text-green-200' : 'text-zinc-700 dark:text-zinc-300' }}">
+                                <div class="rounded-lg border {{ $answer->is_correct ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800' }} p-3">
+                                    <p class="text-xs font-medium {{ $answer->is_correct ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-500 dark:text-zinc-400' }}">Your Answer:</p>
+                                    <p class="mt-1 text-sm {{ $answer->is_correct ? 'text-emerald-800 dark:text-emerald-200' : 'text-zinc-700 dark:text-zinc-300' }}">
                                         {{ $answer->answer_text ?: '(No answer provided)' }}
                                     </p>
                                 </div>
