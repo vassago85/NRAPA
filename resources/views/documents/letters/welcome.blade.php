@@ -128,7 +128,7 @@
 
     <p><b>Terms & Conditions</b></p>
     <p style="margin-top:8px;">
-        By being a member, you agree to the NRAPA Membership Terms & Conditions@if($activeTerms) (Version {{ $activeTerms->version }})@endif.
+        By being a member, you agree to the NRAPA Membership Terms &amp; Conditions{{ $activeTerms ? ' (Version ' . $activeTerms->version . ')' : '' }}.
         A copy of the Terms & Conditions is available in your member portal and should be retained for your records.
     </p>
 
