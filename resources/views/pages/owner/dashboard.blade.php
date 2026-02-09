@@ -209,7 +209,7 @@ new class extends Component {
             @endphp
             @if($admins->isEmpty())
                 <p class="text-zinc-500 dark:text-zinc-400 text-center py-4">You haven't created any administrators yet.</p>
-                <a href="{{ route('owner.admins.create') }}" wire:navigate
+                <a href="{{ route('owner.admins.index') }}" wire:navigate
                     class="block w-full text-center py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
                     Create Your First Admin
                 </a>

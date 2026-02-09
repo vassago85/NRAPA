@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\ImportFailure;
 use App\Models\User;
 use App\Models\MembershipType;
 use App\Services\ExcelMemberImporter;
@@ -117,12 +118,16 @@ new #[Title('Members - Admin')] class extends Component {
     
     public function downloadTemplate(): \Symfony\Component\HttpFoundation\StreamedResponse
     {
-        $importer = new ExcelMemberImporter();
-        $tempPath = storage_path('app/temp/member_import_template.xlsx');
-        \Illuminate\Support\Facades\File::ensureDirectoryExists(dirname($tempPath));
-        $importer->generateTemplate($tempPath);
-        
-        return response()->download($tempPath, 'member_import_template.xlsx')->deleteFileAfterSend();
+        return $this->streamDownload(function () {
+            $importer = new ExcelMemberImporter();
+            $tempPath = storage_path('app/temp/member_import_template.xlsx');
+            \Illuminate\Support\Facades\File::ensureDirectoryExists(dirname($tempPath));
+            $importer->generateTemplate($tempPath);
+            echo file_get_contents($tempPath);
+            @unlink($tempPath);
+        }, 'member_import_template.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
     }
     
     public function importMembers(): void
@@ -150,8 +155,14 @@ new #[Title('Members - Admin')] class extends Component {
             // Cleanup temp file
             \Illuminate\Support\Facades\File::delete($fullPath);
             
+            $failedCount = ($this->importResults['skipped'] ?? 0) + ($this->importResults['failed'] ?? 0);
+            
             if ($this->importResults['success']) {
-                session()->flash('success', "Import completed: {$this->importResults['imported']} members imported, {$this->importResults['skipped']} skipped.");
+                $msg = "Import completed: {$this->importResults['imported']} members imported.";
+                if ($failedCount > 0) {
+                    $msg .= " {$failedCount} rows need attention — review them on the Import Failures page.";
+                }
+                session()->flash('success', $msg);
                 $this->resetPage(); // Refresh the members list
             } else {
                 session()->flash('error', 'Import failed. Please check the errors below.');
@@ -161,7 +172,9 @@ new #[Title('Members - Admin')] class extends Component {
                 'success' => false,
                 'imported' => 0,
                 'skipped' => 0,
+                'failed' => 0,
                 'errors' => ['Import error: ' . $e->getMessage()],
+                'batch_id' => null,
             ];
             session()->flash('error', 'Import failed: ' . $e->getMessage());
         }
@@ -172,6 +185,12 @@ new #[Title('Members - Admin')] class extends Component {
     {
         return MembershipType::where('is_active', true)->orderBy('name')->get();
     }
+    
+    #[Computed]
+    public function unresolvedFailuresCount(): int
+    {
+        return ImportFailure::unresolved()->count();
+    }
 }; ?>
 
 <div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
@@ -181,7 +200,15 @@ new #[Title('Members - Admin')] class extends Component {
             <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Members</h1>
             <p class="text-zinc-600 dark:text-zinc-400">Manage all registered members and their memberships.</p>
         </div>
-        <div class="flex gap-2">
+        <div class="flex gap-2 flex-wrap">
+            @if($this->unresolvedFailuresCount > 0)
+            <a href="{{ route('admin.members.import-failures') }}" wire:navigate
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-300 rounded-lg hover:bg-amber-100 dark:text-amber-300 dark:bg-amber-900/30 dark:border-amber-700 dark:hover:bg-amber-900/50">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+                Import Failures
+                <span class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold text-white bg-amber-500 rounded-full">{{ $this->unresolvedFailuresCount }}</span>
+            </a>
+            @endif
             <button wire:click="downloadTemplate" class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-200 dark:border-zinc-600 dark:hover:bg-zinc-700">
                 <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 Download Template
@@ -346,6 +373,17 @@ new #[Title('Members - Admin')] class extends Component {
                 </div>
                 
                 <div class="px-6 py-4">
+                    {{-- Expected Format Info --}}
+                    <div class="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
+                        <p class="text-xs font-semibold text-blue-800 dark:text-blue-200 mb-1">Expected Excel columns (in order):</p>
+                        <p class="text-xs text-blue-700 dark:text-blue-300">
+                            Date Joined &bull; Initials &bull; Surname &bull; ID Number &bull; Tel Number &bull; Email &bull; Membership Type &bull; Renewal Date &bull; Status (Active/blank)
+                        </p>
+                        <p class="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                            Date of birth is derived from ID numbers automatically. Use the <strong>Download Template</strong> button for a sample file.
+                        </p>
+                    </div>
+
                     <form wire:submit="importMembers" class="space-y-6">
                         {{-- File Upload --}}
                         <div>
@@ -426,8 +464,18 @@ new #[Title('Members - Admin')] class extends Component {
                                             Import {{ $importResults['success'] ? 'Completed' : 'Failed' }}
                                         </p>
                                         <p class="mt-1 text-sm {{ $importResults['success'] ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300' }}">
-                                            Imported: {{ $importResults['imported'] }}, Skipped: {{ $importResults['skipped'] }}
+                                            Imported: {{ $importResults['imported'] }},
+                                            Skipped: {{ $importResults['skipped'] ?? 0 }},
+                                            Failed: {{ $importResults['failed'] ?? 0 }}
                                         </p>
+                                        @php $totalFailed = ($importResults['skipped'] ?? 0) + ($importResults['failed'] ?? 0); @endphp
+                                        @if($totalFailed > 0)
+                                        <a href="{{ route('admin.members.import-failures') }}" wire:navigate
+                                            class="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-amber-700 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                                            Review {{ $totalFailed }} failed row{{ $totalFailed !== 1 ? 's' : '' }}
+                                        </a>
+                                        @endif
                                         @if(!empty($importResults['errors']))
                                         <div class="mt-3 max-h-40 overflow-y-auto">
                                             <p class="text-xs font-medium text-red-800 dark:text-red-200 mb-1">Errors:</p>
