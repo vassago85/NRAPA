@@ -1,7 +1,7 @@
 <x-layouts::auth>
     <div class="flex flex-col gap-6">
         <div class="text-center">
-            <h1 class="text-xl font-semibold text-zinc-900 dark:text-white">{{ __('Log in to your account') }}</h1>
+            <h1 class="text-xl font-semibold text-nrapa-blue dark:text-white">{{ __('Log in to your account') }}</h1>
             <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{{ __('Enter your email and password below to log in') }}</p>
         </div>
 
@@ -27,7 +27,7 @@
                     autofocus 
                     autocomplete="email"
                     placeholder="email@example.com"
-                    class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                    class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-nrapa-blue focus:border-transparent"
                 />
                 @error('email')
                     <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
@@ -44,7 +44,7 @@
                     required 
                     autocomplete="current-password"
                     placeholder="{{ __('Password') }}"
-                    class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                    class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-nrapa-blue focus:border-transparent"
                 />
                 @error('password')
                     <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
@@ -58,21 +58,21 @@
                     name="remember" 
                     id="remember"
                     {{ old('remember') ? 'checked' : '' }}
-                    class="w-4 h-4 text-emerald-600 bg-white dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600 rounded focus:ring-emerald-500"
+                    class="w-4 h-4 text-nrapa-blue bg-white dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600 rounded focus:ring-nrapa-blue"
                 />
                 <label for="remember" class="ml-2 text-sm text-zinc-600 dark:text-zinc-400">{{ __('Remember me') }}</label>
             </div>
 
             <button 
                 type="submit" 
-                class="w-full px-4 py-2.5 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-800 transition"
+                class="w-full px-4 py-2.5 text-sm font-semibold text-white bg-nrapa-blue rounded-lg hover:bg-nrapa-blue-dark focus:outline-none focus:ring-2 focus:ring-nrapa-blue focus:ring-offset-2 dark:focus:ring-offset-zinc-800 transition"
                 data-test="login-button"
             >
                 {{ __('Log in') }}
             </button>
 
             @if (Route::has('password.request'))
-                <a href="{{ route('password.request') }}" wire:navigate class="text-sm text-center text-emerald-600 dark:text-emerald-400 hover:underline">
+                <a href="{{ route('password.request') }}" wire:navigate class="text-sm text-center text-nrapa-orange dark:text-nrapa-orange hover:underline">
                     {{ __('Forgot your password?') }}
                 </a>
             @endif
@@ -81,7 +81,7 @@
         @if (Route::has('register'))
             <p class="text-sm text-center text-zinc-600 dark:text-zinc-400">
                 {{ __('Don\'t have an account?') }}
-                <a href="{{ route('register') }}" wire:navigate class="text-emerald-600 dark:text-emerald-400 hover:underline">{{ __('Sign up') }}</a>
+                <a href="{{ route('register') }}" wire:navigate class="font-medium text-nrapa-blue dark:text-nrapa-orange hover:underline">{{ __('Sign up') }}</a>
             </p>
         @endif
 
