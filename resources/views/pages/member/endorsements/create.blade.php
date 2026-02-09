@@ -521,6 +521,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             $this->componentDiameter = '';
         }
         
+        // Update FirearmSearchPanel data so it remounts with correct firearm_type/calibre filter
+        if (!EndorsementFirearm::isComponentCategory($this->firearmCategory)) {
+            $this->firearmPanelData = $this->getFirearmPanelInitialData();
+        }
+        
         // Clear computed property cache
         unset($this->isComponentCategory);
         unset($this->canProceedToNextStep);
@@ -1359,12 +1364,12 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                             </div>
                         @endif
 
-                        {{-- FirearmSearchPanel component --}}
+                        {{-- FirearmSearchPanel component (re-mounts when category changes to set calibre filter) --}}
                         @php
                             $firearmPanelData = $this->firearmPanelData ?? [];
                         @endphp
                         <livewire:firearm-search-panel 
-                            wire:key="endorsement-firearm-panel-{{ $editingRequest?->id ?? 'new' }}"
+                            wire:key="endorsement-firearm-panel-{{ $firearmCategory }}-{{ $editingRequest?->id ?? 'new' }}"
                             :initial-data="$firearmPanelData"
                         />
 

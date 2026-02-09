@@ -83,6 +83,9 @@ class FirearmSearchPanel extends Component
         $this->receiverSerialNumber = $data['receiver_serial_number'] ?? null;
         $this->receiverMakeText = $data['receiver_make_text'] ?? null;
 
+        // Derive calibre category from firearm type
+        $this->calibreCategory = $this->mapFirearmTypeToCategory($this->firearmType);
+
         // Set search terms from selected items
         if ($this->firearmCalibreId) {
             $calibre = FirearmCalibre::find($this->firearmCalibreId);
@@ -380,6 +383,30 @@ class FirearmSearchPanel extends Component
             'receiver_serial_number' => $this->receiverSerialNumber,
             'receiver_make_text' => $this->receiverMakeText,
         ];
+    }
+
+    /**
+     * Map firearm type to calibre category for filtering.
+     */
+    protected function mapFirearmTypeToCategory(?string $firearmType): ?string
+    {
+        return match($firearmType) {
+            'rifle' => 'rifle',
+            'shotgun' => 'shotgun',
+            'handgun' => 'handgun',
+            default => null, // combination, other, empty - show all
+        };
+    }
+
+    /**
+     * When firearm type changes, update calibre category filter.
+     */
+    public function updatedFirearmType(): void
+    {
+        $this->calibreCategory = $this->mapFirearmTypeToCategory($this->firearmType);
+        // Clear calibre selection when type changes (it may no longer be valid)
+        // Only clear if the category actually changed
+        unset($this->calibreSuggestions);
     }
 
     /**
