@@ -161,13 +161,13 @@ class MembershipType extends Model
                 // Tests matching this membership's dedicated type
                 if ($this->dedicated_type === 'both') {
                     // Both type can use hunter, sport, or both tests
-                    $q->whereIn('dedicated_type', ['hunter', 'sport_shooter', 'both'])
+                    $q->whereIn('dedicated_type', ['hunter', 'sport', 'sport_shooter', 'both'])
                       ->orWhereNull('dedicated_type');
                 } elseif ($this->dedicated_type === 'hunter') {
                     $q->whereIn('dedicated_type', ['hunter', 'both'])
                       ->orWhereNull('dedicated_type');
-                } elseif ($this->dedicated_type === 'sport') {
-                    $q->whereIn('dedicated_type', ['sport_shooter', 'both'])
+                } elseif ($this->dedicated_type === 'sport' || $this->dedicated_type === 'sport_shooter') {
+                    $q->whereIn('dedicated_type', ['sport', 'sport_shooter', 'both'])
                       ->orWhereNull('dedicated_type');
                 } else {
                     // No dedicated type - only general tests
