@@ -234,15 +234,22 @@ class MembershipConfigurationSeeder extends Seeder
 
     /**
      * Seed membership types with attribute-driven configuration.
+     *
+     * Fee structure:
+     * - Basic: initial_price (sign-up, higher), renewal_price (annual, lower), no upgrade_price
+     * - Dedicated types: upgrade_price (once-off on top of basic), renewal_price (annual, includes basic)
+     *   Dedicated initial_price is 0 because members must first have basic membership
+     *
+     * Placeholder amounts (TBD) are set to 0 — update via admin panel.
      */
     protected function seedMembershipTypes(): void
     {
         $membershipTypes = [
-            // Dedicated Sport Shooter
+            // Basic Membership - everyone starts here
             [
-                'slug' => 'dedicated-sport',
-                'name' => 'Dedicated Sport Shooter',
-                'description' => 'Annual membership for dedicated sport shooters. Includes full platform access, Virtual Safe, Virtual Loading Bench, and sport shooting learning content.',
+                'slug' => 'basic',
+                'name' => 'Basic Membership',
+                'description' => 'Annual membership for occasional sport shooters and hunters. Includes platform access and basic member benefits.',
                 'duration_type' => 'annual',
                 'duration_months' => 12,
                 'requires_renewal' => true,
@@ -250,7 +257,34 @@ class MembershipConfigurationSeeder extends Seeder
                 'expiry_month' => null,
                 'expiry_day' => null,
                 'pricing_model' => 'annual',
-                'price' => 750.00,
+                'initial_price' => 0, // TBD - set via admin
+                'renewal_price' => 0, // TBD - set via admin (lower than initial)
+                'upgrade_price' => null, // Not applicable for basic
+                'allows_dedicated_status' => false,
+                'dedicated_type' => null,
+                'requires_knowledge_test' => false,
+                'discount_eligible' => true,
+                'is_active' => true,
+                'is_featured' => false,
+                'display_on_landing' => true,
+                'display_on_signup' => true,
+                'sort_order' => 1,
+            ],
+            // Dedicated Sport Shooter
+            [
+                'slug' => 'dedicated-sport',
+                'name' => 'Dedicated Sport Shooter',
+                'description' => 'Dedicated status for sport shooters. Requires basic membership first. Includes full platform access, Virtual Safe, Virtual Loading Bench, and sport shooting learning content.',
+                'duration_type' => 'annual',
+                'duration_months' => 12,
+                'requires_renewal' => true,
+                'expiry_rule' => 'rolling',
+                'expiry_month' => null,
+                'expiry_day' => null,
+                'pricing_model' => 'annual',
+                'initial_price' => 0, // Dedicated types use upgrade_price instead
+                'renewal_price' => 0, // TBD - set via admin (includes basic)
+                'upgrade_price' => 0, // TBD - once-off upgrade fee
                 'allows_dedicated_status' => true,
                 'dedicated_type' => MembershipType::DEDICATED_TYPE_SPORT,
                 'requires_knowledge_test' => true,
@@ -258,13 +292,14 @@ class MembershipConfigurationSeeder extends Seeder
                 'is_active' => true,
                 'is_featured' => false,
                 'display_on_landing' => true,
-                'sort_order' => 1,
+                'display_on_signup' => true,
+                'sort_order' => 2,
             ],
             // Dedicated Hunter
             [
                 'slug' => 'dedicated-hunter',
                 'name' => 'Dedicated Hunter',
-                'description' => 'Annual membership for dedicated hunters. Includes full platform access, Virtual Safe, Virtual Loading Bench, and hunting learning content.',
+                'description' => 'Dedicated status for hunters. Requires basic membership first. Includes full platform access, Virtual Safe, Virtual Loading Bench, and hunting learning content.',
                 'duration_type' => 'annual',
                 'duration_months' => 12,
                 'requires_renewal' => true,
@@ -272,7 +307,9 @@ class MembershipConfigurationSeeder extends Seeder
                 'expiry_month' => null,
                 'expiry_day' => null,
                 'pricing_model' => 'annual',
-                'price' => 750.00,
+                'initial_price' => 0,
+                'renewal_price' => 0, // TBD - set via admin (includes basic)
+                'upgrade_price' => 0, // TBD - once-off upgrade fee
                 'allows_dedicated_status' => true,
                 'dedicated_type' => MembershipType::DEDICATED_TYPE_HUNTER,
                 'requires_knowledge_test' => true,
@@ -280,13 +317,14 @@ class MembershipConfigurationSeeder extends Seeder
                 'is_active' => true,
                 'is_featured' => false,
                 'display_on_landing' => true,
-                'sort_order' => 2,
+                'display_on_signup' => true,
+                'sort_order' => 3,
             ],
             // Dedicated Hunter & Sport Shooter (Both)
             [
                 'slug' => 'dedicated-both',
                 'name' => 'Dedicated Hunter & Sport Shooter',
-                'description' => 'Annual membership for both dedicated hunters and sport shooters. Full access to all platform features, learning content, and knowledge tests.',
+                'description' => 'Dedicated status for both hunters and sport shooters. Requires basic membership first. Full access to all platform features, learning content, and knowledge tests.',
                 'duration_type' => 'annual',
                 'duration_months' => 12,
                 'requires_renewal' => true,
@@ -294,7 +332,9 @@ class MembershipConfigurationSeeder extends Seeder
                 'expiry_month' => null,
                 'expiry_day' => null,
                 'pricing_model' => 'annual',
-                'price' => 1150.00,
+                'initial_price' => 0,
+                'renewal_price' => 0, // TBD - set via admin (includes basic)
+                'upgrade_price' => 0, // TBD - once-off upgrade fee
                 'allows_dedicated_status' => true,
                 'dedicated_type' => MembershipType::DEDICATED_TYPE_BOTH,
                 'requires_knowledge_test' => true,
@@ -302,7 +342,8 @@ class MembershipConfigurationSeeder extends Seeder
                 'is_active' => true,
                 'is_featured' => true, // Featured membership
                 'display_on_landing' => true,
-                'sort_order' => 3,
+                'display_on_signup' => true,
+                'sort_order' => 4,
             ],
             // Standard Annual Membership (kept for existing users)
             [
@@ -316,7 +357,9 @@ class MembershipConfigurationSeeder extends Seeder
                 'expiry_month' => null,
                 'expiry_day' => null,
                 'pricing_model' => 'annual',
-                'price' => 350.00,
+                'initial_price' => 350.00,
+                'renewal_price' => 350.00,
+                'upgrade_price' => null,
                 'allows_dedicated_status' => true,
                 'dedicated_type' => null,
                 'requires_knowledge_test' => true,
@@ -324,6 +367,7 @@ class MembershipConfigurationSeeder extends Seeder
                 'is_active' => false, // Disabled - kept for legacy
                 'is_featured' => false,
                 'display_on_landing' => false,
+                'display_on_signup' => false,
                 'sort_order' => 10,
             ],
             // Lifetime Membership
@@ -338,7 +382,9 @@ class MembershipConfigurationSeeder extends Seeder
                 'expiry_month' => null,
                 'expiry_day' => null,
                 'pricing_model' => 'once_off',
-                'price' => 5000.00,
+                'initial_price' => 5000.00,
+                'renewal_price' => 0,
+                'upgrade_price' => null,
                 'allows_dedicated_status' => true,
                 'dedicated_type' => MembershipType::DEDICATED_TYPE_BOTH,
                 'requires_knowledge_test' => true,
@@ -346,6 +392,7 @@ class MembershipConfigurationSeeder extends Seeder
                 'is_active' => false, // Disabled - kept for legacy
                 'is_featured' => false,
                 'display_on_landing' => false,
+                'display_on_signup' => false,
                 'sort_order' => 11,
             ],
             // Junior Membership
@@ -360,7 +407,9 @@ class MembershipConfigurationSeeder extends Seeder
                 'expiry_month' => null,
                 'expiry_day' => null,
                 'pricing_model' => 'annual',
-                'price' => 175.00,
+                'initial_price' => 175.00,
+                'renewal_price' => 175.00,
+                'upgrade_price' => null,
                 'allows_dedicated_status' => false,
                 'dedicated_type' => null,
                 'requires_knowledge_test' => true,
@@ -368,6 +417,7 @@ class MembershipConfigurationSeeder extends Seeder
                 'is_active' => false, // Disabled - kept for legacy
                 'is_featured' => false,
                 'display_on_landing' => false,
+                'display_on_signup' => false,
                 'sort_order' => 12,
             ],
         ];
@@ -386,16 +436,30 @@ class MembershipConfigurationSeeder extends Seeder
     protected function linkMembershipTypesToDocuments(): void
     {
         $links = [
+            'basic' => [
+                'identity-document' => true,
+                'proof-of-address' => true,
+                'firearm-competency' => false, // Optional for basic
+            ],
+            'dedicated-sport' => [
+                'identity-document' => true,
+                'proof-of-address' => true,
+                'firearm-competency' => true, // Required for dedicated
+            ],
+            'dedicated-hunter' => [
+                'identity-document' => true,
+                'proof-of-address' => true,
+                'firearm-competency' => true, // Required for dedicated
+            ],
+            'dedicated-both' => [
+                'identity-document' => true,
+                'proof-of-address' => true,
+                'firearm-competency' => true, // Required for dedicated
+            ],
             'standard-annual' => [
                 'identity-document' => true,
                 'proof-of-address' => true,
                 'firearm-competency' => false, // Optional
-            ],
-            'dedicated-annual' => [
-                'identity-document' => true,
-                'proof-of-address' => true,
-                'firearm-competency' => true, // Required for dedicated
-                'dedicated-activity-log' => true,
             ],
             'lifetime' => [
                 'identity-document' => true,
@@ -432,17 +496,33 @@ class MembershipConfigurationSeeder extends Seeder
     protected function linkMembershipTypesToCertificates(): void
     {
         $links = [
+            'basic' => [
+                'membership-certificate' => ['requires_dedicated_status' => false, 'requires_active_membership' => true],
+                'confirmation-letter' => ['requires_dedicated_status' => false, 'requires_active_membership' => true],
+            ],
+            'dedicated-sport' => [
+                'membership-certificate' => ['requires_dedicated_status' => false, 'requires_active_membership' => true],
+                'dedicated-status-certificate' => ['requires_dedicated_status' => false, 'requires_active_membership' => true],
+                'endorsement-letter' => ['requires_dedicated_status' => false, 'requires_active_membership' => true],
+                'confirmation-letter' => ['requires_dedicated_status' => false, 'requires_active_membership' => true],
+            ],
+            'dedicated-hunter' => [
+                'membership-certificate' => ['requires_dedicated_status' => false, 'requires_active_membership' => true],
+                'dedicated-status-certificate' => ['requires_dedicated_status' => false, 'requires_active_membership' => true],
+                'endorsement-letter' => ['requires_dedicated_status' => false, 'requires_active_membership' => true],
+                'confirmation-letter' => ['requires_dedicated_status' => false, 'requires_active_membership' => true],
+            ],
+            'dedicated-both' => [
+                'membership-certificate' => ['requires_dedicated_status' => false, 'requires_active_membership' => true],
+                'dedicated-status-certificate' => ['requires_dedicated_status' => false, 'requires_active_membership' => true],
+                'endorsement-letter' => ['requires_dedicated_status' => false, 'requires_active_membership' => true],
+                'confirmation-letter' => ['requires_dedicated_status' => false, 'requires_active_membership' => true],
+            ],
             'standard-annual' => [
                 'membership-certificate' => ['requires_dedicated_status' => false, 'requires_active_membership' => true],
                 'endorsement-letter' => ['requires_dedicated_status' => false, 'requires_active_membership' => true],
                 'confirmation-letter' => ['requires_dedicated_status' => false, 'requires_active_membership' => true],
                 'dedicated-status-certificate' => ['requires_dedicated_status' => true, 'requires_active_membership' => true],
-            ],
-            'dedicated-annual' => [
-                'membership-certificate' => ['requires_dedicated_status' => false, 'requires_active_membership' => true],
-                'dedicated-status-certificate' => ['requires_dedicated_status' => false, 'requires_active_membership' => true], // Auto-included
-                'endorsement-letter' => ['requires_dedicated_status' => false, 'requires_active_membership' => true],
-                'confirmation-letter' => ['requires_dedicated_status' => false, 'requires_active_membership' => true],
             ],
             'lifetime' => [
                 'membership-certificate' => ['requires_dedicated_status' => false, 'requires_active_membership' => true],

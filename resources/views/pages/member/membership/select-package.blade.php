@@ -123,8 +123,15 @@ new class extends Component {
                         </div>
                         
                         <div class="mb-4">
+                            @if($type->hasUpgradeFee())
                             <div class="flex items-baseline gap-1">
-                                <span class="text-3xl font-bold text-zinc-900 dark:text-white">R{{ number_format($type->price, 0) }}</span>
+                                <span class="text-3xl font-bold text-zinc-900 dark:text-white">R{{ number_format($type->upgrade_price, 0) }}</span>
+                                <span class="text-sm text-zinc-500 dark:text-zinc-400">upgrade</span>
+                            </div>
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">+ R{{ number_format($type->renewal_price, 0) }}/year renewal</p>
+                            @else
+                            <div class="flex items-baseline gap-1">
+                                <span class="text-3xl font-bold text-zinc-900 dark:text-white">R{{ number_format($type->initial_price, 0) }}</span>
                                 @if($type->duration_type === 'annual')
                                     <span class="text-sm text-zinc-500 dark:text-zinc-400">/year</span>
                                 @elseif($type->duration_type === 'lifetime')
@@ -133,6 +140,7 @@ new class extends Component {
                                     <span class="text-sm text-zinc-500 dark:text-zinc-400">/{{ $type->duration_months }}mo</span>
                                 @endif
                             </div>
+                            @endif
                         </div>
                         
                         @if($type->description)

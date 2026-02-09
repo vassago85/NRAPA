@@ -46,7 +46,7 @@
         <table style="width: 100%; border-collapse: collapse;">
             <tr>
                 <td style="padding: 8px 0; color: #166534;">Amount to Pay:</td>
-                <td style="padding: 8px 0; text-align: right; font-weight: bold; font-size: 1.25em; color: #166534;">R{{ number_format($membership->type->price, 2) }}</td>
+                <td style="padding: 8px 0; text-align: right; font-weight: bold; font-size: 1.25em; color: #166534;">R{{ number_format($membership->amount_due, 2) }}</td>
             </tr>
         </table>
     </div>

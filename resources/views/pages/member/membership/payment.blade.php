@@ -100,7 +100,7 @@ new class extends Component {
                     <p class="text-sm text-emerald-600 dark:text-emerald-400">{{ $membershipType->description }}</p>
                 </div>
                 <div class="text-right">
-                    <p class="text-2xl font-bold text-emerald-700 dark:text-emerald-300">R{{ number_format($membershipType->price, 2) }}</p>
+                    <p class="text-2xl font-bold text-emerald-700 dark:text-emerald-300">R{{ number_format($this->membership->amount_due, 2) }}</p>
                     <p class="text-xs text-emerald-600 dark:text-emerald-400">
                         @if($membershipType->pricing_model === 'annual')
                             per year
@@ -147,7 +147,7 @@ new class extends Component {
                 </div>
                 <div class="flex justify-between py-2 border-b border-zinc-100 dark:border-zinc-700">
                     <span class="text-zinc-500 dark:text-zinc-400">Amount</span>
-                    <span class="font-bold text-emerald-600 dark:text-emerald-400">R{{ number_format($membershipType->price, 2) }}</span>
+                    <span class="font-bold text-emerald-600 dark:text-emerald-400">R{{ number_format($this->membership->amount_due, 2) }}</span>
                 </div>
                 <div class="flex justify-between py-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg px-3 -mx-3">
                     <span class="text-blue-700 dark:text-blue-300 font-medium">Payment Reference</span>

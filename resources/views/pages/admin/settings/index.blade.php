@@ -85,7 +85,7 @@ new #[Title('Settings - Admin')] class extends Component {
         $this->membershipTypeName = $type->name;
         $this->membershipTypeDescription = $type->description ?? '';
         $this->membershipTypeSlug = $type->slug;
-        $this->membershipTypePrice = $type->price;
+        $this->membershipTypePrice = $type->initial_price;
         $this->membershipTypeDurationType = $type->duration_type;
         $this->membershipTypeDurationMonths = $type->duration_months ?? 12;
         $this->membershipTypeRequiresRenewal = $type->requires_renewal;
@@ -121,7 +121,7 @@ new #[Title('Settings - Admin')] class extends Component {
             'name' => $this->membershipTypeName,
             'description' => $this->membershipTypeDescription,
             'slug' => $this->membershipTypeSlug,
-            'price' => $this->membershipTypePrice,
+            'initial_price' => $this->membershipTypePrice,
             'duration_type' => $this->membershipTypeDurationType,
             'duration_months' => $this->membershipTypeDurationType === 'lifetime' ? null : $this->membershipTypeDurationMonths,
             'requires_renewal' => $this->membershipTypeDurationType !== 'lifetime' && $this->membershipTypeRequiresRenewal,
@@ -608,7 +608,7 @@ new #[Title('Settings - Admin')] class extends Component {
                                 <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ $type->slug }}</p>
                             </td>
                             <td class="whitespace-nowrap px-6 py-4 text-zinc-900 dark:text-white">
-                                R{{ number_format($type->price, 2) }}
+                                R{{ number_format($type->initial_price, 2) }}
                             </td>
                             <td class="whitespace-nowrap px-6 py-4 text-zinc-500 dark:text-zinc-400">
                                 @if($type->isLifetime())

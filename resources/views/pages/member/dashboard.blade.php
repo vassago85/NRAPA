@@ -311,7 +311,7 @@ new #[Title('Dashboard')] class extends Component {
                     <div>
                         <p class="text-xs font-medium text-amber-600 dark:text-amber-400 mb-1">AMOUNT TO PAY</p>
                         <div class="p-3 bg-white dark:bg-zinc-800 rounded-lg border border-amber-200 dark:border-amber-700">
-                            <span class="text-lg font-bold text-amber-800 dark:text-amber-200">R{{ number_format($this->pendingPaymentMembership->type->price, 2) }}</span>
+                            <span class="text-lg font-bold text-amber-800 dark:text-amber-200">R{{ number_format($this->pendingPaymentMembership->amount_due, 2) }}</span>
                         </div>
                     </div>
                 </div>
@@ -1011,7 +1011,7 @@ new #[Title('Dashboard')] class extends Component {
                     
                     <div class="mb-4">
                         <div class="flex items-baseline gap-1">
-                            <span class="text-3xl font-bold text-zinc-900 dark:text-white">R{{ number_format($type->price, 0) }}</span>
+                            <span class="text-3xl font-bold text-zinc-900 dark:text-white">R{{ number_format($type->initial_price, 0) }}</span>
                             @if($type->duration_type === 'annual')
                                 <span class="text-sm text-zinc-500 dark:text-zinc-400">/year</span>
                             @elseif($type->duration_type === 'lifetime')

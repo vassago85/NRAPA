@@ -40,6 +40,7 @@ class Membership extends Model
         'notes',
         'source',
         'payment_email_sent_at',
+        'affiliated_club_id',
     ];
 
     /**
@@ -220,6 +221,98 @@ class Membership extends Model
     public function dedicatedStatusApplications(): HasMany
     {
         return $this->hasMany(DedicatedStatusApplication::class);
+    }
+
+    /**
+     * Get the affiliated club (if this is a club membership).
+     */
+    public function affiliatedClub(): BelongsTo
+    {
+        return $this->belongsTo(AffiliatedClub::class);
+    }
+
+    /**
+     * Check if this is an affiliated club membership.
+     */
+    public function isAffiliatedClubMembership(): bool
+    {
+        return $this->affiliated_club_id !== null;
+    }
+
+    /**
+     * Get the amount due for this membership.
+     * Takes into account whether it's a new application, renewal, upgrade, or club membership.
+     */
+    public function getAmountDueAttribute(): float
+    {
+        // Affiliated club membership: use club fees
+        if ($this->isAffiliatedClubMembership() && $this->affiliatedClub) {
+            return $this->isRenewal()
+                ? (float) $this->affiliatedClub->renewal_fee
+                : (float) $this->affiliatedClub->initial_fee;
+        }
+
+        // Standard membership: use type fees
+        if ($this->isRenewal()) {
+            return (float) $this->type->renewal_price;
+        }
+
+        // New application (initial sign-up)
+        return (float) $this->type->initial_price;
+    }
+
+    /**
+     * Check if this affiliated club membership has a valid competency certificate uploaded.
+     * Returns null if not an affiliated club membership or competency not required.
+     */
+    public function hasValidCompetency(): ?bool
+    {
+        if (!$this->isAffiliatedClubMembership()) {
+            return null;
+        }
+
+        $club = $this->affiliatedClub;
+        if (!$club || !$club->requires_competency) {
+            return null;
+        }
+
+        return MemberDocument::where('user_id', $this->user_id)
+            ->whereHas('documentType', fn($q) => $q->where('slug', 'firearm-competency'))
+            ->where('status', 'verified')
+            ->where(function ($q) {
+                $q->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
+            ->exists();
+    }
+
+    /**
+     * Get the number of approved activities this member has in the current activity year.
+     */
+    public function getApprovedActivityCountAttribute(): int
+    {
+        return ShootingActivity::where('user_id', $this->user_id)
+            ->approved()
+            ->withinActivityYear()
+            ->count();
+    }
+
+    /**
+     * Check if this affiliated club member meets the activity requirement.
+     * Returns null if not an affiliated club membership.
+     */
+    public function meetsActivityRequirement(): ?bool
+    {
+        if (!$this->isAffiliatedClubMembership()) {
+            return null;
+        }
+
+        $club = $this->affiliatedClub;
+        if (!$club || $club->required_activities_per_year <= 0) {
+            return null;
+        }
+
+        return $this->approved_activity_count >= $club->required_activities_per_year;
     }
 
     // ===== Status Checks (Attribute-Driven) =====

@@ -1,6 +1,7 @@
 <?php
 
 use App\Mail\PaymentInstructions;
+use App\Models\AffiliatedClub;
 use App\Models\Membership;
 use App\Models\MembershipType;
 use App\Models\SystemSetting;
@@ -13,17 +14,26 @@ use Livewire\Component;
 
 new #[Title('Apply for Membership')] class extends Component {
     public ?int $selectedTypeId = null;
+    public ?int $selectedClubId = null;
+    public string $applicationPath = 'standard'; // 'standard' or 'affiliated'
     public bool $agreedToTerms = false;
 
     public function mount(?string $type = null): void
     {
-        // Pre-select based on URL parameter (slug) or use the first available type
+        // Pre-select based on URL parameter (slug) or use basic type
         if ($type) {
             $preselected = MembershipType::active()->displayOnSignup()->where('slug', $type)->first();
             if ($preselected) {
                 $this->selectedTypeId = $preselected->id;
                 return;
             }
+        }
+
+        // Default to basic membership
+        $basic = MembershipType::active()->displayOnSignup()->where('slug', 'basic')->first();
+        if ($basic) {
+            $this->selectedTypeId = $basic->id;
+            return;
         }
 
         // Fall back to featured type, then first available
@@ -48,8 +58,25 @@ new #[Title('Apply for Membership')] class extends Component {
     #[Computed]
     public function membershipTypes()
     {
-        // Show memberships marked for signup (controlled separately from landing page)
         return MembershipType::active()->displayOnSignup()->ordered()->get();
+    }
+
+    #[Computed]
+    public function basicType()
+    {
+        return $this->membershipTypes->firstWhere('slug', 'basic');
+    }
+
+    #[Computed]
+    public function dedicatedTypes()
+    {
+        return $this->membershipTypes->filter(fn($type) => $type->dedicated_type !== null);
+    }
+
+    #[Computed]
+    public function affiliatedClubs()
+    {
+        return AffiliatedClub::active()->ordered()->get();
     }
 
     #[Computed]
@@ -61,9 +88,37 @@ new #[Title('Apply for Membership')] class extends Component {
     }
 
     #[Computed]
+    public function selectedClub()
+    {
+        return $this->selectedClubId
+            ? AffiliatedClub::find($this->selectedClubId)
+            : null;
+    }
+
+    #[Computed]
+    public function amountDue(): float
+    {
+        if ($this->applicationPath === 'affiliated' && $this->selectedClub) {
+            return (float) $this->selectedClub->initial_fee;
+        }
+
+        if (!$this->selectedType) {
+            return 0;
+        }
+
+        // For basic: initial_price
+        // For dedicated: basic initial_price + dedicated upgrade_price
+        if ($this->selectedType->hasUpgradeFee()) {
+            $basicInitial = $this->basicType?->initial_price ?? 0;
+            return (float) $basicInitial + (float) $this->selectedType->upgrade_price;
+        }
+
+        return (float) $this->selectedType->initial_price;
+    }
+
+    #[Computed]
     public function canApply()
     {
-        // Check if user already has a pending or active membership
         $existingMembership = $this->user->memberships()
             ->whereIn('status', ['applied', 'approved', 'active'])
             ->exists();
@@ -83,6 +138,28 @@ new #[Title('Apply for Membership')] class extends Component {
     public function selectType(int $typeId): void
     {
         $this->selectedTypeId = $typeId;
+        $this->applicationPath = 'standard';
+        $this->selectedClubId = null;
+    }
+
+    public function selectClub(int $clubId): void
+    {
+        $this->selectedClubId = $clubId;
+        $this->applicationPath = 'affiliated';
+        $this->selectedTypeId = null;
+    }
+
+    public function setPath(string $path): void
+    {
+        $this->applicationPath = $path;
+        if ($path === 'standard') {
+            $this->selectedClubId = null;
+            if (!$this->selectedTypeId && $this->basicType) {
+                $this->selectedTypeId = $this->basicType->id;
+            }
+        } else {
+            $this->selectedTypeId = null;
+        }
     }
 
     public function submit(): void
@@ -92,22 +169,50 @@ new #[Title('Apply for Membership')] class extends Component {
             return;
         }
 
-        $this->validate([
-            'selectedTypeId' => ['required', 'exists:membership_types,id'],
-            'agreedToTerms' => ['accepted'],
-        ], [
-            'selectedTypeId.required' => 'Please select a membership type.',
-            'agreedToTerms.accepted' => 'You must agree to the terms and conditions.',
-        ]);
+        if ($this->applicationPath === 'affiliated') {
+            $this->validate([
+                'selectedClubId' => ['required', 'exists:affiliated_clubs,id'],
+                'agreedToTerms' => ['accepted'],
+            ], [
+                'selectedClubId.required' => 'Please select your affiliated club.',
+                'agreedToTerms.accepted' => 'You must agree to the terms and conditions.',
+            ]);
 
-        // Create the membership application
-        $membership = Membership::create([
-            'user_id' => $this->user->id,
-            'membership_type_id' => $this->selectedTypeId,
-            'status' => 'applied',
-            'applied_at' => now(),
-            'source' => 'web', // Billable - member applied via website
-        ]);
+            $club = AffiliatedClub::findOrFail($this->selectedClubId);
+
+            // Find the basic membership type for affiliated club members
+            $basicType = MembershipType::where('slug', 'basic')->first();
+            if (!$basicType) {
+                $this->addError('membership', 'Basic membership type not found. Please contact support.');
+                return;
+            }
+
+            $membership = Membership::create([
+                'user_id' => $this->user->id,
+                'membership_type_id' => $basicType->id,
+                'status' => 'applied',
+                'applied_at' => now(),
+                'source' => 'web',
+                'affiliated_club_id' => $club->id,
+                'notes' => "Affiliated club application: {$club->name} ({$club->dedicated_type_label})",
+            ]);
+        } else {
+            $this->validate([
+                'selectedTypeId' => ['required', 'exists:membership_types,id'],
+                'agreedToTerms' => ['accepted'],
+            ], [
+                'selectedTypeId.required' => 'Please select a membership type.',
+                'agreedToTerms.accepted' => 'You must agree to the terms and conditions.',
+            ]);
+
+            $membership = Membership::create([
+                'user_id' => $this->user->id,
+                'membership_type_id' => $this->selectedTypeId,
+                'status' => 'applied',
+                'applied_at' => now(),
+                'source' => 'web',
+            ]);
+        }
 
         // Send payment instructions email
         $this->sendPaymentInstructionsEmail($membership);
@@ -121,19 +226,16 @@ new #[Title('Apply for Membership')] class extends Component {
     {
         try {
             $bankAccount = SystemSetting::getBankAccount();
-            
-            // Always send payment instructions email (bank details will show "To be confirmed" if not set)
+
             Mail::to($membership->user->email)
                 ->queue(new PaymentInstructions(
-                    $membership->load('type', 'user'),
+                    $membership->load('type', 'user', 'affiliatedClub'),
                     $bankAccount,
                     $membership->payment_reference
                 ));
 
-            // Mark email as sent
             $membership->update(['payment_email_sent_at' => now()]);
         } catch (\Exception $e) {
-            // Log error but don't fail the application
             \Log::error('Failed to send payment instructions email', [
                 'membership_id' => $membership->id,
                 'error' => $e->getMessage(),
@@ -173,11 +275,65 @@ new #[Title('Apply for Membership')] class extends Component {
     </div>
     @else
     <form wire:submit="submit" class="space-y-6">
-        {{-- Membership Type Selection --}}
+        {{-- Application Path Selection --}}
+        <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+            <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
+                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Membership Path</h2>
+                <p class="text-sm text-zinc-500 dark:text-zinc-400">Choose how you'd like to join NRAPA.</p>
+            </div>
+            <div class="p-6">
+                <div class="grid gap-4 md:grid-cols-2">
+                    <div
+                        wire:click="setPath('standard')"
+                        class="relative cursor-pointer rounded-xl border-2 p-5 transition-all
+                            {{ $applicationPath === 'standard'
+                                ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-400 dark:bg-emerald-950/20'
+                                : 'border-zinc-200 hover:border-zinc-300 dark:border-zinc-700 dark:hover:border-zinc-600' }}"
+                    >
+                        @if($applicationPath === 'standard')
+                        <div class="absolute right-3 top-3">
+                            <svg class="size-6 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                            </svg>
+                        </div>
+                        @endif
+                        <h3 class="font-semibold text-zinc-900 dark:text-white">Standard Membership</h3>
+                        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                            Join as a basic member, or apply directly for a dedicated status (sport, hunter, or both).
+                        </p>
+                    </div>
+
+                    @if($this->affiliatedClubs->count() > 0)
+                    <div
+                        wire:click="setPath('affiliated')"
+                        class="relative cursor-pointer rounded-xl border-2 p-5 transition-all
+                            {{ $applicationPath === 'affiliated'
+                                ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-400 dark:bg-emerald-950/20'
+                                : 'border-zinc-200 hover:border-zinc-300 dark:border-zinc-700 dark:hover:border-zinc-600' }}"
+                    >
+                        @if($applicationPath === 'affiliated')
+                        <div class="absolute right-3 top-3">
+                            <svg class="size-6 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                            </svg>
+                        </div>
+                        @endif
+                        <h3 class="font-semibold text-zinc-900 dark:text-white">Affiliated Club Member</h3>
+                        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                            I'm a member of an affiliated club and want to apply at a discounted rate.
+                        </p>
+                    </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        @if($applicationPath === 'standard')
+        {{-- Standard Membership Type Selection --}}
         <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
             <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Select Membership Type</h2>
-                <p class="text-sm text-zinc-500 dark:text-zinc-400">Choose the membership that best suits your needs.</p>
+                <p class="text-sm text-zinc-500 dark:text-zinc-400">Everyone starts with a basic membership. Dedicated status is an upgrade on top of basic.</p>
             </div>
 
             <div class="p-6">
@@ -200,8 +356,11 @@ new #[Title('Apply for Membership')] class extends Component {
 
                         <div class="mb-3 flex items-center gap-3">
                             <h3 class="font-semibold text-zinc-900 dark:text-white">{{ $type->name }}</h3>
-                            @if($type->isLifetime())
-                            <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Lifetime</span>
+                            @if($type->is_featured)
+                            <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Popular</span>
+                            @endif
+                            @if($type->isBasic())
+                            <span class="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">Starter</span>
                             @endif
                         </div>
 
@@ -210,17 +369,44 @@ new #[Title('Apply for Membership')] class extends Component {
                         </p>
 
                         <div class="space-y-2 text-sm">
+                            @if($type->isBasic())
+                            {{-- Basic type: show sign-up fee --}}
                             <div class="flex items-center justify-between">
-                                <span class="text-zinc-500 dark:text-zinc-400">Price</span>
+                                <span class="text-zinc-500 dark:text-zinc-400">Sign-up Fee</span>
                                 <span class="font-semibold text-zinc-900 dark:text-white">
-                                    R{{ number_format($type->price, 2) }}
-                                    @if($type->pricing_model === 'annual')
-                                        <span class="font-normal text-zinc-500">/year</span>
-                                    @elseif($type->pricing_model === 'once_off')
-                                        <span class="font-normal text-zinc-500">(once-off)</span>
-                                    @endif
+                                    R{{ number_format($type->initial_price, 2) }}
                                 </span>
                             </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-zinc-500 dark:text-zinc-400">Annual Renewal</span>
+                                <span class="text-zinc-900 dark:text-white">
+                                    R{{ number_format($type->renewal_price, 2) }}<span class="font-normal text-zinc-500">/year</span>
+                                </span>
+                            </div>
+                            @else
+                            {{-- Dedicated type: show upgrade fee + renewal --}}
+                            <div class="flex items-center justify-between">
+                                <span class="text-zinc-500 dark:text-zinc-400">Upgrade Fee</span>
+                                <span class="font-semibold text-zinc-900 dark:text-white">
+                                    R{{ number_format($type->upgrade_price ?? 0, 2) }}
+                                    <span class="font-normal text-zinc-500">(once-off)</span>
+                                </span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-zinc-500 dark:text-zinc-400">Annual Renewal</span>
+                                <span class="text-zinc-900 dark:text-white">
+                                    R{{ number_format($type->renewal_price, 2) }}<span class="font-normal text-zinc-500">/year</span>
+                                </span>
+                            </div>
+                            @if($this->basicType)
+                            <div class="mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-700">
+                                <div class="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
+                                    <span>Includes basic sign-up (R{{ number_format($this->basicType->initial_price, 2) }}) + upgrade</span>
+                                </div>
+                            </div>
+                            @endif
+                            @endif
+
                             <div class="flex items-center justify-between">
                                 <span class="text-zinc-500 dark:text-zinc-400">Duration</span>
                                 <span class="text-zinc-900 dark:text-white">
@@ -231,18 +417,14 @@ new #[Title('Apply for Membership')] class extends Component {
                                     @endif
                                 </span>
                             </div>
-                            <div class="flex items-center justify-between">
-                                <span class="text-zinc-500 dark:text-zinc-400">Renewal</span>
-                                <span class="text-zinc-900 dark:text-white">{{ $type->requires_renewal ? 'Required' : 'Not Required' }}</span>
-                            </div>
+                            @if($type->allows_dedicated_status)
                             <div class="flex items-center justify-between">
                                 <span class="text-zinc-500 dark:text-zinc-400">Dedicated Status</span>
-                                @if($type->allows_dedicated_status)
-                                    <span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">Eligible</span>
-                                @else
-                                    <span class="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200">Not Available</span>
-                                @endif
+                                <span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                    {{ $type->dedicated_type === 'both' ? 'Hunter & Sport' : ucfirst($type->dedicated_type ?? 'Eligible') }}
+                                </span>
                             </div>
+                            @endif
                             @if($type->requires_knowledge_test)
                             <div class="flex items-center justify-between">
                                 <span class="text-zinc-500 dark:text-zinc-400">Knowledge Test</span>
@@ -258,9 +440,92 @@ new #[Title('Apply for Membership')] class extends Component {
                 @enderror
             </div>
         </div>
+        @endif
 
-        {{-- Selected Type Summary --}}
-        @if($this->selectedType)
+        @if($applicationPath === 'affiliated')
+        {{-- Affiliated Club Selection --}}
+        <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+            <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
+                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Select Your Club</h2>
+                <p class="text-sm text-zinc-500 dark:text-zinc-400">Choose the affiliated club you belong to. Your application will require manual approval.</p>
+            </div>
+
+            <div class="p-6">
+                <div class="grid gap-4 md:grid-cols-2">
+                    @foreach($this->affiliatedClubs as $club)
+                    <div
+                        wire:click="selectClub({{ $club->id }})"
+                        class="relative cursor-pointer rounded-xl border-2 p-5 transition-all
+                            {{ $this->selectedClubId === $club->id
+                                ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-400 dark:bg-emerald-950/20'
+                                : 'border-zinc-200 hover:border-zinc-300 dark:border-zinc-700 dark:hover:border-zinc-600' }}"
+                    >
+                        @if($this->selectedClubId === $club->id)
+                        <div class="absolute right-3 top-3">
+                            <svg class="size-6 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                            </svg>
+                        </div>
+                        @endif
+
+                        <div class="mb-2">
+                            <h3 class="font-semibold text-zinc-900 dark:text-white">{{ $club->name }}</h3>
+                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium mt-1 {{ $club->dedicated_type === 'both' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' : ($club->dedicated_type === 'hunter' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200') }}">
+                                {{ $club->dedicated_type_label }}
+                            </span>
+                        </div>
+
+                        @if($club->description)
+                        <p class="mb-3 text-sm text-zinc-600 dark:text-zinc-400">{{ $club->description }}</p>
+                        @endif
+
+                        <div class="space-y-1 text-sm">
+                            <div class="flex items-center justify-between">
+                                <span class="text-zinc-500 dark:text-zinc-400">Sign-up Fee</span>
+                                <span class="font-semibold text-zinc-900 dark:text-white">R{{ number_format($club->initial_fee, 2) }}</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-zinc-500 dark:text-zinc-400">Annual Renewal</span>
+                                <span class="text-zinc-900 dark:text-white">R{{ number_format($club->renewal_fee, 2) }}/year</span>
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+
+                @if($this->selectedClub)
+                <div class="mt-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4">
+                    <h4 class="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">Club Member Requirements</h4>
+                    <ul class="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                        @if($this->selectedClub->requires_competency)
+                        <li class="flex items-center gap-2">
+                            <svg class="size-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4"/></svg>
+                            Upload your SAPS Firearm Competency Certificate
+                        </li>
+                        @endif
+                        @if($this->selectedClub->required_activities_per_year > 0)
+                        <li class="flex items-center gap-2">
+                            <svg class="size-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4"/></svg>
+                            Log {{ $this->selectedClub->required_activities_per_year }} activities per year (match results with your name)
+                        </li>
+                        @endif
+                        <li class="flex items-center gap-2">
+                            <svg class="size-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4"/></svg>
+                            All applications require manual admin approval
+                        </li>
+                    </ul>
+                </div>
+                @endif
+
+                @error('selectedClubId')
+                    <p class="mt-2 text-sm text-red-500">{{ $message }}</p>
+                @enderror
+            </div>
+        </div>
+        @endif
+
+        {{-- Application Summary --}}
+        @if(($applicationPath === 'standard' && $this->selectedType) || ($applicationPath === 'affiliated' && $this->selectedClub))
         <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
             <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Application Summary</h2>
@@ -268,10 +533,32 @@ new #[Title('Apply for Membership')] class extends Component {
 
             <div class="p-6">
                 <div class="space-y-4">
+                    @if($applicationPath === 'standard' && $this->selectedType)
                     <div class="flex items-center justify-between">
                         <span class="text-zinc-500 dark:text-zinc-400">Membership Type</span>
                         <span class="font-semibold text-zinc-900 dark:text-white">{{ $this->selectedType->name }}</span>
                     </div>
+                    @if($this->selectedType->hasUpgradeFee() && $this->basicType)
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-zinc-500 dark:text-zinc-400">Basic Sign-up Fee</span>
+                        <span class="text-zinc-900 dark:text-white">R{{ number_format($this->basicType->initial_price, 2) }}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-zinc-500 dark:text-zinc-400">Dedicated Upgrade Fee (once-off)</span>
+                        <span class="text-zinc-900 dark:text-white">R{{ number_format($this->selectedType->upgrade_price, 2) }}</span>
+                    </div>
+                    @endif
+                    @elseif($applicationPath === 'affiliated' && $this->selectedClub)
+                    <div class="flex items-center justify-between">
+                        <span class="text-zinc-500 dark:text-zinc-400">Affiliated Club</span>
+                        <span class="font-semibold text-zinc-900 dark:text-white">{{ $this->selectedClub->name }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-zinc-500 dark:text-zinc-400">Dedicated Status</span>
+                        <span class="text-zinc-900 dark:text-white">{{ $this->selectedClub->dedicated_type_label }}</span>
+                    </div>
+                    @endif
+
                     <div class="flex items-center justify-between">
                         <span class="text-zinc-500 dark:text-zinc-400">Applicant</span>
                         <span class="font-semibold text-zinc-900 dark:text-white">{{ $this->user->name }}</span>
@@ -283,10 +570,10 @@ new #[Title('Apply for Membership')] class extends Component {
                     <hr class="border-zinc-200 dark:border-zinc-700">
                     <div class="flex items-center justify-between text-lg">
                         <span class="font-semibold text-zinc-900 dark:text-white">Amount Due</span>
-                        <span class="font-bold text-emerald-600 dark:text-emerald-400">R{{ number_format($this->selectedType->price, 2) }}</span>
+                        <span class="font-bold text-emerald-600 dark:text-emerald-400">R{{ number_format($this->amountDue, 2) }}</span>
                     </div>
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">
-                        Payment details will be provided after your application is approved.
+                        Payment details will be sent to your email after submitting your application.
                     </p>
                 </div>
             </div>

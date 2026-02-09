@@ -192,6 +192,12 @@ class SidebarMenu
                         'roles' => ['admin', 'owner', 'developer'],
                     ],
                     [
+                        'label' => 'Affiliated Clubs',
+                        'route' => 'admin.affiliated-clubs.index',
+                        'icon' => 'users',
+                        'roles' => ['admin', 'owner', 'developer'],
+                    ],
+                    [
                         'label' => 'Activity Types',
                         'route' => 'admin.activity-config.index',
                         'icon' => 'clipboard',

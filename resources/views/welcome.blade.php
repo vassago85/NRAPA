@@ -312,9 +312,22 @@
 
                         <h3 class="text-lg font-bold text-zinc-900">{{ $type->name }}</h3>
 
-                        <div class="mt-3 flex items-baseline gap-1">
-                            <span class="text-4xl font-extrabold tracking-tight text-zinc-900">R{{ number_format($type->price, 0) }}</span>
-                            <span class="text-sm font-medium text-zinc-400">/ {{ $type->duration_type === 'lifetime' ? 'once-off' : 'year' }}</span>
+                        <div class="mt-3">
+                            @if($type->hasUpgradeFee())
+                            <div class="flex items-baseline gap-1">
+                                <span class="text-4xl font-extrabold tracking-tight text-zinc-900">R{{ number_format($type->upgrade_price, 0) }}</span>
+                                <span class="text-sm font-medium text-zinc-400">upgrade (once-off)</span>
+                            </div>
+                            <p class="text-sm text-zinc-500 mt-1">+ R{{ number_format($type->renewal_price, 0) }}/year renewal</p>
+                            @else
+                            <div class="flex items-baseline gap-1">
+                                <span class="text-4xl font-extrabold tracking-tight text-zinc-900">R{{ number_format($type->initial_price, 0) }}</span>
+                                <span class="text-sm font-medium text-zinc-400">/ {{ $type->duration_type === 'lifetime' ? 'once-off' : 'year' }}</span>
+                            </div>
+                            @if($type->renewal_price > 0 && $type->renewal_price != $type->initial_price)
+                            <p class="text-sm text-zinc-500 mt-1">Renewal: R{{ number_format($type->renewal_price, 0) }}/year</p>
+                            @endif
+                            @endif
                         </div>
 
                         <p class="mt-4 text-sm leading-relaxed text-zinc-500">{{ $type->description }}</p>

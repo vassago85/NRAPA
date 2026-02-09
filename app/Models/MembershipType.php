@@ -49,7 +49,9 @@ class MembershipType extends Model
         'expiry_month',
         'expiry_day',
         'pricing_model',
-        'price',
+        'initial_price',
+        'renewal_price',
+        'upgrade_price',
         'allows_dedicated_status',
         'dedicated_type',
         'requires_knowledge_test',
@@ -72,7 +74,9 @@ class MembershipType extends Model
             'duration_months' => 'integer',
             'expiry_month' => 'integer',
             'expiry_day' => 'integer',
-            'price' => 'decimal:2',
+            'initial_price' => 'decimal:2',
+            'renewal_price' => 'decimal:2',
+            'upgrade_price' => 'decimal:2',
             'requires_renewal' => 'boolean',
             'allows_dedicated_status' => 'boolean',
             'requires_knowledge_test' => 'boolean',
@@ -280,11 +284,63 @@ class MembershipType extends Model
     }
 
     /**
-     * Get the total price (same as base price, no admin fee).
+     * Get the sign-up price (initial_price for new members).
+     * For backwards compatibility, also accessible as 'price'.
+     */
+    public function getPriceAttribute(): float
+    {
+        return (float) $this->initial_price;
+    }
+
+    /**
+     * Get the total price for initial sign-up.
+     * For basic members: initial_price
+     * For dedicated members applying directly: basic initial_price + upgrade_price
      */
     public function getTotalPriceAttribute(): float
     {
-        return (float) $this->price;
+        return (float) $this->initial_price;
+    }
+
+    /**
+     * Get the sign-up fee for new members.
+     */
+    public function getSignupPriceAttribute(): float
+    {
+        return (float) $this->initial_price;
+    }
+
+    /**
+     * Get the annual renewal fee.
+     */
+    public function getRenewalFeeAttribute(): float
+    {
+        return (float) $this->renewal_price;
+    }
+
+    /**
+     * Get the once-off upgrade fee (for dedicated types).
+     * Returns null for basic membership (no upgrade fee).
+     */
+    public function getUpgradeFeeAttribute(): ?float
+    {
+        return $this->upgrade_price !== null ? (float) $this->upgrade_price : null;
+    }
+
+    /**
+     * Check if this membership type has an upgrade fee (i.e. is a dedicated type).
+     */
+    public function hasUpgradeFee(): bool
+    {
+        return $this->upgrade_price !== null && $this->upgrade_price > 0;
+    }
+
+    /**
+     * Check if this is a basic (non-dedicated) membership type.
+     */
+    public function isBasic(): bool
+    {
+        return $this->dedicated_type === null && $this->upgrade_price === null;
     }
 
     /**

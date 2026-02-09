@@ -18,7 +18,7 @@ new #[Title('Review Application - Admin')] class extends Component {
 
     public function mount(Membership $membership): void
     {
-        $this->membership = $membership->load(['user', 'type']);
+        $this->membership = $membership->load(['user', 'type', 'affiliatedClub']);
 
         // If the user has been deleted, show error and allow dismissal
         if (!$this->membership->user) {
@@ -414,6 +414,25 @@ new #[Title('Review Application - Admin')] class extends Component {
                             @endif
                         </dd>
                     </div>
+                    @if($this->membership->isAffiliatedClubMembership() && $this->membership->affiliatedClub)
+                    <div class="rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 p-3">
+                        <dt class="text-sm font-medium text-purple-800 dark:text-purple-200">Affiliated Club</dt>
+                        <dd class="mt-1">
+                            <span class="font-semibold text-purple-900 dark:text-purple-100">{{ $this->membership->affiliatedClub->name }}</span>
+                            <span class="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {{ $this->membership->affiliatedClub->dedicated_type === 'both' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' : ($this->membership->affiliatedClub->dedicated_type === 'hunter' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200') }}">
+                                {{ $this->membership->affiliatedClub->dedicated_type_label }}
+                            </span>
+                        </dd>
+                        <div class="mt-2 text-xs text-purple-700 dark:text-purple-300 space-y-1">
+                            @if($this->membership->affiliatedClub->requires_competency)
+                            <p>Requires: SAPS Firearm Competency Certificate</p>
+                            @endif
+                            @if($this->membership->affiliatedClub->required_activities_per_year > 0)
+                            <p>Requires: {{ $this->membership->affiliatedClub->required_activities_per_year }} activities/year</p>
+                            @endif
+                        </div>
+                    </div>
+                    @endif
                     <div>
                         <dt class="text-sm text-zinc-500 dark:text-zinc-400">Description</dt>
                         <dd class="mt-1 text-sm text-zinc-700 dark:text-zinc-300">{{ $this->membership->type->description }}</dd>
@@ -421,7 +440,7 @@ new #[Title('Review Application - Admin')] class extends Component {
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <dt class="text-sm text-zinc-500 dark:text-zinc-400">Price</dt>
-                            <dd class="mt-1 text-lg font-semibold text-emerald-600 dark:text-emerald-400">R{{ number_format($this->membership->type->price, 2) }}</dd>
+                            <dd class="mt-1 text-lg font-semibold text-emerald-600 dark:text-emerald-400">R{{ number_format($this->membership->amount_due, 2) }}</dd>
                         </div>
                         <div>
                             <dt class="text-sm text-zinc-500 dark:text-zinc-400">Duration</dt>
@@ -504,7 +523,7 @@ new #[Title('Review Application - Admin')] class extends Component {
             <div class="mt-4 flex items-center gap-4 text-sm">
                 <div>
                     <span class="text-amber-700 dark:text-amber-300">Amount Due:</span>
-                    <span class="font-bold text-amber-800 dark:text-amber-200">R{{ number_format($this->membership->type->price, 2) }}</span>
+                    <span class="font-bold text-amber-800 dark:text-amber-200">R{{ number_format($this->membership->amount_due, 2) }}</span>
                 </div>
                 @if($this->membership->payment_email_sent_at)
                 <div class="flex items-center gap-1 text-green-600 dark:text-green-400">

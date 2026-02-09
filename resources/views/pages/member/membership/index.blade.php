@@ -66,6 +66,26 @@ new #[Title('My Membership')] class extends Component {
     }
 
     #[Computed]
+    public function canUpgradeToDedicated(): bool
+    {
+        $membership = $this->activeMembership;
+        if (!$membership || !$membership->isActive()) return false;
+
+        // Can upgrade if current type is basic (no dedicated_type)
+        return $membership->type->dedicated_type === null && !$membership->type->allows_dedicated_status;
+    }
+
+    #[Computed]
+    public function dedicatedUpgradeTypes()
+    {
+        return MembershipType::active()
+            ->displayOnSignup()
+            ->whereNotNull('dedicated_type')
+            ->ordered()
+            ->get();
+    }
+
+    #[Computed]
     public function hasPendingChangeRequest()
     {
         return $this->user->memberships()
@@ -323,8 +343,8 @@ new #[Title('My Membership')] class extends Component {
                     </p>
                 </div>
                 <div>
-                    <span class="text-zinc-500 dark:text-zinc-400">Price</span>
-                    <p class="font-medium text-zinc-900 dark:text-white mt-0.5">R{{ number_format($membership->type->price, 2) }}</p>
+                    <span class="text-zinc-500 dark:text-zinc-400">Annual Renewal</span>
+                    <p class="font-medium text-zinc-900 dark:text-white mt-0.5">R{{ number_format($membership->type->renewal_price, 2) }}</p>
                 </div>
                 <div>
                     <span class="text-zinc-500 dark:text-zinc-400">Applied</span>
@@ -337,6 +357,39 @@ new #[Title('My Membership')] class extends Component {
             </div>
         </div>
         @endif
+    </div>
+    @endif
+
+    {{-- Upgrade to Dedicated Status --}}
+    @if($this->canUpgradeToDedicated && $this->dedicatedUpgradeTypes->count() > 0)
+    <div class="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-blue-200 dark:border-blue-800">
+            <h2 class="font-semibold text-blue-900 dark:text-blue-100">Upgrade to Dedicated Status</h2>
+            <p class="text-sm text-blue-700 dark:text-blue-300 mt-1">As a basic member, you can upgrade to a dedicated status by paying a once-off upgrade fee.</p>
+        </div>
+        <div class="p-6">
+            <div class="grid gap-4 md:grid-cols-3">
+                @foreach($this->dedicatedUpgradeTypes as $type)
+                <div class="rounded-xl border border-blue-200 dark:border-blue-700 bg-white dark:bg-zinc-800 p-4">
+                    <h3 class="font-semibold text-zinc-900 dark:text-white">{{ $type->name }}</h3>
+                    <div class="mt-2 space-y-1 text-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="text-zinc-500 dark:text-zinc-400">Upgrade Fee</span>
+                            <span class="font-bold text-emerald-600 dark:text-emerald-400">R{{ number_format($type->upgrade_price ?? 0, 2) }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-zinc-500 dark:text-zinc-400">Annual Renewal</span>
+                            <span class="text-zinc-900 dark:text-white">R{{ number_format($type->renewal_price, 2) }}/yr</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-2">Once-off upgrade. Renewals include basic.</p>
+                </div>
+                @endforeach
+            </div>
+            <p class="text-sm text-blue-700 dark:text-blue-300 mt-4">
+                To upgrade, use the "Change Type" button above and select your desired dedicated status.
+            </p>
+        </div>
     </div>
     @endif
 
@@ -455,8 +508,12 @@ new #[Title('My Membership')] class extends Component {
                                         @endif
                                     </div>
                                     <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
-                                        R{{ number_format($type->price, 0) }}
-                                        {{ $type->duration_type === 'lifetime' ? '(Lifetime)' : '/year' }}
+                                        @if($type->hasUpgradeFee())
+                                            R{{ number_format($type->upgrade_price, 0) }} upgrade (once-off) + R{{ number_format($type->renewal_price, 0) }}/year renewal
+                                        @else
+                                            R{{ number_format($type->initial_price, 0) }}
+                                            {{ $type->duration_type === 'lifetime' ? '(Lifetime)' : '/year' }}
+                                        @endif
                                     </p>
                                 </div>
                             </label>

@@ -27,7 +27,13 @@ new #[Title('Membership Types - Admin')] class extends Component {
     public string $description = '';
     
     #[Validate('required|numeric|min:0')]
-    public float $price = 0;
+    public float $initial_price = 0;
+
+    #[Validate('required|numeric|min:0')]
+    public float $renewal_price = 0;
+
+    #[Validate('nullable|numeric|min:0')]
+    public ?float $upgrade_price = null;
     
     #[Validate('required|in:annual,lifetime,custom')]
     public string $duration_type = 'annual';
@@ -81,7 +87,9 @@ new #[Title('Membership Types - Admin')] class extends Component {
         $this->slug = $type->slug;
         $this->icon = $type->icon;
         $this->description = $type->description ?? '';
-        $this->price = (float) $type->price;
+        $this->initial_price = (float) $type->initial_price;
+        $this->renewal_price = (float) $type->renewal_price;
+        $this->upgrade_price = $type->upgrade_price !== null ? (float) $type->upgrade_price : null;
         $this->duration_type = $type->duration_type;
         $this->duration_months = $type->duration_months;
         $this->dedicated_type = $type->dedicated_type;
@@ -131,7 +139,9 @@ new #[Title('Membership Types - Admin')] class extends Component {
             'slug' => $this->slug,
             'icon' => $this->icon ?: null,
             'description' => $this->description ?: null,
-            'price' => $this->price,
+            'initial_price' => $this->initial_price,
+            'renewal_price' => $this->renewal_price,
+            'upgrade_price' => $this->upgrade_price,
             'duration_type' => $this->duration_type,
             'duration_months' => $this->duration_type === 'lifetime' ? null : $this->duration_months,
             'dedicated_type' => $this->dedicated_type ?: null,
@@ -228,7 +238,9 @@ new #[Title('Membership Types - Admin')] class extends Component {
         $this->slug = '';
         $this->icon = null;
         $this->description = '';
-        $this->price = 0;
+        $this->initial_price = 0;
+        $this->renewal_price = 0;
+        $this->upgrade_price = null;
         $this->duration_type = 'annual';
         $this->duration_months = 12;
         $this->dedicated_type = null;
@@ -285,7 +297,7 @@ new #[Title('Membership Types - Admin')] class extends Component {
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Order</th>
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Name</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Price</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Fees</th>
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Type</th>
                         <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Active</th>
                         <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400" title="Show on public landing page">Landing</th>
@@ -314,9 +326,20 @@ new #[Title('Membership Types - Admin')] class extends Component {
                                 <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ $type->slug }}</p>
                             </div>
                         </td>
-                        <td class="whitespace-nowrap px-4 py-3">
-                            <div>
-                                <p class="font-medium text-zinc-900 dark:text-white">R{{ number_format($type->price, 0) }}</p>
+                        <td class="px-4 py-3">
+                            <div class="space-y-0.5 text-xs">
+                                @if($type->initial_price > 0)
+                                <p><span class="text-zinc-500 dark:text-zinc-400">Sign-up:</span> <span class="font-medium text-zinc-900 dark:text-white">R{{ number_format($type->initial_price, 0) }}</span></p>
+                                @endif
+                                @if($type->renewal_price > 0)
+                                <p><span class="text-zinc-500 dark:text-zinc-400">Renewal:</span> <span class="font-medium text-zinc-900 dark:text-white">R{{ number_format($type->renewal_price, 0) }}</span></p>
+                                @endif
+                                @if($type->upgrade_price !== null && $type->upgrade_price > 0)
+                                <p><span class="text-zinc-500 dark:text-zinc-400">Upgrade:</span> <span class="font-medium text-emerald-600 dark:text-emerald-400">R{{ number_format($type->upgrade_price, 0) }}</span></p>
+                                @endif
+                                @if($type->initial_price == 0 && $type->renewal_price == 0 && ($type->upgrade_price === null || $type->upgrade_price == 0))
+                                <p class="text-zinc-400">Not set</p>
+                                @endif
                             </div>
                         </td>
                         <td class="whitespace-nowrap px-4 py-3">
@@ -419,18 +442,26 @@ new #[Title('Membership Types - Admin')] class extends Component {
                         @error('description') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Price (R) *</label>
-                            <input type="number" wire:model="price" step="0.01" min="0" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
-                            @error('price') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Sign-up Fee (R) *</label>
+                            <input type="number" wire:model="initial_price" step="0.01" min="0" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Initial fee for new members</p>
+                            @error('initial_price') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Total</label>
-                            <div class="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white font-medium">
-                                R{{ number_format($price, 2) }}
-                            </div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Annual Renewal (R) *</label>
+                            <input type="number" wire:model="renewal_price" step="0.01" min="0" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Yearly renewal fee</p>
+                            @error('renewal_price') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Upgrade Fee (R)</label>
+                            <input type="number" wire:model="upgrade_price" step="0.01" min="0" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white" placeholder="N/A for basic">
+                            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Once-off dedicated upgrade (leave empty for basic)</p>
+                            @error('upgrade_price') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                         </div>
                     </div>
 

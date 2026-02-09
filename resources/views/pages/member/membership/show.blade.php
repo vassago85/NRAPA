@@ -111,7 +111,7 @@ new #[Title('Membership Details')] class extends Component {
         {{-- Amount Due --}}
         <div class="flex items-center justify-between p-3 bg-white/50 dark:bg-zinc-800/50 rounded-lg mb-4">
             <span class="text-amber-700 dark:text-amber-300 font-medium">Amount to Pay:</span>
-            <span class="text-xl font-bold text-amber-800 dark:text-amber-200">R{{ number_format($this->membership->type->price, 2) }}</span>
+            <span class="text-xl font-bold text-amber-800 dark:text-amber-200">R{{ number_format($this->membership->amount_due, 2) }}</span>
         </div>
 
         {{-- Bank Account Details --}}
@@ -229,7 +229,7 @@ new #[Title('Membership Details')] class extends Component {
                     </div>
                     <div class="flex justify-between">
                         <dt class="text-zinc-500 dark:text-zinc-400">Price</dt>
-                        <dd class="font-medium text-zinc-900 dark:text-white">R{{ number_format($this->membership->type->price, 2) }}</dd>
+                        <dd class="font-medium text-zinc-900 dark:text-white">R{{ number_format($this->membership->amount_due, 2) }}</dd>
                     </div>
                 </dl>
             </div>

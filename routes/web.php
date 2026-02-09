@@ -901,6 +901,9 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     // Membership Types Management
     Route::livewire('membership-types', 'pages::admin.membership-types.index')->name('membership-types.index');
 
+    // Affiliated Clubs Management
+    Route::livewire('affiliated-clubs', 'pages::admin.affiliated-clubs.index')->name('affiliated-clubs.index');
+
     Route::livewire('approvals', 'pages::admin.approvals.index')->name('approvals.index');
     Route::livewire('approvals/{membership}', 'pages::admin.approvals.show')->name('approvals.show');
 
