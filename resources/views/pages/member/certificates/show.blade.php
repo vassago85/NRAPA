@@ -232,11 +232,12 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
 
                     <div class="p-6">
                         {{-- Certificate Preview iframe --}}
-                        <div class="bg-zinc-100 dark:bg-zinc-900 rounded-lg overflow-hidden" style="min-height: 600px;">
+                        @php $isCard = ($certificate->certificateType->slug ?? '') === 'membership-card'; @endphp
+                        <div class="bg-zinc-100 dark:bg-zinc-900 rounded-lg overflow-hidden flex items-center justify-center" style="min-height: {{ $isCard ? '320px' : '600px' }};">
                             <iframe 
                                 src="{{ $this->previewUrl }}?print=0"
-                                class="w-full h-full border-0"
-                                style="min-height: 600px;"
+                                class="border-0 {{ $isCard ? '' : 'w-full h-full' }}"
+                                style="{{ $isCard ? 'width: 380px; height: 280px;' : 'min-height: 600px; width: 100%;' }}"
                                 title="Certificate Preview">
                             </iframe>
                         </div>
