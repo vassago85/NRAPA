@@ -7,7 +7,9 @@ new class extends Component {
 }; ?>
 
 <section class="w-full">
-    @include('partials.settings-heading')
+    <x-slot name="header">
+        @include('partials.settings-heading')
+    </x-slot>
 
     <x-settings-layout :heading="__('Appearance')" :subheading="__('Choose your preferred theme')">
         <div class="space-y-4">

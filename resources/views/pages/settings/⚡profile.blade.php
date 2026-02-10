@@ -66,7 +66,9 @@ new class extends Component {
 }; ?>
 
 <section class="w-full">
-    @include('partials.settings-heading')
+    <x-slot name="header">
+        @include('partials.settings-heading')
+    </x-slot>
 
     <x-settings-layout :heading="__('Profile')" :subheading="__('Update your name and email address')">
         <form wire:submit="updateProfileInformation" class="my-6 w-full space-y-6">
@@ -93,7 +95,7 @@ new class extends Component {
                         </p>
 
                         @if (session('status') === 'verification-link-sent')
-                            <p class="mt-2 text-sm font-medium text-green-600 dark:text-green-400">
+                            <p class="mt-2 text-sm font-medium text-emerald-600 dark:text-emerald-400">
                                 {{ __('A new verification link has been sent to your email address.') }}
                             </p>
                         @endif
@@ -102,7 +104,7 @@ new class extends Component {
             </div>
 
             <div class="flex items-center gap-4">
-                <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium">
+                <button type="submit" class="px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg font-medium transition-colors">
                     {{ __('Save') }}
                 </button>
 

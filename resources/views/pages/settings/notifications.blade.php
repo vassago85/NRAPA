@@ -121,19 +121,21 @@ new class extends Component {
 }; ?>
 
 <section class="w-full">
-    @include('partials.settings-heading')
+    <x-slot name="header">
+        @include('partials.settings-heading')
+    </x-slot>
 
     <x-settings-layout heading="Notifications" subheading="Configure your notification preferences">
 
         @if(session('success'))
-            <div class="mb-6 p-4 bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
-                <p class="text-green-700 dark:text-green-300">{{ session('success') }}</p>
+            <div class="mb-6 p-4 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-xl">
+                <p class="text-emerald-700 dark:text-emerald-300">{{ session('success') }}</p>
             </div>
         @endif
 
         <form wire:submit="save" class="space-y-6">
             <!-- License Expiry Notifications - Available to ALL members -->
-            <div class="bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 p-4">
+            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-4">
                 <div class="flex items-center gap-3 mb-4">
                     <div class="flex size-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
                         <svg class="size-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -188,7 +190,7 @@ new class extends Component {
         @if(auth()->user()->hasRoleLevel(\App\Models\User::ROLE_ADMIN))
             <form wire:submit="save" class="space-y-6">
                 <!-- NTFY Configuration -->
-                <div class="bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 p-4">
+                <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-4">
                     <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">NTFY Configuration</h3>
 
                     <div class="space-y-4">
@@ -216,7 +218,7 @@ new class extends Component {
                 </div>
 
                 <!-- Working Hours -->
-                <div class="bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 p-4">
+                <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-4">
                     <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Working Hours</h3>
 
                     <div class="space-y-4">
@@ -260,7 +262,7 @@ new class extends Component {
                 </div>
 
                 <!-- Notification Types -->
-                <div class="bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 p-4">
+                <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-4">
                     <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Notification Types</h3>
 
                     <div class="space-y-3">
@@ -302,7 +304,7 @@ new class extends Component {
 
         @endif
 
-            <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors">
+            <button type="submit" class="px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white font-medium rounded-lg transition-colors">
                 Save Notification Preferences
             </button>
         </form>

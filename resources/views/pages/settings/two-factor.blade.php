@@ -292,7 +292,9 @@ new class extends Component {
     </div>
 @else
     <section class="w-full">
-        @include('partials.settings-heading')
+        <x-slot name="header">
+            @include('partials.settings-heading')
+        </x-slot>
 
         <x-settings-layout :heading="__('Two Factor Authentication')" :subheading="__('Add additional security to your account')">
             <div class="space-y-6" wire:cloak>
@@ -316,7 +318,7 @@ new class extends Component {
                         </div>
 
                             {{-- Instructions Section --}}
-                            <div class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-4">
+                            <div class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl mb-4">
                                 <div class="space-y-3">
                                     <div>
                                         <p class="text-sm font-medium text-blue-900 dark:text-blue-200 mb-2">📱 Step 1: Install an Authenticator App</p>
@@ -365,7 +367,7 @@ new class extends Component {
                             <button type="button" 
                                     id="continue-2fa-button"
                                     onclick="if(typeof window.show2FAVerification === 'function') { window.show2FAVerification(); } else { const verifyDiv = document.getElementById('verification-section'); const continueBtn = document.getElementById('continue-button-wrapper'); if(verifyDiv) { verifyDiv.style.display = 'block'; verifyDiv.style.setProperty('display', 'block', 'important'); sessionStorage.setItem('2fa-verification-shown', 'true'); const input = verifyDiv.querySelector('#two-factor-code'); if(input) { setTimeout(() => { input.focus(); input.select(); }, 100); } } if(continueBtn) { continueBtn.style.display = 'none'; } }"
-                                    class="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium">
+                                    class="w-full px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors">
                                 {{ __('Continue') }}
                             </button>
                             </div>
@@ -374,7 +376,7 @@ new class extends Component {
                             <div id="verification-section" 
                                  class="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-700 space-y-4" 
                                  style="display: none;">
-                                <div class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                <div class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
                                     <p class="text-xs text-blue-700 dark:text-blue-300 text-center">
                                         Open your authenticator app and enter the 6-digit code shown there. This code refreshes every 30 seconds.
                                     </p>
@@ -393,7 +395,7 @@ new class extends Component {
                                        autofocus>
                                 @error('code') <p class="text-sm text-red-600 text-center">{{ $message }}</p> @enderror
 
-                                <div class="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                                <div class="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
                                     <p class="text-xs font-medium text-amber-800 dark:text-amber-200 text-center">
                                         ⚠️ Remember: On your next login, you will be required to enter a code from your authenticator app to access your account.
                                     </p>
@@ -402,13 +404,13 @@ new class extends Component {
                                 <div class="flex gap-3">
                                     <button type="button" 
                                             onclick="const verifyDiv = document.getElementById('verification-section'); const continueBtn = document.getElementById('continue-button-wrapper'); if(verifyDiv) { verifyDiv.style.display = 'none'; } if(continueBtn) { continueBtn.style.display = 'block'; } sessionStorage.removeItem('2fa-verification-shown');"
-                                            class="flex-1 px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                                            class="flex-1 px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                                         {{ __('Back') }}
                                     </button>
                                     <button type="button" 
                                             wire:click="confirmTwoFactor"
                                             onclick="(function() { setTimeout(function() { const overlay = document.getElementById('2fa-modal-overlay'); const container = document.getElementById('2fa-modal-container'); const parent = overlay ? overlay.parentElement : null; if(overlay) { overlay.style.display = 'none'; overlay.remove(); } if(container) { container.remove(); } if(parent && parent.id === '2fa-modal-overlay') { parent.remove(); } document.body.classList.remove('overflow-hidden'); sessionStorage.removeItem('2fa-verification-shown'); }, 200); })()"
-                                            class="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium">
+                                            class="flex-1 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg font-medium transition-colors">
                                         {{ __('Confirm') }}
                                     </button>
                                 </div>

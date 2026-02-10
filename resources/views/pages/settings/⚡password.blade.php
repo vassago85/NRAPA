@@ -35,7 +35,9 @@ new class extends Component {
 }; ?>
 
 <section class="w-full">
-    @include('partials.settings-heading')
+    <x-slot name="header">
+        @include('partials.settings-heading')
+    </x-slot>
 
     <x-settings-layout :heading="__('Update password')" :subheading="__('Ensure your account is using a long, random password to stay secure')">
         <form wire:submit="updatePassword" class="mt-6 space-y-6">
@@ -60,7 +62,7 @@ new class extends Component {
             </div>
 
             <div class="flex items-center gap-4">
-                <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium">
+                <button type="submit" class="px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg font-medium transition-colors">
                     {{ __('Save') }}
                 </button>
 
