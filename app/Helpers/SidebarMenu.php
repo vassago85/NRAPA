@@ -90,7 +90,7 @@ class SidebarMenu
                                 ? 'admin.certificates.index' 
                                 : 'certificates.index')),
                     'icon' => 'badge-check',
-                    'roles' => ['member', 'admin', 'owner', 'developer'],
+                    'roles' => ['member', 'admin', 'owner'],
                 ],
             ];
 
@@ -308,6 +308,12 @@ class SidebarMenu
                         'label' => 'Developer Dashboard',
                         'route' => 'developer.dashboard',
                         'icon' => 'squares-2x2',
+                        'roles' => ['developer'],
+                    ],
+                    [
+                        'label' => 'Certificates',
+                        'route' => 'developer.certificates.index',
+                        'icon' => 'badge-check',
                         'roles' => ['developer'],
                     ],
                 ],

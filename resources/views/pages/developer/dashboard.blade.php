@@ -121,30 +121,30 @@ new class extends Component {
 
     {{-- System Stats --}}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-        <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-4">
+        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-4">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Total Users</p>
             <p class="text-2xl font-bold text-zinc-900 dark:text-white">{{ $totalUsers }}</p>
         </div>
-        <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-purple-200 dark:border-purple-700 p-4">
+        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-purple-200 dark:border-purple-700 p-4">
             <p class="text-sm text-purple-600 dark:text-purple-400">Owners</p>
             <p class="text-2xl font-bold text-purple-700 dark:text-purple-300">{{ $totalOwners }}</p>
         </div>
-        <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-blue-200 dark:border-blue-700 p-4">
+        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-blue-200 dark:border-blue-700 p-4">
             <p class="text-sm text-blue-600 dark:text-blue-400">Admins</p>
             <p class="text-2xl font-bold text-blue-700 dark:text-blue-300">{{ $totalAdmins }}</p>
         </div>
-        <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-4">
+        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-4">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Members</p>
             <p class="text-2xl font-bold text-zinc-900 dark:text-white">{{ $totalMembers }}</p>
         </div>
-        <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-green-200 dark:border-green-700 p-4">
-            <p class="text-sm text-green-600 dark:text-green-400">Active Memberships</p>
-            <p class="text-2xl font-bold text-green-700 dark:text-green-300">{{ $activeMemberships }}</p>
+        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-emerald-200 dark:border-emerald-700 p-4">
+            <p class="text-sm text-emerald-600 dark:text-emerald-400">Active Memberships</p>
+            <p class="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{{ $activeMemberships }}</p>
         </div>
     </div>
 
     {{-- System Toggles --}}
-    <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 mb-8">
+    <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6 mb-8">
         <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">System Toggles</h2>
         <div class="space-y-4">
             {{-- Daily R2 Backup Toggle --}}
@@ -288,7 +288,7 @@ new class extends Component {
 
     {{-- Quick Actions --}}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
+        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Owner Management</h2>
             <div class="space-y-3">
                 <a href="{{ route('developer.owners.index') }}" wire:navigate
@@ -304,7 +304,7 @@ new class extends Component {
             </div>
         </div>
 
-        <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
+        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">System Access</h2>
             <div class="space-y-3">
                 <a href="{{ route('admin.members.index') }}" wire:navigate
@@ -344,7 +344,7 @@ new class extends Component {
     </div>
 
     {{-- Testing Tools --}}
-    <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 mb-8">
+    <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6 mb-8">
         <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Testing Tools</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <a href="{{ route('admin.members.index') }}" wire:navigate
@@ -367,25 +367,25 @@ new class extends Component {
                     <p class="text-xs text-zinc-500 dark:text-zinc-400">Test endorsement letter generation</p>
                 </div>
             </a>
-            <a href="{{ route('admin.members.index') }}?filter=certificates" wire:navigate
-                class="flex items-center gap-3 p-4 rounded-lg bg-zinc-50 dark:bg-zinc-700/50 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors border border-zinc-200 dark:border-zinc-700">
+            <a href="{{ route('developer.certificates.index') }}" wire:navigate
+                class="flex items-center gap-3 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors border border-emerald-200 dark:border-emerald-700">
                 <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
                 </svg>
                 <div>
-                    <p class="font-medium text-zinc-900 dark:text-white">Certificates</p>
-                    <p class="text-xs text-zinc-500 dark:text-zinc-400">Test certificate generation</p>
+                    <p class="font-medium text-emerald-900 dark:text-white">Certificate Manager</p>
+                    <p class="text-xs text-emerald-600 dark:text-emerald-400">View, filter, bulk delete all certificates</p>
                 </div>
             </a>
         </div>
     </div>
 
     {{-- Current Owners --}}
-    <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
+    <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Current Site Owners</h2>
             <a href="{{ route('developer.owners.create') }}" wire:navigate
-                class="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                    class="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
                 + Nominate New Owner
             </a>
         </div>
@@ -438,7 +438,7 @@ new class extends Component {
     </div>
 
     {{-- Login Log --}}
-    <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 mt-8">
+    <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6 mt-8">
         <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-3">
                 <div class="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
@@ -517,7 +517,7 @@ new class extends Component {
     </div>
 
     {{-- Admin Activity Log --}}
-    <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 mt-8">
+    <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6 mt-8">
         <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
             <div class="flex items-center gap-3">
                 <div class="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30">

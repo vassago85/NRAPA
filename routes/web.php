@@ -693,8 +693,8 @@ Route::middleware(['auth', 'verified', 'developer'])->prefix('developer')->name(
     Route::livewire('owners', 'pages::developer.owners.index')->name('owners.index');
     Route::livewire('owners/nominate', 'pages::developer.owners.create')->name('owners.create');
     
-    // Certificates (developer can view all certificates)
-    Route::livewire('certificates', 'pages::member.certificates.index')->name('certificates.index');
+    // Certificates (developer management page with table, filters, bulk actions)
+    Route::livewire('certificates', 'pages::developer.certificates')->name('certificates.index');
     Route::livewire('certificates/{certificate}', 'pages::member.certificates.show')->name('certificates.show');
     
     // Certificate wallet pass downloads (developer)
