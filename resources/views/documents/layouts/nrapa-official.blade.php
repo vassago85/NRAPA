@@ -497,10 +497,10 @@ div[style*="height:8px"] { height: 4px !important; }
 
 /* Notice / certification statement */
 .doc-notice {
-  border-left: 3px solid var(--blue);
-  background: var(--soft);
+  border: 1px solid var(--line);
+  background: #fff;
   padding: 10px 14px;
-  border-radius: 0 8px 8px 0;
+  border-radius: 8px;
   font-size: 10px;
   line-height: 1.45;
   color: var(--text);
