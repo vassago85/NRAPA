@@ -292,6 +292,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
                 @endif
             </p>
         </div>
+        @include('partials.member-nav-tabs')
     </x-slot>
 
     <div class="flex flex-col gap-6">

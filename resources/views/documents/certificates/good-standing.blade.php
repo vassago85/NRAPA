@@ -35,7 +35,7 @@
 
     {{-- Title --}}
     <div class="doc-title" style="padding: 16px 24px;">
-        <h1 style="font-size: 18px;">Proof of Membership in Good Standing</h1>
+        <h1 style="font-size: 18px;">Membership Certificate</h1>
         <div class="doc-subtitle" style="font-size: 10px; margin-top: 4px;">FAR Sport: {{ $farNumbers['sport'] }} &nbsp;|&nbsp; FAR Hunting: {{ $farNumbers['hunting'] }}</div>
     </div>
 

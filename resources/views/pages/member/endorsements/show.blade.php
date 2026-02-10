@@ -38,6 +38,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
                 {{ $request->status_label }}
             </span>
         </div>
+        @include('partials.member-nav-tabs')
     </x-slot>
 
     @if(session('success'))

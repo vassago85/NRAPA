@@ -92,19 +92,15 @@ new #[Title('Configuration Approvals - Owner')] class extends Component {
 }; ?>
 
 <div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
-    {{-- Header --}}
-    <div class="flex flex-col gap-2">
-        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Configuration Approvals</h1>
-        <p class="text-zinc-600 dark:text-zinc-400">Review and approve configuration changes submitted by administrators.</p>
-    </div>
+    <x-slot name="header">@include('partials.owner-settings-heading')</x-slot>
 
     @if(session('success'))
-    <div class="rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+    <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
         <div class="flex items-center gap-3">
-            <svg class="size-5 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <svg class="size-5 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
             </svg>
-            <p class="text-sm text-green-700 dark:text-green-300">{{ session('success') }}</p>
+            <p class="text-sm text-emerald-700 dark:text-emerald-300">{{ session('success') }}</p>
         </div>
     </div>
     @endif
@@ -122,7 +118,7 @@ new #[Title('Configuration Approvals - Owner')] class extends Component {
 
     {{-- Stats --}}
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
             <div class="flex items-center gap-4">
                 <div class="rounded-lg bg-amber-100 p-3 dark:bg-amber-900/30">
                     <svg class="size-6 text-amber-600 dark:text-amber-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -176,7 +172,7 @@ new #[Title('Configuration Approvals - Owner')] class extends Component {
                     @if($viewingRequest->isPending())
                     <span class="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Pending Review</span>
                     @elseif($viewingRequest->isApproved())
-                    <span class="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Approved</span>
+                    <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Approved</span>
                     @else
                     <span class="inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-800 dark:bg-red-900 dark:text-red-200">Rejected</span>
                     @endif
@@ -226,7 +222,7 @@ new #[Title('Configuration Approvals - Owner')] class extends Component {
 
                     <div>
                         <h4 class="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">{{ $viewingRequest->old_values ? 'Proposed Values' : 'New Values' }}</h4>
-                        <div class="rounded-lg bg-green-50 dark:bg-green-900/20 p-4 text-sm">
+                        <div class="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 p-4 text-sm">
                             @if($viewingRequest->configuration_type === 'document_requirements')
                                 <p class="font-medium text-zinc-900 dark:text-white mb-2">{{ $viewingRequest->new_values['membership_type'] ?? 'Unknown' }}</p>
                                 @forelse($viewingRequest->new_values['document_types'] ?? [] as $doc)
@@ -242,7 +238,7 @@ new #[Title('Configuration Approvals - Owner')] class extends Component {
                             @else
                                 @foreach($viewingRequest->new_values as $key => $value)
                                     @if(!in_array($key, ['id', 'created_at', 'updated_at']))
-                                    <div class="flex justify-between py-1 border-b border-green-100 dark:border-green-800 last:border-0">
+                                    <div class="flex justify-between py-1 border-b border-emerald-100 dark:border-emerald-800 last:border-0">
                                         <span class="text-zinc-500 dark:text-zinc-400">{{ ucfirst(str_replace('_', ' ', $key)) }}</span>
                                         <span class="text-zinc-900 dark:text-white">{{ is_bool($value) ? ($value ? 'Yes' : 'No') : $value }}</span>
                                     </div>
@@ -284,7 +280,7 @@ new #[Title('Configuration Approvals - Owner')] class extends Component {
                         <button
                             wire:click="approveRequest"
                             wire:confirm="Are you sure you want to approve this change? It will be applied immediately."
-                            class="flex-1 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600"
+                            class="flex-1 rounded-lg bg-nrapa-blue px-4 py-2.5 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors"
                         >
                             <svg class="inline-block size-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
@@ -293,7 +289,7 @@ new #[Title('Configuration Approvals - Owner')] class extends Component {
                         </button>
                         <button
                             wire:click="rejectRequest"
-                            class="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600"
+                            class="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-700 transition-colors"
                         >
                             <svg class="inline-block size-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -309,7 +305,7 @@ new #[Title('Configuration Approvals - Owner')] class extends Component {
     @endif
 
     {{-- Requests List --}}
-    <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
         <div class="overflow-x-auto">
             <table class="w-full">
                 <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
@@ -331,7 +327,7 @@ new #[Title('Configuration Approvals - Owner')] class extends Component {
                         </td>
                         <td class="whitespace-nowrap px-6 py-4">
                             @if($request->action === 'create')
-                            <span class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Create</span>
+                            <span class="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Create</span>
                             @elseif($request->action === 'update')
                             <span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">Update</span>
                             @else
@@ -351,7 +347,7 @@ new #[Title('Configuration Approvals - Owner')] class extends Component {
                             @if($request->isPending())
                             <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Pending</span>
                             @elseif($request->isApproved())
-                            <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Approved</span>
+                            <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Approved</span>
                             @else
                             <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">Rejected</span>
                             @endif

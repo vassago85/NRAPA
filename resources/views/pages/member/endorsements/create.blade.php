@@ -1170,6 +1170,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                 <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Complete the form below to request a dedicated status endorsement letter.</p>
             </div>
         </div>
+        @include('partials.member-nav-tabs')
     </x-slot>
 
     {{-- Progress Steps --}}
