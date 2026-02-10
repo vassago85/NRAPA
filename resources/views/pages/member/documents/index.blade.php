@@ -217,6 +217,11 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         // available as a fallback on certificates even before verification.
         if (in_array($documentType->slug, MemberDocument::ID_DOCUMENT_SLUGS) && !empty($this->idNumber)) {
             $user->update(['id_number' => $this->idNumber]);
+
+            // Auto-issue membership certificate now that we have the member's
+            // full name and ID number from their ID document upload.
+            $certService = app(\App\Services\CertificateIssueService::class);
+            $certificate = $certService->tryAutoIssueMembershipCertificate($user);
         }
 
         $this->reset([
@@ -225,7 +230,12 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             'addressStreet', 'addressSuburb', 'addressCity', 'addressProvince', 'addressPostalCode',
             'competencyIssueDate',
         ]);
-        session()->flash('success', 'Document uploaded successfully. It will be reviewed by an administrator.');
+
+        if (isset($certificate) && $certificate) {
+            session()->flash('success', 'Document uploaded successfully. Your Membership Certificate has been automatically issued!');
+        } else {
+            session()->flash('success', 'Document uploaded successfully. It will be reviewed by an administrator.');
+        }
     }
 
     public function viewDocument(MemberDocument $document): void

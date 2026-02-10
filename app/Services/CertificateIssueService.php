@@ -513,11 +513,13 @@ class CertificateIssueService
     }
 
     /**
-     * Check if a user is missing required documents (ID and Proof of Address) for membership certificate.
+     * Check if a user is missing required documents (ID) for membership certificate.
+     * The membership certificate requires the member's full name and ID number,
+     * both of which are captured during ID document upload.
      *
      * @return array<string> List of missing document type names
      */
-    protected function getMissingRequiredDocumentsForMembership(User $user): array
+    public function getMissingRequiredDocumentsForMembership(User $user): array
     {
         $missing = [];
 
@@ -533,18 +535,55 @@ class CertificateIssueService
             $missing[] = 'ID document';
         }
 
-        // Check for Proof of Address (any status except rejected/archived = uploaded)
-        $hasAddress = \App\Models\MemberDocument::where('user_id', $user->id)
-            ->whereHas('documentType', function ($q) {
-                $q->whereIn('slug', \App\Models\MemberDocument::ADDRESS_DOCUMENT_SLUGS);
-            })
-            ->whereIn('status', ['pending', 'verified'])
-            ->exists();
-
-        if (!$hasAddress) {
-            $missing[] = 'Proof of Address';
-        }
-
         return $missing;
+    }
+
+    /**
+     * Check if a user already has a valid membership certificate.
+     */
+    public function hasValidMembershipCertificate(User $user): bool
+    {
+        return Certificate::where('user_id', $user->id)
+            ->whereHas('certificateType', fn ($q) => $q->where('slug', 'membership-certificate'))
+            ->whereNull('revoked_at')
+            ->where(function ($q) {
+                $q->whereNull('valid_until')
+                    ->orWhere('valid_until', '>', now());
+            })
+            ->exists();
+    }
+
+    /**
+     * Attempt to auto-issue a membership certificate after an ID document is uploaded.
+     * Only issues if the user has an active membership and no existing valid certificate.
+     * Silently skips if conditions aren't met (no exceptions thrown).
+     */
+    public function tryAutoIssueMembershipCertificate(User $user): ?Certificate
+    {
+        try {
+            // Must have an active membership
+            if (!$user->activeMembership) {
+                return null;
+            }
+
+            // Must not already have a valid membership certificate
+            if ($this->hasValidMembershipCertificate($user)) {
+                return null;
+            }
+
+            // Must have ID document uploaded
+            if (count($this->getMissingRequiredDocumentsForMembership($user)) > 0) {
+                return null;
+            }
+
+            // Issue with skipChecks=true (terms/standing not required for auto-issue on upload)
+            return $this->issueMembershipCertificate($user, $user, skipChecks: true);
+        } catch (\Exception $e) {
+            Log::warning('Auto-issue membership certificate failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
     }
 }
