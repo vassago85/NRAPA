@@ -84,6 +84,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     public string $newCalibreReason = '';
     public string $calibreSearchQuery = '';
 
+    // Legacy calibre fields used by canSubmit / canProceedToNextStep checks
+    public ?int $calibreId = null;
+    public ?string $calibreManual = null;
+
     public function mount(?EndorsementRequest $request = null): void
     {
         // Prevent editing if request is not in draft status
@@ -154,6 +158,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             $this->actionOtherSpecify = $firearm->action_other_specify ?? '';
             $this->metalEngraving = $firearm->metal_engraving ?? '';
             $this->calibreCode = $firearm->calibre_code ?? '';
+            $this->calibreId = $firearm->calibre_id;
+            $this->calibreManual = $firearm->calibre_manual ?? null;
             $this->make = $firearm->make ?? '';
             $this->model = $firearm->model ?? '';
             $this->serialNumber = $firearm->serial_number ?? '';
@@ -283,12 +289,14 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         $this->receiverMake = $data['receiver_make_text'] ?? '';
         
         // Set legacy fields for backward compatibility
-        if ($this->makeTextOverride) {
-            $this->make = $this->makeTextOverride;
-        }
-        if ($this->modelTextOverride) {
-            $this->model = $this->modelTextOverride;
-        }
+        $this->calibreId = $this->firearmCalibreId;
+        $this->calibreManual = $this->calibreTextOverride;
+        $this->make = $this->makeTextOverride
+            ?: ($this->firearmMakeId ? \App\Models\FirearmMake::find($this->firearmMakeId)?->name : '') 
+            ?: '';
+        $this->model = $this->modelTextOverride
+            ?: ($this->firearmModelId ? \App\Models\FirearmModel::find($this->firearmModelId)?->name : '')
+            ?: '';
     }
 
     #[Computed]
