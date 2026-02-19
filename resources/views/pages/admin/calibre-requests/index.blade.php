@@ -123,6 +123,13 @@ new #[Layout('layouts.app.sidebar')] #[Title('Calibre Requests')] class extends 
 }; ?>
 
 <div>
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Configuration</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Manage calibre requests and reference data</p>
+    </x-slot>
+
+    <x-admin-config-tabs current="calibres" />
+
     <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Calibre Requests</h1>
@@ -151,7 +158,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Calibre Requests')] class extends 
 
     {{-- Flash Messages --}}
     @if(session('success'))
-        <div class="mb-6 p-4 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 rounded-lg text-emerald-700 dark:text-emerald-300">
+        <div class="mb-6 p-4 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 rounded-xl text-emerald-700 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
@@ -206,12 +213,12 @@ new #[Layout('layouts.app.sidebar')] #[Title('Calibre Requests')] class extends 
                             <td class="px-6 py-4 text-right">
                                 @if($request->status === 'pending')
                                     <button wire:click="edit({{ $request->id }})"
-                                        class="text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                                        class="text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
                                         Review
                                     </button>
                                 @else
                                     <button wire:click="edit({{ $request->id }})"
-                                        class="text-sm font-medium text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300">
+                                        class="text-sm font-medium text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300 transition-colors">
                                         View
                                     </button>
                                 @endif

@@ -260,13 +260,14 @@ new #[Title('All Approvals - Admin')] class extends Component {
     }
 }; ?>
 
-<div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
-    {{-- Header --}}
+<div class="flex flex-col gap-6">
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Approvals</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Review and process pending membership applications and document uploads</p>
+    </x-slot>
+
+    {{-- Action Bar --}}
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">All Outstanding Approvals</h1>
-            <p class="text-zinc-600 dark:text-zinc-400">Review and approve all pending items requiring attention.</p>
-        </div>
         @if($this->stats['total'] > 0)
         <button wire:click="clearAllApprovals" 
                 wire:confirm="Are you sure you want to approve all outstanding approvals? This action cannot be undone."

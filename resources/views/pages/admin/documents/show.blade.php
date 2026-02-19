@@ -75,13 +75,18 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
 }; ?>
 
 <div>
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Document Review</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Review member document submission</p>
+    </x-slot>
+    
     <div class="mb-8 flex items-center justify-between">
         <div>
-            <a href="{{ route('admin.documents.index') }}" class="text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 flex items-center gap-1 mb-2">
+            <a href="{{ route('admin.documents.index') }}" class="text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 flex items-center gap-1 mb-2 transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                 Back to Documents
             </a>
-            <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">{{ $document->documentType->name }}</h1>
+            <h2 class="text-xl font-semibold text-zinc-900 dark:text-white">{{ $document->documentType->name }}</h2>
             <p class="mt-2 text-zinc-600 dark:text-zinc-400">
                 {{ $document->original_filename }} • 
                 <a href="{{ route('admin.members.show', $document->user) }}" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
@@ -146,7 +151,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                 <div>
                     <dt class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Member</dt>
                     <dd class="mt-1">
-                        <a href="{{ route('admin.members.show', $document->user) }}" class="text-base text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                        <a href="{{ route('admin.members.show', $document->user) }}" class="text-base text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
                             {{ $document->user->name }}
                         </a>
                         <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ $document->user->email }}</p>

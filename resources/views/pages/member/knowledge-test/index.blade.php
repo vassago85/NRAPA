@@ -223,11 +223,11 @@ new #[Title('Knowledge Tests')] class extends Component {
 
 <div>
     <x-slot name="header">
-        <div>
-            <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Knowledge Tests</h1>
-            <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Complete required knowledge tests to apply for Dedicated Status.</p>
-        </div>
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Knowledge Tests</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Complete required knowledge tests to apply for Dedicated Status.</p>
     </x-slot>
+
+    <x-learning-tabs current="tests" />
 
     <div class="flex flex-col gap-6">
 

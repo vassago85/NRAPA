@@ -159,8 +159,13 @@ new #[Title('Manage Pages - Learning Center')] class extends Component {
     }
 }; ?>
 
-<div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
-    {{-- Header --}}
+<div class="flex flex-col gap-6">
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Article Pages</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Manage learning article pages</p>
+    </x-slot>
+    
+    {{-- Header Actions --}}
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-4">
             <a href="{{ route('admin.learning.index') }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
@@ -170,7 +175,6 @@ new #[Title('Manage Pages - Learning Center')] class extends Component {
                 Back
             </a>
             <div>
-                <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">{{ $article->title }}</h1>
                 <p class="text-zinc-600 dark:text-zinc-400">{{ $this->pages->count() }} {{ Str::plural('page', $this->pages->count()) }} • {{ $article->category->name }}</p>
             </div>
         </div>
@@ -185,13 +189,13 @@ new #[Title('Manage Pages - Learning Center')] class extends Component {
     </div>
 
     @if(session('success'))
-    <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
+    <div class="rounded-xl border border-emerald-300 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
         <p class="text-sm text-emerald-700 dark:text-emerald-300">{{ session('success') }}</p>
     </div>
     @endif
 
     @if(session('error'))
-    <div class="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
+    <div class="rounded-xl border border-red-300 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
         <p class="text-sm text-red-700 dark:text-red-300">{{ session('error') }}</p>
     </div>
     @endif
@@ -300,12 +304,12 @@ new #[Title('Manage Pages - Learning Center')] class extends Component {
             <div class="flex items-start justify-between gap-4">
                 <div class="flex items-start gap-4">
                     <div class="flex flex-col gap-1">
-                        <button wire:click="movePageUp({{ $page->id }})" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 {{ $index === 0 ? 'opacity-30 cursor-not-allowed' : '' }}" {{ $index === 0 ? 'disabled' : '' }}>
+                        <button wire:click="movePageUp({{ $page->id }})" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors {{ $index === 0 ? 'opacity-30 cursor-not-allowed' : '' }}" {{ $index === 0 ? 'disabled' : '' }}>
                             <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
                             </svg>
                         </button>
-                        <button wire:click="movePageDown({{ $page->id }})" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 {{ $index === $this->pages->count() - 1 ? 'opacity-30 cursor-not-allowed' : '' }}" {{ $index === $this->pages->count() - 1 ? 'disabled' : '' }}>
+                        <button wire:click="movePageDown({{ $page->id }})" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors {{ $index === $this->pages->count() - 1 ? 'opacity-30 cursor-not-allowed' : '' }}" {{ $index === $this->pages->count() - 1 ? 'disabled' : '' }}>
                             <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
                             </svg>

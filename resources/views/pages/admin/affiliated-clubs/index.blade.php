@@ -347,7 +347,14 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
     }
 }; ?>
 
-<div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
+<div class="flex flex-col gap-6">
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Configuration</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Manage affiliated clubs and chapters</p>
+    </x-slot>
+
+    <x-admin-config-tabs current="clubs" />
+
     {{-- Header --}}
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -362,7 +369,7 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
 
     {{-- Flash Messages --}}
     @if(session('success'))
-        <div class="rounded-lg border border-emerald-300 bg-emerald-100 p-4 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+        <div class="rounded-xl border border-emerald-300 bg-emerald-100 p-4 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
@@ -400,7 +407,7 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
                             <p class="text-xs text-zinc-500 dark:text-zinc-400">R{{ number_format($club->renewal_fee, 2) }}/year</p>
                         </td>
                         <td class="whitespace-nowrap px-4 py-3 text-center">
-                            <button wire:click="openMembersModal({{ $club->id }})" class="inline-flex items-center gap-1 text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+                            <button wire:click="openMembersModal({{ $club->id }})" class="inline-flex items-center gap-1 text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
                                 <span>{{ $club->memberships_count }}</span>
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                             </button>
@@ -412,15 +419,15 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
                         </td>
                         <td class="whitespace-nowrap px-4 py-3 text-right">
                             <div class="flex items-center justify-end gap-2">
-                                <button wire:click="openInviteModal({{ $club->id }})" class="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2.5 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50" title="Send Invite">
+                                <button wire:click="openInviteModal({{ $club->id }})" class="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2.5 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50 transition-colors" title="Send Invite">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                                     Invite
                                 </button>
-                                <button wire:click="openAssignModal({{ $club->id }})" class="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-300 dark:hover:bg-amber-900/50" title="Assign Member">
+                                <button wire:click="openAssignModal({{ $club->id }})" class="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-300 dark:hover:bg-amber-900/50 transition-colors" title="Assign Member">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
                                     Assign
                                 </button>
-                                <button wire:click="openEditModal({{ $club->id }})" class="inline-flex items-center gap-1 rounded-md bg-zinc-100 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600">
+                                <button wire:click="openEditModal({{ $club->id }})" class="inline-flex items-center gap-1 rounded-md bg-zinc-100 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600 transition-colors">
                                     Edit
                                 </button>
                             </div>
@@ -551,7 +558,7 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
                     </div>
 
                     <div class="flex justify-end gap-3 pt-4">
-                        <button type="button" wire:click="$set('showEditModal', false)" class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700">
+                        <button type="button" wire:click="$set('showEditModal', false)" class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors">
                             Cancel
                         </button>
                         <button type="submit" class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
@@ -590,10 +597,10 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
                     </div>
 
                     <div class="flex justify-end gap-3 pt-2">
-                        <button type="button" wire:click="$set('showInviteModal', false)" class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700">
+                        <button type="button" wire:click="$set('showInviteModal', false)" class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors">
                             Cancel
                         </button>
-                        <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                        <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors">
                             Send Invitation
                         </button>
                     </div>
@@ -641,10 +648,10 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
                     @endif
 
                     <div class="flex justify-end gap-3 pt-2">
-                        <button type="button" wire:click="$set('showAssignModal', false)" class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700">
+                        <button type="button" wire:click="$set('showAssignModal', false)" class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors">
                             Cancel
                         </button>
-                        <button type="button" wire:click="assignMember" class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50" {{ !$selectedMemberId ? 'disabled' : '' }}>
+                        <button type="button" wire:click="assignMember" class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50 transition-colors" {{ !$selectedMemberId ? 'disabled' : '' }}>
                             Assign to Club
                         </button>
                     </div>
@@ -666,11 +673,11 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
                         <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ $this->clubMembers->count() }} member(s)</p>
                     </div>
                     <div class="flex gap-2">
-                        <button wire:click="openInviteModal({{ $managingClub->id }})" class="inline-flex items-center gap-1 rounded-md bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300">
+                        <button wire:click="openInviteModal({{ $managingClub->id }})" class="inline-flex items-center gap-1 rounded-md bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 transition-colors">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                             Invite
                         </button>
-                        <button wire:click="openAssignModal({{ $managingClub->id }})" class="inline-flex items-center gap-1 rounded-md bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-300">
+                        <button wire:click="openAssignModal({{ $managingClub->id }})" class="inline-flex items-center gap-1 rounded-md bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-300 transition-colors">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
                             Assign
                         </button>
@@ -710,7 +717,7 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
                             </div>
                             <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ $membership->user->email }}</p>
                         </div>
-                        <button wire:click="removeFromClub({{ $membership->id }})" wire:confirm="Remove {{ $membership->user->name }} from {{ $managingClub->name }}? They will remain a regular NRAPA member." class="inline-flex items-center gap-1 rounded-md bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50">
+                        <button wire:click="removeFromClub({{ $membership->id }})" wire:confirm="Remove {{ $membership->user->name }} from {{ $managingClub->name }}? They will remain a regular NRAPA member." class="inline-flex items-center gap-1 rounded-md bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50 transition-colors">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                             Remove
                         </button>
@@ -722,7 +729,7 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
                 @endif
 
                 <div class="flex justify-end mt-6">
-                    <button wire:click="$set('showMembersModal', false)" class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700">
+                    <button wire:click="$set('showMembersModal', false)" class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors">
                         Close
                     </button>
                 </div>

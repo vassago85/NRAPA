@@ -10,18 +10,29 @@ new #[Title('Test Results')] class extends Component {
 
     public function mount(KnowledgeTestAttempt $attempt): void
     {
-        // Ensure the attempt belongs to the current user
-        if ($attempt->user_id !== auth()->id()) {
+        $user = auth()->user();
+        if ($attempt->user_id !== $user->id && !$user->isAdmin() && !$user->isOwner() && !$user->isDeveloper()) {
             abort(403);
         }
 
-        // Ensure the attempt has been submitted
         if (!$attempt->isSubmitted()) {
             $this->redirect(route('knowledge-test.take', $attempt->knowledgeTest), navigate: true);
             return;
         }
 
-        $this->attempt = $attempt->load(['knowledgeTest', 'answers.question', 'marker']);
+        $this->attempt = $attempt->load(['knowledgeTest.activeQuestions', 'answers.question', 'marker']);
+
+        // Auto-finalize if submitted but stuck without a pass/fail result
+        if ($this->attempt->passed === null && $this->attempt->isFullyMarked()) {
+            $this->attempt->finalizeIfComplete();
+            $this->attempt->refresh();
+        }
+    }
+
+    #[Computed]
+    public function totalQuestions()
+    {
+        return $this->attempt->knowledgeTest->activeQuestions->count();
     }
 
     #[Computed]
@@ -35,6 +46,28 @@ new #[Title('Test Results')] class extends Component {
     {
         if ($this->totalPossiblePoints === 0) return 0;
         return ($this->attempt->total_score / $this->totalPossiblePoints) * 100;
+    }
+
+    #[Computed]
+    public function scoreBreakdown()
+    {
+        $typeLabels = [
+            'multiple_choice' => 'Multiple Choice',
+            'multiple_select' => 'Multi-Select',
+            'priority_order' => 'Priority Order',
+            'matching' => 'Matching',
+            'written' => 'Written',
+        ];
+
+        return $this->attempt->answers
+            ->groupBy(fn ($a) => $a->question->question_type)
+            ->map(fn ($group, $type) => [
+                'label' => $typeLabels[$type] ?? $type,
+                'points' => $group->sum('points_awarded') ?? 0,
+                'possible' => $group->sum(fn ($a) => $a->question->points),
+                'count' => $group->count(),
+            ])
+            ->sortKeys();
     }
 }; ?>
 
@@ -57,6 +90,10 @@ new #[Title('Test Results')] class extends Component {
 
     {{-- Pending Marking Notice --}}
     @if($attempt->passed === null)
+    @php
+        $hasWrittenQuestions = $attempt->answers->contains(fn ($a) => $a->question->question_type === 'written');
+    @endphp
+    @if($hasWrittenQuestions)
     <div class="rounded-xl border border-yellow-200 bg-yellow-50 p-6 dark:border-yellow-800 dark:bg-yellow-900/20">
         <div class="flex items-start gap-4">
             <svg class="mt-0.5 size-6 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -69,11 +106,27 @@ new #[Title('Test Results')] class extends Component {
                     You will be notified once your results are finalized.
                 </p>
                 <p class="mt-2 text-sm text-yellow-600 dark:text-yellow-400">
-                    Multiple choice answers have been auto-scored: {{ $attempt->auto_score ?? 0 }} points
+                    Auto-scored answers: {{ $attempt->auto_score ?? 0 }} points
                 </p>
             </div>
         </div>
     </div>
+    @else
+    {{-- No written questions but passed is null — attempt needs finalization --}}
+    <div class="rounded-xl border border-yellow-200 bg-yellow-50 p-6 dark:border-yellow-800 dark:bg-yellow-900/20">
+        <div class="flex items-start gap-4">
+            <svg class="mt-0.5 size-6 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+            <div>
+                <h3 class="font-semibold text-yellow-800 dark:text-yellow-200">Results Pending</h3>
+                <p class="mt-1 text-yellow-700 dark:text-yellow-300">
+                    Your results are being finalized. Auto-scored: {{ $attempt->auto_score ?? 0 }} points.
+                </p>
+            </div>
+        </div>
+    </div>
+    @endif
     @else
     {{-- Result Card --}}
     <div class="rounded-xl border {{ $attempt->passed ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' }} p-8 text-center">
@@ -135,7 +188,7 @@ new #[Title('Test Results')] class extends Component {
                 </div>
                 <div class="flex justify-between">
                     <dt class="text-zinc-500 dark:text-zinc-400">Total Questions</dt>
-                    <dd class="text-zinc-900 dark:text-white">{{ $attempt->answers->count() }}</dd>
+                    <dd class="text-zinc-900 dark:text-white">{{ $this->totalQuestions }}</dd>
                 </div>
             </dl>
         </div>
@@ -161,17 +214,15 @@ new #[Title('Test Results')] class extends Component {
         <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
             <h3 class="font-semibold text-zinc-900 dark:text-white">Score Breakdown</h3>
             <dl class="mt-4 space-y-3 text-sm">
+                @foreach($this->scoreBreakdown as $type => $data)
                 <div class="flex justify-between">
-                    <dt class="text-zinc-500 dark:text-zinc-400">Multiple Choice</dt>
-                    <dd class="text-zinc-900 dark:text-white">{{ $attempt->auto_score ?? 0 }} pts</dd>
+                    <dt class="text-zinc-500 dark:text-zinc-400">{{ $data['label'] }} ({{ $data['count'] }})</dt>
+                    <dd class="text-zinc-900 dark:text-white">{{ $data['points'] }} / {{ $data['possible'] }} pts</dd>
                 </div>
-                <div class="flex justify-between">
-                    <dt class="text-zinc-500 dark:text-zinc-400">Written</dt>
-                    <dd class="text-zinc-900 dark:text-white">{{ $attempt->manual_score ?? 0 }} pts</dd>
-                </div>
+                @endforeach
                 <div class="flex justify-between border-t border-zinc-200 pt-2 dark:border-zinc-700">
                     <dt class="font-medium text-zinc-900 dark:text-white">Total</dt>
-                    <dd class="font-bold text-zinc-900 dark:text-white">{{ $attempt->total_score ?? '—' }} pts</dd>
+                    <dd class="font-bold text-zinc-900 dark:text-white">{{ $attempt->total_score ?? '—' }} / {{ $this->totalPossiblePoints }} pts</dd>
                 </div>
             </dl>
         </div>

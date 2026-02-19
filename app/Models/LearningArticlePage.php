@@ -70,8 +70,15 @@ class LearningArticlePage extends Model
             return null;
         }
 
-        // Learning center images are always served from local storage
-        return StorageHelper::getLearningCenterUrl($this->image_path);
+        return '/storage/' . ltrim($this->image_path, '/');
+    }
+
+    /**
+     * Get the image URL to display (page image or default NRAPA logo).
+     */
+    public function getDisplayImageUrlAttribute(): string
+    {
+        return $this->image_url ?? asset('nrapa-logo.png');
     }
 
     /**

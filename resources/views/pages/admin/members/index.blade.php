@@ -193,17 +193,18 @@ new #[Title('Members - Admin')] class extends Component {
     }
 }; ?>
 
-<div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
-    {{-- Header --}}
+<div class="flex flex-col gap-6">
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Members</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Manage member accounts, profiles, and membership details</p>
+    </x-slot>
+
+    {{-- Action Bar --}}
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Members</h1>
-            <p class="text-zinc-600 dark:text-zinc-400">Manage all registered members and their memberships.</p>
-        </div>
         <div class="flex gap-2 flex-wrap">
             @if($this->unresolvedFailuresCount > 0)
             <a href="{{ route('admin.members.import-failures') }}" wire:navigate
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-300 rounded-lg hover:bg-amber-100 dark:text-amber-300 dark:bg-amber-900/30 dark:border-amber-700 dark:hover:bg-amber-900/50">
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-300 rounded-lg hover:bg-amber-100 dark:text-amber-300 dark:bg-amber-900/30 dark:border-amber-700 dark:hover:bg-amber-900/50 transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
                 Import Failures
                 <span class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold text-white bg-amber-500 rounded-full">{{ $this->unresolvedFailuresCount }}</span>
@@ -325,7 +326,7 @@ new #[Title('Members - Admin')] class extends Component {
                             {{ $user->created_at->format('d M Y') }}
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-right text-sm">
-                            <a href="{{ route('admin.members.show', $user) }}" wire:navigate class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+                            <a href="{{ route('admin.members.show', $user) }}" wire:navigate class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
                                 View
                             </a>
                         </td>
@@ -496,7 +497,7 @@ new #[Title('Members - Admin')] class extends Component {
                         @endif
                         
                         <div class="flex justify-end gap-3 border-t border-zinc-200 pt-4 dark:border-zinc-700">
-                            <button type="button" wire:click="closeImportModal" class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 dark:hover:bg-zinc-600">
+                            <button type="button" wire:click="closeImportModal" class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 dark:hover:bg-zinc-600 transition-colors">
                                 Cancel
                             </button>
                             <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-nrapa-blue rounded-lg hover:bg-nrapa-blue-dark transition-colors">

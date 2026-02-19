@@ -53,7 +53,7 @@
             <!-- Sidebar -->
             <aside 
                 :class="{ 'translate-x-0': sidebarOpen, '-translate-x-full': !sidebarOpen }"
-                class="fixed inset-y-0 left-0 z-50 w-72 flex flex-col bg-zinc-50 dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-700 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:w-64 lg:flex-shrink-0"
+                class="fixed inset-y-0 left-0 z-50 w-72 flex flex-col bg-zinc-50 dark:bg-zinc-800 border-r border-zinc-200 dark:border-zinc-700 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:w-64 lg:flex-shrink-0"
             >
                 
                 <!-- Logo -->
@@ -73,7 +73,7 @@
                         @endif
                         <span class="text-lg font-bold text-zinc-900 dark:text-white">NRAPA</span>
                     </a>
-                    <button @click="sidebarOpen = false" class="lg:hidden p-2 -mr-2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                    <button @click="sidebarOpen = false" class="lg:hidden p-2 -mr-2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
@@ -89,7 +89,7 @@
                     @foreach($menu as $index => $section)
                         <div class="space-y-1 {{ $section['section'] === 'OWNER' && $index > 0 ? 'pt-4 mt-4 border-t border-zinc-200 dark:border-zinc-700' : '' }}">
                             {{-- Section Header --}}
-                            <p class="px-3 mb-2 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                            <p class="px-3 mb-2 text-xs font-semibold text-zinc-500 dark:text-zinc-300 uppercase tracking-wider">
                                 {{ $section['section'] }}
                             </p>
                             
@@ -111,7 +111,7 @@
                         </div>
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-medium text-zinc-900 dark:text-white truncate">{{ auth()->user()->name }}</p>
-                            <p class="text-xs text-zinc-500 dark:text-zinc-400 truncate">{{ auth()->user()->email }}</p>
+                            <p class="text-xs text-zinc-500 dark:text-zinc-300 truncate">{{ auth()->user()->email }}</p>
                         </div>
                     </div>
                     
@@ -148,8 +148,8 @@
             <!-- Main Content -->
             <div class="flex-1 flex flex-col min-h-screen">
                 <!-- Mobile Header -->
-                <header class="sticky top-0 z-30 flex items-center justify-between h-16 px-4 bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 lg:hidden">
-                    <button @click="sidebarOpen = true" class="p-2 -ml-2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
+                <header class="sticky top-0 z-30 flex items-center justify-between h-16 px-4 bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-600 lg:hidden">
+                    <button @click="sidebarOpen = true" class="p-2 -ml-2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                         </svg>
@@ -162,7 +162,7 @@
                         </div>
                         <span class="text-lg font-semibold text-zinc-900 dark:text-white">NRAPA</span>
                     </div>
-                    <a href="{{ route('profile.edit') }}" wire:navigate class="p-2 -mr-2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
+                    <a href="{{ route('profile.edit') }}" wire:navigate class="p-2 -mr-2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                         </svg>
@@ -177,6 +177,18 @@
                     </div>
                 </div>
                 @endif
+                @auth
+                    @php $navRoute = request()->route()?->getName() ?? ''; @endphp
+                    @if(str_starts_with($navRoute, 'admin.'))
+                        @include('partials.admin-nav-tabs')
+                    @elseif(str_starts_with($navRoute, 'owner.'))
+                        @include('partials.owner-nav-tabs')
+                    @elseif(str_starts_with($navRoute, 'developer.'))
+                        @include('partials.developer-nav-tabs')
+                    @else
+                        @include('partials.member-nav-tabs')
+                    @endif
+                @endauth
 
                 <!-- Page Content -->
                 <main class="flex-1 p-4 sm:p-6 lg:p-8 bg-white dark:bg-zinc-800 lg:bg-zinc-100 lg:dark:bg-zinc-900">

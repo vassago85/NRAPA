@@ -17,14 +17,14 @@
             </div>
 
             <button type="submit" data-test="email-password-reset-link-button"
-                    class="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium">
+                    class="w-full px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg font-medium transition-colors">
                 {{ __('Email password reset link') }}
             </button>
         </form>
 
         <div class="space-x-1 rtl:space-x-reverse text-center text-sm text-zinc-400">
             <span>{{ __('Or, return to') }}</span>
-            <a href="{{ route('login') }}" wire:navigate class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400">{{ __('log in') }}</a>
+            <a href="{{ route('login') }}" wire:navigate class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 transition-colors">{{ __('log in') }}</a>
         </div>
     </div>
 </x-layouts::auth>

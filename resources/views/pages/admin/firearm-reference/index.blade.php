@@ -372,13 +372,20 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
 }; ?>
 
 <div wire:key="firearm-reference-main">
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Configuration</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Manage firearm reference data</p>
+    </x-slot>
+
+    <x-admin-config-tabs current="firearm-reference" />
+
     @if(session('success'))
-        <div class="mb-6 p-4 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 rounded-lg text-emerald-800 dark:text-emerald-300">
+        <div class="mb-6 p-4 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 rounded-xl text-emerald-800 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
     @if(session('error'))
-        <div class="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg text-red-800 dark:text-red-200">
+        <div class="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-xl text-red-800 dark:text-red-200">
             {{ session('error') }}
         </div>
     @endif
@@ -426,7 +433,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
     </div>
 
     @if(!$this->tablesExist)
-        <div class="mb-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+        <div class="mb-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
             <div class="flex items-start gap-3">
                 <svg class="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
@@ -451,14 +458,14 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
             <button
                 wire:click="switchTab('calibres')"
                 type="button"
-                class="py-4 px-1 border-b-2 font-medium text-sm {{ $activeTab === 'calibres' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300' }}"
+                class="py-4 px-1 border-b-2 font-medium text-sm transition-colors {{ $activeTab === 'calibres' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300' }}"
             >
                 Calibres ({{ $this->calibresCount }})
             </button>
             <button
                 wire:click="switchTab('makes')"
                 type="button"
-                class="py-4 px-1 border-b-2 font-medium text-sm {{ $activeTab === 'makes' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300' }}"
+                class="py-4 px-1 border-b-2 font-medium text-sm transition-colors {{ $activeTab === 'makes' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300' }}"
             >
                 Makes ({{ $this->makesCount }})
             </button>

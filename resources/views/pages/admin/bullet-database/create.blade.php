@@ -122,11 +122,15 @@ new #[Title('Add Bullet - Admin')] class extends Component {
 }; ?>
 
 <div class="flex h-full w-full flex-1 flex-col gap-4 p-6">
-    <div class="flex items-center gap-4">
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Add Bullet</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Add a new bullet to the database</p>
+    </x-slot>
+    
+    <div>
         <a href="{{ route('admin.bullet-database.index') }}" wire:navigate class="text-zinc-400 hover:text-zinc-600">
             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
         </a>
-        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Add Bullet</h1>
     </div>
 
     <form wire:submit="save" class="max-w-4xl space-y-6">

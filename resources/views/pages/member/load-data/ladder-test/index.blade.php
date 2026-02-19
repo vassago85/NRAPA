@@ -32,12 +32,11 @@ new class extends Component {
 
 <div>
     <x-slot name="header">
-        <div class="mb-4">
-            <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Virtual Safe</h1>
-            <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Incremental charge testing for load development</p>
-        </div>
-        <x-virtual-safe-tabs current="ladder" />
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Virtual Safe</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Incremental charge testing for load development</p>
     </x-slot>
+
+    <x-virtual-safe-tabs current="ladder" />
 
     <!-- Action Bar -->
     <div class="mb-6">

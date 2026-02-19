@@ -87,6 +87,14 @@ class LearningArticle extends Model
     }
 
     /**
+     * Get the display name for the author (NRAPA when no user author).
+     */
+    public function getAuthorNameAttribute(): string
+    {
+        return $this->author?->name ?? 'NRAPA';
+    }
+
+    /**
      * Get the images for this article.
      */
     public function images(): HasMany
@@ -188,6 +196,7 @@ class LearningArticle extends Model
     /**
      * Get the featured image URL.
      * Learning center images are always served from local storage.
+     * Returns null when no image is set.
      */
     public function getFeaturedImageUrlAttribute(): ?string
     {
@@ -195,7 +204,16 @@ class LearningArticle extends Model
             return null;
         }
 
-        return StorageHelper::getLearningCenterUrl($this->featured_image);
+        return '/storage/' . ltrim($this->featured_image, '/');
+    }
+
+    /**
+     * Get the image URL to display (featured image or default NRAPA logo).
+     * Use this when you always want to show a picture.
+     */
+    public function getDisplayImageUrlAttribute(): string
+    {
+        return $this->featured_image_url ?? asset('nrapa-logo.png');
     }
 
     /**

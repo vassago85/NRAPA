@@ -11,7 +11,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
 
     public function mount(EndorsementRequest $request): void
     {
-        if ($request->user_id !== auth()->id()) {
+        $user = auth()->user();
+        if ($request->user_id !== $user->id && !$user->isAdmin() && !$user->isOwner() && !$user->isDeveloper()) {
             abort(403);
         }
         
@@ -38,7 +39,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
                 {{ $request->status_label }}
             </span>
         </div>
-        @include('partials.member-nav-tabs')
     </x-slot>
 
     @if(session('success'))

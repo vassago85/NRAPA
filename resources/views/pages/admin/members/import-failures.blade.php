@@ -148,17 +148,21 @@ new #[Title('Import Failures - Admin')] class extends Component {
     }
 }; ?>
 
-<div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
-    {{-- Header --}}
+<div class="flex flex-col gap-6">
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Import Failures</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Review member import failures</p>
+    </x-slot>
+    
+    {{-- Header Actions --}}
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <div class="flex items-center gap-3">
                 <a href="{{ route('admin.members.index') }}" wire:navigate class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                 </a>
-                <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Import Failures</h1>
+                <p class="text-zinc-600 dark:text-zinc-400">Review and fix members that failed to import. Edit the data and retry, or dismiss rows you don't need.</p>
             </div>
-            <p class="mt-1 text-zinc-600 dark:text-zinc-400">Review and fix members that failed to import. Edit the data and retry, or dismiss rows you don't need.</p>
         </div>
         <div class="flex gap-2">
             @if($failures->total() > 0)
@@ -198,7 +202,7 @@ new #[Title('Import Failures - Admin')] class extends Component {
         <svg class="w-16 h-16 text-emerald-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         <h3 class="text-lg font-medium text-zinc-900 dark:text-white">No unresolved import failures</h3>
         <p class="mt-1 text-zinc-500 dark:text-zinc-400">All import issues have been resolved.</p>
-        <a href="{{ route('admin.members.index') }}" wire:navigate class="mt-4 text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400">
+        <a href="{{ route('admin.members.index') }}" wire:navigate class="mt-4 text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 transition-colors">
             Back to Members
         </a>
     </div>
@@ -234,11 +238,11 @@ new #[Title('Import Failures - Admin')] class extends Component {
                         <td class="px-4 py-3 text-right">
                             <div class="flex items-center justify-end gap-2">
                                 <button wire:click="openEdit({{ $failure->id }})"
-                                    class="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50">
+                                    class="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 transition-colors">
                                     Edit & Retry
                                 </button>
                                 <button wire:click="dismiss({{ $failure->id }})" wire:confirm="Dismiss this failure?"
-                                    class="px-3 py-1.5 text-xs font-medium text-zinc-500 bg-zinc-100 rounded-lg hover:bg-zinc-200 dark:text-zinc-400 dark:bg-zinc-700 dark:hover:bg-zinc-600">
+                                    class="px-3 py-1.5 text-xs font-medium text-zinc-500 bg-zinc-100 rounded-lg hover:bg-zinc-200 dark:text-zinc-400 dark:bg-zinc-700 dark:hover:bg-zinc-600 transition-colors">
                                     Dismiss
                                 </button>
                             </div>
@@ -353,7 +357,7 @@ new #[Title('Import Failures - Admin')] class extends Component {
 
                         <div class="flex justify-end gap-3 pt-4 border-t border-zinc-200 dark:border-zinc-700">
                             <button type="button" wire:click="closeEdit"
-                                class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 dark:hover:bg-zinc-600">
+                                class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 dark:hover:bg-zinc-600 transition-colors">
                                 Cancel
                             </button>
                             <button type="submit"

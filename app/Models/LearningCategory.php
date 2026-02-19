@@ -69,6 +69,7 @@ class LearningCategory extends Model
     /**
      * Get the image URL.
      * Learning center images are always served from local storage.
+     * Returns null when no image is set.
      */
     public function getImageUrlAttribute(): ?string
     {
@@ -76,7 +77,16 @@ class LearningCategory extends Model
             return null;
         }
 
-        return StorageHelper::getLearningCenterUrl($this->image_path);
+        return '/storage/' . ltrim($this->image_path, '/');
+    }
+
+    /**
+     * Get the image URL to display (category image or default NRAPA logo).
+     * Use this when you always want to show a picture.
+     */
+    public function getDisplayImageUrlAttribute(): string
+    {
+        return $this->image_url ?? asset('nrapa-logo.png');
     }
 
     /**

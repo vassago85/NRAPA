@@ -507,14 +507,11 @@ new class extends Component {
 
 <div>
     <x-slot name="header">
-        <div class="flex items-center justify-between mb-4">
-            <div>
-                <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Virtual Safe</h1>
-                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Track your powder, primers, bullets, and brass purchases</p>
-            </div>
-        </div>
-        <x-virtual-safe-tabs current="inventory" />
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Virtual Safe</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Track your powder, primers, bullets, and brass purchases</p>
     </x-slot>
+
+    <x-virtual-safe-tabs current="inventory" />
 
     <!-- Quick-add buttons -->
     <div class="mb-6 flex flex-wrap items-center gap-2">

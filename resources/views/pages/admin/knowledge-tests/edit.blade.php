@@ -94,20 +94,11 @@ new #[Title('Edit Knowledge Test - Admin')] class extends Component {
     }
 }; ?>
 
-<div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
-    {{-- Header --}}
-    <div class="flex items-center gap-4">
-        <a href="{{ route('admin.knowledge-tests.index') }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
-            <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-            </svg>
-            Back
-        </a>
-        <div>
-            <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Edit: {{ $test->name }}</h1>
-            <p class="text-zinc-600 dark:text-zinc-400">Update test settings and configuration.</p>
-        </div>
-    </div>
+<div class="flex flex-col gap-6">
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Edit Knowledge Test</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Edit knowledge test details</p>
+    </x-slot>
 
     {{-- Form --}}
     <form wire:submit="save" class="max-w-2xl space-y-6">
@@ -249,7 +240,7 @@ new #[Title('Edit Knowledge Test - Admin')] class extends Component {
             <button type="submit" class="rounded-lg bg-nrapa-blue px-6 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                 Save Changes
             </button>
-            <a href="{{ route('admin.knowledge-tests.questions', $test) }}" wire:navigate class="rounded-lg border border-blue-300 bg-white px-6 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:bg-zinc-700 dark:text-blue-400 dark:hover:bg-zinc-600">
+            <a href="{{ route('admin.knowledge-tests.questions', $test) }}" wire:navigate class="rounded-lg border border-blue-300 bg-white px-6 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:bg-zinc-700 dark:text-blue-400 dark:hover:bg-zinc-600 transition-colors">
                 Manage Questions
             </a>
             <a href="{{ route('admin.knowledge-tests.index') }}" wire:navigate class="rounded-lg border border-zinc-300 bg-white px-6 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">

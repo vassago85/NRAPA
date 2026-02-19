@@ -129,6 +129,11 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
 ?>
 
 <div>
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">General Settings</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Manage terms and conditions versions</p>
+    </x-slot>
+
     <div class="mb-6">
         <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Terms & Conditions Management</h1>
         <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
@@ -137,7 +142,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     </div>
 
     @if(session('success'))
-        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
+        <div class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
             <p class="text-sm text-emerald-800 dark:text-emerald-200">{{ session('success') }}</p>
         </div>
     @endif
@@ -190,13 +195,13 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                                     <div class="flex justify-end gap-2">
                                         <button 
                                             wire:click="preview({{ $version->id }})"
-                                            class="text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400"
+                                            class="text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 transition-colors"
                                         >
                                             Preview
                                         </button>
                                         <button 
                                             wire:click="edit({{ $version->id }})"
-                                            class="text-sm text-zinc-600 hover:text-zinc-700 dark:text-zinc-400"
+                                            class="text-sm text-zinc-600 hover:text-zinc-700 dark:text-zinc-400 transition-colors"
                                         >
                                             Edit
                                         </button>
@@ -204,7 +209,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                                             <button 
                                                 wire:click="activate({{ $version->id }})"
                                                 wire:confirm="Are you sure you want to activate this version? This will deactivate all other versions."
-                                                class="text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400"
+                                                class="text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 transition-colors"
                                             >
                                                 Activate
                                             </button>

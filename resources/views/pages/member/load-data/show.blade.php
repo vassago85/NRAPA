@@ -659,8 +659,8 @@ new class extends Component {
                                 <label class="block text-xs text-zinc-500 mb-1">Layout</label>
                                 <select wire:model="label_layout"
                                         class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
-                                    <option value="2x7">2x7 on A4 (14 per page)</option>
-                                    <option value="single">Single large label</option>
+                                    <option value="2x7">Small labels — 14 per page (2×7)</option>
+                                    <option value="single">Large labels — 2 per page</option>
                                 </select>
                             </div>
                             <div class="flex gap-2">

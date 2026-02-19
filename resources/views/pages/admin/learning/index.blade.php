@@ -605,7 +605,14 @@ new #[Title('Learning Center - Admin')] class extends Component {
     }
 }; ?>
 
-<div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
+<div class="flex flex-col gap-6">
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Learning & Compliance</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Manage learning center articles and content</p>
+    </x-slot>
+
+    <x-admin-learning-tabs current="articles" />
+
     {{-- Header --}}
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -667,13 +674,13 @@ new #[Title('Learning Center - Admin')] class extends Component {
     </div>
 
     @if(session('success'))
-    <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
+    <div class="rounded-xl border border-emerald-300 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
         <p class="text-sm text-emerald-700 dark:text-emerald-300">{{ session('success') }}</p>
     </div>
     @endif
 
     @if(session('error'))
-    <div class="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
+    <div class="rounded-xl border border-red-300 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
         <p class="text-sm text-red-700 dark:text-red-300">{{ session('error') }}</p>
     </div>
     @endif

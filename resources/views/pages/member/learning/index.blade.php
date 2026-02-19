@@ -80,11 +80,11 @@ new #[Title('Learning Center')] class extends Component {
 
 <div>
     <x-slot name="header">
-        <div>
-            <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Learning Center</h1>
-            <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Educational resources to help you stay informed and compliant</p>
-        </div>
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Learning Center</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Educational resources to help you stay informed and compliant</p>
     </x-slot>
+
+    <x-learning-tabs current="articles" />
 
     <div class="flex flex-col gap-6">
 
@@ -112,9 +112,7 @@ new #[Title('Learning Center')] class extends Component {
             @foreach($this->searchResults as $article)
             <a href="{{ route('learning.show', $article) }}" wire:navigate class="block rounded-xl border border-zinc-200 bg-white p-4 transition hover:border-emerald-300 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-emerald-600">
                 <div class="flex items-start gap-4">
-                    @if($article->hasFeaturedImage())
-                    <img src="{{ $article->featured_image_url }}" alt="{{ $article->title }}" class="h-16 w-24 rounded-lg object-cover">
-                    @endif
+                    <img src="{{ $article->display_image_url }}" alt="{{ $article->title }}" class="h-16 w-24 rounded-lg object-cover">
                     <div class="flex-1">
                         <div class="flex items-center gap-2">
                             <span class="text-xs text-emerald-600 dark:text-emerald-400">{{ $article->category->name }}</span>
@@ -148,17 +146,9 @@ new #[Title('Learning Center')] class extends Component {
         <div class="grid gap-6 md:grid-cols-3">
             @foreach($this->featuredArticles as $article)
             <a href="{{ route('learning.show', $article) }}" wire:navigate class="group relative overflow-hidden rounded-xl border border-zinc-200 bg-white transition hover:shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
-                @if($article->hasFeaturedImage())
                 <div class="aspect-video overflow-hidden">
-                    <img src="{{ $article->featured_image_url }}" alt="{{ $article->title }}" class="h-full w-full object-cover transition group-hover:scale-105">
+                    <img src="{{ $article->display_image_url }}" alt="{{ $article->title }}" class="h-full w-full object-cover transition group-hover:scale-105">
                 </div>
-                @else
-                <div class="flex aspect-video items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-600">
-                    <svg class="size-12 text-white/50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
-                    </svg>
-                </div>
-                @endif
                 <div class="p-4">
                     <div class="flex items-center gap-2">
                         <span class="text-xs font-medium text-emerald-600 dark:text-emerald-400">{{ $article->category->name }}</span>
@@ -188,15 +178,7 @@ new #[Title('Learning Center')] class extends Component {
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             @forelse($this->categories as $category)
             <a href="{{ route('learning.category', $category) }}" wire:navigate class="group flex items-center gap-4 rounded-xl border border-zinc-200 bg-white p-4 transition hover:border-emerald-300 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-emerald-600">
-                @if($category->hasImage())
-                <img src="{{ $category->image_url }}" alt="{{ $category->name }}" class="h-16 w-24 rounded-lg object-cover">
-                @else
-                <div class="flex h-16 w-24 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-                    <svg class="size-8 text-emerald-600 dark:text-emerald-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
-                    </svg>
-                </div>
-                @endif
+                <img src="{{ $category->display_image_url }}" alt="{{ $category->name }}" class="h-16 w-24 rounded-lg object-cover">
                 <div class="flex-1">
                     <h3 class="font-semibold text-zinc-900 group-hover:text-emerald-600 dark:text-white dark:group-hover:text-emerald-400">{{ $category->name }}</h3>
                     @if($category->description)

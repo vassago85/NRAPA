@@ -137,10 +137,10 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
 }; ?>
 
 <div>
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Document Verification</h1>
-        <p class="mt-2 text-zinc-600 dark:text-zinc-400">Review and verify member-uploaded documents.</p>
-    </div>
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Documents</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Review and manage member document submissions</p>
+    </x-slot>
 
     {{-- Flash Messages --}}
     @if(session('success'))
@@ -253,7 +253,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <button wire:click="reviewDocument('{{ $document->uuid }}')"
-                                class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                                class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
                                 Review
                             </button>
                         </td>
@@ -540,7 +540,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                                 
                                 <div class="flex justify-end">
                                     <button wire:click="$set('showReviewModal', false)"
-                                        class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                                        class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                                         Close
                                     </button>
                                 </div>

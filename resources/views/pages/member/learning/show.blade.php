@@ -180,11 +180,9 @@ new #[Title('Article - Learning Center')] class extends Component {
         <article>
             {{-- Intro Page (pageNumber === 0) or Single Article --}}
             @if($pageNumber === 0)
-                @if($article->hasFeaturedImage())
                 <div class="aspect-video overflow-hidden rounded-xl">
-                    <img src="{{ $article->featured_image_url }}" alt="{{ $article->title }}" class="h-full w-full object-cover">
+                    <img src="{{ $article->display_image_url }}" alt="{{ $article->title }}" class="h-full w-full object-cover">
                 </div>
-                @endif
 
                 <header class="mt-6">
                     <div class="flex flex-wrap items-center gap-3">
@@ -212,14 +210,12 @@ new #[Title('Article - Learning Center')] class extends Component {
                     <h1 class="mt-4 text-2xl font-bold text-zinc-900 dark:text-white">{{ $article->title }}</h1>
 
                     <div class="mt-4 flex flex-wrap items-center gap-4 text-sm text-zinc-500 dark:text-zinc-400">
-                        @if($article->author)
                         <span class="inline-flex items-center gap-2">
                             <div class="flex size-6 items-center justify-center rounded-full bg-emerald-100 text-xs font-semibold text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
-                                {{ substr($article->author->name, 0, 1) }}
+                                {{ substr($article->author_name, 0, 1) }}
                             </div>
-                            {{ $article->author->name }}
+                            {{ $article->author_name }}
                         </span>
-                        @endif
                         @if($article->published_at)
                         <span class="inline-flex items-center gap-1">
                             <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -255,14 +251,12 @@ new #[Title('Article - Learning Center')] class extends Component {
                     <h1 class="mt-2 text-2xl font-bold text-zinc-900 dark:text-white">{{ $currentPage->title }}</h1>
                 </header>
 
-                @if($currentPage->hasImage())
                 <figure class="mb-8">
-                    <img src="{{ $currentPage->image_url }}" alt="{{ $currentPage->title }}" class="w-full rounded-xl">
+                    <img src="{{ $currentPage->display_image_url }}" alt="{{ $currentPage->title }}" class="w-full rounded-xl object-cover max-h-64">
                     @if($currentPage->image_caption)
                     <figcaption class="mt-2 text-center text-sm text-zinc-500 dark:text-zinc-400">{{ $currentPage->image_caption }}</figcaption>
                     @endif
                 </figure>
-                @endif
 
                 <div class="prose prose-zinc max-w-none dark:prose-invert prose-headings:font-semibold prose-a:text-emerald-600 dark:prose-a:text-emerald-400 prose-img:rounded-xl">
                     {!! $currentPage->content !!}

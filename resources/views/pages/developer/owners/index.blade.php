@@ -66,6 +66,11 @@ new class extends Component {
 }; ?>
 
 <div>
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Manage Owners</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Nominate and manage platform owners</p>
+    </x-slot>
+
     <div class="mb-8 flex items-center justify-between">
         <div>
             <div class="inline-flex items-center gap-2 px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-full text-sm mb-4">
@@ -84,7 +89,7 @@ new class extends Component {
 
     {{-- Flash Messages --}}
     @if(session('success'))
-        <div class="mb-4 p-4 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg text-green-800 dark:text-green-200">
+        <div class="mb-4 p-4 bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-700 rounded-xl text-emerald-800 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
@@ -96,7 +101,7 @@ new class extends Component {
     </div>
 
     {{-- Owners Table --}}
-    <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+    <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
         <table class="w-full">
             <thead class="bg-zinc-50 dark:bg-zinc-700/50">
                 <tr>
@@ -186,11 +191,11 @@ new class extends Component {
 
                     <div class="flex justify-end gap-3">
                         <button wire:click="$set('showRevokeModal', false)"
-                            class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                            class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                             Cancel
                         </button>
                         <button wire:click="revokeOwner"
-                            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg">
+                            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
                             Revoke Owner Access
                         </button>
                     </div>

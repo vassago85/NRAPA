@@ -91,7 +91,7 @@ new #[Title('Configuration Approvals - Owner')] class extends Component {
     }
 }; ?>
 
-<div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
+<div class="flex flex-col gap-6">
     <x-slot name="header">@include('partials.owner-settings-heading')</x-slot>
 
     @if(session('success'))

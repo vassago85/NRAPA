@@ -34,6 +34,6 @@ class LearningArticleImage extends Model
      */
     public function getUrlAttribute(): string
     {
-        return StorageHelper::getLearningCenterUrl($this->path) ?? '';
+        return '/storage/' . ltrim($this->path, '/');
     }
 }

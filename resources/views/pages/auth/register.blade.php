@@ -7,7 +7,7 @@
 
         <!-- Session Status -->
         @if (session('status'))
-            <div class="p-3 text-sm text-center text-green-700 bg-green-100 dark:bg-green-900/50 dark:text-green-300 rounded-lg">
+            <div class="p-3 text-sm text-center text-emerald-700 bg-emerald-100 dark:bg-emerald-900/50 dark:text-emerald-300 rounded-xl">
                 {{ session('status') }}
             </div>
         @endif
@@ -70,7 +70,7 @@
             </div>
 
             <!-- Password Requirements -->
-            <div class="rounded-lg bg-nrapa-blue-light dark:bg-zinc-700/50 border border-nrapa-blue/10 dark:border-zinc-600 px-4 py-3">
+            <div class="rounded-xl bg-nrapa-blue-light dark:bg-zinc-700/50 border border-nrapa-blue/10 dark:border-zinc-600 px-4 py-3">
                 <p class="text-xs font-semibold text-nrapa-blue dark:text-zinc-300 mb-1.5">{{ __('Password requirements:') }}</p>
                 <ul class="text-xs text-zinc-600 dark:text-zinc-400 space-y-1">
                     <li class="flex items-start gap-1.5">

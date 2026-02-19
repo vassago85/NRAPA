@@ -269,7 +269,14 @@ new #[Title('Membership Types - Admin')] class extends Component {
     }
 }; ?>
 
-<div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
+<div class="flex flex-col gap-6">
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Configuration</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Manage membership types, clubs, firearms, and activity settings</p>
+    </x-slot>
+
+    <x-admin-config-tabs current="membership-types" />
+
     {{-- Header --}}
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -284,7 +291,7 @@ new #[Title('Membership Types - Admin')] class extends Component {
 
     {{-- Flash Messages --}}
     @if(session('success'))
-        <div class="rounded-lg border border-emerald-300 bg-emerald-100 p-4 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+        <div class="rounded-xl border border-emerald-300 bg-emerald-100 p-4 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
@@ -311,10 +318,10 @@ new #[Title('Membership Types - Admin')] class extends Component {
                     <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 {{ !$type->is_active ? 'opacity-50' : '' }}">
                         <td class="whitespace-nowrap px-4 py-3">
                             <div class="flex items-center gap-1">
-                                <button wire:click="moveUp({{ $type->id }})" class="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300" title="Move up">
+                                <button wire:click="moveUp({{ $type->id }})" class="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors" title="Move up">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
                                 </button>
-                                <button wire:click="moveDown({{ $type->id }})" class="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300" title="Move down">
+                                <button wire:click="moveDown({{ $type->id }})" class="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors" title="Move down">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                                 </button>
                                 <span class="text-xs text-zinc-400 ml-1">{{ $type->sort_order }}</span>
@@ -372,7 +379,7 @@ new #[Title('Membership Types - Admin')] class extends Component {
                                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                             </span>
                             @else
-                            <button wire:click="setFeatured({{ $type->id }})" class="text-zinc-400 hover:text-amber-500 dark:hover:text-amber-400" title="Set as featured">
+                            <button wire:click="setFeatured({{ $type->id }})" class="text-zinc-400 hover:text-amber-500 dark:hover:text-amber-400 transition-colors" title="Set as featured">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
                             </button>
                             @endif
@@ -380,12 +387,12 @@ new #[Title('Membership Types - Admin')] class extends Component {
                         <td class="whitespace-nowrap px-4 py-3 text-right">
                             <div class="flex items-center justify-end gap-2">
                                 @if($type->allows_dedicated_status)
-                                <button wire:click="openTestsModal({{ $type->id }})" class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50" title="Configure required tests">
+                                <button wire:click="openTestsModal({{ $type->id }})" class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50 transition-colors" title="Configure required tests">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
                                     Tests ({{ $type->requiredKnowledgeTests->count() }})
                                 </button>
                                 @endif
-                                <button wire:click="openEditModal({{ $type->id }})" class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+                                <button wire:click="openEditModal({{ $type->id }})" class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
                                     Edit
                                 </button>
                             </div>
@@ -531,7 +538,7 @@ new #[Title('Membership Types - Admin')] class extends Component {
                     </div>
 
                     <div class="flex justify-end gap-3 pt-4">
-                        <button type="button" wire:click="$set('showEditModal', false)" class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700">
+                        <button type="button" wire:click="$set('showEditModal', false)" class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors">
                             Cancel
                         </button>
                         <button type="submit" class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
@@ -622,10 +629,10 @@ new #[Title('Membership Types - Admin')] class extends Component {
                 @endif
 
                 <div class="flex justify-end gap-3 mt-6">
-                    <button type="button" wire:click="$set('showTestsModal', false)" class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700">
+                    <button type="button" wire:click="$set('showTestsModal', false)" class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors">
                         Cancel
                     </button>
-                    <button type="button" wire:click="saveRequiredTests" class="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700">
+                    <button type="button" wire:click="saveRequiredTests" class="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 transition-colors">
                         Save Required Tests
                     </button>
                 </div>

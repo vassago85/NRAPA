@@ -417,11 +417,14 @@ new #[Title('Settings - Admin')] class extends Component {
     }
 }; ?>
 
-<div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
+<div class="flex flex-col gap-6">
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">General Settings</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Configure platform-wide settings</p>
+    </x-slot>
+
     {{-- Header --}}
     <div class="flex flex-col gap-2">
-        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Settings</h1>
-        <p class="text-zinc-600 dark:text-zinc-400">Configure membership types, document requirements, and certificate templates.</p>
         @if(!$this->canEditDirectly())
         <p class="text-sm text-amber-600 dark:text-amber-400">
             <svg class="inline-block size-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -672,7 +675,7 @@ new #[Title('Settings - Admin')] class extends Component {
                                 </button>
                             </td>
                             <td class="whitespace-nowrap px-6 py-4 text-right text-sm">
-                                <button wire:click="editMembershipType({{ $type->id }})" class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+                                <button wire:click="editMembershipType({{ $type->id }})" class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
                                     Edit
                                 </button>
                             </td>
@@ -772,7 +775,7 @@ new #[Title('Settings - Admin')] class extends Component {
                 </div>
 
                 <div class="flex justify-end">
-                    <button type="submit" class="rounded-lg bg-nrapa-blue px-6 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors transition-colors">
+                    <button type="submit" class="rounded-lg bg-nrapa-blue px-6 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                         Save Renewal Policy
                     </button>
                 </div>
@@ -903,7 +906,7 @@ new #[Title('Settings - Admin')] class extends Component {
                                 </button>
                             </td>
                             <td class="whitespace-nowrap px-6 py-4 text-right text-sm">
-                                <button wire:click="editDocumentType({{ $type->id }})" class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+                                <button wire:click="editDocumentType({{ $type->id }})" class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
                                     Edit
                                 </button>
                             </td>

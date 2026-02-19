@@ -642,8 +642,13 @@ new #[Title('Manage Questions - Admin')] class extends Component {
     }
 }; ?>
 
-<div class="flex h-full w-full flex-1 flex-col gap-6 p-6" x-data x-init="$wire.on('scroll-to-question-form', () => $nextTick(() => document.getElementById('question-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })))">
-    {{-- Header --}}
+<div class="flex flex-col gap-6" x-data x-init="$wire.on('scroll-to-question-form', () => $nextTick(() => document.getElementById('question-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })))">
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Test Questions</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Manage knowledge test questions</p>
+    </x-slot>
+    
+    {{-- Header Actions --}}
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-4">
             <a href="{{ route('admin.knowledge-tests.index') }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
@@ -653,19 +658,18 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                 Back
             </a>
             <div>
-                <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Questions: {{ $test->name }}</h1>
                 <p class="text-zinc-600 dark:text-zinc-400">{{ $this->questions->count() }} questions • {{ $this->questions->where('is_active', true)->sum('points') }} total points</p>
             </div>
         </div>
         @if($editingQuestionId === null)
         <div class="flex gap-2">
-            <button wire:click="openJsonImportModal" class="inline-flex items-center gap-2 rounded-lg border border-blue-300 bg-white px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:bg-zinc-700 dark:text-blue-400 dark:hover:bg-zinc-600">
+            <button wire:click="openJsonImportModal" class="inline-flex items-center gap-2 rounded-lg border border-blue-300 bg-white px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:bg-zinc-700 dark:text-blue-400 dark:hover:bg-zinc-600 transition-colors">
                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
                 </svg>
                 Import JSON
             </button>
-            <button wire:click="exportQuestionsToJson" class="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50 dark:border-emerald-600 dark:bg-zinc-700 dark:text-emerald-400 dark:hover:bg-zinc-600">
+            <button wire:click="exportQuestionsToJson" class="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50 dark:border-emerald-600 dark:bg-zinc-700 dark:text-emerald-400 dark:hover:bg-zinc-600 transition-colors">
                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
                 </svg>
@@ -1060,14 +1064,14 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button wire:click="toggleQuestionActive({{ $question->id }})" class="text-sm {{ $question->is_active ? 'text-amber-600 hover:text-amber-700 dark:text-amber-400' : 'text-emerald-600 hover:text-emerald-700 dark:text-emerald-400' }}">
+                    <button wire:click="toggleQuestionActive({{ $question->id }})" class="text-sm transition-colors {{ $question->is_active ? 'text-amber-600 hover:text-amber-700 dark:text-amber-400' : 'text-emerald-600 hover:text-emerald-700 dark:text-emerald-400' }}">
                         {{ $question->is_active ? 'Deactivate' : 'Activate' }}
                     </button>
-                    <button wire:click="editQuestion({{ $question->id }})" class="text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+                    <button wire:click="editQuestion({{ $question->id }})" class="text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
                         Edit
                     </button>
                     @if($question->answers()->count() === 0)
-                    <button wire:click="deleteQuestion({{ $question->id }})" wire:confirm="Are you sure you want to delete this question?" class="text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+                    <button wire:click="deleteQuestion({{ $question->id }})" wire:confirm="Are you sure you want to delete this question?" class="text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
                         Delete
                     </button>
                     @endif
@@ -1166,7 +1170,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                         <button wire:click="importQuestionsFromJson" class="flex-1 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                             Import Questions
                         </button>
-                        <button wire:click="closeJsonImportModal" class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200">
+                        <button wire:click="closeJsonImportModal" class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 transition-colors">
                             Cancel
                         </button>
                     </div>

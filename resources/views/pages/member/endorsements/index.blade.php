@@ -211,7 +211,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                 Request Endorsement
             </a>
         </div>
-        @include('partials.member-nav-tabs')
     </x-slot>
 
     {{-- Dedicated Status Compliance Bar --}}

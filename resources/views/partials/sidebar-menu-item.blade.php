@@ -63,7 +63,7 @@
             type="button"
             :aria-expanded="open"
             aria-controls="collapse-{{ md5($route ?? 'menu') }}"
-            class="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors {{ $isActive || $childActive ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-white' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}"
+            class="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors {{ $isActive || $childActive ? 'bg-zinc-200 dark:bg-zinc-700 dark:bg-nrapa-blue/15 text-zinc-900 dark:text-white' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700' }}"
         >
             <span class="flex items-center gap-3">
                 @if($iconPath)
@@ -105,7 +105,7 @@
                     href="{{ route($childRoute, $childParams ?? []) }}" 
                     wire:navigate 
                     @click="sidebarOpen = false"
-                    class="flex items-center justify-between gap-3 px-3 py-2 text-sm rounded-lg transition-colors {{ $childActive ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-white' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}"
+                    class="flex items-center justify-between gap-3 px-3 py-2 text-sm rounded-lg transition-colors {{ $childActive ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-white' : 'text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700' }}"
                 >
                     <span>{{ $child['label'] }}</span>
                     @if($childPending > 0)
@@ -121,7 +121,7 @@
         href="{{ $route ? route($route, $routeParams ?? []) : '#' }}" 
         wire:navigate 
         @click="sidebarOpen = false"
-        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors {{ $isActive ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-white' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800' }}"
+        class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors {{ $isActive ? 'bg-zinc-200 dark:bg-zinc-700 dark:bg-nrapa-blue/15 text-zinc-900 dark:text-white' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700' }}"
     >
         @if($iconPath)
         <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

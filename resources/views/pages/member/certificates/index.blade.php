@@ -292,7 +292,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
                 @endif
             </p>
         </div>
-        @include('partials.member-nav-tabs')
     </x-slot>
 
     <div class="flex flex-col gap-6">
@@ -447,21 +446,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
                         @if($isEndorsement)
                             {{-- Endorsement Actions --}}
                             @php
-                                // Set view route based on user role
-                                if ($this->user->isDeveloper()) {
-                                    $showRoute = 'developer.endorsements.show';
-                                } elseif ($this->user->isOwner() || $this->user->isAdmin()) {
-                                    $showRoute = 'admin.endorsements.show';
-                                } else {
-                                    $showRoute = 'member.endorsements.show';
-                                }
-                                
-                                // Set download route based on user role
-                                if ($this->user->isDeveloper() || $this->user->isOwner() || $this->user->isAdmin()) {
-                                    $downloadRoute = 'admin.endorsements.download';
-                                } else {
-                                    $downloadRoute = 'member.endorsements.letter';
-                                }
+                                $showRoute = 'member.endorsements.show';
+                                $downloadRoute = 'member.endorsements.letter';
                             @endphp
                             <a href="{{ route($showRoute, $endorsement->uuid) }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
                                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">

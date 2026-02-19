@@ -1,4 +1,4 @@
-<div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
+<div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6">
     <div class="flex items-center gap-3 mb-6">
         <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -77,7 +77,7 @@
 
         {{-- Submit Button --}}
         <button type="submit" 
-                class="w-full rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-3 transition-colors flex items-center justify-center gap-2">
+                class="w-full rounded-lg bg-nrapa-blue hover:bg-nrapa-blue-dark text-white font-semibold px-6 py-3 transition-colors flex items-center justify-center gap-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
@@ -122,7 +122,7 @@
                                 @elseif($member['stage'] === 'approved') bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300
                                 @elseif($member['stage'] === 'active') bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300
                                 @elseif($member['stage'] === 'dedicated') bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300
-                                @else bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300
+                                @else bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300
                                 @endif">
                                 {{ $member['stage_label'] }}
                             </span>
@@ -137,7 +137,7 @@
                         @endphp
                         @if($user)
                             <a href="{{ route('dev.impersonate', $user) }}" 
-                               class="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors flex items-center gap-1.5">
+                               class="px-3 py-1.5 text-xs font-medium text-white bg-nrapa-blue hover:bg-nrapa-blue-dark rounded-lg transition-colors flex items-center gap-1.5">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
                                 </svg>

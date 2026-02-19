@@ -97,14 +97,19 @@ new #[Title('User Deletion Requests - Owner')] class extends Component {
     {
         return match($status) {
             'pending' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
-            'approved' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+            'approved' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
             'rejected' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
             default => 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200',
         };
     }
 }; ?>
 
-<div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
+<div class="flex flex-col gap-6">
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Deletion Requests</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Review and process member account deletion requests</p>
+    </x-slot>
+
     {{-- Header --}}
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -115,35 +120,35 @@ new #[Title('User Deletion Requests - Owner')] class extends Component {
 
     {{-- Flash Messages --}}
     @if(session('success'))
-        <div class="rounded-lg border border-green-300 bg-green-100 p-4 text-green-800 dark:border-green-700 dark:bg-green-900/30 dark:text-green-200">
+        <div class="rounded-xl border border-emerald-300 bg-emerald-100 p-4 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
 
     @if(session('error'))
-        <div class="rounded-lg border border-red-300 bg-red-100 p-4 text-red-800 dark:border-red-700 dark:bg-red-900/30 dark:text-red-200">
+        <div class="rounded-xl border border-red-300 bg-red-100 p-4 text-red-800 dark:border-red-700 dark:bg-red-900/30 dark:text-red-200">
             {{ session('error') }}
         </div>
     @endif
 
     {{-- Stats Cards --}}
     <div class="grid gap-4 sm:grid-cols-3">
-        <button wire:click="$set('filter', 'pending')" class="rounded-xl border p-4 shadow-sm text-left transition-colors {{ $filter === 'pending' ? 'border-amber-500 bg-amber-50 dark:border-amber-600 dark:bg-amber-900/20' : 'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800 hover:border-amber-300 dark:hover:border-amber-700' }}">
+        <button wire:click="$set('filter', 'pending')" class="rounded-xl border p-4 text-left transition-colors {{ $filter === 'pending' ? 'border-amber-500 bg-amber-50 dark:border-amber-600 dark:bg-amber-900/20' : 'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800 hover:border-amber-300 dark:hover:border-amber-700' }}">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Pending Review</p>
             <p class="mt-1 text-2xl font-bold text-amber-600 dark:text-amber-400">{{ $this->stats['pending'] }}</p>
         </button>
-        <button wire:click="$set('filter', 'approved')" class="rounded-xl border p-4 shadow-sm text-left transition-colors {{ $filter === 'approved' ? 'border-green-500 bg-green-50 dark:border-green-600 dark:bg-green-900/20' : 'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800 hover:border-green-300 dark:hover:border-green-700' }}">
+        <button wire:click="$set('filter', 'approved')" class="rounded-xl border p-4 text-left transition-colors {{ $filter === 'approved' ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-600 dark:bg-emerald-900/20' : 'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800 hover:border-emerald-300 dark:hover:border-emerald-700' }}">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Approved</p>
-            <p class="mt-1 text-2xl font-bold text-green-600 dark:text-green-400">{{ $this->stats['approved'] }}</p>
+            <p class="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ $this->stats['approved'] }}</p>
         </button>
-        <button wire:click="$set('filter', 'rejected')" class="rounded-xl border p-4 shadow-sm text-left transition-colors {{ $filter === 'rejected' ? 'border-red-500 bg-red-50 dark:border-red-600 dark:bg-red-900/20' : 'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800 hover:border-red-300 dark:hover:border-red-700' }}">
+        <button wire:click="$set('filter', 'rejected')" class="rounded-xl border p-4 text-left transition-colors {{ $filter === 'rejected' ? 'border-red-500 bg-red-50 dark:border-red-600 dark:bg-red-900/20' : 'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800 hover:border-red-300 dark:hover:border-red-700' }}">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Rejected</p>
             <p class="mt-1 text-2xl font-bold text-red-600 dark:text-red-400">{{ $this->stats['rejected'] }}</p>
         </button>
     </div>
 
     {{-- Requests Table --}}
-    <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
         <div class="overflow-x-auto">
             <table class="w-full">
                 <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
@@ -199,11 +204,11 @@ new #[Title('User Deletion Requests - Owner')] class extends Component {
                             @if($request->isPending())
                             <div class="flex items-center justify-end gap-2">
                                 <button wire:click="openApproveModal({{ $request->id }})"
-                                    class="rounded-lg bg-green-100 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900">
+                                    class="rounded-lg bg-emerald-100 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/50 dark:text-emerald-300 dark:hover:bg-emerald-900 transition-colors">
                                     Approve
                                 </button>
                                 <button wire:click="openRejectModal({{ $request->id }})"
-                                    class="rounded-lg bg-red-100 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-200 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900">
+                                    class="rounded-lg bg-red-100 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-200 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900 transition-colors">
                                     Reject
                                 </button>
                             </div>
@@ -251,8 +256,8 @@ new #[Title('User Deletion Requests - Owner')] class extends Component {
             <div wire:click="$set('showApproveModal', false)" class="fixed inset-0 bg-black/50"></div>
             <div class="relative w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-zinc-800">
                 <div class="mb-4 flex items-center gap-3">
-                    <div class="flex size-10 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/50">
-                        <svg class="size-5 text-green-600 dark:text-green-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <div class="flex size-10 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/50">
+                        <svg class="size-5 text-emerald-600 dark:text-emerald-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                         </svg>
                     </div>
@@ -280,11 +285,11 @@ new #[Title('User Deletion Requests - Owner')] class extends Component {
 
                 <div class="flex justify-end gap-3">
                     <button wire:click="$set('showApproveModal', false)" 
-                        class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700">
+                        class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors">
                         Cancel
                     </button>
                     <button wire:click="approveRequest"
-                        class="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700">
+                        class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                         Approve Deletion
                     </button>
                 </div>
@@ -332,11 +337,11 @@ new #[Title('User Deletion Requests - Owner')] class extends Component {
 
                 <div class="flex justify-end gap-3">
                     <button wire:click="$set('showRejectModal', false)" 
-                        class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700">
+                        class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors">
                         Cancel
                     </button>
                     <button wire:click="rejectRequest"
-                        class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">
+                        class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors">
                         Reject Request
                     </button>
                 </div>

@@ -67,11 +67,12 @@ new class extends Component {
 }; ?>
 
 <div>
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Admin Dashboard</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Overview of membership activity, approvals, and system health</p>
+    </x-slot>
+
     <div class="mb-8 flex items-center justify-between">
-        <div>
-            <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Admin Dashboard</h1>
-            <p class="mt-2 text-zinc-600 dark:text-zinc-400">Overview of members, approvals, and system activity.</p>
-        </div>
         <div class="flex items-center gap-3">
             <button 
                 wire:click="refresh"
@@ -112,7 +113,7 @@ new class extends Component {
                     <p class="text-2xl font-bold text-zinc-900 dark:text-white">{{ number_format($totalMembers) }}</p>
                 </div>
             </div>
-            <a href="{{ route('admin.members.index') }}" wire:navigate class="mt-4 block text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
+            <a href="{{ route('admin.members.index') }}" wire:navigate class="mt-4 block text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors">
                 View all members →
             </a>
         </div>
@@ -135,7 +136,7 @@ new class extends Component {
                     @endif
                 </div>
             </div>
-            <a href="{{ route('admin.members.index', ['filter' => 'active']) }}" wire:navigate class="mt-4 block text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium">
+            <a href="{{ route('admin.members.index', ['filter' => 'active']) }}" wire:navigate class="mt-4 block text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium transition-colors">
                 View active members →
             </a>
         </div>
@@ -158,7 +159,7 @@ new class extends Component {
                     @endif
                 </div>
             </div>
-            <a href="{{ route('admin.approvals.index') }}" wire:navigate class="mt-4 block text-sm text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 font-medium">
+            <a href="{{ route('admin.approvals.index') }}" wire:navigate class="mt-4 block text-sm text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 font-medium transition-colors">
                 Review approvals →
             </a>
         </div>

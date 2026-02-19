@@ -37,6 +37,19 @@ new #[Title('Take Test')] class extends Component {
             return;
         }
 
+        // Backfill missing answer placeholders (e.g. after question conversion)
+        $existingQuestionIds = $this->attempt->answers->pluck('question_id')->toArray();
+        foreach ($this->test->activeQuestions as $question) {
+            if (!in_array($question->id, $existingQuestionIds)) {
+                $this->attempt->answers()->create(['question_id' => $question->id]);
+            }
+        }
+
+        // Reload answers if any were created
+        if (count($existingQuestionIds) < $this->test->activeQuestions->count()) {
+            $this->attempt->load('answers.question');
+        }
+
         // Load saved answers
         foreach ($this->attempt->answers as $answer) {
             $answerText = $answer->answer_text ?? '';
@@ -44,12 +57,10 @@ new #[Title('Take Test')] class extends Component {
                 $this->answers[$answer->question_id] = '';
                 continue;
             }
-            // Decode JSON array (multi-select, priority order)
             if (str_starts_with($answerText, '[')) {
                 $decoded = json_decode($answerText, true);
                 $this->answers[$answer->question_id] = is_array($decoded) ? $decoded : $answerText;
             } elseif (str_starts_with($answerText, '{')) {
-                // Decode JSON object (matching question: {"A": "answer1", "B": "answer2"})
                 $decoded = json_decode($answerText, true);
                 $this->answers[$answer->question_id] = is_array($decoded) ? $decoded : $answerText;
             } else {
@@ -99,12 +110,12 @@ new #[Title('Take Test')] class extends Component {
         $questionId = $this->currentQuestion->id;
         $answer = $this->answers[$questionId] ?? '';
 
-        // Convert array answers to JSON for storage
         $answerText = is_array($answer) ? json_encode($answer) : $answer;
 
-        $this->attempt->answers()
-            ->where('question_id', $questionId)
-            ->update(['answer_text' => $answerText]);
+        $this->attempt->answers()->updateOrCreate(
+            ['question_id' => $questionId],
+            ['answer_text' => $answerText],
+        );
     }
 
     // Toggle a multi-select option
@@ -143,6 +154,11 @@ new #[Title('Take Test')] class extends Component {
 
         $questionId = $this->currentQuestion->id;
         $this->answers[$questionId] = $matches;
+
+        $this->attempt->answers()->updateOrCreate(
+            ['question_id' => $questionId],
+            ['answer_text' => json_encode($matches)],
+        );
     }
 
     public function previousQuestion(): void
@@ -150,6 +166,7 @@ new #[Title('Take Test')] class extends Component {
         $this->saveAnswer();
         if ($this->currentQuestionIndex > 0) {
             $this->currentQuestionIndex--;
+            unset($this->currentQuestion);
         }
     }
 
@@ -158,6 +175,7 @@ new #[Title('Take Test')] class extends Component {
         $this->saveAnswer();
         if ($this->currentQuestionIndex < $this->questions->count() - 1) {
             $this->currentQuestionIndex++;
+            unset($this->currentQuestion);
         }
     }
 
@@ -165,6 +183,7 @@ new #[Title('Take Test')] class extends Component {
     {
         $this->saveAnswer();
         $this->currentQuestionIndex = $index;
+        unset($this->currentQuestion);
     }
 
     public function submitTest(): void
@@ -273,19 +292,21 @@ new #[Title('Take Test')] class extends Component {
         {{-- Question Content --}}
         <div class="flex-1 overflow-y-auto p-6">
             @if($this->currentQuestion)
-            <div class="mx-auto max-w-3xl">
+            <div class="mx-auto max-w-3xl" wire:key="question-{{ $this->currentQuestion->id }}">
                 <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
                     @php
                         $typeColors = [
                             'multiple_choice' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
                             'multiple_select' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
                             'priority_order' => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+                            'matching' => 'bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200',
                             'written' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
                         ];
                         $typeLabels = [
                             'multiple_choice' => 'Select One Answer',
                             'multiple_select' => 'Select All That Apply',
                             'priority_order' => 'Drag to Order',
+                            'matching' => 'Drag to Match',
                             'written' => 'Written Answer',
                         ];
                         $qType = $this->currentQuestion->question_type;
@@ -420,18 +441,15 @@ new #[Title('Take Test')] class extends Component {
                                 $savedMatches = [];
                             }
                         @endphp
-                        <div class="rounded-lg border border-blue-200 bg-blue-50 p-3 mb-4 dark:border-blue-800 dark:bg-blue-900/20">
-                            <p class="text-xs text-blue-700 dark:text-blue-300">Drag answers from the right to match with the items on the left.</p>
-                        </div>
                         <div 
                             x-data="{
                                 options: @js($options),
                                 shuffledAnswers: @js($shuffledAnswers),
-                                matches: @js($savedMatches),
+                                matches: JSON.parse(JSON.stringify(@js($savedMatches) || {})),
                                 availableAnswers: [],
                                 draggedAnswer: null,
+                                selectedAnswer: null,
                                 init() {
-                                    // Calculate which answers are still available (not yet matched)
                                     this.updateAvailableAnswers();
                                 },
                                 updateAvailableAnswers() {
@@ -441,51 +459,99 @@ new #[Title('Take Test')] class extends Component {
                                 startDrag(answer) {
                                     this.draggedAnswer = answer;
                                 },
-                                dropOnSlot(key) {
-                                    if (this.draggedAnswer) {
-                                        // Remove from previous slot if exists
-                                        for (let k in this.matches) {
-                                            if (this.matches[k] === this.draggedAnswer) {
-                                                delete this.matches[k];
-                                            }
+                                syncToWire() {
+                                    $wire.updateMatchingAnswer(JSON.parse(JSON.stringify(this.matches)));
+                                },
+                                assignAnswer(key, answer) {
+                                    let updated = {};
+                                    for (let k in this.matches) {
+                                        if (this.matches[k] !== answer) {
+                                            updated[k] = this.matches[k];
                                         }
-                                        // Add to new slot
-                                        this.matches[key] = this.draggedAnswer;
-                                        this.draggedAnswer = null;
-                                        this.updateAvailableAnswers();
-                                        $wire.updateMatchingAnswer(this.matches);
+                                    }
+                                    updated[key] = answer;
+                                    this.matches = updated;
+                                    this.selectedAnswer = null;
+                                    this.draggedAnswer = null;
+                                    this.updateAvailableAnswers();
+                                    this.syncToWire();
+                                },
+                                dropOnSlot(key) {
+                                    if (!this.draggedAnswer) return;
+                                    this.assignAnswer(key, this.draggedAnswer);
+                                },
+                                tapAnswer(answer) {
+                                    this.selectedAnswer = (this.selectedAnswer === answer) ? null : answer;
+                                },
+                                tapSlot(key) {
+                                    if (this.selectedAnswer) {
+                                        this.assignAnswer(key, this.selectedAnswer);
                                     }
                                 },
                                 removeMatch(key) {
-                                    delete this.matches[key];
+                                    let updated = {};
+                                    for (let k in this.matches) {
+                                        if (k !== key) {
+                                            updated[k] = this.matches[k];
+                                        }
+                                    }
+                                    this.matches = updated;
                                     this.updateAvailableAnswers();
-                                    $wire.updateMatchingAnswer(this.matches);
+                                    this.syncToWire();
                                 },
                                 endDrag() {
                                     this.draggedAnswer = null;
                                 }
                             }"
-                            class="grid grid-cols-1 lg:grid-cols-2 gap-6"
                         >
-                            {{-- Left side: Definitions with drop zones --}}
+                            {{-- Answers panel: always visible at the top --}}
+                            <div class="mb-4 rounded-lg border border-blue-200 bg-blue-50/50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
+                                <p class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-2">Answers <span class="normal-case">(tap an answer, then tap its slot — or drag on desktop)</span></p>
+                                <div class="flex flex-wrap gap-2">
+                                    <template x-for="(answer, index) in availableAnswers" :key="answer">
+                                        <div 
+                                            draggable="true"
+                                            @dragstart="startDrag(answer)"
+                                            @dragend="endDrag()"
+                                            @click="tapAnswer(answer)"
+                                            class="cursor-pointer select-none rounded-lg border px-3 py-2 text-sm font-medium transition-all"
+                                            :class="selectedAnswer === answer
+                                                ? 'border-blue-500 bg-blue-600 text-white shadow-md ring-2 ring-blue-300 dark:ring-blue-700'
+                                                : 'border-blue-200 bg-white text-blue-800 hover:border-blue-400 hover:shadow-sm dark:border-blue-700 dark:bg-blue-900/40 dark:text-blue-200'"
+                                            x-text="answer"
+                                        ></div>
+                                    </template>
+                                    <template x-if="availableAnswers.length === 0 && Object.keys(matches).length > 0">
+                                        <p class="text-xs text-emerald-600 dark:text-emerald-400 py-1">All answers matched!</p>
+                                    </template>
+                                </div>
+                            </div>
+
+                            {{-- Items with drop/tap slots --}}
                             <div class="space-y-3">
-                                <p class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-2">Items</p>
+                                <p class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-2">Items — <span x-text="Object.keys(matches).length"></span> of {{ count($options) }} matched</p>
                                 <template x-for="(text, key) in options" :key="key">
                                     <div class="flex items-start gap-3">
                                         <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-xs font-bold text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300" x-text="key"></span>
                                         <div class="flex-1">
                                             <p class="text-sm text-zinc-900 dark:text-white mb-2" x-text="text"></p>
-                                            {{-- Drop zone --}}
                                             <div 
                                                 @dragover.prevent
                                                 @drop="dropOnSlot(key)"
-                                                class="min-h-[44px] rounded-lg border-2 border-dashed transition-colors"
-                                                :class="matches[key] ? 'border-emerald-400 bg-emerald-50 dark:border-emerald-600 dark:bg-emerald-900/20' : 'border-zinc-300 dark:border-zinc-600 hover:border-blue-400 dark:hover:border-blue-500'"
+                                                @click="tapSlot(key)"
+                                                class="min-h-[44px] rounded-lg border-2 border-dashed transition-colors cursor-pointer"
+                                                :class="[
+                                                    matches[key]
+                                                        ? 'border-emerald-400 bg-emerald-50 dark:border-emerald-600 dark:bg-emerald-900/20'
+                                                        : (selectedAnswer
+                                                            ? 'border-blue-400 bg-blue-50/50 dark:border-blue-500 dark:bg-blue-900/10 hover:border-blue-500'
+                                                            : 'border-zinc-300 dark:border-zinc-600')
+                                                ]"
                                             >
                                                 <template x-if="matches[key]">
                                                     <div class="flex items-center justify-between p-2 gap-2">
                                                         <span class="text-sm text-emerald-700 dark:text-emerald-300" x-text="matches[key]"></span>
-                                                        <button @click="removeMatch(key)" class="text-zinc-400 hover:text-red-500 dark:hover:text-red-400">
+                                                        <button @click.stop="removeMatch(key)" class="text-zinc-400 hover:text-red-500 dark:hover:text-red-400">
                                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                                             </svg>
@@ -493,34 +559,14 @@ new #[Title('Take Test')] class extends Component {
                                                     </div>
                                                 </template>
                                                 <template x-if="!matches[key]">
-                                                    <p class="p-2 text-xs text-zinc-400 dark:text-zinc-500">Drop answer here</p>
+                                                    <p class="p-2 text-xs" :class="selectedAnswer ? 'text-blue-500 dark:text-blue-400' : 'text-zinc-400 dark:text-zinc-500'" x-text="selectedAnswer ? 'Tap to place here' : 'Drop answer here'"></p>
                                                 </template>
                                             </div>
                                         </div>
                                     </div>
                                 </template>
                             </div>
-                            {{-- Right side: Available answers to drag --}}
-                            <div class="space-y-3">
-                                <p class="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-2">Answers (drag to match)</p>
-                                <template x-for="(answer, index) in availableAnswers" :key="answer">
-                                    <div 
-                                        draggable="true"
-                                        @dragstart="startDrag(answer)"
-                                        @dragend="endDrag()"
-                                        class="cursor-move rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800 transition-all hover:border-blue-400 hover:shadow-md dark:border-blue-700 dark:bg-blue-900/30 dark:text-blue-200"
-                                        :class="{ 'opacity-50': draggedAnswer === answer }"
-                                        x-text="answer"
-                                    ></div>
-                                </template>
-                                <template x-if="availableAnswers.length === 0 && Object.keys(matches).length > 0">
-                                    <p class="text-xs text-emerald-600 dark:text-emerald-400">All answers matched!</p>
-                                </template>
-                            </div>
                         </div>
-                        <p class="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
-                            <span x-text="Object.keys(matches).length"></span> of {{ count($options) }} matched
-                        </p>
                         @elseif($this->currentQuestion->isWritten())
                         {{-- Written answer - Textarea --}}
                         <textarea

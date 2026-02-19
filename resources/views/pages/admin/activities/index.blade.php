@@ -43,10 +43,10 @@ new class extends Component {
 }; ?>
 
 <div>
-    <div class="mb-8">
-        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Activity Verification</h1>
-        <p class="mt-1 text-zinc-600 dark:text-zinc-400">Review and verify member shooting activities</p>
-    </div>
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Activities</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Review and manage member activity submissions</p>
+    </x-slot>
 
     @if(session('success'))
         <div class="mb-6 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 text-emerald-700 dark:text-emerald-300">

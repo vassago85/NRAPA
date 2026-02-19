@@ -372,7 +372,6 @@ new #[Title('Dashboard')] class extends Component {
             </a>
             @endif
         </div>
-        @include('partials.member-nav-tabs')
     </x-slot>
 
     <div class="flex flex-col gap-6">

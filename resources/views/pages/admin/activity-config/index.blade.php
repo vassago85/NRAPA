@@ -141,6 +141,13 @@ new class extends Component {
 }; ?>
 
 <div>
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Configuration</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Configure activity types and requirements</p>
+    </x-slot>
+
+    <x-admin-config-tabs current="activity-types" />
+
     <div class="mb-8">
         <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Activity Configuration</h1>
         <p class="mt-1 text-zinc-600 dark:text-zinc-400">Manage activity types and optional tags for activity logging</p>
@@ -158,7 +165,7 @@ new class extends Component {
     </div>
 
     @if(session('success'))
-        <div class="mb-6 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 text-emerald-700 dark:text-emerald-300">
+        <div class="mb-6 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 text-emerald-700 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
@@ -213,7 +220,7 @@ new class extends Component {
                     <div class="flex gap-2">
                         <button type="submit" class="flex-1 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">Save</button>
                         @if($editingActivityTypeId)
-                            <button type="button" wire:click="resetActivityTypeForm" class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700">Cancel</button>
+                            <button type="button" wire:click="resetActivityTypeForm" class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">Cancel</button>
                         @endif
                     </div>
                 </form>
@@ -247,8 +254,8 @@ new class extends Component {
                                     <td class="px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">{{ $type->group ?? '—' }}</td>
                                     <td class="px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">{{ $type->sort_order }}</td>
                                     <td class="px-6 py-4 text-right text-sm">
-                                        <button wire:click="editActivityType({{ $type->id }})" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300">Edit</button>
-                                        <button wire:click="deleteActivityType({{ $type->id }})" wire:confirm="Are you sure you want to deactivate this activity type?" class="ml-4 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300">Deactivate</button>
+                                        <button wire:click="editActivityType({{ $type->id }})" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors">Edit</button>
+                                        <button wire:click="deleteActivityType({{ $type->id }})" wire:confirm="Are you sure you want to deactivate this activity type?" class="ml-4 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors">Deactivate</button>
                                     </td>
                                 </tr>
                             @empty
@@ -297,7 +304,7 @@ new class extends Component {
                     <div class="flex gap-2">
                         <button type="submit" class="flex-1 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">Save</button>
                         @if($editingActivityTagId)
-                            <button type="button" wire:click="resetActivityTagForm" class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700">Cancel</button>
+                            <button type="button" wire:click="resetActivityTagForm" class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">Cancel</button>
                         @endif
                     </div>
                 </form>
@@ -336,8 +343,8 @@ new class extends Component {
                                     </td>
                                     <td class="px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">{{ $tag->sort_order }}</td>
                                     <td class="px-6 py-4 text-right text-sm">
-                                        <button wire:click="editActivityTag({{ $tag->id }})" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300">Edit</button>
-                                        <button wire:click="deleteActivityTag({{ $tag->id }})" wire:confirm="Are you sure you want to deactivate this tag?" class="ml-4 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300">Deactivate</button>
+                                        <button wire:click="editActivityTag({{ $tag->id }})" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors">Edit</button>
+                                        <button wire:click="deleteActivityTag({{ $tag->id }})" wire:confirm="Are you sure you want to deactivate this tag?" class="ml-4 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors">Deactivate</button>
                                     </td>
                                 </tr>
                             @empty

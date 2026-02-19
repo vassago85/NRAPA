@@ -439,6 +439,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
 }; ?>
 
 <div>
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Endorsement Review</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Review endorsement request details</p>
+    </x-slot>
+
     <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-4">
             <a href="{{ route('admin.endorsements.index') }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
@@ -458,12 +463,12 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
     </div>
 
     @if(session('success'))
-        <div class="mb-6 p-4 bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-700 rounded-lg text-emerald-800 dark:text-emerald-300">
+        <div class="mb-6 p-4 bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-700 rounded-xl text-emerald-800 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
     @if(session('error'))
-        <div class="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg text-red-800 dark:text-red-200">
+        <div class="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-xl text-red-800 dark:text-red-200">
             {{ session('error') }}
         </div>
     @endif

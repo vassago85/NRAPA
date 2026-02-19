@@ -137,6 +137,13 @@ new #[Title('Bullet Database - Admin')] class extends Component {
 }; ?>
 
 <div class="flex h-full w-full flex-1 flex-col gap-4 p-6">
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Configuration</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Manage bullet database entries</p>
+    </x-slot>
+
+    <x-admin-config-tabs current="bullet-database" />
+
     {{-- Header --}}
     <div class="flex items-center justify-between">
         <div>
@@ -145,7 +152,7 @@ new #[Title('Bullet Database - Admin')] class extends Component {
         </div>
         <div class="flex items-center gap-2">
             <a href="{{ route('admin.bullet-database.import') }}" wire:navigate
-               class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 dark:border-zinc-600 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700">
+               class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 dark:border-zinc-600 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                 Import
             </a>
@@ -158,7 +165,7 @@ new #[Title('Bullet Database - Admin')] class extends Component {
     </div>
 
     @if(session('success'))
-        <div class="rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-800 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-300">
+        <div class="rounded-xl border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-800 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
@@ -170,12 +177,12 @@ new #[Title('Bullet Database - Admin')] class extends Component {
                 <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search bullets, SKUs, manufacturers..."
                        class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white placeholder-zinc-400">
             </div>
-            <button @click="showFilters = !showFilters" class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 dark:border-zinc-600 px-3 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700">
+            <button @click="showFilters = !showFilters" class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 dark:border-zinc-600 px-3 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
                 Filters
             </button>
             @if($search || $manufacturer || $brand_line || $caliber || $construction || $intended_use || $status || $has_bc || $has_length || $weight_min || $weight_max)
-            <button wire:click="resetFilters" class="text-xs text-red-500 hover:text-red-700">Clear All</button>
+            <button wire:click="resetFilters" class="text-xs text-red-500 hover:text-red-700 transition-colors">Clear All</button>
             @endif
         </div>
 
@@ -338,14 +345,14 @@ new #[Title('Bullet Database - Admin')] class extends Component {
                         <div class="flex items-center justify-end gap-2">
                             @if($bullet->source_url)
                             <a href="{{ $bullet->source_url }}" target="_blank" title="Verify Source"
-                               class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300">
+                               class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                             </a>
                             @endif
                             <a href="{{ route('admin.bullet-database.edit', $bullet) }}" wire:navigate
-                               class="text-nrapa-blue hover:text-nrapa-blue-dark text-xs font-medium">Edit</a>
+                               class="text-nrapa-blue hover:text-nrapa-blue-dark text-xs font-medium transition-colors">Edit</a>
                             <button wire:click="deleteBullet({{ $bullet->id }})" wire:confirm="Delete {{ $bullet->bullet_label }}?"
-                                    class="text-red-500 hover:text-red-700 text-xs font-medium">Delete</button>
+                                    class="text-red-500 hover:text-red-700 text-xs font-medium transition-colors">Delete</button>
                         </div>
                     </td>
                 </tr>

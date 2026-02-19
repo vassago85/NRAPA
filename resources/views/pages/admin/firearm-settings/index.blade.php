@@ -108,47 +108,20 @@ new #[Title('Firearm Settings')] class extends Component {
 }; ?>
 
 <div>
-    <div class="mb-8">
-        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Firearm Settings</h1>
-        <p class="mt-1 text-zinc-600 dark:text-zinc-400">Configure firearm types for the Virtual Safe and endorsements. Manage calibres and firearm reference data in <a href="{{ route('admin.firearm-reference.index') }}" class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 font-medium">Firearm Reference Data</a>.</p>
-    </div>
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Configuration</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Configure firearm-related settings</p>
+    </x-slot>
+
+    <x-admin-config-tabs current="firearm-settings" />
 
     @if(session('success'))
-        <div class="mb-6 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 text-emerald-700 dark:text-emerald-300">
+        <div class="mb-6 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 text-emerald-700 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
 
-    {{-- Filters --}}
-    <div class="mb-6 flex flex-wrap items-center gap-4">
-        <div>
-            <label class="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Category</label>
-            <select wire:model.live="categoryFilter" class="rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-2 text-sm text-zinc-900 dark:text-white">
-                <option value="">All Categories</option>
-                <option value="handgun">Handgun</option>
-                <option value="rifle">Rifle</option>
-                <option value="shotgun">Shotgun</option>
-            </select>
-        </div>
-        <div>
-            <label class="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Ignition Type</label>
-            <select wire:model.live="ignitionFilter" class="rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-2 text-sm text-zinc-900 dark:text-white">
-                <option value="">All Types</option>
-                <option value="rimfire">Rimfire</option>
-                <option value="centerfire">Centerfire</option>
-            </select>
-        </div>
-        @if($categoryFilter || $ignitionFilter)
-        <div class="self-end">
-            <button wire:click="clearFilters" class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-3 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700">
-                Clear Filters
-            </button>
-        </div>
-        @endif
-    </div>
-
-    {{-- Firearm Types --}}
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+    <div class="grid grid-cols-1 gap-6 xl:grid-cols-4">
             {{-- Form --}}
             <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
                 <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">{{ $editingFirearmTypeId ? 'Edit' : 'Add' }} Firearm Type</h3>
@@ -208,33 +181,45 @@ new #[Title('Firearm Settings')] class extends Component {
             </div>
 
             {{-- List --}}
-            <div class="lg:col-span-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 overflow-hidden">
+            <div class="xl:col-span-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 overflow-hidden">
+                <div class="px-4 py-3 border-b border-zinc-200 dark:border-zinc-700 flex flex-wrap items-center gap-3">
+                    <select wire:model.live="categoryFilter" class="rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                        <option value="">All Categories</option>
+                        <option value="handgun">Handgun</option>
+                        <option value="rifle">Rifle</option>
+                        <option value="shotgun">Shotgun</option>
+                    </select>
+                    <select wire:model.live="ignitionFilter" class="rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
+                        <option value="">All Types</option>
+                        <option value="rimfire">Rimfire</option>
+                        <option value="centerfire">Centerfire</option>
+                    </select>
+                    @if($categoryFilter || $ignitionFilter)
+                    <button wire:click="clearFilters" class="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors">Clear</button>
+                    @endif
+                </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
                         <thead class="bg-zinc-50 dark:bg-zinc-800/50">
                             <tr>
-                                <th class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">SAPS</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Name</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Category</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Ignition</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Action</th>
-                                <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-zinc-500">Active</th>
-                                <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500">Actions</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Name</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Category</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Ignition</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Action</th>
+                                <th class="px-3 py-3 text-center text-xs font-medium uppercase tracking-wider text-zinc-500">Active</th>
+                                <th class="px-3 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
                             @forelse($firearmTypes as $type)
                                 <tr class="{{ !$type->is_active ? 'opacity-50' : '' }}">
-                                    <td class="px-3 py-3 text-xs font-mono text-zinc-400 dark:text-zinc-500">
-                                        {{ $type->saps_code ?? '—' }}
-                                    </td>
-                                    <td class="px-4 py-3 text-sm text-zinc-900 dark:text-white">
+                                    <td class="px-3 py-2.5 text-sm text-zinc-900 dark:text-white">
                                         {{ $type->name }}
                                         @if($type->description)
                                             <p class="text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-xs">{{ $type->description }}</p>
                                         @endif
                                     </td>
-                                    <td class="px-4 py-3">
+                                    <td class="px-3 py-2.5">
                                         <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium 
                                             {{ $type->category === 'handgun' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : '' }}
                                             {{ $type->category === 'rifle' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200' : '' }}
@@ -242,14 +227,14 @@ new #[Title('Firearm Settings')] class extends Component {
                                             {{ ucfirst($type->category) }}
                                         </span>
                                     </td>
-                                    <td class="px-4 py-3 text-sm text-zinc-500 dark:text-zinc-400">
+                                    <td class="px-3 py-2.5 text-sm text-zinc-500 dark:text-zinc-400">
                                         {{ $type->ignition_type_label ?? 'Any' }}
                                     </td>
-                                    <td class="px-4 py-3 text-sm text-zinc-500 dark:text-zinc-400">
+                                    <td class="px-3 py-2.5 text-sm text-zinc-500 dark:text-zinc-400">
                                         {{ $type->action_type_label ?? '-' }}
                                     </td>
-                                    <td class="px-4 py-3 text-center">
-                                        <button wire:click="toggleFirearmTypeActive({{ $type->id }})" class="text-lg">
+                                    <td class="px-3 py-2.5 text-center">
+                                        <button wire:click="toggleFirearmTypeActive({{ $type->id }})" class="text-lg transition-colors">
                                             @if($type->is_active)
                                                 <span class="text-emerald-500">✓</span>
                                             @else
@@ -257,14 +242,14 @@ new #[Title('Firearm Settings')] class extends Component {
                                             @endif
                                         </button>
                                     </td>
-                                    <td class="px-4 py-3 text-right">
-                                        <button wire:click="editFirearmType({{ $type->id }})" class="text-emerald-600 hover:text-emerald-700 text-sm">Edit</button>
-                                        <button wire:click="deleteFirearmType({{ $type->id }})" wire:confirm="Are you sure you want to delete this firearm type?" class="ml-3 text-red-600 hover:text-red-700 text-sm">Delete</button>
+                                    <td class="px-3 py-2.5 text-right">
+                                        <button wire:click="editFirearmType({{ $type->id }})" class="text-emerald-600 hover:text-emerald-700 text-sm transition-colors">Edit</button>
+                                        <button wire:click="deleteFirearmType({{ $type->id }})" wire:confirm="Are you sure you want to delete this firearm type?" class="ml-2 text-red-600 hover:text-red-700 text-sm transition-colors">Delete</button>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-4 py-8 text-center text-zinc-500 dark:text-zinc-400">
+                                    <td colspan="6" class="px-4 py-8 text-center text-zinc-500 dark:text-zinc-400">
                                         No firearm types found. Add one above.
                                     </td>
                                 </tr>

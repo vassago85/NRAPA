@@ -91,12 +91,11 @@ new class extends Component {
 
 <div>
     <x-slot name="header">
-        <div class="mb-4">
-            <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Virtual Safe</h1>
-            <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Manage your firearms, loads, and reloading inventory.</p>
-        </div>
-        <x-virtual-safe-tabs current="firearms" />
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Virtual Safe</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Manage your firearms, loads, and reloading inventory.</p>
     </x-slot>
+
+    <x-virtual-safe-tabs current="firearms" />
 
     <!-- Action Bar -->
     <div class="mb-6">

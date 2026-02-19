@@ -82,15 +82,9 @@ class SidebarMenu
                 ],
                 [
                     'label' => 'Certificates',
-                    'route' => $user->isDeveloper() 
-                        ? 'developer.certificates.index' 
-                        : ($user->isOwner() 
-                            ? 'owner.certificates.index' 
-                            : ($user->isAdmin() 
-                                ? 'admin.certificates.index' 
-                                : 'certificates.index')),
+                    'route' => 'certificates.index',
                     'icon' => 'badge-check',
-                    'roles' => ['member', 'admin', 'owner'],
+                    'roles' => ['member', 'admin', 'owner', 'developer'],
                 ],
             ];
 

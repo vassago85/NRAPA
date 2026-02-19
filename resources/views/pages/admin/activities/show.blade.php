@@ -54,13 +54,17 @@ new class extends Component {
 }; ?>
 
 <div>
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Activity Review</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Review member activity submission</p>
+    </x-slot>
+    
     <div class="mb-8">
-        <a href="{{ route('admin.activities.index') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-zinc-600 dark:text-zinc-400 hover:text-emerald-600">
+        <a href="{{ route('admin.activities.index') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-zinc-600 dark:text-zinc-400 hover:text-emerald-600 transition-colors">
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             Back to Activities
         </a>
         <div class="mt-2 flex items-center justify-between">
-            <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Review Activity</h1>
             @if($activity->status === 'approved')
                 <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1 text-sm font-medium text-emerald-800 dark:text-emerald-400">
                     <svg class="size-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
@@ -474,7 +478,7 @@ new class extends Component {
                             </div>
 
                             @if($activity->status === 'pending')
-                            <div class="bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 p-4">
+                            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-4">
                                 <h4 class="text-sm font-semibold text-zinc-900 dark:text-white mb-3">Review Actions</h4>
                                 
                                 <div class="space-y-3">

@@ -79,13 +79,16 @@ new #[Title('Knowledge Tests - Admin')] class extends Component {
     }
 }; ?>
 
-<div class="flex h-full w-full flex-1 flex-col gap-6 p-6">
-    {{-- Header --}}
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Knowledge Tests</h1>
-            <p class="text-zinc-600 dark:text-zinc-400">Manage online knowledge tests and questions.</p>
-        </div>
+<div class="flex flex-col gap-6">
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Learning & Compliance</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Manage knowledge tests and assessments</p>
+    </x-slot>
+
+    <x-admin-learning-tabs current="tests" />
+
+    {{-- Action Bar --}}
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
         <div class="flex gap-3">
             <a href="{{ route('admin.knowledge-tests.marking') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -218,26 +221,26 @@ new #[Title('Knowledge Tests - Admin')] class extends Component {
                             <div class="flex items-center justify-end gap-3">
                                 @if($test->isArchived())
                                     {{-- Archived test actions --}}
-                                    <button wire:click="restoreTest({{ $test->id }})" class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+                                    <button wire:click="restoreTest({{ $test->id }})" class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
                                         Restore
                                     </button>
-                                    <button wire:click="deleteTest({{ $test->id }})" wire:confirm="Are you sure you want to PERMANENTLY delete this test? This will delete all questions and {{ $test->attempts_count }} attempt(s). This cannot be undone!" class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+                                    <button wire:click="deleteTest({{ $test->id }})" wire:confirm="Are you sure you want to PERMANENTLY delete this test? This will delete all questions and {{ $test->attempts_count }} attempt(s). This cannot be undone!" class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
                                         Delete Forever
                                     </button>
                                 @else
                                     {{-- Active/Inactive test actions --}}
-                                    <a href="{{ route('admin.knowledge-tests.questions', $test) }}" wire:navigate class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                                    <a href="{{ route('admin.knowledge-tests.questions', $test) }}" wire:navigate class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
                                         Questions
                                     </a>
-                                    <a href="{{ route('admin.knowledge-tests.edit', $test) }}" wire:navigate class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+                                    <a href="{{ route('admin.knowledge-tests.edit', $test) }}" wire:navigate class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
                                         Edit
                                     </a>
                                     @if($test->attempts_count === 0)
-                                    <button wire:click="deleteTest({{ $test->id }})" wire:confirm="Are you sure you want to delete this test?" class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+                                    <button wire:click="deleteTest({{ $test->id }})" wire:confirm="Are you sure you want to delete this test?" class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
                                         Delete
                                     </button>
                                     @else
-                                    <button wire:click="archiveTest({{ $test->id }})" wire:confirm="Archive this test? It will be hidden from members but attempts will be preserved. You can restore or permanently delete it later." class="text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300">
+                                    <button wire:click="archiveTest({{ $test->id }})" wire:confirm="Archive this test? It will be hidden from members but attempts will be preserved. You can restore or permanently delete it later." class="text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 transition-colors">
                                         Archive
                                     </button>
                                     @endif

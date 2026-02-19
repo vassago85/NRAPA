@@ -18,7 +18,7 @@
 
         <div class="flex flex-col items-center">
             <a href="{{ route('login') }}"
-               class="w-full text-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors">
+               class="w-full text-center px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg font-medium transition-colors">
                 {{ __('Go to login') }}
             </a>
         </div>

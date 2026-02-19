@@ -98,20 +98,38 @@ class KnowledgeTestQuestionsSeeder extends Seeder
                 'correct_answer' => 'A',
                 'points' => 1,
             ],
-            // Q5 - Written (6 marks)
+            // Q5 - Multiple select (6 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'List the Fundamental NRAPA Rules for Safe Gun Handling (6 rules):',
-                'options' => null,
-                'correct_answer' => '1. Know your target and what is beyond. 2. Know how to use the gun safely. 3. Be sure the gun is safe to operate. 4. Use only the correct ammunition for your gun. 5. Wear eye and ear protection as appropriate. 6. Never use alcohol or over-the-counter, prescription or other drugs before or while shooting.',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Select the Fundamental NRAPA Rules for Safe Gun Handling: (Select 6 correct answers)',
+                'options' => [
+                    'A' => 'Know your target and what is beyond',
+                    'B' => 'Know how to use the gun safely',
+                    'C' => 'Always keep the safety on',
+                    'D' => 'Be sure the gun is safe to operate',
+                    'E' => 'Use only the correct ammunition for your gun',
+                    'F' => 'Only shoot in daylight',
+                    'G' => 'Wear eye and ear protection as appropriate',
+                    'H' => 'Always wear gloves',
+                    'I' => 'Never use alcohol or drugs before or while shooting',
+                    'J' => 'Keep the gun loaded at all times',
+                ],
+                'correct_answers' => ['A', 'B', 'D', 'E', 'G', 'I'],
                 'points' => 6,
             ],
-            // Q6 - Written (3 marks)
+            // Q6 - Multiple select (3 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Disciplinary Action shall exist for (list 3 items):',
-                'options' => null,
-                'correct_answer' => '1. Contraventions of all laws pertaining to conservation, hunting, firearms and ammunition. 2. Breaches of this Code of Ethics. 3. Conduct which brings or is likely to bring the Association, hunting and the private possession of firearms and ammunition into disrepute.',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Disciplinary Action shall exist for: (Select 3 correct answers)',
+                'options' => [
+                    'A' => 'Contraventions of all laws pertaining to conservation, hunting, firearms and ammunition',
+                    'B' => 'Failure to pay annual membership fees',
+                    'C' => 'Breaches of the Code of Ethics',
+                    'D' => 'Not attending monthly meetings',
+                    'E' => 'Conduct which brings or is likely to bring the Association into disrepute',
+                    'F' => 'Using non-NRAPA branded equipment',
+                ],
+                'correct_answers' => ['A', 'C', 'E'],
                 'points' => 3,
             ],
             // Q7.1 - True/False (1 mark)
@@ -203,37 +221,60 @@ class KnowledgeTestQuestionsSeeder extends Seeder
                 'correct_answer' => 'A',
                 'points' => 1,
             ],
-            // Q14 - Written/Matching (10 marks)
+            // Q14 - Matching (10 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Pair the number to the definition: (10 marks)
-
-1. A person is permitted to hold only one license of this kind.
-2. Any natural person who is an occasional hunter or sports person is eligible for a maximum of four ten-year-term licenses.
-3. The FCA imposes certain requirements for applicants in this category - must be a member of an accredited hunting association or sport-shooting organization.
-4. The firearm must be one approved for collection by an accredited collectors association.
-5. Applicants are required to submit a written motivation for their use of the firearm.
-6. Violation or failure to comply with the provisions of the FCA or the terms of a license, permit, or authorization is an offense.
-7. Means to kill by means of a firearm only and by no other means.
-8. Proper storage of firearms and ammunition in a prescribed safe or strong room is a prerequisite.
-9. An air gun, a tranquiliser firearm, a paintball gun, a flare gun, a deactivated firearm, an antique firearm, any captive bolt gun.
-10. A complete object consisting of a cartridge case, primer, propellant and bullet.
-
-Match with: License for self-defense, License for Occasional Hunting/Sport Shooting, License for Dedicated Hunting/Sport Shooting, License in Private Collection, Temporary Authorization, Offenses and Penalties, Shoot, Safekeeping, Devices not regarded as firearms, Cartridge',
-                'options' => null,
-                'correct_answer' => '1=License for self-defense, 2=License for Occasional Hunting/Sport Shooting, 3=License for Dedicated Hunting/Sport Shooting, 4=License in Private Collection, 5=Temporary Authorization, 6=Offenses and Penalties, 7=Shoot, 8=Safekeeping, 9=Devices not regarded as firearms, 10=Cartridge',
+                'question_type' => 'matching',
+                'question_text' => 'Match each definition to the correct term: (10 marks)',
+                'options' => [
+                    'A' => 'A person is permitted to hold only one license of this kind.',
+                    'B' => 'Any natural person who is an occasional hunter or sports person is eligible for a maximum of four ten-year-term licenses.',
+                    'C' => 'The FCA imposes certain requirements for applicants in this category - must be a member of an accredited hunting association or sport-shooting organization.',
+                    'D' => 'The firearm must be one approved for collection by an accredited collectors association.',
+                    'E' => 'Applicants are required to submit a written motivation for their use of the firearm.',
+                    'F' => 'Violation or failure to comply with the provisions of the FCA or the terms of a license, permit, or authorization is an offense.',
+                    'G' => 'Means to kill by means of a firearm only and by no other means.',
+                    'H' => 'Proper storage of firearms and ammunition in a prescribed safe or strong room is a prerequisite.',
+                    'I' => 'An air gun, a tranquiliser firearm, a paintball gun, a flare gun, a deactivated firearm, an antique firearm, any captive bolt gun.',
+                    'J' => 'A complete object consisting of a cartridge case, primer, propellant and bullet.',
+                ],
+                'correct_answers' => [
+                    'A' => 'License for self-defense',
+                    'B' => 'License for Occasional Hunting/Sport Shooting',
+                    'C' => 'License for Dedicated Hunting/Sport Shooting',
+                    'D' => 'License in Private Collection',
+                    'E' => 'Temporary Authorization',
+                    'F' => 'Offenses and Penalties',
+                    'G' => 'Shoot',
+                    'H' => 'Safekeeping',
+                    'I' => 'Devices not regarded as firearms',
+                    'J' => 'Cartridge',
+                    '_distractors' => ['Competency Certificate', 'Firearm Dealer License', 'Import Permit'],
+                ],
                 'points' => 10,
             ],
-            // Q15 - Written (3 marks)
+            // Q15a - Multiple choice (1 mark)
             [
-                'question_type' => 'written',
-                'question_text' => 'Complete the Period of validity of license or permit: (3 marks)
-- Licence to possess a firearm for self-defense: ___ years
-- Licence to possess a restricted firearm for self-defense: ___ years
-- Licence to possess a firearm for occasional hunting/sport shooting: ___ years',
-                'options' => null,
-                'correct_answer' => 'Self-defense: Five years, Restricted self-defense: Two years, Occasional hunting/sport shooting: Ten years',
-                'points' => 3,
+                'question_type' => 'multiple_choice',
+                'question_text' => 'Licence to possess a firearm for self-defense is valid for how many years?',
+                'options' => ['A' => 'Two', 'B' => 'Five', 'C' => 'Ten', 'D' => 'Fifteen'],
+                'correct_answer' => 'B',
+                'points' => 1,
+            ],
+            // Q15b - Multiple choice (1 mark)
+            [
+                'question_type' => 'multiple_choice',
+                'question_text' => 'Licence to possess a restricted firearm for self-defense is valid for how many years?',
+                'options' => ['A' => 'Two', 'B' => 'Five', 'C' => 'Ten', 'D' => 'Fifteen'],
+                'correct_answer' => 'A',
+                'points' => 1,
+            ],
+            // Q15c - Multiple choice (1 mark)
+            [
+                'question_type' => 'multiple_choice',
+                'question_text' => 'Licence to possess a firearm for occasional hunting/sport shooting is valid for how many years?',
+                'options' => ['A' => 'Two', 'B' => 'Five', 'C' => 'Ten', 'D' => 'Fifteen'],
+                'correct_answer' => 'C',
+                'points' => 1,
             ],
             // Q16 - Multiple select (4 marks)
             [
@@ -299,28 +340,59 @@ Match with: License for self-defense, License for Occasional Hunting/Sport Shoot
                 'correct_answer' => 'A',
                 'points' => 1,
             ],
-            // Q20 - Written (8 marks)
+            // Q20 - Multiple select (8 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Name the rifle carry techniques. (8 marks)',
-                'options' => null,
-                'correct_answer' => '1. Sling carry, 2. Cradle carry, 3. Elbow or side carry, 4. Shoulder carry, 5. Two Handed ready carry, 6. Safe carry in a group, 7. Walking side by side, 8. Walking in single file',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Select the rifle carry techniques: (Select 8 correct answers)',
+                'options' => [
+                    'A' => 'Sling carry',
+                    'B' => 'Cradle carry',
+                    'C' => 'Hip carry',
+                    'D' => 'Elbow or side carry',
+                    'E' => 'Shoulder carry',
+                    'F' => 'Two Handed ready carry',
+                    'G' => 'Overhead carry',
+                    'H' => 'Safe carry in a group',
+                    'I' => 'Barrel-first carry',
+                    'J' => 'Walking side by side',
+                    'K' => 'Walking in single file',
+                    'L' => 'Muzzle-down drag',
+                ],
+                'correct_answers' => ['A', 'B', 'D', 'E', 'F', 'H', 'J', 'K'],
                 'points' => 8,
             ],
-            // Q21 - Written (4 marks)
+            // Q21 - Multiple select (4 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Name the rifle carrying fundamentals (4 marks)',
-                'options' => null,
-                'correct_answer' => '1. Keep the safety in the "on" position while carrying a firearm. 2. Only change the position of the safety to fire when you are ready to shoot. 3. Always keep your finger outside the trigger guard. 4. Keep muzzle pointed in a safe direction and the barrel under control.',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Select the rifle carrying fundamentals: (Select 4 correct answers)',
+                'options' => [
+                    'A' => 'Keep the safety in the "on" position while carrying',
+                    'B' => 'Always carry the firearm unloaded',
+                    'C' => 'Only change safety to fire when ready to shoot',
+                    'D' => 'Keep the rifle in a case when walking',
+                    'E' => 'Always keep your finger outside the trigger guard',
+                    'F' => 'Rest the rifle on your shoulder at all times',
+                    'G' => 'Keep muzzle pointed in a safe direction and barrel under control',
+                ],
+                'correct_answers' => ['A', 'C', 'E', 'G'],
                 'points' => 4,
             ],
-            // Q22 - Written (4 marks)
+            // Q22 - Multiple select (4 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'List the shooting positions (4 marks)',
-                'options' => null,
-                'correct_answer' => '1. Standing position, 2. Kneeling, 3. Sitting, 4. Prone',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Select the shooting positions: (Select 4 correct answers)',
+                'options' => [
+                    'A' => 'Standing',
+                    'B' => 'Running',
+                    'C' => 'Kneeling',
+                    'D' => 'Crouching',
+                    'E' => 'Sitting',
+                    'F' => 'Lying on side',
+                    'G' => 'Prone',
+                    'H' => 'Hanging',
+                    'I' => 'Squatting',
+                ],
+                'correct_answers' => ['A', 'C', 'E', 'G'],
                 'points' => 4,
             ],
             // Q23 - Multiple select (3 marks)
@@ -359,23 +431,31 @@ Match with: License for self-defense, License for Occasional Hunting/Sport Shoot
                 'correct_answers' => ['B', 'C', 'D', 'E', 'I'],
                 'points' => 5,
             ],
-            // Q25 - Written/Matching (8 marks)
+            // Q25 - Matching (8 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Pair the number to the definition: (8 marks)
-
-1. A gun barrel is the tube, usually metal, through which a controlled explosion or rapid expansion of gases are released in order to propel a projectile out of the end at a high velocity.
-2. Loads and fires ammunition
-3. Serves as a platform for supporting the action and barrel
-4. A trigger is a mechanism that actuates the firing of firearms.
-5. In firearms, a safety or safety catch is a mechanism used to help prevent the accidental discharge of a firearm, helping to ensure safer handling
-6. Part of the barrel from which the projectile emerges
-7. Rifling is often described by its twist rate
-8. A trigger guard is a loop surrounding the trigger of a firearm and protecting it from accidental discharge
-
-Match with: Action, Barrel, Stock, Trigger, Safety, Muzzle, Rifling, Trigger guard',
-                'options' => null,
-                'correct_answer' => '1=Barrel, 2=Action, 3=Stock, 4=Trigger, 5=Safety, 6=Muzzle, 7=Rifling, 8=Trigger guard',
+                'question_type' => 'matching',
+                'question_text' => 'Match each definition to the correct firearm component: (8 marks)',
+                'options' => [
+                    'A' => 'A gun barrel is the tube, usually metal, through which a controlled explosion or rapid expansion of gases are released in order to propel a projectile out of the end at a high velocity.',
+                    'B' => 'Loads and fires ammunition',
+                    'C' => 'Serves as a platform for supporting the action and barrel',
+                    'D' => 'A trigger is a mechanism that actuates the firing of firearms.',
+                    'E' => 'In firearms, a safety or safety catch is a mechanism used to help prevent the accidental discharge of a firearm, helping to ensure safer handling',
+                    'F' => 'Part of the barrel from which the projectile emerges',
+                    'G' => 'Rifling is often described by its twist rate',
+                    'H' => 'A trigger guard is a loop surrounding the trigger of a firearm and protecting it from accidental discharge',
+                ],
+                'correct_answers' => [
+                    'A' => 'Barrel',
+                    'B' => 'Action',
+                    'C' => 'Stock',
+                    'D' => 'Trigger',
+                    'E' => 'Safety',
+                    'F' => 'Muzzle',
+                    'G' => 'Rifling',
+                    'H' => 'Trigger guard',
+                    '_distractors' => ['Magazine', 'Hammer', 'Bolt'],
+                ],
                 'points' => 8,
             ],
             // Q26.1 - True/False (1 mark)
@@ -420,24 +500,33 @@ Match with: Action, Barrel, Stock, Trigger, Safety, Muzzle, Rifling, Trigger gua
                 'correct_answers' => ['B', 'C', 'F', 'H'],
                 'points' => 4,
             ],
-            // Q28 - Written/Matching (9 marks)
+            // Q28 - Matching (9 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Choose the correct description for the following components: (9 marks)
-
-1. The portion of a firearm that wraps around the trigger to provide both protection and safety.
-2. The area of the firearm that contains the rear end of the barrel, where the cartridge is inserted.
-3. The front end of the barrel where the projectile exits the firearm.
-4. The part of a revolver that holds cartridges in separate chambers.
-5. The lever that\'s pulled or squeezed to initiate the firing process.
-6. The part that strikes the firing pin or the cartridge primer directly.
-7. A spring-operated container that holds cartridges for a repeating firearm.
-8. The portion of a handgun that\'s used to hold the firearm.
-9. The inside of the gun\'s barrel through which the projectile travels when fired.
-
-Match with: Bore, Breech, Muzzle, Cylinder, Trigger, Hammer, Magazine, Grip, Trigger Guard',
-                'options' => null,
-                'correct_answer' => '1=Trigger Guard, 2=Breech, 3=Muzzle, 4=Cylinder, 5=Trigger, 6=Hammer, 7=Magazine, 8=Grip, 9=Bore',
+                'question_type' => 'matching',
+                'question_text' => 'Match each description to the correct firearm component: (9 marks)',
+                'options' => [
+                    'A' => 'The portion of a firearm that wraps around the trigger to provide both protection and safety.',
+                    'B' => 'The area of the firearm that contains the rear end of the barrel, where the cartridge is inserted.',
+                    'C' => 'The front end of the barrel where the projectile exits the firearm.',
+                    'D' => 'The part of a revolver that holds cartridges in separate chambers.',
+                    'E' => 'The lever that\'s pulled or squeezed to initiate the firing process.',
+                    'F' => 'The part that strikes the firing pin or the cartridge primer directly.',
+                    'G' => 'A spring-operated container that holds cartridges for a repeating firearm.',
+                    'H' => 'The portion of a handgun that\'s used to hold the firearm.',
+                    'I' => 'The inside of the gun\'s barrel through which the projectile travels when fired.',
+                ],
+                'correct_answers' => [
+                    'A' => 'Trigger Guard',
+                    'B' => 'Breech',
+                    'C' => 'Muzzle',
+                    'D' => 'Cylinder',
+                    'E' => 'Trigger',
+                    'F' => 'Hammer',
+                    'G' => 'Magazine',
+                    'H' => 'Grip',
+                    'I' => 'Bore',
+                    '_distractors' => ['Stock', 'Barrel', 'Safety'],
+                ],
                 'points' => 9,
             ],
             // Q29 - Multiple choice (1 mark)
@@ -453,44 +542,84 @@ Match with: Bore, Breech, Muzzle, Cylinder, Trigger, Hammer, Magazine, Grip, Tri
                 'correct_answer' => 'D',
                 'points' => 1,
             ],
-            // Q30 - Written (3 marks)
+            // Q30 - Multiple select (3 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'List the major parts of a shotgun (3 marks)',
-                'options' => null,
-                'correct_answer' => '1. Action (lock), 2. Stock, 3. Barrel',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Select the major parts of a shotgun: (Select 3 correct answers)',
+                'options' => [
+                    'A' => 'Action (lock)',
+                    'B' => 'Scope',
+                    'C' => 'Stock',
+                    'D' => 'Magazine',
+                    'E' => 'Barrel',
+                    'F' => 'Silencer',
+                    'G' => 'Bipod',
+                ],
+                'correct_answers' => ['A', 'C', 'E'],
                 'points' => 3,
             ],
-            // Q31 - Written (4 marks)
+            // Q31 - Multiple select (4 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'List the different actions in shotguns (4 marks)',
-                'options' => null,
-                'correct_answer' => '1. Pump-action, 2. Semi-automatic, 3. Bolt action, 4. Hinge/break action',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Select the different actions found in shotguns: (Select 4 correct answers)',
+                'options' => [
+                    'A' => 'Pump-action',
+                    'B' => 'Lever action',
+                    'C' => 'Semi-automatic',
+                    'D' => 'Revolver action',
+                    'E' => 'Bolt action',
+                    'F' => 'Gas-delayed blowback',
+                    'G' => 'Hinge/break action',
+                    'H' => 'Falling block',
+                ],
+                'correct_answers' => ['A', 'C', 'E', 'G'],
                 'points' => 4,
             ],
-            // Q32 - Written (2 marks)
+            // Q32 - Multiple select (2 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Two very common safeties in shotguns are: (2 marks)',
-                'options' => null,
-                'correct_answer' => '1. The Tang, 2. Crossbolt',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Select the two very common safeties in shotguns: (Select 2 correct answers)',
+                'options' => [
+                    'A' => 'The Tang',
+                    'B' => 'Magazine safety',
+                    'C' => 'Crossbolt',
+                    'D' => 'Trigger lock',
+                    'E' => 'Pivot safety',
+                    'F' => 'Grip safety',
+                ],
+                'correct_answers' => ['A', 'C'],
                 'points' => 2,
             ],
-            // Q33 - Written (2 marks)
+            // Q33 - Multiple select (2 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Name the two common types of actions used in sport shooting – handguns (2 marks)',
-                'options' => null,
-                'correct_answer' => '1. Single action, 2. Double action',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Select the two common types of actions used in sport shooting handguns: (Select 2 correct answers)',
+                'options' => [
+                    'A' => 'Single action',
+                    'B' => 'Bolt action',
+                    'C' => 'Double action',
+                    'D' => 'Pump action',
+                    'E' => 'Lever action',
+                    'F' => 'Gas action',
+                ],
+                'correct_answers' => ['A', 'C'],
                 'points' => 2,
             ],
-            // Q34 - Written (3 marks)
+            // Q34 - Multiple select (3 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'List the typical cartridge malfunctions. (3 marks)',
-                'options' => null,
-                'correct_answer' => '1. Misfire, 2. Hangfire, 3. Squib Load',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Select the typical cartridge malfunctions: (Select 3 correct answers)',
+                'options' => [
+                    'A' => 'Misfire',
+                    'B' => 'Overfire',
+                    'C' => 'Hangfire',
+                    'D' => 'Backfire',
+                    'E' => 'Squib Load',
+                    'F' => 'Flashfire',
+                    'G' => 'Barrel burst',
+                    'H' => 'Double feed',
+                ],
+                'correct_answers' => ['A', 'C', 'E'],
                 'points' => 3,
             ],
             // Q35 - Multiple select (6 marks)
@@ -566,28 +695,43 @@ Match with: Bore, Breech, Muzzle, Cylinder, Trigger, Hammer, Magazine, Grip, Tri
                 'correct_answers' => ['A', 'C', 'E', 'G', 'H'],
                 'points' => 5,
             ],
-            // Q39 - Written (4 marks)
+            // Q39 - Multiple select (4 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Basic parts of a bullet are (4 marks)',
-                'options' => null,
-                'correct_answer' => '1. The Base, 2. The Shank, 3. The Ogive, 4. The Meplat',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Select the basic parts of a bullet: (Select 4 correct answers)',
+                'options' => [
+                    'A' => 'The Base',
+                    'B' => 'The Primer',
+                    'C' => 'The Shank',
+                    'D' => 'The Cannelure',
+                    'E' => 'The Ogive',
+                    'F' => 'The Jacket',
+                    'G' => 'The Meplat',
+                    'H' => 'The Rim',
+                    'I' => 'The Casing',
+                ],
+                'correct_answers' => ['A', 'C', 'E', 'G'],
                 'points' => 4,
             ],
-            // Q40 - Written/Matching (5 marks)
+            // Q40 - Matching (5 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Pair the definitions: (5 marks)
-
-1. An object set in motion by an exterior force and continuing under its own inertia.
-2. The study of the path of projectiles, particularly those shot from artillery or firearms.
-3. The distance a bullet travels in the barrel while making one revolution.
-4. Without air resistance, a projectile would not change velocity until it hit something.
-5. The curve a projectile describes in space.
-
-Match with: Projectile, Ballistics, Twist, Air Resistance, Trajectory',
-                'options' => null,
-                'correct_answer' => '1=Projectile, 2=Ballistics, 3=Twist, 4=Air Resistance, 5=Trajectory',
+                'question_type' => 'matching',
+                'question_text' => 'Match each definition to the correct ballistics term: (5 marks)',
+                'options' => [
+                    'A' => 'An object set in motion by an exterior force and continuing under its own inertia.',
+                    'B' => 'The study of the path of projectiles, particularly those shot from artillery or firearms.',
+                    'C' => 'The distance a bullet travels in the barrel while making one revolution.',
+                    'D' => 'Without air resistance, a projectile would not change velocity until it hit something.',
+                    'E' => 'The curve a projectile describes in space.',
+                ],
+                'correct_answers' => [
+                    'A' => 'Projectile',
+                    'B' => 'Ballistics',
+                    'C' => 'Twist',
+                    'D' => 'Air Resistance',
+                    'E' => 'Trajectory',
+                    '_distractors' => ['Recoil', 'Muzzle Velocity', 'Gravity'],
+                ],
                 'points' => 5,
             ],
             // Q41 - Multiple select (5 marks)
@@ -626,29 +770,42 @@ Match with: Projectile, Ballistics, Twist, Air Resistance, Trajectory',
                 'correct_answers' => ['A', 'C', 'D', 'E', 'G', 'H'],
                 'points' => 6,
             ],
-            // Q43 - Written/Matching (6 marks)
+            // Q43 - Matching (6 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Match the correct descriptions: (6 marks)
-
-1. The curve a projectile describes in space.
-2. The study of the path of projectiles, particularly those shot from artillery or firearms.
-3. An object set in motion by an exterior force and continuing under its own inertia.
-4. Without gravity, a projectile would travel in a straight line until it hit something.
-5. Without air resistance, a projectile would not change velocity until it hit something.
-6. The distance a bullet travels in the barrel while making one revolution.
-
-Match with: Projectile, Ballistics, Trajectory, Air Resistance, Gravity, Twist',
-                'options' => null,
-                'correct_answer' => '1=Trajectory, 2=Ballistics, 3=Projectile, 4=Gravity, 5=Air Resistance, 6=Twist',
+                'question_type' => 'matching',
+                'question_text' => 'Match each description to the correct term: (6 marks)',
+                'options' => [
+                    'A' => 'The curve a projectile describes in space.',
+                    'B' => 'The study of the path of projectiles, particularly those shot from artillery or firearms.',
+                    'C' => 'An object set in motion by an exterior force and continuing under its own inertia.',
+                    'D' => 'Without gravity, a projectile would travel in a straight line until it hit something.',
+                    'E' => 'Without air resistance, a projectile would not change velocity until it hit something.',
+                    'F' => 'The distance a bullet travels in the barrel while making one revolution.',
+                ],
+                'correct_answers' => [
+                    'A' => 'Trajectory',
+                    'B' => 'Ballistics',
+                    'C' => 'Projectile',
+                    'D' => 'Gravity',
+                    'E' => 'Air Resistance',
+                    'F' => 'Twist',
+                    '_distractors' => ['Recoil', 'Muzzle Velocity'],
+                ],
                 'points' => 6,
             ],
-            // Q44 - Written (3 marks)
+            // Q44 - Multiple select (3 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Prohibited firearms and ammunition are: (3 marks)',
-                'options' => null,
-                'correct_answer' => '1. Tracer ammunition may not be used. 2. Fully automatic firearms may not be fired on full automatic. 3. Any gun, cannon, recoilless gun, mortar, light mortar or launcher manufactured to fire a rocket, grenade, self-propelled grenade, bomb or explosive device may not be fired on the range.',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Select the statements about prohibited firearms and ammunition: (Select 3 correct answers)',
+                'options' => [
+                    'A' => 'Tracer ammunition may not be used',
+                    'B' => 'Hollow-point ammunition is banned from ranges',
+                    'C' => 'Fully automatic firearms may not be fired on full automatic',
+                    'D' => 'Black powder firearms are prohibited',
+                    'E' => 'Any gun, cannon, mortar or launcher for rockets, grenades or bombs may not be fired on the range',
+                    'F' => 'Shotguns may not be used on rifle ranges',
+                ],
+                'correct_answers' => ['A', 'C', 'E'],
                 'points' => 3,
             ],
             // Q45 - Multiple select (3 marks)
@@ -711,20 +868,38 @@ Match with: Projectile, Ballistics, Trajectory, Air Resistance, Gravity, Twist',
 
         $questions = [
             // Core firearm knowledge (shared with sport shooter)
-            // Q1 - Written (6 marks)
+            // Q1 - Multiple select (6 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'List the Fundamental NRAPA Rules for Safe Gun Handling (6 rules):',
-                'options' => null,
-                'correct_answer' => '1. Know your target and what is beyond. 2. Know how to use the gun safely. 3. Be sure the gun is safe to operate. 4. Use only the correct ammunition for your gun. 5. Wear eye and ear protection as appropriate. 6. Never use alcohol or over-the-counter, prescription or other drugs before or while shooting.',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Select the six Fundamental NRAPA Rules for Safe Gun Handling:',
+                'options' => [
+                    'A' => 'Know your target and what is beyond',
+                    'B' => 'Always keep the safety on',
+                    'C' => 'Know how to use the gun safely',
+                    'D' => 'Be sure the gun is safe to operate',
+                    'E' => 'Only shoot in daylight',
+                    'F' => 'Use only the correct ammunition for your gun',
+                    'G' => 'Always wear gloves',
+                    'H' => 'Wear eye and ear protection as appropriate',
+                    'I' => 'Keep the gun loaded at all times',
+                    'J' => 'Never use alcohol or over-the-counter, prescription or other drugs before or while shooting',
+                ],
+                'correct_answers' => ['A', 'C', 'D', 'F', 'H', 'J'],
                 'points' => 6,
             ],
-            // Q2 - Written (3 marks)
+            // Q2 - Multiple select (3 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Disciplinary Action shall exist for (list 3 items):',
-                'options' => null,
-                'correct_answer' => '1. Contraventions of all laws pertaining to conservation, hunting, firearms and ammunition. 2. Breaches of this Code of Ethics. 3. Conduct which brings or is likely to bring the Association, hunting and the private possession of firearms and ammunition into disrepute.',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Disciplinary Action shall exist for: (Select 3 correct answers)',
+                'options' => [
+                    'A' => 'Contraventions of all laws pertaining to conservation, hunting, firearms and ammunition',
+                    'B' => 'Failure to pay annual membership fees',
+                    'C' => 'Breaches of the Code of Ethics',
+                    'D' => 'Not attending monthly meetings',
+                    'E' => 'Conduct which brings or is likely to bring the Association, hunting and the private possession of firearms and ammunition into disrepute',
+                    'F' => 'Using non-NRAPA branded equipment',
+                ],
+                'correct_answers' => ['A', 'C', 'E'],
                 'points' => 3,
             ],
             // Q3 - Multiple select (3 marks)
@@ -1043,20 +1218,55 @@ Match with: Projectile, Ballistics, Trajectory, Air Resistance, Gravity, Twist',
                 'correct_answers' => ['A', 'C', 'E', 'G'],
                 'points' => 4,
             ],
-            // Q33 - Multiple select (6 marks) - Animal Identification
+            // Q33 - Track A identification (1 mark)
             [
-                'question_type' => 'multiple_select',
-                'question_text' => 'Animal Identification - Identify the animals from the tracks/images: (Select 6 correct answers)',
-                'options' => [
-                    'A' => 'Leopard', 'B' => 'Dog', 'C' => 'Hyena',
-                    'D' => 'Hippo', 'E' => 'Rhino', 'F' => 'Mountain Zebra',
-                    'G' => 'Burchell\'s Zebra', 'H' => 'Warthog', 'I' => 'Blesbuck',
-                    'J' => 'Sitatunga', 'K' => 'Impala', 'L' => 'Gemsbuck',
-                ],
-                'correct_answers' => ['A', 'D', 'E', 'G', 'H', 'J'],
-                'points' => 6,
+                'question_type' => 'multiple_choice',
+                'question_text' => 'Track A: Identify the animal from this track (round paw, 4 toes, no claw marks):',
+                'options' => ['A' => 'Dog', 'B' => 'Leopard', 'C' => 'Hyena', 'D' => 'Sitatunga'],
+                'correct_answer' => 'B',
+                'points' => 1,
             ],
-            // Q34 - Multiple choice (1 mark)
+            // Q34 - Track B identification (1 mark)
+            [
+                'question_type' => 'multiple_choice',
+                'question_text' => 'Track B: Identify the animal from this track (large print, 4 round toes spread wide):',
+                'options' => ['A' => 'Rhino', 'B' => 'Elephant', 'C' => 'Hippo', 'D' => 'Buffalo'],
+                'correct_answer' => 'C',
+                'points' => 1,
+            ],
+            // Q35 - Track C identification (1 mark)
+            [
+                'question_type' => 'multiple_choice',
+                'question_text' => 'Track C: Identify the animal from this track (massive 3-toed print):',
+                'options' => ['A' => 'Hippo', 'B' => 'Elephant', 'C' => 'Buffalo', 'D' => 'Rhino'],
+                'correct_answer' => 'D',
+                'points' => 1,
+            ],
+            // Q36 - Track D identification (1 mark)
+            [
+                'question_type' => 'multiple_choice',
+                'question_text' => 'Track D: Identify the animal from this track (single oval hoof):',
+                'options' => ['A' => 'Mountain Zebra', 'B' => 'Burchell\'s Zebra', 'C' => 'Warthog', 'D' => 'Eland'],
+                'correct_answer' => 'B',
+                'points' => 1,
+            ],
+            // Q37 - Track E identification (1 mark)
+            [
+                'question_type' => 'multiple_choice',
+                'question_text' => 'Track E: Identify the animal from this track (2 pointed hooves with dew claws):',
+                'options' => ['A' => 'Impala', 'B' => 'Blesbuck', 'C' => 'Warthog', 'D' => 'Bushpig'],
+                'correct_answer' => 'C',
+                'points' => 1,
+            ],
+            // Q38 - Track F identification (1 mark)
+            [
+                'question_type' => 'multiple_choice',
+                'question_text' => 'Track F: Identify the animal from this track (elongated splayed hooves):',
+                'options' => ['A' => 'Gemsbuck', 'B' => 'Nyala', 'C' => 'Lechwe', 'D' => 'Sitatunga'],
+                'correct_answer' => 'D',
+                'points' => 1,
+            ],
+            // Q39 - Direction of travel (1 mark)
             [
                 'question_type' => 'multiple_choice',
                 'question_text' => 'Which direction is the animal walking based on the tracks?',
@@ -1090,28 +1300,66 @@ Match with: Projectile, Ballistics, Trajectory, Air Resistance, Gravity, Twist',
                 'correct_answers' => ['B', 'D', 'G', 'I', 'J'],
                 'points' => 5,
             ],
-            // Q37 - Written/Matching (7 marks)
+            // Q37 - Matching (7 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Pair the definitions (7 marks): External Bleeding, Fainting, Bandaging, Burn, Shock, Rabies, Ticks.',
-                'options' => null,
-                'correct_answer' => '1=Shock, 2=Fainting, 3=External Bleeding, 4=Bandaging, 5=Burn, 6=Rabies, 7=Ticks',
+                'question_type' => 'matching',
+                'question_text' => 'Match each first-aid term to its correct definition:',
+                'options' => [
+                    'A' => 'A medical condition where the body\'s vital organs do not receive enough blood flow, causing weakness, rapid pulse, and pale skin.',
+                    'B' => 'A temporary loss of consciousness caused by a drop in blood pressure, often due to pain, emotional stress, or overheating.',
+                    'C' => 'Blood loss from a wound visible on the body surface; apply direct pressure and elevate the injured area.',
+                    'D' => 'The application of a strip of material to a wound to hold a dressing in place, reduce bleeding, or support an injured limb.',
+                    'E' => 'Tissue damage caused by heat, chemicals, electricity, or radiation; cool with running water for at least 20 minutes.',
+                    'F' => 'A viral disease transmitted through the bite of an infected animal; always seek immediate medical attention after an animal bite.',
+                    'G' => 'Small parasites that attach to the skin and feed on blood; remove carefully by grasping close to the skin and pulling steadily.',
+                ],
+                'correct_answers' => [
+                    'A' => 'Shock',
+                    'B' => 'Fainting',
+                    'C' => 'External Bleeding',
+                    'D' => 'Bandaging',
+                    'E' => 'Burn',
+                    'F' => 'Rabies',
+                    'G' => 'Ticks',
+                    '_distractors' => ['Heatstroke', 'Fracture', 'Dehydration'],
+                ],
                 'points' => 7,
             ],
-            // Q38 - Written (8 marks)
+            // Q38 - Multiple select (8 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Name the rifle carry techniques. (8 marks)',
-                'options' => null,
-                'correct_answer' => '1. Sling carry, 2. Cradle carry, 3. Elbow or side carry, 4. Shoulder carry, 5. Two Handed ready carry, 6. Safe carry in a group, 7. Walking side by side, 8. Walking in single file',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Select all the rifle carry techniques: (Select 8 correct answers)',
+                'options' => [
+                    'A' => 'Sling carry',
+                    'B' => 'Hip carry',
+                    'C' => 'Cradle carry',
+                    'D' => 'Elbow or side carry',
+                    'E' => 'Overhead carry',
+                    'F' => 'Shoulder carry',
+                    'G' => 'Two Handed ready carry',
+                    'H' => 'Barrel-first carry',
+                    'I' => 'Safe carry in a group',
+                    'J' => 'Walking side by side',
+                    'K' => 'Muzzle-down drag',
+                    'L' => 'Walking in single file',
+                ],
+                'correct_answers' => ['A', 'C', 'D', 'F', 'G', 'I', 'J', 'L'],
                 'points' => 8,
             ],
-            // Q39 - Written (4 marks)
+            // Q39 - Multiple select (4 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Name the rifle carrying fundamentals (4 marks)',
-                'options' => null,
-                'correct_answer' => '1. Keep the safety in the "on" position while carrying a firearm. 2. Only change the position of the safety to fire when you are ready to shoot. 3. Always keep your finger outside the trigger guard. 4. Keep muzzle pointed in a safe direction and the barrel under control.',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Select the rifle carrying fundamentals: (Select 4 correct answers)',
+                'options' => [
+                    'A' => 'Keep the safety in the "on" position while carrying a firearm',
+                    'B' => 'Always carry the firearm unloaded',
+                    'C' => 'Only change the position of the safety to fire when you are ready to shoot',
+                    'D' => 'Keep the rifle in a case when walking',
+                    'E' => 'Always keep your finger outside the trigger guard',
+                    'F' => 'Rest the rifle on your shoulder at all times',
+                    'G' => 'Keep muzzle pointed in a safe direction and the barrel under control',
+                ],
+                'correct_answers' => ['A', 'C', 'E', 'G'],
                 'points' => 4,
             ],
         ];
@@ -1173,20 +1421,40 @@ Match with: Projectile, Ballistics, Trajectory, Air Resistance, Gravity, Twist',
                 'correct_answers' => ['A', 'D', 'I', 'L', 'M', 'N'],
                 'points' => 6,
             ],
-            // Q3 - Written (6 marks)
+            // Q3 - Multiple select (6 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'List the Fundamental NRAPA Rules for Safe Gun Handling (6 rules):',
-                'options' => null,
-                'correct_answer' => '1. Know your target and what is beyond. 2. Know how to use the gun safely. 3. Be sure the gun is safe to operate. 4. Use only the correct ammunition for your gun. 5. Wear eye and ear protection as appropriate. 6. Never use alcohol or over-the-counter, prescription or other drugs before or while shooting.',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Select the Fundamental NRAPA Rules for Safe Gun Handling: (Select 6 correct answers)',
+                'options' => [
+                    'A' => 'Know your target and what is beyond',
+                    'B' => 'Always keep the safety on',
+                    'C' => 'Know how to use the gun safely',
+                    'D' => 'Only shoot in daylight',
+                    'E' => 'Be sure the gun is safe to operate',
+                    'F' => 'Always wear gloves',
+                    'G' => 'Use only the correct ammunition for your gun',
+                    'H' => 'Keep the gun loaded at all times',
+                    'I' => 'Wear eye and ear protection as appropriate',
+                    'J' => 'Never use alcohol or over-the-counter, prescription or other drugs before or while shooting',
+                ],
+                'correct_answer' => null,
+                'correct_answers' => ['A', 'C', 'E', 'G', 'I', 'J'],
                 'points' => 6,
             ],
-            // Q4 - Written (3 marks)
+            // Q4 - Multiple select (3 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Disciplinary Action shall exist for (list 3 items):',
-                'options' => null,
-                'correct_answer' => '1. Contraventions of all laws pertaining to conservation, hunting, firearms and ammunition. 2. Breaches of this Code of Ethics. 3. Conduct which brings or is likely to bring the Association, hunting and the private possession of firearms and ammunition into disrepute.',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Disciplinary Action shall exist for: (Select 3 correct answers)',
+                'options' => [
+                    'A' => 'Contraventions of all laws pertaining to conservation, hunting, firearms and ammunition',
+                    'B' => 'Failure to pay annual membership fees',
+                    'C' => 'Breaches of this Code of Ethics',
+                    'D' => 'Not attending monthly meetings',
+                    'E' => 'Conduct which brings or is likely to bring the Association, hunting and the private possession of firearms and ammunition into disrepute',
+                    'F' => 'Using non-NRAPA branded equipment',
+                ],
+                'correct_answer' => null,
+                'correct_answers' => ['A', 'C', 'E'],
                 'points' => 3,
             ],
             // Q5.1 - True/False (1 mark)
@@ -1278,20 +1546,62 @@ Match with: Projectile, Ballistics, Trajectory, Air Resistance, Gravity, Twist',
                 'correct_answer' => 'A',
                 'points' => 1,
             ],
-            // Q12 - Written/Matching (10 marks)
+            // Q12 - Matching (10 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Pair the number to the definition (10 marks): Match License types and definitions.',
-                'options' => null,
-                'correct_answer' => '1=License for self-defense, 2=License for Occasional Hunting/Sport Shooting, 3=License for Dedicated Hunting/Sport Shooting, 4=License in Private Collection, 5=Temporary Authorization, 6=Offenses and Penalties, 7=Shoot, 8=Safekeeping, 9=Devices not regarded as firearms, 10=Cartridge',
+                'question_type' => 'matching',
+                'question_text' => 'Match each definition to the correct term:',
+                'options' => [
+                    'A' => 'A person is permitted to hold only one license of this kind.',
+                    'B' => 'Any natural person who is an occasional hunter or sports person is eligible for a maximum of four ten-year-term licenses.',
+                    'C' => 'The FCA imposes certain requirements for applicants in this category - must be a member of an accredited hunting association or sport-shooting organization.',
+                    'D' => 'The firearm must be one approved for collection by an accredited collectors association.',
+                    'E' => 'Applicants are required to submit a written motivation for their use of the firearm.',
+                    'F' => 'Violation or failure to comply with the provisions of the FCA or the terms of a license, permit, or authorization is an offense.',
+                    'G' => 'Means to kill by means of a firearm only and by no other means.',
+                    'H' => 'Proper storage of firearms and ammunition in a prescribed safe or strong room is a prerequisite.',
+                    'I' => 'An air gun, a tranquiliser firearm, a paintball gun, a flare gun, a deactivated firearm, an antique firearm, any captive bolt gun.',
+                    'J' => 'A complete object consisting of a cartridge case, primer, propellant and bullet.',
+                ],
+                'correct_answer' => null,
+                'correct_answers' => [
+                    'A' => 'License for self-defense',
+                    'B' => 'License for Occasional Hunting/Sport Shooting',
+                    'C' => 'License for Dedicated Hunting/Sport Shooting',
+                    'D' => 'License in Private Collection',
+                    'E' => 'Temporary Authorization',
+                    'F' => 'Offenses and Penalties',
+                    'G' => 'Shoot',
+                    'H' => 'Safekeeping',
+                    'I' => 'Devices not regarded as firearms',
+                    'J' => 'Cartridge',
+                    '_distractors' => ['Competency Certificate', 'Firearm Dealer License', 'Import Permit'],
+                ],
                 'points' => 10,
             ],
-            // Q13 - Written/Matching (7 marks)
+            // Q13 - Matching (7 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Pair the number to the definition (7 marks): Match Hunter types - Dedicated Hunter, Hunting operator, Trophy, Dedicated Sports Person, Professional Hunter, Bona-fide hunter, Occasional Hunter.',
-                'options' => null,
-                'correct_answer' => '1=Hunting operator, 2=Professional Hunter, 3=Trophy, 4=Dedicated Sports Person, 5=Dedicated Hunter, 6=Occasional Hunter, 7=Bona-fide hunter',
+                'question_type' => 'matching',
+                'question_text' => 'Match each definition to the correct hunter type:',
+                'options' => [
+                    'A' => 'A person who provides services for the facilitation, organization, or management of hunts for clients.',
+                    'B' => 'A person who holds a valid Professional Hunter\'s license and guides hunters in the field.',
+                    'C' => 'An animal hunted primarily as a specimen for display or record, typically selected for exceptional physical attributes.',
+                    'D' => 'A person recognized by an accredited sport-shooting organization who actively and regularly participates in sport-shooting activities.',
+                    'E' => 'A person recognized by an accredited hunting association who actively and regularly participates in hunting activities.',
+                    'F' => 'A person who hunts on an occasional basis and does not hold dedicated status.',
+                    'G' => 'A person who hunts lawfully and in good faith.',
+                ],
+                'correct_answer' => null,
+                'correct_answers' => [
+                    'A' => 'Hunting operator',
+                    'B' => 'Professional Hunter',
+                    'C' => 'Trophy',
+                    'D' => 'Dedicated Sports Person',
+                    'E' => 'Dedicated Hunter',
+                    'F' => 'Occasional Hunter',
+                    'G' => 'Bona-fide hunter',
+                    '_distractors' => ['Game Ranger', 'Conservation Officer', 'Taxidermist'],
+                ],
                 'points' => 7,
             ],
             // Q14 - Multiple select (4 marks)
@@ -1312,21 +1622,59 @@ Match with: Projectile, Ballistics, Trajectory, Air Resistance, Gravity, Twist',
                 'correct_answers' => ['B', 'C', 'F', 'H'],
                 'points' => 4,
             ],
-            // Q15 - Written/Matching (9 marks)
+            // Q15 - Matching (9 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Choose the correct description for the following components (9 marks): Bore, Muzzle, Cylinder, Breech, Magazine, Hammer, Trigger, Grip, Trigger Guard.',
-                'options' => null,
-                'correct_answer' => '1=Trigger Guard, 2=Breech, 3=Muzzle, 4=Cylinder, 5=Trigger, 6=Hammer, 7=Magazine, 8=Grip, 9=Bore',
+                'question_type' => 'matching',
+                'question_text' => 'Match each description to the correct firearm component:',
+                'options' => [
+                    'A' => 'The portion of a firearm that wraps around the trigger to provide both protection and safety.',
+                    'B' => 'The area of the firearm that contains the rear end of the barrel, where the cartridge is inserted.',
+                    'C' => 'The front end of the barrel where the projectile exits the firearm.',
+                    'D' => 'The part of a revolver that holds cartridges in separate chambers.',
+                    'E' => 'The lever that is pulled or squeezed to initiate the firing process.',
+                    'F' => 'The part that strikes the firing pin or the cartridge primer directly.',
+                    'G' => 'A spring-operated container that holds cartridges for a repeating firearm.',
+                    'H' => 'The portion of a handgun that is used to hold the firearm.',
+                    'I' => 'The inside of the gun\'s barrel through which the projectile travels when fired.',
+                ],
+                'correct_answer' => null,
+                'correct_answers' => [
+                    'A' => 'Trigger Guard',
+                    'B' => 'Breech',
+                    'C' => 'Muzzle',
+                    'D' => 'Cylinder',
+                    'E' => 'Trigger',
+                    'F' => 'Hammer',
+                    'G' => 'Magazine',
+                    'H' => 'Grip',
+                    'I' => 'Bore',
+                    '_distractors' => ['Stock', 'Barrel', 'Safety'],
+                ],
                 'points' => 9,
             ],
-            // Q16 - Written (3 marks)
+            // Q16a - Multiple choice (1 mark)
             [
-                'question_type' => 'written',
-                'question_text' => 'Complete the Period of validity of license or permit (3 marks): Self-defense, Restricted self-defense, Occasional hunting/sport shooting.',
-                'options' => null,
-                'correct_answer' => 'Self-defense: Five years, Restricted self-defense: Two years, Occasional hunting/sport shooting: Ten years',
-                'points' => 3,
+                'question_type' => 'multiple_choice',
+                'question_text' => 'A licence to possess a firearm for self-defence is valid for how many years?',
+                'options' => ['A' => 'Two', 'B' => 'Five', 'C' => 'Ten', 'D' => 'Fifteen'],
+                'correct_answer' => 'B',
+                'points' => 1,
+            ],
+            // Q16b - Multiple choice (1 mark)
+            [
+                'question_type' => 'multiple_choice',
+                'question_text' => 'A licence to possess a restricted firearm for self-defence is valid for how many years?',
+                'options' => ['A' => 'Two', 'B' => 'Five', 'C' => 'Ten', 'D' => 'Fifteen'],
+                'correct_answer' => 'A',
+                'points' => 1,
+            ],
+            // Q16c - Multiple choice (1 mark)
+            [
+                'question_type' => 'multiple_choice',
+                'question_text' => 'A licence to possess a firearm for occasional hunting/sport shooting is valid for how many years?',
+                'options' => ['A' => 'Two', 'B' => 'Five', 'C' => 'Ten', 'D' => 'Fifteen'],
+                'correct_answer' => 'C',
+                'points' => 1,
             ],
             // Q17 - Multiple select (3 marks)
             [
@@ -1373,28 +1721,72 @@ Match with: Projectile, Ballistics, Trajectory, Air Resistance, Gravity, Twist',
                 'correct_answers' => ['B', 'C', 'F', 'H', 'J', 'K'],
                 'points' => 6,
             ],
-            // Q20 - Written/Matching (8 marks)
+            // Q20 - Matching (8 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Pair the number to the definition (8 marks): Action, Trigger, Trigger guard, Barrel, Safety, Stock, Muzzle, Rifling.',
-                'options' => null,
-                'correct_answer' => '1=Barrel, 2=Action, 3=Stock, 4=Trigger, 5=Safety, 6=Muzzle, 7=Rifling, 8=Trigger guard',
+                'question_type' => 'matching',
+                'question_text' => 'Match each definition to the correct firearm part:',
+                'options' => [
+                    'A' => 'A gun barrel is the tube through which gases propel a projectile at high velocity.',
+                    'B' => 'Loads and fires ammunition.',
+                    'C' => 'Serves as a platform for supporting the action and barrel.',
+                    'D' => 'A mechanism that actuates the firing of firearms.',
+                    'E' => 'A mechanism used to help prevent accidental discharge, ensuring safer handling.',
+                    'F' => 'Part of the barrel from which the projectile emerges.',
+                    'G' => 'Often described by its twist rate — the spiral grooves inside a barrel.',
+                    'H' => 'A loop surrounding the trigger, protecting it from accidental discharge.',
+                ],
+                'correct_answer' => null,
+                'correct_answers' => [
+                    'A' => 'Barrel',
+                    'B' => 'Action',
+                    'C' => 'Stock',
+                    'D' => 'Trigger',
+                    'E' => 'Safety',
+                    'F' => 'Muzzle',
+                    'G' => 'Rifling',
+                    'H' => 'Trigger guard',
+                    '_distractors' => ['Magazine', 'Hammer', 'Bolt'],
+                ],
                 'points' => 8,
             ],
-            // Q21 - Written/Matching (6 marks)
+            // Q21 - Matching (6 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Match the correct descriptions (6 marks): Projectile, Ballistics, Trajectory, Air Resistance, Gravity, Twist.',
-                'options' => null,
-                'correct_answer' => '1=Trajectory, 2=Ballistics, 3=Projectile, 4=Gravity, 5=Air Resistance, 6=Twist',
+                'question_type' => 'matching',
+                'question_text' => 'Match each description to the correct term:',
+                'options' => [
+                    'A' => 'The curve a projectile describes in space.',
+                    'B' => 'The study of the path of projectiles, particularly those shot from artillery or firearms.',
+                    'C' => 'An object set in motion by an exterior force and continuing under its own inertia.',
+                    'D' => 'Without gravity, a projectile would travel in a straight line until it hit something.',
+                    'E' => 'Without air resistance, a projectile would not change velocity until it hit something.',
+                    'F' => 'The distance a bullet travels in the barrel while making one revolution.',
+                ],
+                'correct_answer' => null,
+                'correct_answers' => [
+                    'A' => 'Trajectory',
+                    'B' => 'Ballistics',
+                    'C' => 'Projectile',
+                    'D' => 'Gravity',
+                    'E' => 'Air Resistance',
+                    'F' => 'Twist',
+                    '_distractors' => ['Recoil', 'Muzzle Velocity'],
+                ],
                 'points' => 6,
             ],
-            // Q22 - Written (3 marks)
+            // Q22 - Multiple select (3 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Prohibited firearms and ammunition are: (3 marks)',
-                'options' => null,
-                'correct_answer' => '1. Tracer ammunition may not be used. 2. Fully automatic firearms may not be fired on full automatic. 3. Any gun, cannon, recoilless gun, mortar, light mortar or launcher manufactured to fire a rocket, grenade, self-propelled grenade, bomb or explosive device may not be fired on the range.',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Select the prohibited firearms and ammunition rules: (Select 3 correct answers)',
+                'options' => [
+                    'A' => 'Tracer ammunition may not be used',
+                    'B' => 'Hollow-point ammunition is banned from ranges',
+                    'C' => 'Fully automatic firearms may not be fired on full automatic',
+                    'D' => 'Black powder firearms are prohibited',
+                    'E' => 'Any gun, cannon, recoilless gun, mortar, light mortar or launcher manufactured to fire a rocket, grenade, self-propelled grenade, bomb or explosive device may not be fired on the range',
+                    'F' => 'Shotguns may not be used on rifle ranges',
+                ],
+                'correct_answer' => null,
+                'correct_answers' => ['A', 'C', 'E'],
                 'points' => 3,
             ],
             // Q23 - Multiple select (4 marks)
@@ -1409,20 +1801,39 @@ Match with: Projectile, Ballistics, Trajectory, Air Resistance, Gravity, Twist',
                 'correct_answers' => ['A', 'C', 'F', 'G'],
                 'points' => 4,
             ],
-            // Q24 - Written (3 marks)
+            // Q24 - Multiple select (3 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'List the major parts of a shotgun (3 marks)',
-                'options' => null,
-                'correct_answer' => '1. Action (lock), 2. Stock, 3. Barrel',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Select the major parts of a shotgun: (Select 3 correct answers)',
+                'options' => [
+                    'A' => 'Action (lock)',
+                    'B' => 'Scope',
+                    'C' => 'Stock',
+                    'D' => 'Magazine',
+                    'E' => 'Barrel',
+                    'F' => 'Silencer',
+                    'G' => 'Bipod',
+                ],
+                'correct_answer' => null,
+                'correct_answers' => ['A', 'C', 'E'],
                 'points' => 3,
             ],
-            // Q25 - Written (4 marks)
+            // Q25 - Multiple select (4 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'List the different actions in shotguns (4 marks)',
-                'options' => null,
-                'correct_answer' => '1. Pump-action, 2. Semi-automatic, 3. Bolt action, 4. Hinge/break action',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Select the different actions found in shotguns: (Select 4 correct answers)',
+                'options' => [
+                    'A' => 'Pump-action',
+                    'B' => 'Lever action',
+                    'C' => 'Semi-automatic',
+                    'D' => 'Revolver action',
+                    'E' => 'Bolt action',
+                    'F' => 'Gas-delayed blowback',
+                    'G' => 'Hinge/break action',
+                    'H' => 'Falling block',
+                ],
+                'correct_answer' => null,
+                'correct_answers' => ['A', 'C', 'E', 'G'],
                 'points' => 4,
             ],
             // Q26 - Multiple select (5 marks)
@@ -1461,28 +1872,63 @@ Match with: Projectile, Ballistics, Trajectory, Air Resistance, Gravity, Twist',
                 'correct_answer' => 'C',
                 'points' => 1,
             ],
-            // Q29 - Written/Matching (5 marks)
+            // Q29 - Matching (5 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Pair the definitions (5 marks): Ballistics, Twist, Trajectory, Air Resistance, Projectile.',
-                'options' => null,
-                'correct_answer' => '1=Projectile, 2=Ballistics, 3=Twist, 4=Air Resistance, 5=Trajectory',
+                'question_type' => 'matching',
+                'question_text' => 'Match each definition to the correct term:',
+                'options' => [
+                    'A' => 'An object set in motion by an exterior force and continuing under its own inertia.',
+                    'B' => 'The study of the path of projectiles, particularly those shot from artillery or firearms.',
+                    'C' => 'The distance a bullet travels in the barrel while making one revolution.',
+                    'D' => 'Without air resistance, a projectile would not change velocity until it hit something.',
+                    'E' => 'The curve a projectile describes in space.',
+                ],
+                'correct_answer' => null,
+                'correct_answers' => [
+                    'A' => 'Projectile',
+                    'B' => 'Ballistics',
+                    'C' => 'Twist',
+                    'D' => 'Air Resistance',
+                    'E' => 'Trajectory',
+                    '_distractors' => ['Recoil', 'Muzzle Velocity', 'Gravity'],
+                ],
                 'points' => 5,
             ],
-            // Q30 - Written (3 marks)
+            // Q30 - Multiple select (3 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'List the typical cartridge malfunctions. (3 marks)',
-                'options' => null,
-                'correct_answer' => '1. Misfire, 2. Hangfire, 3. Squib Load',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Select the typical cartridge malfunctions: (Select 3 correct answers)',
+                'options' => [
+                    'A' => 'Misfire',
+                    'B' => 'Overfire',
+                    'C' => 'Hangfire',
+                    'D' => 'Backfire',
+                    'E' => 'Squib Load',
+                    'F' => 'Flashfire',
+                    'G' => 'Barrel burst',
+                    'H' => 'Double feed',
+                ],
+                'correct_answer' => null,
+                'correct_answers' => ['A', 'C', 'E'],
                 'points' => 3,
             ],
-            // Q31 - Written (4 marks)
+            // Q31 - Multiple select (4 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Basic parts of a bullet are (4 marks)',
-                'options' => null,
-                'correct_answer' => '1. The Base, 2. The Shank, 3. The Ogive, 4. The Meplat',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Select the basic parts of a bullet: (Select 4 correct answers)',
+                'options' => [
+                    'A' => 'The Base',
+                    'B' => 'The Primer',
+                    'C' => 'The Shank',
+                    'D' => 'The Cannelure',
+                    'E' => 'The Ogive',
+                    'F' => 'The Jacket',
+                    'G' => 'The Meplat',
+                    'H' => 'The Rim',
+                    'I' => 'The Casing',
+                ],
+                'correct_answer' => null,
+                'correct_answers' => ['A', 'C', 'E', 'G'],
                 'points' => 4,
             ],
             // Q32 - Multiple select (5 marks)
@@ -1792,20 +2238,55 @@ Match with: Projectile, Ballistics, Trajectory, Air Resistance, Gravity, Twist',
                 'correct_answers' => ['A', 'C', 'E', 'G'],
                 'points' => 4,
             ],
-            // Q62 - Multiple select (6 marks) - Animal Identification
+            // Q62 - Track A identification (1 mark)
             [
-                'question_type' => 'multiple_select',
-                'question_text' => 'Animal Identification - Identify the animals from the tracks/images: (Select 6 correct answers)',
-                'options' => [
-                    'A' => 'Leopard', 'B' => 'Dog', 'C' => 'Hyena',
-                    'D' => 'Hippo', 'E' => 'Rhino', 'F' => 'Mountain Zebra',
-                    'G' => 'Burchell\'s Zebra', 'H' => 'Warthog', 'I' => 'Blesbuck',
-                    'J' => 'Sitatunga', 'K' => 'Impala', 'L' => 'Gemsbuck',
-                ],
-                'correct_answers' => ['A', 'D', 'E', 'G', 'H', 'J'],
-                'points' => 6,
+                'question_type' => 'multiple_choice',
+                'question_text' => 'Track A: Identify the animal from this track (round paw, 4 toes, no claw marks):',
+                'options' => ['A' => 'Dog', 'B' => 'Leopard', 'C' => 'Hyena', 'D' => 'Sitatunga'],
+                'correct_answer' => 'B',
+                'points' => 1,
             ],
-            // Q63 - Multiple choice (1 mark)
+            // Q63 - Track B identification (1 mark)
+            [
+                'question_type' => 'multiple_choice',
+                'question_text' => 'Track B: Identify the animal from this track (large print, 4 round toes spread wide):',
+                'options' => ['A' => 'Rhino', 'B' => 'Elephant', 'C' => 'Hippo', 'D' => 'Buffalo'],
+                'correct_answer' => 'C',
+                'points' => 1,
+            ],
+            // Q64 - Track C identification (1 mark)
+            [
+                'question_type' => 'multiple_choice',
+                'question_text' => 'Track C: Identify the animal from this track (massive 3-toed print):',
+                'options' => ['A' => 'Hippo', 'B' => 'Elephant', 'C' => 'Buffalo', 'D' => 'Rhino'],
+                'correct_answer' => 'D',
+                'points' => 1,
+            ],
+            // Q65 - Track D identification (1 mark)
+            [
+                'question_type' => 'multiple_choice',
+                'question_text' => 'Track D: Identify the animal from this track (single oval hoof):',
+                'options' => ['A' => 'Mountain Zebra', 'B' => 'Burchell\'s Zebra', 'C' => 'Warthog', 'D' => 'Eland'],
+                'correct_answer' => 'B',
+                'points' => 1,
+            ],
+            // Q66 - Track E identification (1 mark)
+            [
+                'question_type' => 'multiple_choice',
+                'question_text' => 'Track E: Identify the animal from this track (2 pointed hooves with dew claws):',
+                'options' => ['A' => 'Impala', 'B' => 'Blesbuck', 'C' => 'Warthog', 'D' => 'Bushpig'],
+                'correct_answer' => 'C',
+                'points' => 1,
+            ],
+            // Q67 - Track F identification (1 mark)
+            [
+                'question_type' => 'multiple_choice',
+                'question_text' => 'Track F: Identify the animal from this track (elongated splayed hooves):',
+                'options' => ['A' => 'Gemsbuck', 'B' => 'Nyala', 'C' => 'Lechwe', 'D' => 'Sitatunga'],
+                'correct_answer' => 'D',
+                'points' => 1,
+            ],
+            // Q68 - Direction of travel (1 mark)
             [
                 'question_type' => 'multiple_choice',
                 'question_text' => 'Which direction is the animal walking based on the tracks?',
@@ -1839,28 +2320,69 @@ Match with: Projectile, Ballistics, Trajectory, Air Resistance, Gravity, Twist',
                 'correct_answers' => ['B', 'D', 'G', 'I', 'J'],
                 'points' => 5,
             ],
-            // Q66 - Written/Matching (7 marks)
+            // Q66 - Matching (7 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Pair the definitions (7 marks): External Bleeding, Fainting, Bandaging, Burn, Shock, Rabies, Ticks.',
-                'options' => null,
-                'correct_answer' => '1=Shock, 2=Fainting, 3=External Bleeding, 4=Bandaging, 5=Burn, 6=Rabies, 7=Ticks',
+                'question_type' => 'matching',
+                'question_text' => 'Match each definition to the correct first aid term:',
+                'options' => [
+                    'A' => 'A medical condition where the body\'s vital organs do not receive enough blood flow, causing weakness, rapid pulse, and pale skin.',
+                    'B' => 'A temporary loss of consciousness caused by a drop in blood pressure, often due to pain, emotional stress, or overheating.',
+                    'C' => 'Blood loss from a wound visible on the body surface; apply direct pressure and elevate the injured area.',
+                    'D' => 'The application of a strip of material to a wound to hold a dressing in place, reduce bleeding, or support an injured limb.',
+                    'E' => 'Tissue damage caused by heat, chemicals, electricity, or radiation; cool with running water for at least 20 minutes.',
+                    'F' => 'A viral disease transmitted through the bite of an infected animal; always seek immediate medical attention after an animal bite.',
+                    'G' => 'Small parasites that attach to the skin and feed on blood; remove carefully by grasping close to the skin and pulling steadily.',
+                ],
+                'correct_answer' => null,
+                'correct_answers' => [
+                    'A' => 'Shock',
+                    'B' => 'Fainting',
+                    'C' => 'External Bleeding',
+                    'D' => 'Bandaging',
+                    'E' => 'Burn',
+                    'F' => 'Rabies',
+                    'G' => 'Ticks',
+                    '_distractors' => ['Heatstroke', 'Fracture', 'Dehydration'],
+                ],
                 'points' => 7,
             ],
-            // Q67 - Written (8 marks)
+            // Q67 - Multiple select (8 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Name the rifle carry techniques. (8 marks)',
-                'options' => null,
-                'correct_answer' => '1. Sling carry, 2. Cradle carry, 3. Elbow or side carry, 4. Shoulder carry, 5. Two Handed ready carry, 6. Safe carry in a group, 7. Walking side by side, 8. Walking in single file',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Select the rifle carry techniques: (Select 8 correct answers)',
+                'options' => [
+                    'A' => 'Sling carry',
+                    'B' => 'Hip carry',
+                    'C' => 'Cradle carry',
+                    'D' => 'Overhead carry',
+                    'E' => 'Elbow or side carry',
+                    'F' => 'Barrel-first carry',
+                    'G' => 'Shoulder carry',
+                    'H' => 'Muzzle-down drag',
+                    'I' => 'Two Handed ready carry',
+                    'J' => 'Safe carry in a group',
+                    'K' => 'Walking side by side',
+                    'L' => 'Walking in single file',
+                ],
+                'correct_answer' => null,
+                'correct_answers' => ['A', 'C', 'E', 'G', 'I', 'J', 'K', 'L'],
                 'points' => 8,
             ],
-            // Q68 - Written (4 marks)
+            // Q68 - Multiple select (4 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Name the rifle carrying fundamentals (4 marks)',
-                'options' => null,
-                'correct_answer' => '1. Keep the safety in the "on" position while carrying a firearm. 2. Only change the position of the safety to fire when you are ready to shoot. 3. Always keep your finger outside the trigger guard. 4. Keep muzzle pointed in a safe direction and the barrel under control.',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Select the rifle carrying fundamentals: (Select 4 correct answers)',
+                'options' => [
+                    'A' => 'Keep the safety in the "on" position while carrying a firearm',
+                    'B' => 'Always carry the firearm unloaded',
+                    'C' => 'Only change the position of the safety to fire when you are ready to shoot',
+                    'D' => 'Keep the rifle in a case when walking',
+                    'E' => 'Always keep your finger outside the trigger guard',
+                    'F' => 'Rest the rifle on your shoulder at all times',
+                    'G' => 'Keep muzzle pointed in a safe direction and the barrel under control',
+                ],
+                'correct_answer' => null,
+                'correct_answers' => ['A', 'C', 'E', 'G'],
                 'points' => 4,
             ],
             // Q69 - True/False (1 mark)
@@ -1924,20 +2446,36 @@ Match with: Projectile, Ballistics, Trajectory, Air Resistance, Gravity, Twist',
                 'correct_answer' => 'A',
                 'points' => 1,
             ],
-            // Q73 - Written (2 marks)
+            // Q73 - Multiple select (2 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Two very common safeties in shotguns are: (2 marks)',
-                'options' => null,
-                'correct_answer' => '1. The Tang, 2. Crossbolt',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Select the two very common safeties in shotguns: (Select 2 correct answers)',
+                'options' => [
+                    'A' => 'The Tang',
+                    'B' => 'Magazine safety',
+                    'C' => 'Crossbolt',
+                    'D' => 'Trigger lock',
+                    'E' => 'Pivot safety',
+                    'F' => 'Grip safety',
+                ],
+                'correct_answer' => null,
+                'correct_answers' => ['A', 'C'],
                 'points' => 2,
             ],
-            // Q74 - Written (2 marks)
+            // Q74 - Multiple select (2 marks)
             [
-                'question_type' => 'written',
-                'question_text' => 'Name the two common types of actions used in sport shooting – handguns (2 marks)',
-                'options' => null,
-                'correct_answer' => '1. Single action, 2. Double action',
+                'question_type' => 'multiple_select',
+                'question_text' => 'Select the two common types of actions used in sport shooting handguns: (Select 2 correct answers)',
+                'options' => [
+                    'A' => 'Single action',
+                    'B' => 'Bolt action',
+                    'C' => 'Double action',
+                    'D' => 'Pump action',
+                    'E' => 'Lever action',
+                    'F' => 'Gas action',
+                ],
+                'correct_answer' => null,
+                'correct_answers' => ['A', 'C'],
                 'points' => 2,
             ],
             // Q75 - Multiple choice (1 mark)

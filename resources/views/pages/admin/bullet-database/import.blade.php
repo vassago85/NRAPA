@@ -182,15 +182,19 @@ new #[Title('Import Bullets - Admin')] class extends Component {
 }; ?>
 
 <div class="flex h-full w-full flex-1 flex-col gap-4 p-6">
-    <div class="flex items-center gap-4">
-        <a href="{{ route('admin.bullet-database.index') }}" wire:navigate class="text-zinc-400 hover:text-zinc-600">
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Import Bullets</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Import bullet data from file</p>
+    </x-slot>
+    
+    <div>
+        <a href="{{ route('admin.bullet-database.index') }}" wire:navigate class="text-zinc-400 hover:text-zinc-600 transition-colors">
             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
         </a>
-        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Import Bullets</h1>
     </div>
 
     @if($showResults)
-    <div class="rounded-lg border border-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-800 p-4">
+    <div class="rounded-xl border border-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-800 p-4">
         <h3 class="font-semibold text-emerald-800 dark:text-emerald-200">Import Complete</h3>
         <p class="text-sm text-emerald-700 dark:text-emerald-300 mt-1">{{ $importedCount }} bullets imported/updated, {{ $skippedCount }} skipped.</p>
         <a href="{{ route('admin.bullet-database.index') }}" wire:navigate class="mt-2 inline-block text-sm text-nrapa-blue hover:underline">View Database</a>
@@ -226,7 +230,7 @@ new #[Title('Import Bullets - Admin')] class extends Component {
                 <button wire:click="parseFile" class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors" @if(!$file) disabled @endif>
                     Parse & Preview
                 </button>
-                <button wire:click="downloadTemplate" class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-4 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                <button wire:click="downloadTemplate" class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-4 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                     <svg class="inline w-4 h-4 mr-1 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                     Download CSV Template (6 examples)
                 </button>
@@ -293,7 +297,7 @@ new #[Title('Import Bullets - Admin')] class extends Component {
 
         {{-- Errors --}}
         @if(count($errors) > 0)
-        <div class="rounded-lg border border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800 p-4">
+        <div class="rounded-xl border border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800 p-4">
             <h3 class="font-semibold text-red-800 dark:text-red-200 mb-2">Validation Errors ({{ count($errors) }})</h3>
             <div class="max-h-48 overflow-y-auto space-y-1">
                 @foreach($errors as $err)

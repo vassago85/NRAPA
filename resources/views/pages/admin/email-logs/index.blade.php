@@ -50,10 +50,10 @@ new class extends Component {
 }; ?>
 
 <div>
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Email Logs</h1>
-        <p class="mt-2 text-zinc-600 dark:text-zinc-400">View all emails sent from the system.</p>
-    </div>
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Email Logs</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">View system email delivery history</p>
+    </x-slot>
 
     <!-- Stats -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -153,7 +153,7 @@ new class extends Component {
                                 @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right">
-                                <button wire:click="viewLog('{{ $log->uuid }}')" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium">
+                                <button wire:click="viewLog('{{ $log->uuid }}')" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium transition-colors">
                                     View
                                 </button>
                             </td>

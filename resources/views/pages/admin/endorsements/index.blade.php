@@ -69,12 +69,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Requests - Admin')] cl
 }; ?>
 
 <div>
-    <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Endorsement Requests</h1>
-            <p class="mt-2 text-zinc-600 dark:text-zinc-400">Manage member endorsement letter requests.</p>
-        </div>
-    </div>
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Endorsements</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Review and manage endorsement requests</p>
+    </x-slot>
 
     {{-- Stats Cards --}}
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">

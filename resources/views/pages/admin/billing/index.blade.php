@@ -360,17 +360,30 @@ new class extends Component {
         window.URL.revokeObjectURL(url);
     }
 }" @download-csv.window="downloadCsv($event)">
-    <div class="mb-8 flex items-center justify-between">
-        <div>
-            <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Billing & Stats</h1>
-            <p class="mt-2 text-zinc-600 dark:text-zinc-400">Track new members, renewals, and billing trends.</p>
-        </div>
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Billing & Stats</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Financial overview and membership statistics</p>
+    </x-slot>
+
+    <div class="mb-8 flex items-center justify-end">
         <a href="{{ route('admin.dashboard') }}" wire:navigate class="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors">
             ← Back to Dashboard
         </a>
     </div>
 
     {{-- Period Selector --}}
+    {{-- Flash Messages --}}
+    @if(session('success'))
+        <div class="mb-6 rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
+            {{ session('success') }}
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="mb-6 rounded-xl border border-red-300 bg-red-50 p-4 text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
+            {{ session('error') }}
+        </div>
+    @endif
+
     <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6 mb-6">
         <div class="flex flex-col sm:flex-row sm:items-center gap-4">
             <div class="flex items-center gap-3">

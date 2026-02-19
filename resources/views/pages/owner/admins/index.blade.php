@@ -184,11 +184,12 @@ new class extends Component {
 }; ?>
 
 <div>
+    <x-slot name="header">
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Manage Admins</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Appoint and manage administrator accounts</p>
+    </x-slot>
+
     <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-            <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Manage Administrators</h1>
-            <p class="mt-2 text-zinc-600 dark:text-zinc-400">Create admins, assign roles, and configure permissions.</p>
-        </div>
         <button wire:click="$set('showCreateModal', true)"
             class="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -215,13 +216,13 @@ new class extends Component {
 
     {{-- Flash Messages --}}
     @if(session('success'))
-        <div class="mb-4 p-4 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg text-green-800 dark:text-green-200">
+        <div class="mb-4 p-4 bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-700 rounded-xl text-emerald-800 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
 
     @if(session('error'))
-        <div class="mb-4 p-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg text-red-800 dark:text-red-200">
+        <div class="mb-4 p-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-xl text-red-800 dark:text-red-200">
             {{ session('error') }}
         </div>
     @endif
@@ -233,7 +234,7 @@ new class extends Component {
     </div>
 
     {{-- Admins Table --}}
-    <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+    <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full">
                 <thead class="bg-zinc-50 dark:bg-zinc-700/50">
@@ -365,11 +366,11 @@ new class extends Component {
 
                         <div class="flex justify-end gap-3 pt-4">
                             <button type="button" wire:click="$set('showCreateModal', false)"
-                                class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                                class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                                 Cancel
                             </button>
                             <button type="submit"
-                                class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg">
+                                class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors">
                                 Create Admin
                             </button>
                         </div>
@@ -429,11 +430,11 @@ new class extends Component {
 
                     <div class="p-6 border-t border-zinc-200 dark:border-zinc-700 flex justify-end gap-3">
                         <button wire:click="$set('showPermissionsModal', false)"
-                            class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                            class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                             Cancel
                         </button>
                         <button wire:click="savePermissions"
-                            class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg">
+                            class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors">
                             Save Permissions
                         </button>
                     </div>
@@ -455,11 +456,11 @@ new class extends Component {
                     </p>
                     <div class="flex justify-end gap-3">
                         <button wire:click="$set('showDeleteModal', false)"
-                            class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                            class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                             Cancel
                         </button>
                         <button wire:click="deleteAdmin"
-                            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg">
+                            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
                             Demote to Member
                         </button>
                     </div>

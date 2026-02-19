@@ -9,7 +9,7 @@
 <body class="min-h-screen bg-zinc-950 text-white antialiased">
     <div class="mx-auto max-w-2xl px-4 py-12">
         <div class="mb-8 text-center">
-            <div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-emerald-600">
+            <div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-nrapa-blue">
                 <svg class="size-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
@@ -22,7 +22,7 @@
             @if($result['valid'])
                 {{-- Valid Certificate --}}
                 <div class="mb-6 flex items-center gap-3">
-                    <div class="flex size-12 items-center justify-center rounded-full bg-emerald-600/20">
+                    <div class="flex size-12 items-center justify-center rounded-full bg-nrapa-blue/20">
                         <svg class="size-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>

@@ -34,7 +34,7 @@
             </div>
 
             <button type="submit" data-test="reset-password-button"
-                    class="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium">
+                    class="w-full px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg font-medium transition-colors">
                 {{ __('Reset password') }}
             </button>
         </form>
