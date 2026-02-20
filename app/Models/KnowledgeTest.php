@@ -21,6 +21,7 @@ class KnowledgeTest extends Model
         'time_limit_minutes',
         'max_attempts',
         'is_active',
+        'show_answers_after_completion',
         'archived_at',
         'dedicated_type',
     ];
@@ -37,6 +38,7 @@ class KnowledgeTest extends Model
             'time_limit_minutes' => 'integer',
             'max_attempts' => 'integer',
             'is_active' => 'boolean',
+            'show_answers_after_completion' => 'boolean',
             'archived_at' => 'datetime',
         ];
     }

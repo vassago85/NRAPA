@@ -28,6 +28,13 @@ class DatabaseSeeder extends Seeder
         // Seed activity configuration
         $this->call(ActivityConfigurationSeeder::class);
 
+        // Seed knowledge tests and questions
+        $this->call(KnowledgeTestSeeder::class);
+        $this->call(KnowledgeTestQuestionsSeeder::class);
+
+        // Seed learning center content
+        $this->call(LearningCenterSeeder::class);
+
         // Seed permissions
         $this->call(PermissionsSeeder::class);
 

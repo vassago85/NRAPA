@@ -416,6 +416,7 @@ new class extends Component {
     public function firearmTypes()
     {
         return FirearmType::active()
+            ->usableForActivities()
             ->ordered()
             ->get();
     }

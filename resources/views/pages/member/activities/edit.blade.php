@@ -331,7 +331,7 @@ new class extends Component {
     public function with(): array
     {
         return [
-            'firearmTypes' => FirearmType::active()->ordered()->get(),
+            'firearmTypes' => FirearmType::active()->usableForActivities()->ordered()->get(),
             'calibres' => FirearmCalibre::active()->ordered()->get(),
             'countries' => Country::active()->ordered()->get(),
             'provinces' => Province::active()->ordered()->get(),

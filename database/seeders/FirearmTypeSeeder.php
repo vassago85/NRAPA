@@ -171,6 +171,10 @@ class FirearmTypeSeeder extends Seeder
             );
         }
 
+        // Deactivate generic duplicates (prefer specific types like Bolt-Action Rifle over "Rifle")
+        $genericSlugs = ['rifle', 'shotgun', 'handgun'];
+        FirearmType::whereIn('slug', $genericSlugs)->update(['is_active' => false]);
+
         $this->command->info('Seeded ' . count($firearmTypes) . ' firearm types with SAPS codes.');
     }
 }

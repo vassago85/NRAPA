@@ -228,8 +228,16 @@ new #[Title('Test Results')] class extends Component {
         </div>
     </div>
 
-    {{-- Answer Review --}}
-    @if($attempt->passed !== null)
+    {{-- Answer Review: show only if test allows it, or viewer is admin (for marking) --}}
+    @php
+        $showAnswerReview = $attempt->passed !== null && (
+            ($attempt->knowledgeTest->show_answers_after_completion ?? true) ||
+            auth()->user()->isAdmin() ||
+            auth()->user()->isOwner() ||
+            auth()->user()->isDeveloper()
+        );
+    @endphp
+    @if($showAnswerReview)
     <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
         <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Answer Review</h2>

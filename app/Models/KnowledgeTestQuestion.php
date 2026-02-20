@@ -159,10 +159,8 @@ class KnowledgeTestQuestion extends Model
         // Exact match = fully correct
         $isExactMatch = $correctCount === $totalCorrect && $wrongSelections === 0;
 
-        // Partial score: correct selections minus penalties for wrong ones
-        $partialScore = $totalCorrect > 0 
-            ? max(0, ($correctCount - $wrongSelections) / $totalCorrect) 
-            : 0;
+        // Partial score: correct selections only; no deduction for wrong answers
+        $partialScore = $totalCorrect > 0 ? $correctCount / $totalCorrect : 0;
 
         return [
             'correct' => $isExactMatch,

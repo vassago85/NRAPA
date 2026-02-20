@@ -157,6 +157,16 @@ class FirearmType extends Model
     }
 
     /**
+     * Scope to firearm types usable for activities.
+     * Excludes generic duplicates (e.g. "Rifle", "Shotgun") in favour of specific types (e.g. "Bolt-Action Rifle").
+     */
+    public function scopeUsableForActivities($query)
+    {
+        return $query->whereNotNull('action_type')
+            ->whereNotIn('slug', ['rifle', 'shotgun', 'handgun']);
+    }
+
+    /**
      * Scope to firearm types for a specific dedicated type.
      * Includes: null (general), matching type, and 'both'
      */

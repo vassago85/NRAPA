@@ -30,6 +30,8 @@ new #[Title('Create Knowledge Test - Admin')] class extends Component {
 
     public bool $is_active = false;
 
+    public bool $show_answers_after_completion = true;
+
     #[Validate('required|in:hunter,sport,both')]
     public string $dedicated_type = 'both';
 
@@ -59,6 +61,7 @@ new #[Title('Create Knowledge Test - Admin')] class extends Component {
             'time_limit_minutes' => $this->time_limit_minutes,
             'max_attempts' => $this->max_attempts,
             'is_active' => $this->is_active,
+            'show_answers_after_completion' => $this->show_answers_after_completion,
             'dedicated_type' => $this->dedicated_type,
         ]);
 
@@ -188,12 +191,17 @@ new #[Title('Create Knowledge Test - Admin')] class extends Component {
                 </div>
             </div>
 
-            <div class="mt-4">
+            <div class="mt-4 space-y-4">
                 <label class="flex items-center gap-3">
                     <input type="checkbox" wire:model="is_active" class="size-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700">
                     <span class="text-sm text-zinc-700 dark:text-zinc-300">Make test active immediately</span>
                 </label>
-                <p class="ml-7 mt-1 text-xs text-zinc-500 dark:text-zinc-400">You can activate it later after adding questions</p>
+                <p class="ml-7 text-xs text-zinc-500 dark:text-zinc-400">You can activate it later after adding questions</p>
+                <label class="flex items-center gap-3">
+                    <input type="checkbox" wire:model="show_answers_after_completion" class="size-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700">
+                    <span class="text-sm text-zinc-700 dark:text-zinc-300">Show correct answers after test completion</span>
+                </label>
+                <p class="ml-7 text-xs text-zinc-500 dark:text-zinc-400">When disabled, members will not see the correct answers when reviewing their results. Admins always see answers for marking.</p>
             </div>
         </div>
 

@@ -131,6 +131,19 @@ new #[Title('Dashboard')] class extends Component {
             ->get();
     }
 
+    /**
+     * Activities awaiting admin approval (status=pending only; approved/rejected are excluded).
+     */
+    #[Computed]
+    public function pendingActivities()
+    {
+        return ShootingActivity::where('user_id', $this->user->id)
+            ->where('status', 'pending')
+            ->with('activityType')
+            ->orderBy('activity_date', 'desc')
+            ->get();
+    }
+
     #[Computed]
     public function rejectedDocuments()
     {
@@ -578,7 +591,7 @@ new #[Title('Dashboard')] class extends Component {
         $totalDismissed = $dismissedActivities->count() + $dismissedDocuments->count();
     @endphp
 
-    @if($this->pendingDocuments->count() > 0 || $activeDocuments->count() > 0 || $activeActivities->count() > 0 || $this->showEndorsementStatus || $totalDismissed > 0)
+    @if($this->pendingDocuments->count() > 0 || $this->pendingActivities->count() > 0 || $activeDocuments->count() > 0 || $activeActivities->count() > 0 || $this->showEndorsementStatus || $totalDismissed > 0)
     <div class="space-y-4">
         {{-- Rejected Activities Alert (active / not dismissed) --}}
         @if($activeActivities->count() > 0)
@@ -679,6 +692,46 @@ new #[Title('Dashboard')] class extends Component {
                     <a href="{{ route('documents.index') }}" wire:navigate 
                         class="mt-3 inline-flex items-center gap-1 text-sm font-medium text-red-800 hover:text-red-900 dark:text-red-200 dark:hover:text-red-100">
                         View All Documents
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+        @endif
+
+        {{-- Pending Activities Alert (waiting for admin approval; approved activities are excluded) --}}
+        @if($this->pendingActivities->count() > 0)
+        <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
+            <div class="flex items-start gap-4">
+                <div class="flex size-10 flex-shrink-0 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/50">
+                    <svg class="size-5 text-amber-600 dark:text-amber-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <h3 class="font-semibold text-amber-800 dark:text-amber-200">Activities Waiting for Approval</h3>
+                    <p class="mt-1 text-sm text-amber-700 dark:text-amber-300">
+                        You have {{ $this->pendingActivities->count() }} activit{{ $this->pendingActivities->count() > 1 ? 'ies' : 'y' }} waiting for admin verification:
+                    </p>
+                    <ul class="mt-2 space-y-1 text-sm text-amber-700 dark:text-amber-300">
+                        @foreach($this->pendingActivities->take(3) as $activity)
+                            <li class="flex items-center gap-2">
+                                <svg class="size-3" fill="currentColor" viewBox="0 0 8 8">
+                                    <circle cx="4" cy="4" r="3"/>
+                                </svg>
+                                {{ $activity->activityType?->name ?? 'Activity' }} - {{ $activity->activity_date->format('d M Y') }}
+                                <span class="text-xs text-amber-600 dark:text-amber-400">(submitted {{ $activity->created_at->diffForHumans() }})</span>
+                            </li>
+                        @endforeach
+                        @if($this->pendingActivities->count() > 3)
+                            <li class="text-xs italic">and {{ $this->pendingActivities->count() - 3 }} more...</li>
+                        @endif
+                    </ul>
+                    <a href="{{ route('activities.index') }}" wire:navigate 
+                        class="mt-3 inline-flex items-center gap-1 text-sm font-medium text-amber-800 hover:text-amber-900 dark:text-amber-200 dark:hover:text-amber-100">
+                        View Activities
                         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                         </svg>
