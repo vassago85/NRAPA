@@ -232,6 +232,10 @@ new #[Title('Review Application - Admin')] class extends Component {
 
     protected function sendApprovalEmail(): void
     {
+        if ($this->membership->welcome_email_sent_at) {
+            return;
+        }
+
         try {
             $user = $this->membership->user;
             $cardUrl = route('card');
@@ -240,6 +244,8 @@ new #[Title('Review Application - Admin')] class extends Component {
                 membership: $this->membership,
                 cardUrl: $cardUrl,
             ));
+
+            $this->membership->update(['welcome_email_sent_at' => now()]);
         } catch (\Exception $e) {
             Log::warning('Failed to send membership approval email', [
                 'user_id' => $this->membership->user_id,
@@ -568,13 +574,16 @@ new #[Title('Review Application - Admin')] class extends Component {
         <div class="flex flex-col gap-4 sm:flex-row">
             <button
                 wire:click="approve"
+                wire:loading.attr="disabled"
+                wire:target="approve"
                 wire:confirm="Are you sure you want to approve this membership application?"
-                class="inline-flex items-center justify-center gap-2 rounded-lg bg-nrapa-blue px-6 py-3 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors"
+                class="inline-flex items-center justify-center gap-2 rounded-lg bg-nrapa-blue px-6 py-3 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 <svg class="size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                 </svg>
-                Approve Application
+                <span wire:loading.remove wire:target="approve">Approve Application</span>
+                <span wire:loading wire:target="approve">Processing...</span>
             </button>
             <button
                 wire:click="$set('showRejectModal', true)"

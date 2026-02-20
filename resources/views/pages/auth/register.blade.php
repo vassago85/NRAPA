@@ -12,7 +12,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('register.store') }}" class="flex flex-col gap-4">
+        <form method="POST" action="{{ route('register.store') }}" class="flex flex-col gap-4" x-data="{ submitted: false }" x-on:submit="submitted = true">
             @csrf
 
             <!-- Name -->
@@ -111,10 +111,12 @@
 
             <button 
                 type="submit" 
-                class="w-full px-4 py-2.5 text-sm font-semibold text-white bg-nrapa-blue rounded-lg hover:bg-nrapa-blue-dark focus:outline-none focus:ring-2 focus:ring-nrapa-blue focus:ring-offset-2 dark:focus:ring-offset-zinc-800 transition"
+                x-bind:disabled="submitted"
+                class="w-full px-4 py-2.5 text-sm font-semibold text-white bg-nrapa-blue rounded-lg hover:bg-nrapa-blue-dark focus:outline-none focus:ring-2 focus:ring-nrapa-blue focus:ring-offset-2 dark:focus:ring-offset-zinc-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 data-test="register-user-button"
             >
-                {{ __('Create account') }}
+                <span x-show="!submitted">{{ __('Create account') }}</span>
+                <span x-show="submitted" x-cloak>{{ __('Creating account...') }}</span>
             </button>
         </form>
 

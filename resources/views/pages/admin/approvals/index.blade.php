@@ -177,13 +177,14 @@ new #[Title('All Approvals - Admin')] class extends Component {
                 ]);
             }
 
-            // Send approval email
+            // Send approval email (skip if already sent to prevent duplicates)
             try {
-                if ($membership->user) {
+                if ($membership->user && !$membership->welcome_email_sent_at) {
                     Mail::to($membership->user->email)->queue(new MembershipApproved(
                         membership: $membership,
                         cardUrl: route('card'),
                     ));
+                    $membership->update(['welcome_email_sent_at' => now()]);
                 }
             } catch (\Exception $e) {
                 Log::warning('Failed to send bulk approval email', [

@@ -40,6 +40,7 @@ class Membership extends Model
         'notes',
         'source',
         'payment_email_sent_at',
+        'welcome_email_sent_at',
         'affiliated_club_id',
     ];
 
@@ -58,6 +59,7 @@ class Membership extends Model
             'suspended_at' => 'datetime',
             'revoked_at' => 'datetime',
             'payment_email_sent_at' => 'datetime',
+            'welcome_email_sent_at' => 'datetime',
         ];
     }
 
