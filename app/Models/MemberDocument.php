@@ -263,9 +263,29 @@ class MemberDocument extends Model
 
         $idNumber = $this->metadata['identity_number'] ?? null;
 
-        if ($idNumber && $this->user) {
-            $this->user->update(['id_number' => $idNumber]);
+        if (!$idNumber || !$this->user) {
+            return;
         }
+
+        if ($this->user->id_number === $idNumber) {
+            return;
+        }
+
+        $existing = User::where('id_number', $idNumber)
+            ->where('id', '!=', $this->user->id)
+            ->first();
+
+        if ($existing) {
+            Log::warning('Cannot sync ID number to user: duplicate exists', [
+                'id_number' => $idNumber,
+                'target_user_id' => $this->user->id,
+                'existing_user_id' => $existing->id,
+                'document_id' => $this->id,
+            ]);
+            return;
+        }
+
+        $this->user->update(['id_number' => $idNumber]);
     }
 
     /**
