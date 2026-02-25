@@ -222,16 +222,16 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
                                 <div class="h-10 w-10 flex-shrink-0 bg-zinc-200 dark:bg-zinc-700 rounded-full flex items-center justify-center">
-                                    <span class="text-sm font-medium text-zinc-600 dark:text-zinc-300">{{ $document->user->initials() }}</span>
+                                    <span class="text-sm font-medium text-zinc-600 dark:text-zinc-300">{{ $document->user?->initials() ?? '?' }}</span>
                                 </div>
                                 <div class="ml-4">
-                                    <div class="text-sm font-medium text-zinc-900 dark:text-white">{{ $document->user->name }}</div>
-                                    <div class="text-sm text-zinc-500 dark:text-zinc-400">{{ $document->user->email }}</div>
+                                    <div class="text-sm font-medium text-zinc-900 dark:text-white">{{ $document->user?->name ?? 'Deleted User' }}</div>
+                                    <div class="text-sm text-zinc-500 dark:text-zinc-400">{{ $document->user?->email ?? '-' }}</div>
                                 </div>
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-zinc-900 dark:text-white">{{ $document->documentType->name }}</div>
+                            <div class="text-sm text-zinc-900 dark:text-white">{{ $document->documentType?->name ?? 'Unknown Type' }}</div>
                         </td>
                         <td class="px-6 py-4">
                             <div class="text-sm text-zinc-900 dark:text-white truncate max-w-xs" title="{{ $document->original_filename }}">
@@ -242,9 +242,9 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">
-                            {{ $document->uploaded_at->format('d M Y') }}
+                            {{ $document->uploaded_at?->format('d M Y') ?? '-' }}
                             <br>
-                            <span class="text-xs">{{ $document->uploaded_at->diffForHumans() }}</span>
+                            <span class="text-xs">{{ $document->uploaded_at?->diffForHumans() ?? '' }}</span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $this->getStatusBadgeClass($document->status) }}">
@@ -329,12 +329,12 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Member</p>
-                                    <p class="text-base text-zinc-900 dark:text-white">{{ $reviewingDocument->user->name }}</p>
-                                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ $reviewingDocument->user->email }}</p>
+                                    <p class="text-base text-zinc-900 dark:text-white">{{ $reviewingDocument->user?->name ?? 'Deleted User' }}</p>
+                                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ $reviewingDocument->user?->email ?? '-' }}</p>
                                 </div>
                                 <div>
                                     <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Document Type</p>
-                                    <p class="text-base text-zinc-900 dark:text-white">{{ $reviewingDocument->documentType->name }}</p>
+                                    <p class="text-base text-zinc-900 dark:text-white">{{ $reviewingDocument->documentType?->name ?? 'Unknown Type' }}</p>
                                 </div>
                                 <div>
                                     <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Filename</p>
@@ -346,7 +346,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                                 </div>
                                 <div>
                                     <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Uploaded</p>
-                                    <p class="text-base text-zinc-900 dark:text-white">{{ $reviewingDocument->uploaded_at->format('d M Y H:i') }}</p>
+                                    <p class="text-base text-zinc-900 dark:text-white">{{ $reviewingDocument->uploaded_at?->format('d M Y H:i') ?? '-' }}</p>
                                 </div>
                                 <div>
                                     <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Status</p>
@@ -433,7 +433,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                                 </div>
                             @endif
 
-                            @if($reviewingDocument->documentType->description)
+                            @if($reviewingDocument->documentType?->description)
                                 <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                                     <p class="text-sm font-medium text-blue-800 dark:text-blue-200">Document Requirements</p>
                                     <p class="mt-1 text-sm text-blue-700 dark:text-blue-300">{{ $reviewingDocument->documentType->description }}</p>
