@@ -183,7 +183,7 @@ new class extends Component {
             <div class="fixed inset-0 z-50 overflow-y-auto">
                 <div class="flex min-h-screen items-center justify-center p-4">
                     <div wire:click="closeLog" class="fixed inset-0 bg-black/50"></div>
-                    <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+                    <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto">
                         <div class="flex items-center justify-between mb-4">
                             <h2 class="text-xl font-bold text-zinc-900 dark:text-white">Email Details</h2>
                             <button wire:click="closeLog" class="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200">
@@ -192,12 +192,12 @@ new class extends Component {
                         </div>
 
                         <div class="space-y-4">
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                <div class="col-span-2">
                                     <label class="text-sm font-medium text-zinc-500 dark:text-zinc-400">To</label>
                                     <p class="text-zinc-900 dark:text-white">{{ $log->to_name ?? 'Unknown' }} &lt;{{ $log->to_email }}&gt;</p>
                                 </div>
-                                <div>
+                                <div class="col-span-2">
                                     <label class="text-sm font-medium text-zinc-500 dark:text-zinc-400">From</label>
                                     <p class="text-zinc-900 dark:text-white">{{ $log->from_name ?? 'Unknown' }} &lt;{{ $log->from_email }}&gt;</p>
                                 </div>
@@ -209,33 +209,40 @@ new class extends Component {
                                     <label class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Status</label>
                                     <p class="text-zinc-900 dark:text-white">{{ ucfirst($log->status) }}</p>
                                 </div>
-                            </div>
-
-                            <div>
-                                <label class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Subject</label>
-                                <p class="text-zinc-900 dark:text-white">{{ $log->subject }}</p>
-                            </div>
-
-                            <div>
-                                <label class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Email Type</label>
-                                <p class="text-zinc-900 dark:text-white">{{ $log->mailable_class }}</p>
-                            </div>
-
-                            @if($log->body)
                                 <div>
-                                    <label class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Preview</label>
-                                    <div class="mt-1 p-3 bg-zinc-50 dark:bg-zinc-700 rounded-lg text-sm text-zinc-700 dark:text-zinc-300">
-                                        {{ $log->body }}...
-                                    </div>
+                                    <label class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Subject</label>
+                                    <p class="text-zinc-900 dark:text-white">{{ $log->subject }}</p>
+                                </div>
+                                <div>
+                                    <label class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Type</label>
+                                    <p class="text-zinc-900 dark:text-white">{{ class_basename($log->mailable_class) }}</p>
+                                </div>
+                            </div>
+
+                            @if($log->error_message)
+                                <div class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-300">
+                                    <span class="font-medium">Error:</span> {{ $log->error_message }}
                                 </div>
                             @endif
 
-                            @if($log->error_message)
+                            @if($log->body)
                                 <div>
-                                    <label class="text-sm font-medium text-red-500">Error</label>
-                                    <div class="mt-1 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-300">
-                                        {{ $log->error_message }}
-                                    </div>
+                                    <label class="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1 block">Email Content</label>
+                                    @if(str_contains($log->body, '<'))
+                                        <iframe
+                                            srcdoc="{{ e($log->body) }}"
+                                            sandbox="allow-same-origin"
+                                            class="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white"
+                                            style="min-height: 500px;"
+                                            onload="this.style.height = this.contentWindow.document.body.scrollHeight + 40 + 'px';"
+                                        ></iframe>
+                                    @else
+                                        <div class="mt-1 p-4 bg-zinc-50 dark:bg-zinc-700 rounded-lg text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">{{ $log->body }}</div>
+                                    @endif
+                                </div>
+                            @else
+                                <div class="p-4 bg-zinc-50 dark:bg-zinc-700 rounded-lg text-sm text-zinc-500 dark:text-zinc-400 text-center">
+                                    No email content stored.
                                 </div>
                             @endif
                         </div>

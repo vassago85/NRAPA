@@ -45,13 +45,7 @@ class LogSentEmail
                          $event->data['mailable'] ?? 
                          'Unknown';
 
-        // Get body (simplified - full body can be large)
-        $body = null;
-        if ($message->getHtmlBody()) {
-            $body = mb_substr(strip_tags($message->getHtmlBody()), 0, 500);
-        } elseif ($message->getTextBody()) {
-            $body = mb_substr($message->getTextBody(), 0, 500);
-        }
+        $body = $message->getHtmlBody() ?: $message->getTextBody();
 
         EmailLog::create([
             'user_id' => $user?->id,

@@ -2,15 +2,9 @@
 
 namespace App\Providers;
 
-use App\Listeners\LogSentEmail;
-use App\Listeners\RecordLoginLog;
-use App\Listeners\TrackLoginWithout2FA;
 use Carbon\CarbonImmutable;
-use Illuminate\Auth\Events\Login;
-use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -42,17 +36,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
-        $this->registerEventListeners();
-    }
-
-    /**
-     * Register event listeners.
-     */
-    protected function registerEventListeners(): void
-    {
-        Event::listen(MessageSent::class, LogSentEmail::class);
-        Event::listen(Login::class, TrackLoginWithout2FA::class);
-        Event::listen(Login::class, RecordLoginLog::class);
     }
 
     protected function configureDefaults(): void
