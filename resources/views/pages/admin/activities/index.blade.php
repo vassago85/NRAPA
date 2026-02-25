@@ -125,11 +125,11 @@ new class extends Component {
                         @foreach($activities as $activity)
                             <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
                                 <td class="whitespace-nowrap px-6 py-4">
-                                    <div class="text-sm font-medium text-zinc-900 dark:text-white">{{ $activity->user->name }}</div>
-                                    <div class="text-xs text-zinc-500">{{ $activity->user->email }}</div>
+                                    <div class="text-sm font-medium text-zinc-900 dark:text-white">{{ $activity->user?->name ?? 'Deleted User' }}</div>
+                                    <div class="text-xs text-zinc-500">{{ $activity->user?->email ?? '-' }}</div>
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-600 dark:text-zinc-300">
-                                    {{ $activity->activity_date->format('d M Y') }}
+                                    {{ $activity->activity_date?->format('d M Y') ?? '-' }}
                                 </td>
                                 <td class="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-300">
                                     <div class="font-medium">{{ $activity->activityType?->name ?? 'N/A' }}</div>

@@ -112,12 +112,12 @@ new class extends Component {
                 <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                         <dt class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Name</dt>
-                        <dd class="mt-1 text-sm text-zinc-900 dark:text-white">{{ $activity->user->name }}</dd>
+                        <dd class="mt-1 text-sm text-zinc-900 dark:text-white">{{ $activity->user?->name ?? 'Deleted User' }}</dd>
                     </div>
 
                     <div>
                         <dt class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Email</dt>
-                        <dd class="mt-1 text-sm text-zinc-900 dark:text-white">{{ $activity->user->email }}</dd>
+                        <dd class="mt-1 text-sm text-zinc-900 dark:text-white">{{ $activity->user?->email ?? '-' }}</dd>
                     </div>
 
                     <div>
@@ -134,7 +134,7 @@ new class extends Component {
                 <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                         <dt class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Date of Activity</dt>
-                        <dd class="mt-1 text-sm text-zinc-900 dark:text-white">{{ $activity->activity_date->format('d F Y') }}</dd>
+                        <dd class="mt-1 text-sm text-zinc-900 dark:text-white">{{ $activity->activity_date?->format('d F Y') ?? '-' }}</dd>
                     </div>
 
                     <div>
@@ -411,12 +411,12 @@ new class extends Component {
                                 <dl class="space-y-2 text-sm">
                                     <div>
                                         <dt class="text-zinc-500 dark:text-zinc-400">Member</dt>
-                                        <dd class="text-zinc-900 dark:text-white font-medium">{{ $activity->user->name }}</dd>
-                                        <dd class="text-zinc-600 dark:text-zinc-400 text-xs">{{ $activity->user->email }}</dd>
+                                        <dd class="text-zinc-900 dark:text-white font-medium">{{ $activity->user?->name ?? 'Deleted User' }}</dd>
+                                        <dd class="text-zinc-600 dark:text-zinc-400 text-xs">{{ $activity->user?->email ?? '-' }}</dd>
                                     </div>
                                     <div>
                                         <dt class="text-zinc-500 dark:text-zinc-400">Activity Date</dt>
-                                        <dd class="text-zinc-900 dark:text-white">{{ $activity->activity_date->format('d F Y') }}</dd>
+                                        <dd class="text-zinc-900 dark:text-white">{{ $activity->activity_date?->format('d F Y') ?? '-' }}</dd>
                                     </div>
                                     <div>
                                         <dt class="text-zinc-500 dark:text-zinc-400">Activity Type</dt>
@@ -587,12 +587,12 @@ new class extends Component {
                                 <dl class="space-y-2 text-sm">
                                     <div>
                                         <dt class="text-zinc-500 dark:text-zinc-400">Member</dt>
-                                        <dd class="text-zinc-900 dark:text-white font-medium">{{ $activity->user->name }}</dd>
-                                        <dd class="text-zinc-600 dark:text-zinc-400 text-xs">{{ $activity->user->email }}</dd>
+                                        <dd class="text-zinc-900 dark:text-white font-medium">{{ $activity->user?->name ?? 'Deleted User' }}</dd>
+                                        <dd class="text-zinc-600 dark:text-zinc-400 text-xs">{{ $activity->user?->email ?? '-' }}</dd>
                                     </div>
                                     <div>
                                         <dt class="text-zinc-500 dark:text-zinc-400">Activity Date</dt>
-                                        <dd class="text-zinc-900 dark:text-white">{{ $activity->activity_date->format('d F Y') }}</dd>
+                                        <dd class="text-zinc-900 dark:text-white">{{ $activity->activity_date?->format('d F Y') ?? '-' }}</dd>
                                     </div>
                                     <div>
                                         <dt class="text-zinc-500 dark:text-zinc-400">Activity Type</dt>
