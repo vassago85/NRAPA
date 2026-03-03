@@ -60,12 +60,10 @@
         {{-- Header --}}
         <header class="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#061e3c]/80 backdrop-blur-xl">
             <nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-3 lg:px-8" aria-label="Global">
-                <a href="/" class="flex items-center gap-3 group">
-                    <img src="{{ asset('nrapa-icon.png') }}" alt="NRAPA" class="size-9 object-contain transition group-hover:scale-105" />
-                    <div class="flex flex-col">
-                        <span class="text-lg font-bold tracking-tight text-white leading-tight">NRAPA</span>
-                        <span class="text-[10px] font-medium text-zinc-400 leading-tight">A Division of Ranyati</span>
-                    </div>
+                <a href="/" class="flex items-center gap-4 group">
+                    <img src="{{ asset('ranyati-logo-dark.png') }}" alt="Ranyati" class="h-10 object-contain transition group-hover:scale-105" />
+                    <span class="text-zinc-500/50">|</span>
+                    <img src="{{ asset('nrapa-logo-horizontal-white.png') }}" alt="NRAPA" class="h-8 object-contain" />
                 </a>
                 <div class="hidden sm:flex items-center gap-8">
                     <a href="#about" class="text-sm font-medium text-zinc-300 hover:text-white transition">About</a>
@@ -89,90 +87,13 @@
             </nav>
         </header>
 
-        {{-- Hero --}}
-        <section class="hero-gradient relative overflow-hidden pt-32 pb-24 sm:pt-40 sm:pb-32">
-            <div class="hero-pattern absolute inset-0"></div>
-            <div class="hero-glow absolute inset-0"></div>
-            <div class="relative mx-auto max-w-7xl px-6 lg:px-8 text-center">
-                <div class="animate-fade-up">
-                    <div class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 backdrop-blur-sm">
-                        <span class="size-2 rounded-full bg-nrapa-orange animate-pulse"></span>
-                        <span class="text-xs font-medium text-zinc-300">SAPS Accredited &mdash; FAR 1300122 &amp; 1300127</span>
-                    </div>
-                </div>
-
-                <div class="mt-8 animate-fade-up-delay inline-block rounded-2xl bg-white p-4 shadow-lg">
-                    <img src="{{ asset('nrapa-logo-horizontal.png') }}" alt="NRAPA - National Rifle and Pistol Association" class="h-20 sm:h-28 md:h-32 w-auto object-contain" />
-                </div>
-
-                <p class="mt-6 text-sm font-medium text-zinc-400 tracking-wide uppercase animate-fade-up-delay">
-                    A Division of Ranyati &mdash; Firearm Administration Specialists Since 2006
-                </p>
-
-                <p class="mx-auto mt-6 max-w-2xl text-lg leading-8 text-zinc-300 animate-fade-up-delay-2">
-                    Your partner in responsible firearm ownership. We help you obtain dedicated status, manage your licences, and stay compliant with the Firearms Control Act &mdash; so you can focus on what you love, whether it's on the range or in the bush.
-                </p>
-
-                <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-up-delay-2">
-                    @auth
-                        <a href="{{ route('dashboard') }}" class="rounded-xl bg-nrapa-orange px-8 py-3.5 text-sm font-bold text-white shadow-lg btn-glow hover:bg-nrapa-orange-dark transition-all">
-                            Go to Dashboard
-                        </a>
-                        <a href="#features" class="text-sm font-semibold text-zinc-300 hover:text-white transition">
-                            View features <span aria-hidden="true">&rarr;</span>
-                        </a>
-                    @else
-                        <a href="{{ route('register') }}" class="rounded-xl bg-nrapa-orange px-8 py-3.5 text-sm font-bold text-white shadow-lg btn-glow hover:bg-nrapa-orange-dark transition-all">
-                            Become a Member
-                        </a>
-                        <a href="#about" class="rounded-xl border border-white/20 bg-white/5 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-sm hover:bg-white/10 transition-all">
-                            Learn About Ranyati
-                        </a>
-                        <a href="{{ route('login') }}" class="text-sm font-semibold text-zinc-300 hover:text-white transition">
-                            Already a member? Sign in <span aria-hidden="true">&rarr;</span>
-                        </a>
-                    @endauth
-                </div>
-            </div>
-
-            {{-- Bottom curve --}}
-            <div class="absolute bottom-0 left-0 right-0">
-                <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full">
-                    <path d="M0 60L1440 60L1440 0C1440 0 1080 40 720 40C360 40 0 0 0 0L0 60Z" fill="white"/>
-                </svg>
-            </div>
-        </section>
-
-        {{-- Credentials Bar --}}
-        <section class="relative -mt-1 bg-white py-12">
-            <div class="mx-auto max-w-5xl px-6">
-                <div class="grid grid-cols-2 gap-8 md:grid-cols-4">
-                    <div class="text-center">
-                        <p class="text-2xl font-extrabold text-nrapa-blue">SAPS</p>
-                        <p class="mt-1 text-sm text-zinc-500">Accredited</p>
-                    </div>
-                    <div class="text-center">
-                        <p class="text-2xl font-extrabold text-nrapa-blue">1300122</p>
-                        <p class="mt-1 text-sm text-zinc-500">FAR Sport</p>
-                    </div>
-                    <div class="text-center">
-                        <p class="text-2xl font-extrabold text-nrapa-blue">1300127</p>
-                        <p class="mt-1 text-sm text-zinc-500">FAR Hunting</p>
-                    </div>
-                    <div class="text-center">
-                        <p class="text-2xl font-extrabold text-nrapa-blue">POPIA</p>
-                        <p class="mt-1 text-sm text-zinc-500">Compliant</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        {{-- About Ranyati Introduction --}}
-        <section id="about" class="bg-[#061e3c] py-20">
+        {{-- About Ranyati Introduction (moved to top per client request) --}}
+        <section id="about" class="hero-gradient relative pt-28 pb-28 sm:pt-36 sm:pb-32">
             <div class="mx-auto max-w-7xl px-6 lg:px-8">
                 <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
-                    <div class="flex-shrink-0">
-                        <img src="{{ asset('ranyati-logo-dark.png') }}" alt="Ranyati Firearm Motivations" class="h-20 sm:h-28 object-contain" />
+                    <div class="flex-shrink-0 flex flex-col items-center gap-4">
+                        <img src="{{ asset('ranyati-logo-dark.png') }}" alt="Ranyati Firearm Motivations" class="h-24 sm:h-36 object-contain" />
+                        <img src="{{ asset('nrapa-logo-horizontal-white.png') }}" alt="NRAPA" class="h-24 sm:h-36 object-contain" />
                     </div>
                     <div class="text-center lg:text-left">
                         <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
@@ -196,21 +117,13 @@
                 {{-- Services pillars --}}
                 <div class="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6">
                     <div class="rounded-xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur-sm">
-                        <div class="mx-auto flex size-12 items-center justify-center rounded-xl bg-nrapa-blue/30">
-                            <svg class="size-6 text-nrapa-orange" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
-                            </svg>
-                        </div>
+                        <img src="{{ asset('nrapa-icon.png') }}" alt="NRAPA" class="mx-auto size-12 object-contain" />
                         <h3 class="mt-4 text-base font-bold text-white">NRAPA</h3>
                         <p class="mt-1 text-xs font-medium text-nrapa-orange uppercase tracking-wider">Membership Ecosystem</p>
                         <p class="mt-3 text-sm text-zinc-400">SAPS-accredited association for dedicated sport &amp; hunter status, digital compliance, and member services.</p>
                     </div>
                     <div class="rounded-xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur-sm">
-                        <div class="mx-auto flex size-12 items-center justify-center rounded-xl bg-nrapa-blue/30">
-                            <svg class="size-6 text-nrapa-orange" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
-                            </svg>
-                        </div>
+                        <img src="{{ asset('ranyati-icon.png') }}" alt="Ranyati" class="mx-auto size-12 object-contain" />
                         <h3 class="mt-4 text-base font-bold text-white">Firearm Motivations</h3>
                         <p class="mt-1 text-xs font-medium text-nrapa-orange uppercase tracking-wider">Licence Applications</p>
                         <p class="mt-3 text-sm text-zinc-400">Professional motivations, licence applications, renewals, and compliance support by experienced administrators.</p>
@@ -227,10 +140,79 @@
                     </div>
                 </div>
             </div>
+
+            {{-- Curve transition to light section --}}
+            <div class="absolute bottom-0 left-0 right-0">
+                <svg viewBox="0 0 1440 80" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full" preserveAspectRatio="none">
+                    <path d="M0 80L1440 80L1440 0C1440 0 1080 60 720 60C360 60 0 0 0 0L0 80Z" fill="white"/>
+                </svg>
+            </div>
+        </section>
+
+        {{-- Hero --}}
+        <section class="bg-white relative overflow-hidden pt-16 pb-24 sm:pt-20 sm:pb-28">
+            <div class="mx-auto max-w-7xl px-6 lg:px-8 text-center">
+                <div class="animate-fade-up-delay">
+                    <img src="{{ asset('nrapa-logo-horizontal.png') }}" alt="NRAPA - National Rifle and Pistol Association" class="mx-auto h-20 sm:h-28 md:h-36 w-auto object-contain" />
+                </div>
+
+                <p class="mt-6 text-sm font-medium text-zinc-500 tracking-wide uppercase animate-fade-up-delay">
+                    A Division of Ranyati &mdash; Firearm Administration Specialists Since 2006
+                </p>
+
+                <p class="mx-auto mt-6 max-w-2xl text-lg leading-8 text-zinc-600 animate-fade-up-delay-2">
+                    Your partner in responsible firearm ownership. We help you obtain dedicated status, manage your licences, and stay compliant with the Firearms Control Act &mdash; so you can focus on what you love, whether it's on the range or in the bush.
+                </p>
+
+                <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-up-delay-2">
+                    @auth
+                        <a href="{{ route('dashboard') }}" class="rounded-xl bg-nrapa-orange px-8 py-3.5 text-sm font-bold text-white shadow-lg btn-glow hover:bg-nrapa-orange-dark transition-all">
+                            Go to Dashboard
+                        </a>
+                        <a href="#features" class="text-sm font-semibold text-nrapa-blue hover:text-nrapa-blue-dark transition">
+                            View features <span aria-hidden="true">&rarr;</span>
+                        </a>
+                    @else
+                        <a href="{{ route('register') }}" class="rounded-xl bg-nrapa-orange px-8 py-3.5 text-sm font-bold text-white shadow-lg btn-glow hover:bg-nrapa-orange-dark transition-all">
+                            Become a Member
+                        </a>
+                        <a href="#features" class="rounded-xl border border-nrapa-blue/20 px-8 py-3.5 text-sm font-semibold text-nrapa-blue hover:bg-nrapa-blue/5 transition-all">
+                            View Features
+                        </a>
+                        <a href="{{ route('login') }}" class="text-sm font-semibold text-zinc-500 hover:text-nrapa-blue transition">
+                            Already a member? Sign in <span aria-hidden="true">&rarr;</span>
+                        </a>
+                    @endauth
+                </div>
+            </div>
+        </section>
+
+        {{-- Credentials Bar --}}
+        <section class="relative bg-blue-50 py-12">
+            <div class="mx-auto max-w-5xl px-6">
+                <div class="grid grid-cols-2 gap-8 md:grid-cols-4">
+                    <div class="text-center">
+                        <p class="text-2xl font-extrabold text-nrapa-blue">SAPS</p>
+                        <p class="mt-1 text-sm text-zinc-500">Accredited</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-2xl font-extrabold text-nrapa-blue">1300122</p>
+                        <p class="mt-1 text-sm text-zinc-500">FAR Sport</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-2xl font-extrabold text-nrapa-blue">1300127</p>
+                        <p class="mt-1 text-sm text-zinc-500">FAR Hunting</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-2xl font-extrabold text-nrapa-blue">POPIA</p>
+                        <p class="mt-1 text-sm text-zinc-500">Compliant</p>
+                    </div>
+                </div>
+            </div>
         </section>
 
         {{-- Features --}}
-        <section id="features" class="bg-zinc-50 py-24">
+        <section id="features" class="bg-white py-24">
             <div class="mx-auto max-w-7xl px-6 lg:px-8">
                 <div class="text-center">
                     <span class="inline-block rounded-full bg-nrapa-blue/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-nrapa-blue">
@@ -326,7 +308,7 @@
                 ->get();
             $basicType = $membershipTypes->firstWhere('slug', 'basic');
         @endphp
-        <section id="pricing" class="bg-white py-24">
+        <section id="pricing" class="bg-zinc-100 py-24">
             <div class="mx-auto max-w-7xl px-6 lg:px-8">
                 <div class="text-center">
                     <span class="inline-block rounded-full bg-nrapa-orange/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-nrapa-orange">
@@ -341,9 +323,18 @@
                 </div>
 
                 @if($membershipTypes->count() > 0)
-                <div class="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
+                @php
+                    $count = $membershipTypes->count();
+                    $gridClass = match(true) {
+                        $count <= 2 => 'md:grid-cols-2 max-w-3xl',
+                        $count === 3 => 'md:grid-cols-2 lg:grid-cols-3 max-w-5xl',
+                        $count === 4 => 'md:grid-cols-2 lg:grid-cols-4 max-w-6xl',
+                        default => 'md:grid-cols-2 lg:grid-cols-3 max-w-5xl',
+                    };
+                @endphp
+                <div class="mt-16 grid gap-8 {{ $gridClass }} mx-auto">
                     @foreach($membershipTypes as $type)
-                    <div class="pricing-hover relative rounded-2xl {{ $type->is_featured ? 'border-2 border-nrapa-blue bg-white shadow-lg ring-1 ring-nrapa-blue/10' : 'border border-zinc-200 bg-white' }} p-8">
+                    <div class="pricing-hover relative flex flex-col rounded-2xl {{ $type->is_featured ? 'border-2 border-nrapa-blue bg-white shadow-lg ring-1 ring-nrapa-blue/10' : 'border border-zinc-200 bg-white' }} p-8">
                         @if($type->is_featured)
                         <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-nrapa-orange to-nrapa-orange-dark px-4 py-1 text-xs font-bold text-white shadow-sm">
                             Most Popular
@@ -435,7 +426,7 @@
                             </li>
                         </ul>
 
-                        <a href="{{ route('register') }}" class="mt-8 block w-full text-center rounded-xl {{ $type->is_featured ? 'bg-nrapa-blue text-white hover:bg-nrapa-blue-dark shadow-sm' : 'border border-zinc-200 text-zinc-700 hover:border-nrapa-blue hover:text-nrapa-blue' }} px-4 py-3 text-sm font-bold transition-all">
+                        <a href="{{ route('register') }}" class="mt-auto pt-8 block w-full text-center rounded-xl {{ $type->is_featured ? 'bg-nrapa-blue text-white hover:bg-nrapa-blue-dark shadow-sm' : 'border border-zinc-200 text-zinc-700 hover:border-nrapa-blue hover:text-nrapa-blue' }} px-4 py-3 text-sm font-bold transition-all">
                             Get Started
                         </a>
                     </div>
@@ -454,8 +445,14 @@
 
         {{-- CTA Banner --}}
         <section class="hero-gradient relative overflow-hidden">
+            {{-- Top curve from light section --}}
+            <div class="absolute top-0 left-0 right-0">
+                <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full" preserveAspectRatio="none">
+                    <path d="M0 0L1440 0L1440 60C1440 60 1080 10 720 10C360 10 0 60 0 60L0 0Z" fill="#f4f4f5"/>
+                </svg>
+            </div>
             <div class="hero-pattern absolute inset-0"></div>
-            <div class="relative mx-auto max-w-4xl px-6 py-20 text-center">
+            <div class="relative mx-auto max-w-4xl px-6 pt-28 pb-20 text-center">
                 <h2 class="text-3xl font-extrabold text-white sm:text-4xl" style="text-wrap: balance">
                     We're in your corner
                 </h2>
