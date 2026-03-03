@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>NRAPA - Members Portal</title>
+        <title>NRAPA - A Division of Ranyati | Members Portal</title>
         <link rel="icon" href="/nrapa-logo.png" type="image/png">
         <link rel="apple-touch-icon" href="/nrapa-logo.png">
         @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -62,9 +62,13 @@
             <nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-3 lg:px-8" aria-label="Global">
                 <a href="/" class="flex items-center gap-3 group">
                     <img src="{{ asset('nrapa-logo.png') }}" alt="NRAPA" class="size-9 object-contain transition group-hover:scale-105" />
-                    <span class="text-lg font-bold tracking-tight text-white">NRAPA</span>
+                    <div class="flex flex-col">
+                        <span class="text-lg font-bold tracking-tight text-white leading-tight">NRAPA</span>
+                        <span class="text-[10px] font-medium text-zinc-400 leading-tight">A Division of Ranyati</span>
+                    </div>
                 </a>
                 <div class="hidden sm:flex items-center gap-8">
+                    <a href="#about" class="text-sm font-medium text-zinc-300 hover:text-white transition">About</a>
                     <a href="#features" class="text-sm font-medium text-zinc-300 hover:text-white transition">Features</a>
                     <a href="#pricing" class="text-sm font-medium text-zinc-300 hover:text-white transition">Packages</a>
                 </div>
@@ -108,6 +112,10 @@
                     <span class="text-nrapa-orange">Pistol Association</span>
                 </h1>
 
+                <p class="mt-3 text-sm font-medium text-zinc-400 tracking-wide uppercase animate-fade-up-delay">
+                    A Division of Ranyati &mdash; Firearm Administration Specialists Since 2006
+                </p>
+
                 <p class="mx-auto mt-6 max-w-2xl text-lg leading-8 text-zinc-300 animate-fade-up-delay-2">
                     Your partner in responsible firearm ownership. We help you obtain dedicated status, manage your licences, and stay compliant with the Firearms Control Act &mdash; so you can focus on what you love, whether it's on the range or in the bush.
                 </p>
@@ -124,8 +132,11 @@
                         <a href="{{ route('register') }}" class="rounded-xl bg-nrapa-orange px-8 py-3.5 text-sm font-bold text-white shadow-lg btn-glow hover:bg-nrapa-orange-dark transition-all">
                             Become a Member
                         </a>
-                        <a href="{{ route('login') }}" class="rounded-xl border border-white/20 bg-white/5 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-sm hover:bg-white/10 transition-all">
-                            Already a member? Sign in
+                        <a href="#about" class="rounded-xl border border-white/20 bg-white/5 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-sm hover:bg-white/10 transition-all">
+                            Learn About Ranyati
+                        </a>
+                        <a href="{{ route('login') }}" class="text-sm font-semibold text-zinc-300 hover:text-white transition">
+                            Already a member? Sign in <span aria-hidden="true">&rarr;</span>
                         </a>
                     @endauth
                 </div>
@@ -158,6 +169,68 @@
                     <div class="text-center">
                         <p class="text-2xl font-extrabold text-nrapa-blue">POPIA</p>
                         <p class="mt-1 text-sm text-zinc-500">Compliant</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        {{-- About Ranyati Introduction --}}
+        <section id="about" class="bg-[#061e3c] py-20">
+            <div class="mx-auto max-w-7xl px-6 lg:px-8">
+                <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+                    <div class="flex-shrink-0">
+                        <img src="{{ asset('ranyati-logo-light.png') }}" alt="Ranyati Firearm Motivations" class="h-32 sm:h-40 object-contain" />
+                    </div>
+                    <div class="text-center lg:text-left">
+                        <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                            Firearm Administration Specialists <span class="text-nrapa-orange">Since 2006</span>
+                        </h2>
+                        <p class="mt-4 text-base leading-relaxed text-zinc-300">
+                            For nearly two decades, Ranyati has been a trusted authority in the administration of the Firearms Control Act in South Africa. We specialise in professional firearm motivations, licence applications, renewals, and compliance support &mdash; simplifying a complex legal process for responsible firearm owners.
+                        </p>
+                        <p class="mt-4 text-base leading-relaxed text-zinc-300">
+                            Through our accredited association, <strong class="text-white">NRAPA</strong> (National Rifle &amp; Pistol Association), we provide members with dedicated hunter and sport shooting status, structured record-keeping, and an advanced online platform that streamlines compliance and renewal reminders.
+                        </p>
+                        <p class="mt-4 text-base leading-relaxed text-zinc-400">
+                            Supported by our secure firearm storage infrastructure, we offer a complete, end-to-end solution &mdash; from application and accreditation to safe custody and estate administration.
+                        </p>
+                        <p class="mt-6 text-sm font-semibold text-nrapa-orange uppercase tracking-wider">
+                            Ranyati is more than a service provider. We are your long-term compliance partner.
+                        </p>
+                    </div>
+                </div>
+
+                {{-- Services pillars --}}
+                <div class="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    <div class="rounded-xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur-sm">
+                        <div class="mx-auto flex size-12 items-center justify-center rounded-xl bg-nrapa-blue/30">
+                            <svg class="size-6 text-nrapa-orange" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                            </svg>
+                        </div>
+                        <h3 class="mt-4 text-base font-bold text-white">NRAPA</h3>
+                        <p class="mt-1 text-xs font-medium text-nrapa-orange uppercase tracking-wider">Membership Ecosystem</p>
+                        <p class="mt-3 text-sm text-zinc-400">SAPS-accredited association for dedicated sport &amp; hunter status, digital compliance, and member services.</p>
+                    </div>
+                    <div class="rounded-xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur-sm">
+                        <div class="mx-auto flex size-12 items-center justify-center rounded-xl bg-nrapa-blue/30">
+                            <svg class="size-6 text-nrapa-orange" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+                            </svg>
+                        </div>
+                        <h3 class="mt-4 text-base font-bold text-white">Firearm Motivations</h3>
+                        <p class="mt-1 text-xs font-medium text-nrapa-orange uppercase tracking-wider">Licence Applications</p>
+                        <p class="mt-3 text-sm text-zinc-400">Professional motivations, licence applications, renewals, and compliance support by experienced administrators.</p>
+                    </div>
+                    <div class="rounded-xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur-sm">
+                        <div class="mx-auto flex size-12 items-center justify-center rounded-xl bg-nrapa-blue/30">
+                            <svg class="size-6 text-nrapa-orange" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 2l7 4v6c0 5-3 9-7 10-4-1-7-5-7-10V6l7-4z"/>
+                            </svg>
+                        </div>
+                        <h3 class="mt-4 text-base font-bold text-white">Firearm Storage</h3>
+                        <p class="mt-1 text-xs font-medium text-nrapa-orange uppercase tracking-wider">Secure Infrastructure</p>
+                        <p class="mt-3 text-sm text-zinc-400">Safe custody, estate administration, and secure firearm storage backed by physical infrastructure.</p>
                     </div>
                 </div>
             </div>
@@ -414,12 +487,15 @@
                                 <img src="{{ asset('nrapa-logo.png') }}" alt="NRAPA" class="size-10 object-contain" />
                                 <div>
                                     <span class="text-base font-bold text-white">NRAPA</span>
-                                    <p class="text-xs text-zinc-500">Members Portal</p>
+                                    <p class="text-xs text-zinc-500">A Division of Ranyati</p>
                                 </div>
                             </div>
                             <p class="mt-4 max-w-xs text-sm leading-relaxed text-zinc-400">
                                 Accredited by the SA Police Services with designated powers to allocate Dedicated Sport and Hunter status. FAR 1300122 &amp; 1300127.
                             </p>
+                            <div class="mt-4">
+                                <img src="{{ asset('ranyati-logo-light.png') }}" alt="Ranyati" class="h-10 object-contain opacity-60" />
+                            </div>
                         </div>
                         <div class="flex gap-12">
                             <div>
@@ -448,7 +524,7 @@
                 </div>
                 <div class="border-t border-zinc-800 py-6">
                     <p class="text-center text-xs text-zinc-500">
-                        &copy; {{ date('Y') }} National Rifle and Pistol Association of South Africa. All rights reserved.
+                        &copy; {{ date('Y') }} NRAPA &mdash; A Division of Ranyati Firearm Motivations (Pty) Ltd. All rights reserved.
                     </p>
                 </div>
             </div>
