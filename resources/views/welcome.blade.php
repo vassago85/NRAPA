@@ -176,8 +176,8 @@
         <section id="about" class="bg-[#061e3c] py-20">
             <div class="mx-auto max-w-7xl px-6 lg:px-8">
                 <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
-                    <div class="flex-shrink-0 rounded-xl bg-[#1a2d45] p-6">
-                        <img src="{{ asset('ranyati-logo-dark.png') }}" alt="Ranyati Firearm Motivations" class="h-20 sm:h-28 object-contain mix-blend-screen" />
+                    <div class="flex-shrink-0 rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
+                        <img src="{{ asset('ranyati-logo-dark.png') }}" alt="Ranyati Firearm Motivations" class="h-20 sm:h-28 object-contain" />
                     </div>
                     <div class="text-center lg:text-left">
                         <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
