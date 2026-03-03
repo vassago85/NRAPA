@@ -101,9 +101,12 @@
                     </div>
                 </div>
 
-                <div class="mt-8 animate-fade-up-delay">
-                    <div class="inline-block rounded-2xl bg-white shadow-lg shadow-black/10 ring-1 ring-white/20" style="padding: 10px;">
-                        <img src="{{ asset('nrapa-logo-horizontal.png') }}" alt="NRAPA - National Rifle and Pistol Association" class="h-16 sm:h-20 object-contain mix-blend-multiply" />
+                <div class="mt-8 animate-fade-up-delay flex flex-col items-center">
+                    <div class="inline-flex items-center gap-4 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/15 px-8 py-4">
+                        <img src="{{ asset('nrapa-icon.png') }}" alt="NRAPA" class="h-16 sm:h-20 w-auto drop-shadow-lg" />
+                        <div class="text-left">
+                            <h1 class="text-2xl sm:text-3xl font-bold text-white tracking-wide leading-tight">NATIONAL RIFLE<br>AND PISTOL ASSOCIATION</h1>
+                        </div>
                     </div>
                 </div>
 
