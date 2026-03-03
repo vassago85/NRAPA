@@ -17,6 +17,10 @@ new #[Title('Settings - Admin')] class extends Component {
     public int $renewalWindowDays = 30;
     public int $renewalGracePeriodDays = 90;
 
+    // Landing Page
+    public string $whatsappMotivations = '';
+    public string $whatsappStorage = '';
+
     // Membership Type Form
     public ?int $editingMembershipTypeId = null;
     public string $membershipTypeName = '';
@@ -79,6 +83,8 @@ new #[Title('Settings - Admin')] class extends Component {
     {
         $this->renewalWindowDays = (int) SystemSetting::get('renewal_window_days', 30);
         $this->renewalGracePeriodDays = (int) SystemSetting::get('renewal_grace_period_days', 90);
+        $this->whatsappMotivations = SystemSetting::get('whatsapp_motivations', '') ?? '';
+        $this->whatsappStorage = SystemSetting::get('whatsapp_storage', '') ?? '';
     }
 
     // Check if user is owner or developer (can directly edit without approval)
@@ -103,6 +109,24 @@ new #[Title('Settings - Admin')] class extends Component {
         SystemSetting::set('renewal_grace_period_days', $this->renewalGracePeriodDays, 'integer', 'renewal', 'Days after expiry a member can still renew (0 = no grace period)');
 
         session()->flash('success', 'Renewal policy updated successfully.');
+    }
+
+    // ==================== LANDING PAGE METHODS ====================
+
+    public function saveLandingPageSettings(): void
+    {
+        $this->validate([
+            'whatsappMotivations' => ['nullable', 'string', 'regex:/^[0-9]{10,15}$/'],
+            'whatsappStorage' => ['nullable', 'string', 'regex:/^[0-9]{10,15}$/'],
+        ], [
+            'whatsappMotivations.regex' => 'Enter digits only (e.g. 27821234567), 10-15 digits.',
+            'whatsappStorage.regex' => 'Enter digits only (e.g. 27821234567), 10-15 digits.',
+        ]);
+
+        SystemSetting::set('whatsapp_motivations', $this->whatsappMotivations, 'string', 'landing', 'WhatsApp number for Firearm Motivations enquiries');
+        SystemSetting::set('whatsapp_storage', $this->whatsappStorage, 'string', 'landing', 'WhatsApp number for Firearm Storage enquiries');
+
+        session()->flash('success', 'Landing page settings updated successfully.');
     }
 
     // ==================== MEMBERSHIP TYPE METHODS ====================
@@ -503,6 +527,12 @@ new #[Title('Settings - Admin')] class extends Component {
                 class="border-b-2 px-1 py-3 text-sm font-medium transition-colors whitespace-nowrap {{ $activeTab === 'certificate-types' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300' }}"
             >
                 Certificate Types
+            </button>
+            <button
+                wire:click="$set('activeTab', 'landing-page')"
+                class="border-b-2 px-1 py-3 text-sm font-medium transition-colors whitespace-nowrap {{ $activeTab === 'landing-page' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300' }}"
+            >
+                Landing Page
             </button>
         </nav>
     </div>
@@ -1050,6 +1080,64 @@ new #[Title('Settings - Admin')] class extends Component {
                 <span class="ml-3 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Required *</span>
                 <span class="ml-2 inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200">Optional</span>
             </p>
+        </div>
+    </div>
+    @endif
+
+    {{-- Landing Page Tab --}}
+    @if($activeTab === 'landing-page')
+    <div class="space-y-6">
+        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
+            <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-1">Landing Page Settings</h3>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+                Configure contact details shown on the public landing page.
+            </p>
+
+            <form wire:submit="saveLandingPageSettings" class="space-y-6">
+                <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 p-5">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="flex size-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                            <svg class="size-5 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.03L.789 23.396a.75.75 0 00.917.918l4.367-1.494A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.94 9.94 0 01-5.39-1.584.75.75 0 00-.637-.088l-2.866.981.981-2.866a.75.75 0 00-.088-.638A9.94 9.94 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-zinc-900 dark:text-white">WhatsApp Contact Numbers</h4>
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400">Shown on the "About Ranyati" service cards</p>
+                        </div>
+                    </div>
+
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Firearm Motivations</label>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-zinc-400">+</span>
+                                <input type="text" wire:model="whatsappMotivations" placeholder="27821234567"
+                                    class="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
+                            </div>
+                            @error('whatsappMotivations') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
+                            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Digits only, including country code (e.g. 27821234567)</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Firearm Storage</label>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-zinc-400">+</span>
+                                <input type="text" wire:model="whatsappStorage" placeholder="27821234567"
+                                    class="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
+                            </div>
+                            @error('whatsappStorage') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
+                            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Digits only, including country code (e.g. 27821234567)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end">
+                    <button type="submit" class="rounded-lg bg-nrapa-blue px-6 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
+                        Save Landing Page Settings
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
     @endif
