@@ -178,8 +178,8 @@
         <section id="about" class="bg-[#061e3c] py-20">
             <div class="mx-auto max-w-7xl px-6 lg:px-8">
                 <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
-                    <div class="flex-shrink-0">
-                        <img src="{{ asset('ranyati-logo-light.png') }}" alt="Ranyati Firearm Motivations" class="h-32 sm:h-40 object-contain" />
+                    <div class="flex-shrink-0 rounded-xl bg-[#0a2a4d] p-6">
+                        <img src="{{ asset('ranyati-logo-light.png') }}" alt="Ranyati Firearm Motivations" class="h-28 sm:h-36 object-contain mix-blend-screen" />
                     </div>
                     <div class="text-center lg:text-left">
                         <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
@@ -494,7 +494,7 @@
                                 Accredited by the SA Police Services with designated powers to allocate Dedicated Sport and Hunter status. FAR 1300122 &amp; 1300127.
                             </p>
                             <div class="mt-4">
-                                <img src="{{ asset('ranyati-logo-light.png') }}" alt="Ranyati" class="h-10 object-contain opacity-60" />
+                                <img src="{{ asset('ranyati-logo-light.png') }}" alt="Ranyati" class="h-10 object-contain mix-blend-screen" />
                             </div>
                         </div>
                         <div class="flex gap-12">
