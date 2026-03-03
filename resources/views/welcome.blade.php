@@ -103,7 +103,7 @@
 
                 <div class="mt-8 animate-fade-up-delay">
                     <div class="inline-block rounded-2xl bg-white shadow-lg shadow-black/10 ring-1 ring-white/20" style="padding: 10px;">
-                        <img src="{{ asset('nrapa-logo-horizontal.png') }}" alt="NRAPA - National Rifle and Pistol Association" class="h-16 sm:h-20 object-contain" />
+                        <img src="{{ asset('nrapa-logo-horizontal.png') }}" alt="NRAPA - National Rifle and Pistol Association" class="h-16 sm:h-20 object-contain mix-blend-multiply" />
                     </div>
                 </div>
 
@@ -174,7 +174,7 @@
             <div class="mx-auto max-w-7xl px-6 lg:px-8">
                 <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
                     <div class="flex-shrink-0 rounded-xl bg-[#1a2d45] p-6">
-                        <img src="{{ asset('ranyati-logo-dark.png') }}" alt="Ranyati Firearm Motivations" class="h-20 sm:h-28 object-contain" />
+                        <img src="{{ asset('ranyati-logo-dark.png') }}" alt="Ranyati Firearm Motivations" class="h-20 sm:h-28 object-contain mix-blend-screen" />
                     </div>
                     <div class="text-center lg:text-left">
                         <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
@@ -478,7 +478,7 @@
                 <div class="py-12 md:py-16">
                     <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
                         <div>
-                            <img src="{{ asset('ranyati-logo-dark.png') }}" alt="Ranyati" class="h-10 object-contain" />
+                            <img src="{{ asset('ranyati-logo-dark.png') }}" alt="Ranyati" class="h-10 object-contain mix-blend-screen" />
                             <p class="mt-2 text-xs text-zinc-500">Firearm Administration Specialists Since 2006</p>
                             <p class="mt-4 max-w-xs text-sm leading-relaxed text-zinc-400">
                                 Accredited by the SA Police Services with designated powers to allocate Dedicated Sport and Hunter status. FAR 1300122 &amp; 1300127.
