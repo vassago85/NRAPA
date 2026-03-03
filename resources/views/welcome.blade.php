@@ -102,8 +102,8 @@
                 </div>
 
                 <div class="mt-8 animate-fade-up-delay">
-                    <div class="mx-auto max-w-md rounded-2xl bg-white p-5 shadow-lg shadow-black/10 ring-1 ring-white/20">
-                        <img src="{{ asset('nrapa-logo-horizontal.png') }}" alt="NRAPA - National Rifle and Pistol Association" class="h-16 sm:h-20 mx-auto object-contain" />
+                    <div class="inline-block rounded-2xl bg-white shadow-lg shadow-black/10 ring-1 ring-white/20" style="padding: 10px;">
+                        <img src="{{ asset('nrapa-logo-horizontal.png') }}" alt="NRAPA - National Rifle and Pistol Association" class="h-16 sm:h-20 object-contain" />
                     </div>
                 </div>
 
@@ -173,7 +173,7 @@
         <section id="about" class="bg-[#061e3c] py-20">
             <div class="mx-auto max-w-7xl px-6 lg:px-8">
                 <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
-                    <div class="flex-shrink-0 rounded-xl bg-black p-6">
+                    <div class="flex-shrink-0 rounded-xl bg-[#1a2d45] p-6">
                         <img src="{{ asset('ranyati-logo-dark.png') }}" alt="Ranyati Firearm Motivations" class="h-20 sm:h-28 object-contain" />
                     </div>
                     <div class="text-center lg:text-left">
