@@ -116,19 +116,23 @@
 
                 {{-- Services pillars --}}
                 <div class="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6">
-                    <div class="rounded-xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur-sm">
+                    <div class="rounded-xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur-sm flex flex-col">
                         <img src="{{ asset('nrapa-icon.png') }}" alt="NRAPA" class="mx-auto size-12 object-contain" />
                         <h3 class="mt-4 text-base font-bold text-white">NRAPA</h3>
                         <p class="mt-1 text-xs font-medium text-nrapa-orange uppercase tracking-wider">Membership Ecosystem</p>
                         <p class="mt-3 text-sm text-zinc-400">SAPS-accredited association for dedicated sport &amp; hunter status, digital compliance, and member services.</p>
                     </div>
-                    <div class="rounded-xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur-sm">
+                    <div class="rounded-xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur-sm flex flex-col">
                         <img src="{{ asset('ranyati-icon.png') }}" alt="Ranyati" class="mx-auto size-12 object-contain" />
                         <h3 class="mt-4 text-base font-bold text-white">Firearm Motivations</h3>
                         <p class="mt-1 text-xs font-medium text-nrapa-orange uppercase tracking-wider">Licence Applications</p>
                         <p class="mt-3 text-sm text-zinc-400">Professional motivations, licence applications, renewals, and compliance support by experienced administrators.</p>
+                        <a href="https://wa.me/27XXXXXXXXX?text=Hi%2C%20I%27d%20like%20to%20enquire%20about%20firearm%20motivations" target="_blank" rel="noopener" class="mt-auto pt-4 border-t border-white/10 inline-flex items-center justify-center gap-2 text-sm font-semibold text-green-400 hover:text-green-300 transition">
+                            <svg class="size-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                            Chat on WhatsApp
+                        </a>
                     </div>
-                    <div class="rounded-xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur-sm">
+                    <div class="rounded-xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur-sm flex flex-col">
                         <div class="mx-auto flex size-12 items-center justify-center rounded-xl bg-nrapa-blue/30">
                             <svg class="size-6 text-nrapa-orange" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 2l7 4v6c0 5-3 9-7 10-4-1-7-5-7-10V6l7-4z"/>
@@ -137,6 +141,10 @@
                         <h3 class="mt-4 text-base font-bold text-white">Firearm Storage</h3>
                         <p class="mt-1 text-xs font-medium text-nrapa-orange uppercase tracking-wider">Secure Infrastructure</p>
                         <p class="mt-3 text-sm text-zinc-400">Safe custody, estate administration, and secure firearm storage backed by physical infrastructure.</p>
+                        <a href="https://wa.me/27XXXXXXXXX?text=Hi%2C%20I%27d%20like%20to%20enquire%20about%20firearm%20storage" target="_blank" rel="noopener" class="mt-auto pt-4 border-t border-white/10 inline-flex items-center justify-center gap-2 text-sm font-semibold text-green-400 hover:text-green-300 transition">
+                            <svg class="size-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                            Chat on WhatsApp
+                        </a>
                     </div>
                 </div>
             </div>
@@ -389,44 +397,46 @@
                             @endif
                         </div>
 
-                        <p class="mt-4 text-sm leading-relaxed text-zinc-500">{{ $type->description }}</p>
+                        <div class="flex-1">
+                            <p class="mt-4 text-sm leading-relaxed text-zinc-500">{{ $type->description }}</p>
 
-                        <div class="my-6 h-px bg-zinc-100"></div>
+                            <div class="my-6 h-px bg-zinc-100"></div>
 
-                        <ul class="space-y-3">
-                            <li class="flex items-center gap-2.5 text-sm text-zinc-600">
-                                <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                Virtual Safe
-                            </li>
-                            @if($type->allows_dedicated_status)
-                            <li class="flex items-center gap-2.5 text-sm text-zinc-600">
-                                <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                Virtual Loading Bench
-                            </li>
-                            @endif
-                            <li class="flex items-center gap-2.5 text-sm text-zinc-600">
-                                <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                QR-Verified Certificates
-                            </li>
-                            @if($type->requires_knowledge_test)
-                            <li class="flex items-center gap-2.5 text-sm text-zinc-600">
-                                <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                Knowledge Test Access
-                            </li>
-                            @endif
-                            @if($type->allows_dedicated_status)
-                            <li class="flex items-center gap-2.5 text-sm text-zinc-600">
-                                <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                Dedicated Status Support
-                            </li>
-                            @endif
-                            <li class="flex items-center gap-2.5 text-sm text-zinc-600">
-                                <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                Learning Center Access
-                            </li>
-                        </ul>
+                            <ul class="space-y-3">
+                                <li class="flex items-center gap-2.5 text-sm text-zinc-600">
+                                    <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                    Virtual Safe
+                                </li>
+                                @if($type->allows_dedicated_status)
+                                <li class="flex items-center gap-2.5 text-sm text-zinc-600">
+                                    <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                    Virtual Loading Bench
+                                </li>
+                                @endif
+                                <li class="flex items-center gap-2.5 text-sm text-zinc-600">
+                                    <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                    QR-Verified Certificates
+                                </li>
+                                @if($type->requires_knowledge_test)
+                                <li class="flex items-center gap-2.5 text-sm text-zinc-600">
+                                    <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                    Knowledge Test Access
+                                </li>
+                                @endif
+                                @if($type->allows_dedicated_status)
+                                <li class="flex items-center gap-2.5 text-sm text-zinc-600">
+                                    <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                    Dedicated Status Support
+                                </li>
+                                @endif
+                                <li class="flex items-center gap-2.5 text-sm text-zinc-600">
+                                    <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                    Learning Center Access
+                                </li>
+                            </ul>
+                        </div>
 
-                        <a href="{{ route('register') }}" class="mt-auto pt-8 block w-full text-center rounded-xl {{ $type->is_featured ? 'bg-nrapa-blue text-white hover:bg-nrapa-blue-dark shadow-sm' : 'border border-zinc-200 text-zinc-700 hover:border-nrapa-blue hover:text-nrapa-blue' }} px-4 py-3 text-sm font-bold transition-all">
+                        <a href="{{ route('register') }}" class="mt-6 block w-full text-center rounded-xl {{ $type->is_featured ? 'bg-nrapa-blue text-white hover:bg-nrapa-blue-dark shadow-sm' : 'border border-zinc-200 text-zinc-700 hover:border-nrapa-blue hover:text-nrapa-blue' }} px-4 py-3 text-sm font-bold transition-all">
                             Get Started
                         </a>
                     </div>
