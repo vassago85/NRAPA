@@ -4,8 +4,8 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>NRAPA - A Division of Ranyati | Members Portal</title>
-        <link rel="icon" href="/nrapa-logo.png" type="image/png">
-        <link rel="apple-touch-icon" href="/nrapa-logo.png">
+        <link rel="icon" href="/nrapa-icon.png" type="image/png">
+        <link rel="apple-touch-icon" href="/nrapa-icon.png">
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <style>
             .hero-gradient {
@@ -61,7 +61,7 @@
         <header class="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#061e3c]/80 backdrop-blur-xl">
             <nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-3 lg:px-8" aria-label="Global">
                 <a href="/" class="flex items-center gap-3 group">
-                    <img src="{{ asset('nrapa-logo.png') }}" alt="NRAPA" class="size-9 object-contain transition group-hover:scale-105" />
+                    <img src="{{ asset('nrapa-icon.png') }}" alt="NRAPA" class="size-9 object-contain transition group-hover:scale-105" />
                     <div class="flex flex-col">
                         <span class="text-lg font-bold tracking-tight text-white leading-tight">NRAPA</span>
                         <span class="text-[10px] font-medium text-zinc-400 leading-tight">A Division of Ranyati</span>
