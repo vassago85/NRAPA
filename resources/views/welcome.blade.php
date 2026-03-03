@@ -103,7 +103,7 @@
 
                 <div class="mt-8 animate-fade-up-delay flex flex-col items-center">
                     <div class="inline-flex items-center gap-4 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/15 px-8 py-4">
-                        <img src="{{ asset('nrapa-icon.png') }}" alt="NRAPA" class="h-16 sm:h-20 w-auto drop-shadow-lg" />
+                        <img src="{{ asset('nrapa-icon.png') }}" alt="NRAPA" class="h-16 sm:h-20 w-auto drop-shadow-lg" style="mix-blend-mode: screen;" />
                         <div class="text-left">
                             <h1 class="text-2xl sm:text-3xl font-bold text-white tracking-wide leading-tight">NATIONAL RIFLE<br>AND PISTOL ASSOCIATION</h1>
                         </div>
