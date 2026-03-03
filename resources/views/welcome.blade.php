@@ -61,7 +61,7 @@
         <header class="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#061e3c]/80 backdrop-blur-xl">
             <nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-3 lg:px-8" aria-label="Global">
                 <a href="/" class="flex items-center gap-3 group">
-                    <img src="{{ asset('nrapa-icon.png') }}" alt="NRAPA" class="size-9 object-contain transition group-hover:scale-105" />
+                    <img src="{{ asset('nrapa-icon.png') }}" alt="NRAPA" class="size-9 object-contain transition group-hover:scale-105" style="mix-blend-mode: screen;" />
                     <div class="flex flex-col">
                         <span class="text-lg font-bold tracking-tight text-white leading-tight">NRAPA</span>
                         <span class="text-[10px] font-medium text-zinc-400 leading-tight">A Division of Ranyati</span>
@@ -101,13 +101,8 @@
                     </div>
                 </div>
 
-                <div class="mt-8 animate-fade-up-delay flex flex-col items-center">
-                    <div class="inline-flex items-center gap-4 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/15 px-8 py-4">
-                        <img src="{{ asset('nrapa-icon.png') }}" alt="NRAPA" class="h-16 sm:h-20 w-auto drop-shadow-lg" style="mix-blend-mode: screen;" />
-                        <div class="text-left">
-                            <h1 class="text-2xl sm:text-3xl font-bold text-white tracking-wide leading-tight">NATIONAL RIFLE<br>AND PISTOL ASSOCIATION</h1>
-                        </div>
-                    </div>
+                <div class="mt-8 animate-fade-up-delay">
+                    <img src="{{ asset('nrapa-logo-horizontal.png') }}" alt="NRAPA - National Rifle and Pistol Association" class="mx-auto h-20 sm:h-28 md:h-32 w-auto object-contain" style="mix-blend-mode: screen;" />
                 </div>
 
                 <p class="mt-6 text-sm font-medium text-zinc-400 tracking-wide uppercase animate-fade-up-delay">
@@ -176,8 +171,8 @@
         <section id="about" class="bg-[#061e3c] py-20">
             <div class="mx-auto max-w-7xl px-6 lg:px-8">
                 <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
-                    <div class="flex-shrink-0 rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
-                        <img src="{{ asset('ranyati-logo-dark.png') }}" alt="Ranyati Firearm Motivations" class="h-20 sm:h-28 object-contain" />
+                    <div class="flex-shrink-0">
+                        <img src="{{ asset('ranyati-logo-dark.png') }}" alt="Ranyati Firearm Motivations" class="h-20 sm:h-28 object-contain" style="mix-blend-mode: screen;" />
                     </div>
                     <div class="text-center lg:text-left">
                         <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
@@ -481,7 +476,7 @@
                 <div class="py-12 md:py-16">
                     <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
                         <div>
-                            <img src="{{ asset('ranyati-logo-dark.png') }}" alt="Ranyati" class="h-10 object-contain mix-blend-screen" />
+                            <img src="{{ asset('ranyati-logo-dark.png') }}" alt="Ranyati" class="h-10 object-contain" style="mix-blend-mode: screen;" />
                             <p class="mt-2 text-xs text-zinc-500">Firearm Administration Specialists Since 2006</p>
                             <p class="mt-4 max-w-xs text-sm leading-relaxed text-zinc-400">
                                 Accredited by the SA Police Services with designated powers to allocate Dedicated Sport and Hunter status. FAR 1300122 &amp; 1300127.
