@@ -20,8 +20,6 @@ new #[Title('Settings - Admin')] class extends Component {
     // Landing Page
     public string $whatsappMotivations = '';
     public string $whatsappStorage = '';
-    public string $whatsappAvailableFrom = '08:00';
-    public string $whatsappAvailableTo = '17:00';
 
     // Membership Type Form
     public ?int $editingMembershipTypeId = null;
@@ -87,8 +85,6 @@ new #[Title('Settings - Admin')] class extends Component {
         $this->renewalGracePeriodDays = (int) SystemSetting::get('renewal_grace_period_days', 90);
         $this->whatsappMotivations = SystemSetting::get('whatsapp_motivations', '') ?? '';
         $this->whatsappStorage = SystemSetting::get('whatsapp_storage', '') ?? '';
-        $this->whatsappAvailableFrom = SystemSetting::get('whatsapp_available_from', '08:00') ?? '08:00';
-        $this->whatsappAvailableTo = SystemSetting::get('whatsapp_available_to', '17:00') ?? '17:00';
     }
 
     // Check if user is owner or developer (can directly edit without approval)
@@ -122,20 +118,13 @@ new #[Title('Settings - Admin')] class extends Component {
         $this->validate([
             'whatsappMotivations' => ['nullable', 'string', 'regex:/^[0-9]{10,15}$/'],
             'whatsappStorage' => ['nullable', 'string', 'regex:/^[0-9]{10,15}$/'],
-            'whatsappAvailableFrom' => ['required', 'date_format:H:i'],
-            'whatsappAvailableTo' => ['required', 'date_format:H:i', 'after:whatsappAvailableFrom'],
         ], [
             'whatsappMotivations.regex' => 'Enter digits only (e.g. 27821234567), 10-15 digits.',
             'whatsappStorage.regex' => 'Enter digits only (e.g. 27821234567), 10-15 digits.',
-            'whatsappAvailableFrom.date_format' => 'Please enter a valid time (e.g. 08:00).',
-            'whatsappAvailableTo.date_format' => 'Please enter a valid time (e.g. 17:00).',
-            'whatsappAvailableTo.after' => 'The "to" time must be after the "from" time.',
         ]);
 
         SystemSetting::set('whatsapp_motivations', $this->whatsappMotivations, 'string', 'landing', 'WhatsApp number for Firearm Motivations enquiries');
         SystemSetting::set('whatsapp_storage', $this->whatsappStorage, 'string', 'landing', 'WhatsApp number for Firearm Storage enquiries');
-        SystemSetting::set('whatsapp_available_from', $this->whatsappAvailableFrom, 'string', 'landing', 'WhatsApp availability start time (SAST)');
-        SystemSetting::set('whatsapp_available_to', $this->whatsappAvailableTo, 'string', 'landing', 'WhatsApp availability end time (SAST)');
 
         session()->flash('success', 'Landing page settings updated successfully.');
     }
@@ -1140,35 +1129,6 @@ new #[Title('Settings - Admin')] class extends Component {
                             @error('whatsappStorage') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
                             <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Digits only, including country code (e.g. 27821234567)</p>
                         </div>
-                    </div>
-
-                    <div class="mt-5 pt-5 border-t border-zinc-200 dark:border-zinc-700">
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="flex size-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30">
-                                <svg class="size-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                </svg>
-                            </div>
-                            <div>
-                                <h4 class="font-medium text-zinc-900 dark:text-white">Availability Hours</h4>
-                                <p class="text-xs text-zinc-500 dark:text-zinc-400">WhatsApp buttons are hidden outside these hours (South African time)</p>
-                            </div>
-                        </div>
-                        <div class="grid gap-4 md:grid-cols-2">
-                            <div>
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Available from</label>
-                                <input type="time" wire:model="whatsappAvailableFrom"
-                                    class="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
-                                @error('whatsappAvailableFrom') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Available until</label>
-                                <input type="time" wire:model="whatsappAvailableTo"
-                                    class="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
-                                @error('whatsappAvailableTo') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
-                            </div>
-                        </div>
-                        <p class="mt-2 text-xs text-zinc-500 dark:text-zinc-400">Currently set to {{ $whatsappAvailableFrom }} &ndash; {{ $whatsappAvailableTo }} SAST. Outside this window, visitors will see when you're next available instead of the chat link.</p>
                     </div>
                 </div>
 
