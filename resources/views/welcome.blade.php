@@ -3,9 +3,9 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>NRAPA - A Division of Ranyati | Members Portal</title>
-        <link rel="icon" href="/nrapa-icon.png" type="image/png">
-        <link rel="apple-touch-icon" href="/nrapa-icon.png">
+        <title>NRAPA - Members Portal</title>
+        <link rel="icon" href="/nrapa-logo.png" type="image/png">
+        <link rel="apple-touch-icon" href="/nrapa-logo.png">
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <style>
             .hero-gradient {
@@ -60,13 +60,11 @@
         {{-- Header --}}
         <header class="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#061e3c]/80 backdrop-blur-xl">
             <nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-3 lg:px-8" aria-label="Global">
-                <a href="/" class="flex items-center gap-4 group">
-                    <img src="{{ asset('ranyati-logo-dark.png') }}" alt="Ranyati" class="h-10 object-contain transition group-hover:scale-105" />
-                    <span class="text-zinc-500/50">|</span>
-                    <img src="{{ asset('nrapa-logo-horizontal-white.png') }}" alt="NRAPA" class="h-8 object-contain" />
+                <a href="/" class="flex items-center gap-3 group">
+                    <img src="{{ asset('nrapa-logo.png') }}" alt="NRAPA" class="size-9 object-contain transition group-hover:scale-105" />
+                    <span class="text-lg font-bold tracking-tight text-white">NRAPA</span>
                 </a>
                 <div class="hidden sm:flex items-center gap-8">
-                    <a href="#about" class="text-sm font-medium text-zinc-300 hover:text-white transition">About</a>
                     <a href="#features" class="text-sm font-medium text-zinc-300 hover:text-white transition">Features</a>
                     <a href="#pricing" class="text-sm font-medium text-zinc-300 hover:text-white transition">Packages</a>
                 </div>
@@ -87,92 +85,30 @@
             </nav>
         </header>
 
-        {{-- About Ranyati Introduction (moved to top per client request) --}}
-        <section id="about" class="hero-gradient relative pt-28 pb-28 sm:pt-36 sm:pb-32">
-            <div class="mx-auto max-w-7xl px-6 lg:px-8">
-                <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
-                    <div class="flex-shrink-0 flex flex-col items-center gap-4">
-                        <img src="{{ asset('ranyati-logo-dark.png') }}" alt="Ranyati Firearm Motivations" class="h-24 sm:h-36 object-contain" />
-                        <img src="{{ asset('nrapa-logo-horizontal-white.png') }}" alt="NRAPA" class="h-24 sm:h-36 object-contain" />
-                    </div>
-                    <div class="text-center lg:text-left">
-                        <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                            Firearm Administration Specialists <span class="text-nrapa-orange">Since 2006</span>
-                        </h2>
-                        <p class="mt-4 text-base leading-relaxed text-zinc-300">
-                            For nearly two decades, Ranyati has been a trusted authority in the administration of the Firearms Control Act in South Africa. We specialise in professional firearm motivations, licence applications, renewals, and compliance support &mdash; simplifying a complex legal process for responsible firearm owners.
-                        </p>
-                        <p class="mt-4 text-base leading-relaxed text-zinc-300">
-                            Through our accredited association, <strong class="text-white">NRAPA</strong> (National Rifle &amp; Pistol Association), we provide members with dedicated hunter and sport shooting status, structured record-keeping, and an advanced online platform that streamlines compliance and renewal reminders.
-                        </p>
-                        <p class="mt-4 text-base leading-relaxed text-zinc-400">
-                            Supported by our secure firearm storage infrastructure, we offer a complete, end-to-end solution &mdash; from application and accreditation to safe custody and estate administration.
-                        </p>
-                        <p class="mt-6 text-sm font-semibold text-nrapa-orange uppercase tracking-wider">
-                            Ranyati is more than a service provider. We are your long-term compliance partner.
-                        </p>
-                    </div>
-                </div>
-
-                {{-- Services pillars --}}
-                <div class="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6">
-                    <div class="rounded-xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur-sm flex flex-col">
-                        <img src="{{ asset('nrapa-icon.png') }}" alt="NRAPA" class="mx-auto size-12 object-contain" />
-                        <h3 class="mt-4 text-base font-bold text-white">NRAPA</h3>
-                        <p class="mt-1 text-xs font-medium text-nrapa-orange uppercase tracking-wider">Membership Ecosystem</p>
-                        <p class="mt-3 text-sm text-zinc-400">SAPS-accredited association for dedicated sport &amp; hunter status, digital compliance, and member services.</p>
-                    </div>
-                    <div class="rounded-xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur-sm flex flex-col">
-                        <img src="{{ asset('ranyati-icon.png') }}" alt="Ranyati" class="mx-auto size-12 object-contain" />
-                        <h3 class="mt-4 text-base font-bold text-white">Firearm Motivations</h3>
-                        <p class="mt-1 text-xs font-medium text-nrapa-orange uppercase tracking-wider">Licence Applications</p>
-                        <p class="mt-3 text-sm text-zinc-400">Professional motivations, licence applications, renewals, and compliance support by experienced administrators.</p>
-                        @if(\App\Models\SystemSetting::get('whatsapp_motivations'))
-                        <a href="https://wa.me/{{ \App\Models\SystemSetting::get('whatsapp_motivations') }}?text=Hi%2C%20I%27d%20like%20to%20enquire%20about%20firearm%20motivations" target="_blank" rel="noopener" class="mt-auto pt-4 border-t border-white/10 inline-flex items-center justify-center gap-2 text-sm font-semibold text-green-400 hover:text-green-300 transition">
-                            <svg class="size-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                            Chat on WhatsApp
-                        </a>
-                        @endif
-                    </div>
-                    <div class="rounded-xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur-sm flex flex-col">
-                        <div class="mx-auto flex size-12 items-center justify-center rounded-xl bg-nrapa-blue/30">
-                            <svg class="size-6 text-nrapa-orange" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 2l7 4v6c0 5-3 9-7 10-4-1-7-5-7-10V6l7-4z"/>
-                            </svg>
-                        </div>
-                        <h3 class="mt-4 text-base font-bold text-white">Firearm Storage</h3>
-                        <p class="mt-1 text-xs font-medium text-nrapa-orange uppercase tracking-wider">Secure Infrastructure</p>
-                        <p class="mt-3 text-sm text-zinc-400">Safe custody, estate administration, and secure firearm storage backed by physical infrastructure.</p>
-                        @if(\App\Models\SystemSetting::get('whatsapp_storage'))
-                        <a href="https://wa.me/{{ \App\Models\SystemSetting::get('whatsapp_storage') }}?text=Hi%2C%20I%27d%20like%20to%20enquire%20about%20firearm%20storage" target="_blank" rel="noopener" class="mt-auto pt-4 border-t border-white/10 inline-flex items-center justify-center gap-2 text-sm font-semibold text-green-400 hover:text-green-300 transition">
-                            <svg class="size-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                            Chat on WhatsApp
-                        </a>
-                        @endif
-                    </div>
-                </div>
-            </div>
-
-            {{-- Curve transition to light section --}}
-            <div class="absolute bottom-0 left-0 right-0">
-                <svg viewBox="0 0 1440 80" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full" preserveAspectRatio="none">
-                    <path d="M0 80L1440 80L1440 0C1440 0 1080 60 720 60C360 60 0 0 0 0L0 80Z" fill="white"/>
-                </svg>
-            </div>
-        </section>
-
         {{-- Hero --}}
-        <section class="bg-white relative overflow-hidden pt-16 pb-24 sm:pt-20 sm:pb-28">
-            <div class="mx-auto max-w-7xl px-6 lg:px-8 text-center">
-                <div class="animate-fade-up-delay">
-                    <img src="{{ asset('nrapa-logo-horizontal.png') }}" alt="NRAPA - National Rifle and Pistol Association" class="mx-auto h-20 sm:h-28 md:h-36 w-auto object-contain" />
+        <section class="hero-gradient relative overflow-hidden pt-32 pb-24 sm:pt-40 sm:pb-32">
+            <div class="hero-pattern absolute inset-0"></div>
+            <div class="hero-glow absolute inset-0"></div>
+            <div class="relative mx-auto max-w-7xl px-6 lg:px-8 text-center">
+                <div class="animate-fade-up">
+                    <div class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 backdrop-blur-sm">
+                        <span class="size-2 rounded-full bg-nrapa-orange animate-pulse"></span>
+                        <span class="text-xs font-medium text-zinc-300">SAPS Accredited &mdash; FAR 1300122 &amp; 1300127</span>
+                    </div>
                 </div>
 
-                <p class="mt-6 text-sm font-medium text-zinc-500 tracking-wide uppercase animate-fade-up-delay">
-                    A Division of Ranyati &mdash; Firearm Administration Specialists Since 2006
-                </p>
+                <div class="mt-8 animate-fade-up-delay">
+                    <div class="mx-auto size-28 rounded-2xl bg-white/95 p-3 shadow-lg shadow-black/10 ring-1 ring-white/20">
+                        <img src="{{ asset('nrapa-logo.png') }}" alt="NRAPA" class="size-full object-contain" />
+                    </div>
+                </div>
 
-                <p class="mx-auto mt-6 max-w-2xl text-lg leading-8 text-zinc-600 animate-fade-up-delay-2">
+                <h1 class="mt-8 text-4xl font-extrabold tracking-tight text-white sm:text-6xl lg:text-7xl animate-fade-up-delay" style="text-wrap: balance">
+                    National Rifle &amp;<br>
+                    <span class="text-nrapa-orange">Pistol Association</span>
+                </h1>
+
+                <p class="mx-auto mt-6 max-w-2xl text-lg leading-8 text-zinc-300 animate-fade-up-delay-2">
                     Your partner in responsible firearm ownership. We help you obtain dedicated status, manage your licences, and stay compliant with the Firearms Control Act &mdash; so you can focus on what you love, whether it's on the range or in the bush.
                 </p>
 
@@ -181,26 +117,30 @@
                         <a href="{{ route('dashboard') }}" class="rounded-xl bg-nrapa-orange px-8 py-3.5 text-sm font-bold text-white shadow-lg btn-glow hover:bg-nrapa-orange-dark transition-all">
                             Go to Dashboard
                         </a>
-                        <a href="#features" class="text-sm font-semibold text-nrapa-blue hover:text-nrapa-blue-dark transition">
+                        <a href="#features" class="text-sm font-semibold text-zinc-300 hover:text-white transition">
                             View features <span aria-hidden="true">&rarr;</span>
                         </a>
                     @else
                         <a href="{{ route('register') }}" class="rounded-xl bg-nrapa-orange px-8 py-3.5 text-sm font-bold text-white shadow-lg btn-glow hover:bg-nrapa-orange-dark transition-all">
                             Become a Member
                         </a>
-                        <a href="#features" class="rounded-xl border border-nrapa-blue/20 px-8 py-3.5 text-sm font-semibold text-nrapa-blue hover:bg-nrapa-blue/5 transition-all">
-                            View Features
-                        </a>
-                        <a href="{{ route('login') }}" class="text-sm font-semibold text-zinc-500 hover:text-nrapa-blue transition">
-                            Already a member? Sign in <span aria-hidden="true">&rarr;</span>
+                        <a href="{{ route('login') }}" class="rounded-xl border border-white/20 bg-white/5 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-sm hover:bg-white/10 transition-all">
+                            Already a member? Sign in
                         </a>
                     @endauth
                 </div>
             </div>
+
+            {{-- Bottom curve --}}
+            <div class="absolute bottom-0 left-0 right-0">
+                <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full">
+                    <path d="M0 60L1440 60L1440 0C1440 0 1080 40 720 40C360 40 0 0 0 0L0 60Z" fill="white"/>
+                </svg>
+            </div>
         </section>
 
         {{-- Credentials Bar --}}
-        <section class="relative bg-blue-50 py-12">
+        <section class="relative -mt-1 bg-white py-12">
             <div class="mx-auto max-w-5xl px-6">
                 <div class="grid grid-cols-2 gap-8 md:grid-cols-4">
                     <div class="text-center">
@@ -224,7 +164,7 @@
         </section>
 
         {{-- Features --}}
-        <section id="features" class="bg-white py-24">
+        <section id="features" class="bg-zinc-50 py-24">
             <div class="mx-auto max-w-7xl px-6 lg:px-8">
                 <div class="text-center">
                     <span class="inline-block rounded-full bg-nrapa-blue/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-nrapa-blue">
@@ -320,7 +260,7 @@
                 ->get();
             $basicType = $membershipTypes->firstWhere('slug', 'basic');
         @endphp
-        <section id="pricing" class="bg-zinc-100 py-24">
+        <section id="pricing" class="bg-white py-24">
             <div class="mx-auto max-w-7xl px-6 lg:px-8">
                 <div class="text-center">
                     <span class="inline-block rounded-full bg-nrapa-orange/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-nrapa-orange">
@@ -335,18 +275,9 @@
                 </div>
 
                 @if($membershipTypes->count() > 0)
-                @php
-                    $count = $membershipTypes->count();
-                    $gridClass = match(true) {
-                        $count <= 2 => 'md:grid-cols-2 max-w-3xl',
-                        $count === 3 => 'md:grid-cols-2 lg:grid-cols-3 max-w-5xl',
-                        $count === 4 => 'md:grid-cols-2 lg:grid-cols-4 max-w-6xl',
-                        default => 'md:grid-cols-2 lg:grid-cols-3 max-w-5xl',
-                    };
-                @endphp
-                <div class="mt-16 grid gap-8 {{ $gridClass }} mx-auto">
+                <div class="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
                     @foreach($membershipTypes as $type)
-                    <div class="pricing-hover relative flex flex-col rounded-2xl {{ $type->is_featured ? 'border-2 border-nrapa-blue bg-white shadow-lg ring-1 ring-nrapa-blue/10' : 'border border-zinc-200 bg-white' }} p-8">
+                    <div class="pricing-hover relative rounded-2xl {{ $type->is_featured ? 'border-2 border-nrapa-blue bg-white shadow-lg ring-1 ring-nrapa-blue/10' : 'border border-zinc-200 bg-white' }} p-8">
                         @if($type->is_featured)
                         <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-nrapa-orange to-nrapa-orange-dark px-4 py-1 text-xs font-bold text-white shadow-sm">
                             Most Popular
@@ -401,46 +332,44 @@
                             @endif
                         </div>
 
-                        <div class="flex-1">
-                            <p class="mt-4 text-sm leading-relaxed text-zinc-500">{{ $type->description }}</p>
+                        <p class="mt-4 text-sm leading-relaxed text-zinc-500">{{ $type->description }}</p>
 
-                            <div class="my-6 h-px bg-zinc-100"></div>
+                        <div class="my-6 h-px bg-zinc-100"></div>
 
-                            <ul class="space-y-3">
-                                <li class="flex items-center gap-2.5 text-sm text-zinc-600">
-                                    <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                    Virtual Safe
-                                </li>
-                                @if($type->allows_dedicated_status)
-                                <li class="flex items-center gap-2.5 text-sm text-zinc-600">
-                                    <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                    Virtual Loading Bench
-                                </li>
-                                @endif
-                                <li class="flex items-center gap-2.5 text-sm text-zinc-600">
-                                    <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                    QR-Verified Certificates
-                                </li>
-                                @if($type->requires_knowledge_test)
-                                <li class="flex items-center gap-2.5 text-sm text-zinc-600">
-                                    <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                    Knowledge Test Access
-                                </li>
-                                @endif
-                                @if($type->allows_dedicated_status)
-                                <li class="flex items-center gap-2.5 text-sm text-zinc-600">
-                                    <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                    Dedicated Status Support
-                                </li>
-                                @endif
-                                <li class="flex items-center gap-2.5 text-sm text-zinc-600">
-                                    <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                    Learning Center Access
-                                </li>
-                            </ul>
-                        </div>
+                        <ul class="space-y-3">
+                            <li class="flex items-center gap-2.5 text-sm text-zinc-600">
+                                <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                Virtual Safe
+                            </li>
+                            @if($type->allows_dedicated_status)
+                            <li class="flex items-center gap-2.5 text-sm text-zinc-600">
+                                <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                Virtual Loading Bench
+                            </li>
+                            @endif
+                            <li class="flex items-center gap-2.5 text-sm text-zinc-600">
+                                <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                QR-Verified Certificates
+                            </li>
+                            @if($type->requires_knowledge_test)
+                            <li class="flex items-center gap-2.5 text-sm text-zinc-600">
+                                <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                Knowledge Test Access
+                            </li>
+                            @endif
+                            @if($type->allows_dedicated_status)
+                            <li class="flex items-center gap-2.5 text-sm text-zinc-600">
+                                <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                Dedicated Status Support
+                            </li>
+                            @endif
+                            <li class="flex items-center gap-2.5 text-sm text-zinc-600">
+                                <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                Learning Center Access
+                            </li>
+                        </ul>
 
-                        <a href="{{ route('register') }}" class="mt-6 block w-full text-center rounded-xl {{ $type->is_featured ? 'bg-nrapa-blue text-white hover:bg-nrapa-blue-dark shadow-sm' : 'border border-zinc-200 text-zinc-700 hover:border-nrapa-blue hover:text-nrapa-blue' }} px-4 py-3 text-sm font-bold transition-all">
+                        <a href="{{ route('register') }}" class="mt-8 block w-full text-center rounded-xl {{ $type->is_featured ? 'bg-nrapa-blue text-white hover:bg-nrapa-blue-dark shadow-sm' : 'border border-zinc-200 text-zinc-700 hover:border-nrapa-blue hover:text-nrapa-blue' }} px-4 py-3 text-sm font-bold transition-all">
                             Get Started
                         </a>
                     </div>
@@ -459,14 +388,8 @@
 
         {{-- CTA Banner --}}
         <section class="hero-gradient relative overflow-hidden">
-            {{-- Top curve from light section --}}
-            <div class="absolute top-0 left-0 right-0">
-                <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full" preserveAspectRatio="none">
-                    <path d="M0 0L1440 0L1440 60C1440 60 1080 10 720 10C360 10 0 60 0 60L0 0Z" fill="#f4f4f5"/>
-                </svg>
-            </div>
             <div class="hero-pattern absolute inset-0"></div>
-            <div class="relative mx-auto max-w-4xl px-6 pt-28 pb-20 text-center">
+            <div class="relative mx-auto max-w-4xl px-6 py-20 text-center">
                 <h2 class="text-3xl font-extrabold text-white sm:text-4xl" style="text-wrap: balance">
                     We're in your corner
                 </h2>
@@ -487,8 +410,13 @@
                 <div class="py-12 md:py-16">
                     <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
                         <div>
-                            <img src="{{ asset('ranyati-logo-dark.png') }}" alt="Ranyati" class="h-10 object-contain" />
-                            <p class="mt-2 text-xs text-zinc-500">Firearm Administration Specialists Since 2006</p>
+                            <div class="flex items-center gap-3">
+                                <img src="{{ asset('nrapa-logo.png') }}" alt="NRAPA" class="size-10 object-contain" />
+                                <div>
+                                    <span class="text-base font-bold text-white">NRAPA</span>
+                                    <p class="text-xs text-zinc-500">Members Portal</p>
+                                </div>
+                            </div>
                             <p class="mt-4 max-w-xs text-sm leading-relaxed text-zinc-400">
                                 Accredited by the SA Police Services with designated powers to allocate Dedicated Sport and Hunter status. FAR 1300122 &amp; 1300127.
                             </p>
@@ -520,7 +448,7 @@
                 </div>
                 <div class="border-t border-zinc-800 py-6">
                     <p class="text-center text-xs text-zinc-500">
-                        &copy; {{ date('Y') }} NRAPA &mdash; A Division of Ranyati Firearm Motivations (Pty) Ltd. All rights reserved.
+                        &copy; {{ date('Y') }} National Rifle and Pistol Association of South Africa. All rights reserved.
                     </p>
                 </div>
             </div>
