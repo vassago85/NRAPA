@@ -6,246 +6,335 @@
         <title>NRAPA - Members Portal</title>
         <link rel="icon" href="/nrapa-icon.png" type="image/png">
         <link rel="apple-touch-icon" href="/nrapa-icon.png">
+        <link rel="preconnect" href="https://fonts.bunny.net">
+        <link href="https://fonts.bunny.net/css?family=inter:300,400,500,600,700,800,900" rel="stylesheet" />
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <style>
-            .hero-gradient {
-                background: linear-gradient(135deg, #061e3c 0%, #0B4EA2 50%, #083A7A 100%);
+            body { font-family: 'Inter', system-ui, sans-serif; background: #020810; }
+
+            .hero-section {
+                background:
+                    radial-gradient(ellipse 90% 70% at 50% 30%, rgba(11,78,162,0.45) 0%, transparent 60%),
+                    radial-gradient(ellipse 60% 40% at 80% 20%, rgba(11,78,162,0.2) 0%, transparent 50%),
+                    radial-gradient(ellipse 50% 35% at 20% 60%, rgba(6,30,60,0.4) 0%, transparent 50%),
+                    linear-gradient(180deg, #0a3a78 0%, #072e60 30%, #051d3d 60%, #030f1e 85%, #020810 100%);
             }
-            .hero-pattern {
-                background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0);
-                background-size: 40px 40px;
+
+            .emblem-ring {
+                border: 1px solid rgba(255,255,255,0.04);
+                border-radius: 50%;
+                position: absolute;
             }
-            .hero-glow {
-                background: radial-gradient(ellipse at 50% 0%, rgba(245,130,32,0.15) 0%, transparent 60%);
+
+            .card-feature {
+                background: linear-gradient(180deg, rgba(12,35,65,0.7) 0%, rgba(8,22,42,0.8) 100%);
+                border: 1px solid rgba(255,255,255,0.06);
+                position: relative;
+                overflow: hidden;
+                transition: all 0.4s cubic-bezier(0.4, 0, 0.15, 1);
             }
-            .card-hover {
-                transition: transform 0.25s ease, box-shadow 0.25s ease;
+            .card-feature::after {
+                content: '';
+                position: absolute;
+                top: 0; left: 0; right: 0;
+                height: 3px;
+                background: var(--accent, #0B4EA2);
+                opacity: 0;
+                transition: opacity 0.4s ease;
             }
-            .card-hover:hover {
-                transform: translateY(-4px);
-                box-shadow: 0 12px 40px -12px rgba(11,78,162,0.15);
+            .card-feature:hover {
+                border-color: rgba(255,255,255,0.12);
+                transform: translateY(-8px);
+                box-shadow: 0 40px 80px -20px rgba(0,0,0,0.6), 0 0 1px 0 rgba(255,255,255,0.1);
             }
-            .pricing-hover {
-                transition: transform 0.25s ease, box-shadow 0.25s ease;
+            .card-feature:hover::after { opacity: 1; }
+            .card-feature:hover .icon-box {
+                transform: scale(1.1);
+                box-shadow: 0 0 32px -8px var(--accent, #0B4EA2);
             }
-            .pricing-hover:hover {
-                transform: translateY(-6px);
-                box-shadow: 0 20px 50px -16px rgba(11,78,162,0.2);
+
+            .icon-box { transition: transform 0.4s ease, box-shadow 0.4s ease; }
+
+            .card-pricing {
+                background: linear-gradient(180deg, rgba(12,35,65,0.6) 0%, rgba(8,22,42,0.75) 100%);
+                border: 1px solid rgba(255,255,255,0.06);
+                position: relative;
+                overflow: hidden;
+                transition: all 0.4s cubic-bezier(0.4, 0, 0.15, 1);
             }
-            .btn-glow {
-                box-shadow: 0 0 20px rgba(245,130,32,0.3);
+            .card-pricing:hover {
+                border-color: rgba(255,255,255,0.12);
+                transform: translateY(-8px);
+                box-shadow: 0 40px 80px -20px rgba(0,0,0,0.6);
             }
-            .btn-glow:hover {
-                box-shadow: 0 0 30px rgba(245,130,32,0.5);
+            .card-pricing.featured {
+                border-color: rgba(11,78,162,0.4);
+                box-shadow: 0 0 60px -20px rgba(11,78,162,0.25);
             }
-            @keyframes fade-up {
-                from { opacity: 0; transform: translateY(20px); }
+            .card-pricing.featured:hover {
+                border-color: rgba(11,78,162,0.6);
+            }
+
+            .btn-cta {
+                background: linear-gradient(135deg, #F58220 0%, #d46f16 100%);
+                box-shadow: 0 2px 12px -2px rgba(245,130,32,0.4), 0 0 0 1px rgba(245,130,32,0.15);
+                transition: all 0.25s ease;
+            }
+            .btn-cta:hover {
+                box-shadow: 0 6px 24px -4px rgba(245,130,32,0.5), 0 0 0 1px rgba(245,130,32,0.25);
+                transform: translateY(-2px);
+            }
+
+            .btn-outline {
+                border: 1px solid rgba(255,255,255,0.18);
+                transition: all 0.25s ease;
+            }
+            .btn-outline:hover {
+                border-color: rgba(255,255,255,0.35);
+                background: rgba(255,255,255,0.05);
+            }
+
+            .btn-blue {
+                background: linear-gradient(135deg, #0B4EA2 0%, #083A7A 100%);
+                box-shadow: 0 2px 12px -2px rgba(11,78,162,0.4);
+                transition: all 0.25s ease;
+            }
+            .btn-blue:hover {
+                box-shadow: 0 6px 24px -4px rgba(11,78,162,0.5);
+                transform: translateY(-2px);
+            }
+
+            @keyframes fadeUp {
+                from { opacity: 0; transform: translateY(30px); }
                 to { opacity: 1; transform: translateY(0); }
             }
-            .animate-fade-up {
-                animation: fade-up 0.6s ease-out forwards;
-            }
-            .animate-fade-up-delay {
-                animation: fade-up 0.6s ease-out 0.15s forwards;
-                opacity: 0;
-            }
-            .animate-fade-up-delay-2 {
-                animation: fade-up 0.6s ease-out 0.3s forwards;
-                opacity: 0;
-            }
+            .anim   { animation: fadeUp 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+            .anim-1 { animation: fadeUp 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.1s forwards; opacity: 0; }
+            .anim-2 { animation: fadeUp 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.2s forwards; opacity: 0; }
+            .anim-3 { animation: fadeUp 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards; opacity: 0; }
+            .anim-4 { animation: fadeUp 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.45s forwards; opacity: 0; }
+            .anim-5 { animation: fadeUp 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.6s forwards; opacity: 0; }
         </style>
     </head>
-    <body class="min-h-screen bg-white text-zinc-900 antialiased">
+    <body class="min-h-screen antialiased text-white">
 
         {{-- Header --}}
-        <header class="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#061e3c]/80 backdrop-blur-xl">
-            <nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-3 lg:px-8" aria-label="Global">
-                <a href="https://ranyati.co.za" class="flex items-center group" target="_blank" rel="noopener">
-                    <img src="{{ asset('logo-ranyatigroup-horizontal-white.png') }}" alt="Ranyati Group" class="h-7 w-auto object-contain transition group-hover:opacity-80" />
-                </a>
-                <div class="hidden sm:flex items-center gap-8">
-                    <a href="#features" class="text-sm font-medium text-zinc-300 hover:text-white transition">Features</a>
-                    <a href="#pricing" class="text-sm font-medium text-zinc-300 hover:text-white transition">Packages</a>
-                </div>
-                <div class="flex items-center gap-3">
-                    @auth
-                        <a href="{{ route('dashboard') }}" class="rounded-lg bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20 transition">
-                            Dashboard <span aria-hidden="true">&rarr;</span>
-                        </a>
-                    @else
-                        <a href="{{ route('login') }}" class="text-sm font-medium text-zinc-300 hover:text-white transition">Log in</a>
-                        @if (Route::has('register'))
-                            <a href="{{ route('register') }}" class="rounded-lg bg-nrapa-orange px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-nrapa-orange-dark transition">
-                                Register
+        <header class="absolute inset-x-0 top-0 z-50">
+            <div class="mx-auto max-w-7xl px-6 lg:px-8">
+                <div class="flex items-center justify-between py-5 border-b border-white/[0.04]">
+                    <a href="https://ranyati.co.za" class="flex items-center group" target="_blank" rel="noopener">
+                        <img src="{{ asset('logo-ranyatigroup-horizontal-white.png') }}" alt="Ranyati Group" class="h-7 w-auto object-contain transition group-hover:opacity-80" />
+                    </a>
+                    <div class="flex items-center gap-5">
+                        <a href="#features" class="hidden sm:block text-[12px] font-medium text-white/35 hover:text-white/70 transition-colors">Features</a>
+                        <a href="#pricing" class="hidden sm:block text-[12px] font-medium text-white/35 hover:text-white/70 transition-colors">Packages</a>
+                        <span class="hidden sm:block h-3 w-px bg-white/[0.08]"></span>
+                        @auth
+                            <a href="{{ route('dashboard') }}" class="btn-cta rounded-lg px-4 py-2 text-[12px] font-bold text-white tracking-wide">
+                                Dashboard <span aria-hidden="true">&rarr;</span>
                             </a>
-                        @endif
-                    @endauth
+                        @else
+                            <a href="{{ route('login') }}" class="text-[12px] font-medium text-white/35 hover:text-white/70 transition-colors">Log in</a>
+                            @if (Route::has('register'))
+                                <a href="{{ route('register') }}" class="btn-cta rounded-lg px-4 py-2 text-[12px] font-bold text-white tracking-wide">
+                                    Register
+                                </a>
+                            @endif
+                        @endauth
+                    </div>
                 </div>
-            </nav>
+            </div>
         </header>
 
         {{-- Hero --}}
-        <section class="hero-gradient relative overflow-hidden pt-32 pb-24 sm:pt-40 sm:pb-32">
-            <div class="hero-pattern absolute inset-0"></div>
-            <div class="hero-glow absolute inset-0"></div>
-            <div class="relative mx-auto max-w-7xl px-6 lg:px-8 text-center">
-                <div class="animate-fade-up">
-                    <div class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 backdrop-blur-sm">
-                        <span class="size-2 rounded-full bg-nrapa-orange animate-pulse"></span>
-                        <span class="text-xs font-medium text-zinc-300">SAPS Accredited &mdash; FAR 1300122 &amp; 1300127</span>
-                    </div>
+        <section class="hero-section relative min-h-[85vh] flex flex-col items-center justify-center overflow-hidden">
+
+            {{-- Emblem rings --}}
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden="true">
+                <div class="emblem-ring w-[400px] h-[400px] sm:w-[550px] sm:h-[550px]" style="border-color: rgba(255,255,255,0.03);"></div>
+            </div>
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden="true">
+                <div class="emblem-ring w-[600px] h-[600px] sm:w-[800px] sm:h-[800px]" style="border-color: rgba(255,255,255,0.02);"></div>
+            </div>
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden="true">
+                <div class="emblem-ring w-[900px] h-[900px] sm:w-[1100px] sm:h-[1100px]" style="border-color: rgba(255,255,255,0.015);"></div>
+            </div>
+
+            <div class="relative z-10 mx-auto max-w-3xl px-6 text-center lg:px-8 pt-28 pb-20 sm:pb-24">
+
+                {{-- Accreditation badge --}}
+                <div class="anim inline-flex items-center gap-2 rounded-full border border-white/[0.06] bg-white/[0.03] px-5 py-2">
+                    <span class="size-2 rounded-full bg-[#F58220] animate-pulse"></span>
+                    <span class="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/40">SAPS Accredited &mdash; FAR 1300122 &amp; 1300127</span>
                 </div>
 
-                <div class="mt-8 animate-fade-up-delay">
-                    <div class="mx-auto inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-10 py-5 backdrop-blur-sm">
+                {{-- NRAPA Logo --}}
+                <div class="mt-10 anim-1">
+                    <div class="mx-auto inline-flex items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.03] px-10 py-5 backdrop-blur-sm">
                         <img src="{{ asset('logo-nrapa-white.png') }}" alt="NRAPA" class="h-16 sm:h-20 w-auto object-contain" />
                     </div>
                 </div>
 
-                <h1 class="mt-8 text-3xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl animate-fade-up-delay" style="text-wrap: balance">
-                    Your Partner in<br>
-                    <span class="text-nrapa-orange">Responsible Firearm Ownership</span>
+                {{-- Heading --}}
+                <h1 class="mt-10 text-[2.5rem] font-black leading-[1.05] tracking-[-0.03em] text-white sm:text-[3.25rem] lg:text-[4rem] anim-1">
+                    Your Partner in<br class="hidden sm:block">
+                    <span class="text-[#F58220]">Responsible Firearm Ownership</span>
                 </h1>
 
-                <p class="mx-auto mt-6 max-w-2xl text-lg leading-8 text-zinc-300 animate-fade-up-delay-2">
+                {{-- Sub text --}}
+                <p class="mx-auto mt-7 max-w-lg text-[15px] leading-[1.8] text-white/45 anim-2">
                     We help you obtain dedicated status, manage your licences, and stay compliant with the Firearms Control Act &mdash; so you can focus on what you love, whether it's on the range or in the bush.
                 </p>
 
-                <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-up-delay-2">
+                {{-- CTAs --}}
+                <div class="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-4 anim-3">
                     @auth
-                        <a href="{{ route('dashboard') }}" class="rounded-xl bg-nrapa-orange px-8 py-3.5 text-sm font-bold text-white shadow-lg btn-glow hover:bg-nrapa-orange-dark transition-all">
+                        <a href="{{ route('dashboard') }}" class="btn-cta rounded-xl px-8 py-3.5 text-[13px] font-bold text-white tracking-wide">
                             Go to Dashboard
                         </a>
-                        <a href="#features" class="text-sm font-semibold text-zinc-300 hover:text-white transition">
+                        <a href="#features" class="btn-outline rounded-xl px-8 py-3.5 text-[13px] font-semibold text-white/50 hover:text-white tracking-wide">
                             View features <span aria-hidden="true">&rarr;</span>
                         </a>
                     @else
-                        <a href="{{ route('register') }}" class="rounded-xl bg-nrapa-orange px-8 py-3.5 text-sm font-bold text-white shadow-lg btn-glow hover:bg-nrapa-orange-dark transition-all">
+                        <a href="{{ route('register') }}" class="btn-cta rounded-xl px-8 py-3.5 text-[13px] font-bold text-white tracking-wide">
                             Become a Member
                         </a>
-                        <a href="{{ route('login') }}" class="rounded-xl border border-white/20 bg-white/5 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-sm hover:bg-white/10 transition-all">
+                        <a href="{{ route('login') }}" class="btn-outline rounded-xl px-8 py-3.5 text-[13px] font-semibold text-white/50 hover:text-white tracking-wide">
                             Already a member? Sign in
                         </a>
                     @endauth
                 </div>
-            </div>
 
-            {{-- Bottom curve --}}
-            <div class="absolute bottom-0 left-0 right-0">
-                <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full">
-                    <path d="M0 60L1440 60L1440 0C1440 0 1080 40 720 40C360 40 0 0 0 0L0 60Z" fill="white"/>
-                </svg>
+                {{-- Trust strip --}}
+                <div class="mt-14 anim-4">
+                    <div class="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-2 rounded-2xl border border-white/[0.04] bg-white/[0.02] px-6 py-3 backdrop-blur-sm">
+                        <div class="flex items-center gap-2 px-2 text-[11.5px] font-medium tracking-wide text-white/30">
+                            <svg class="size-3.5 text-[#F58220]/50" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.403 12.652a3 3 0 0 0 0-5.304 3 3 0 0 0-3.75-3.751 3 3 0 0 0-5.305 0 3 3 0 0 0-3.751 3.75 3 3 0 0 0 0 5.305 3 3 0 0 0 3.75 3.751 3 3 0 0 0 5.305 0 3 3 0 0 0 3.751-3.75Zm-2.546-4.46a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd"/></svg>
+                            SAPS Accredited
+                        </div>
+                        <span class="hidden sm:block h-3 w-px bg-white/[0.06]"></span>
+                        <div class="flex items-center gap-2 px-2 text-[11.5px] font-medium tracking-wide text-white/30">
+                            <svg class="size-3.5 text-[#F58220]/50" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.403 12.652a3 3 0 0 0 0-5.304 3 3 0 0 0-3.75-3.751 3 3 0 0 0-5.305 0 3 3 0 0 0-3.751 3.75 3 3 0 0 0 0 5.305 3 3 0 0 0 3.75 3.751 3 3 0 0 0 5.305 0 3 3 0 0 0 3.751-3.75Zm-2.546-4.46a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd"/></svg>
+                            FAR 1300122 &amp; 1300127
+                        </div>
+                        <span class="hidden sm:block h-3 w-px bg-white/[0.06]"></span>
+                        <div class="flex items-center gap-2 px-2 text-[11.5px] font-medium tracking-wide text-white/30">
+                            <svg class="size-3.5 text-[#F58220]/50" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 1a4.5 4.5 0 0 0-4.5 4.5V9H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-.5V5.5A4.5 4.5 0 0 0 10 1Zm3 8V5.5a3 3 0 1 0-6 0V9h6Z" clip-rule="evenodd"/></svg>
+                            POPIA Compliant
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
         {{-- Credentials Bar --}}
-        <section class="relative -mt-1 bg-white py-12">
+        <section class="relative bg-[#020810] border-t border-white/[0.04] py-14">
             <div class="mx-auto max-w-5xl px-6">
                 <div class="grid grid-cols-2 gap-8 md:grid-cols-4">
                     <div class="text-center">
-                        <p class="text-2xl font-extrabold text-nrapa-blue">SAPS</p>
-                        <p class="mt-1 text-sm text-zinc-500">Accredited</p>
+                        <p class="text-2xl font-extrabold text-white">SAPS</p>
+                        <p class="mt-1 text-[12px] tracking-wide text-white/30">Accredited</p>
                     </div>
                     <div class="text-center">
-                        <p class="text-2xl font-extrabold text-nrapa-blue">1300122</p>
-                        <p class="mt-1 text-sm text-zinc-500">FAR Sport</p>
+                        <p class="text-2xl font-extrabold text-white">1300122</p>
+                        <p class="mt-1 text-[12px] tracking-wide text-white/30">FAR Sport</p>
                     </div>
                     <div class="text-center">
-                        <p class="text-2xl font-extrabold text-nrapa-blue">1300127</p>
-                        <p class="mt-1 text-sm text-zinc-500">FAR Hunting</p>
+                        <p class="text-2xl font-extrabold text-white">1300127</p>
+                        <p class="mt-1 text-[12px] tracking-wide text-white/30">FAR Hunting</p>
                     </div>
                     <div class="text-center">
-                        <p class="text-2xl font-extrabold text-nrapa-blue">POPIA</p>
-                        <p class="mt-1 text-sm text-zinc-500">Compliant</p>
+                        <p class="text-2xl font-extrabold text-white">POPIA</p>
+                        <p class="mt-1 text-[12px] tracking-wide text-white/30">Compliant</p>
                     </div>
                 </div>
             </div>
         </section>
 
         {{-- Features --}}
-        <section id="features" class="bg-zinc-50 py-24">
+        <section id="features" class="bg-[#020810] py-24">
             <div class="mx-auto max-w-7xl px-6 lg:px-8">
                 <div class="text-center">
-                    <span class="inline-block rounded-full bg-nrapa-blue/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-nrapa-blue">
-                        Members Portal
-                    </span>
-                    <p class="mt-4 text-3xl font-extrabold tracking-tight text-zinc-900 sm:text-4xl" style="text-wrap: balance">
+                    <div class="inline-flex items-center gap-2 rounded-full border border-white/[0.06] bg-white/[0.03] px-5 py-2">
+                        <span class="text-[10px] font-bold uppercase tracking-[0.25em] text-white/40">Members Portal</span>
+                    </div>
+                    <p class="mt-6 text-[2rem] font-black leading-[1.1] tracking-[-0.02em] text-white sm:text-[2.5rem]">
                         Manage your membership online
                     </p>
-                    <p class="mx-auto mt-4 max-w-xl text-base text-zinc-500">
+                    <p class="mx-auto mt-5 max-w-xl text-[15px] leading-[1.8] text-white/40">
                         Whether you're building your activity record or already hold dedicated status &mdash; we're with you every step of the way. Here's what you get as a member.
                     </p>
                 </div>
 
                 <div class="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {{-- 1. Endorsements & Dedicated Status --}}
-                    <div class="card-hover group rounded-2xl border border-zinc-200/80 bg-white p-7">
-                        <div class="flex size-12 items-center justify-center rounded-xl bg-nrapa-blue/10 group-hover:bg-nrapa-blue/15 transition">
-                            <svg class="size-6 text-nrapa-blue" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <div class="card-feature group flex flex-col rounded-2xl p-8 sm:p-9" style="--accent: #0B4EA2;">
+                        <div class="icon-box flex size-14 items-center justify-center rounded-2xl bg-[#0B4EA2]/10 ring-1 ring-[#0B4EA2]/15">
+                            <svg class="size-6 text-[#0B4EA2]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
                             </svg>
                         </div>
-                        <h3 class="mt-5 text-base font-bold text-zinc-900">Endorsements &amp; Dedicated Licences</h3>
-                        <p class="mt-2 text-sm leading-relaxed text-zinc-500">We assist you in obtaining Dedicated Sport and Hunter status &mdash; allowing you to hold additional firearms and increased ammunition beyond the standard limits.</p>
+                        <h3 class="mt-7 text-lg font-bold tracking-tight text-white">Endorsements &amp; Dedicated Licences</h3>
+                        <p class="mt-3 flex-1 text-[14px] leading-[1.75] text-white/40">We assist you in obtaining Dedicated Sport and Hunter status &mdash; allowing you to hold additional firearms and increased ammunition beyond the standard limits.</p>
                     </div>
 
                     {{-- 2. Certificates --}}
-                    <div class="card-hover group rounded-2xl border border-zinc-200/80 bg-white p-7">
-                        <div class="flex size-12 items-center justify-center rounded-xl bg-nrapa-blue/10 group-hover:bg-nrapa-blue/15 transition">
-                            <svg class="size-6 text-nrapa-blue" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <div class="card-feature group flex flex-col rounded-2xl p-8 sm:p-9" style="--accent: #0B4EA2;">
+                        <div class="icon-box flex size-14 items-center justify-center rounded-2xl bg-[#0B4EA2]/10 ring-1 ring-[#0B4EA2]/15">
+                            <svg class="size-6 text-[#0B4EA2]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M7 3h7l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z"/>
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M14 3v6h6M9 13h6M9 17h6"/>
                             </svg>
                         </div>
-                        <h3 class="mt-5 text-base font-bold text-zinc-900">Certificates &amp; Endorsements</h3>
-                        <p class="mt-2 text-sm leading-relaxed text-zinc-500">Download your membership certificate, endorsement letters, and competency documents. All QR-verifiable for SAPS and DFO submissions.</p>
+                        <h3 class="mt-7 text-lg font-bold tracking-tight text-white">Certificates &amp; Endorsements</h3>
+                        <p class="mt-3 flex-1 text-[14px] leading-[1.75] text-white/40">Download your membership certificate, endorsement letters, and competency documents. All QR-verifiable for SAPS and DFO submissions.</p>
                     </div>
 
                     {{-- 3. Virtual Safe --}}
-                    <div class="card-hover group rounded-2xl border border-zinc-200/80 bg-white p-7">
-                        <div class="flex size-12 items-center justify-center rounded-xl bg-nrapa-blue/10 group-hover:bg-nrapa-blue/15 transition">
-                            <svg class="size-6 text-nrapa-blue" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <div class="card-feature group flex flex-col rounded-2xl p-8 sm:p-9" style="--accent: #0B4EA2;">
+                        <div class="icon-box flex size-14 items-center justify-center rounded-2xl bg-[#0B4EA2]/10 ring-1 ring-[#0B4EA2]/15">
+                            <svg class="size-6 text-[#0B4EA2]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 2l7 4v6c0 5-3 9-7 10-4-1-7-5-7-10V6l7-4z"/>
                             </svg>
                         </div>
-                        <h3 class="mt-5 text-base font-bold text-zinc-900">Virtual Safe</h3>
-                        <p class="mt-2 text-sm leading-relaxed text-zinc-500">Keep a digital record of your firearms, license details, and barrel life. Get reminders before your licenses expire.</p>
+                        <h3 class="mt-7 text-lg font-bold tracking-tight text-white">Virtual Safe</h3>
+                        <p class="mt-3 flex-1 text-[14px] leading-[1.75] text-white/40">Keep a digital record of your firearms, license details, and barrel life. Get reminders before your licenses expire.</p>
                     </div>
 
                     {{-- 4. Loading Bench --}}
-                    <div class="card-hover group rounded-2xl border border-zinc-200/80 bg-white p-7">
-                        <div class="flex size-12 items-center justify-center rounded-xl bg-nrapa-orange/10 group-hover:bg-nrapa-orange/15 transition">
-                            <svg class="size-6 text-nrapa-orange" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <div class="card-feature group flex flex-col rounded-2xl p-8 sm:p-9" style="--accent: #F58220;">
+                        <div class="icon-box flex size-14 items-center justify-center rounded-2xl bg-[#F58220]/10 ring-1 ring-[#F58220]/15">
+                            <svg class="size-6 text-[#F58220]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M8 4h8l-1 1v6l4 6a2 2 0 01-1.7 3H6.7A2 2 0 015 17l4-6V5L8 4z"/>
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M10 9h4"/>
                             </svg>
                         </div>
-                        <h3 class="mt-5 text-base font-bold text-zinc-900">Virtual Loading Bench</h3>
-                        <p class="mt-2 text-sm leading-relaxed text-zinc-500">Store load recipes, track component inventory, run ladder tests, and calculate cost per round.</p>
+                        <h3 class="mt-7 text-lg font-bold tracking-tight text-white">Virtual Loading Bench</h3>
+                        <p class="mt-3 flex-1 text-[14px] leading-[1.75] text-white/40">Store load recipes, track component inventory, run ladder tests, and calculate cost per round.</p>
                     </div>
 
                     {{-- 5. Activities --}}
-                    <div class="card-hover group rounded-2xl border border-zinc-200/80 bg-white p-7">
-                        <div class="flex size-12 items-center justify-center rounded-xl bg-nrapa-orange/10 group-hover:bg-nrapa-orange/15 transition">
-                            <svg class="size-6 text-nrapa-orange" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <div class="card-feature group flex flex-col rounded-2xl p-8 sm:p-9" style="--accent: #F58220;">
+                        <div class="icon-box flex size-14 items-center justify-center rounded-2xl bg-[#F58220]/10 ring-1 ring-[#F58220]/15">
+                            <svg class="size-6 text-[#F58220]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5h10M9 9h10M9 13h10M9 17h6"/>
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 6l1 1 2-2M5 10l1 1 2-2M5 14l1 1 2-2M5 18l1 1 2-2"/>
                             </svg>
                         </div>
-                        <h3 class="mt-5 text-base font-bold text-zinc-900">Shooting Activities</h3>
-                        <p class="mt-2 text-sm leading-relaxed text-zinc-500">Log your range sessions and hunting activities. Track rounds fired and build the activity record required for dedicated status.</p>
+                        <h3 class="mt-7 text-lg font-bold tracking-tight text-white">Shooting Activities</h3>
+                        <p class="mt-3 flex-1 text-[14px] leading-[1.75] text-white/40">Log your range sessions and hunting activities. Track rounds fired and build the activity record required for dedicated status.</p>
                     </div>
 
                     {{-- 6. Digital Membership Card --}}
-                    <div class="card-hover group rounded-2xl border border-zinc-200/80 bg-white p-7">
-                        <div class="flex size-12 items-center justify-center rounded-xl bg-nrapa-orange/10 group-hover:bg-nrapa-orange/15 transition">
-                            <svg class="size-6 text-nrapa-orange" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <div class="card-feature group flex flex-col rounded-2xl p-8 sm:p-9" style="--accent: #F58220;">
+                        <div class="icon-box flex size-14 items-center justify-center rounded-2xl bg-[#F58220]/10 ring-1 ring-[#F58220]/15">
+                            <svg class="size-6 text-[#F58220]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5A2.5 2.5 0 015.5 5h13A2.5 2.5 0 0121 7.5v9A2.5 2.5 0 0118.5 19h-13A2.5 2.5 0 013 16.5v-9z"/>
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 9h18M7 15h4"/>
                             </svg>
                         </div>
-                        <h3 class="mt-5 text-base font-bold text-zinc-900">Digital Membership Card</h3>
-                        <p class="mt-2 text-sm leading-relaxed text-zinc-500">QR-verifiable membership card on your phone. Present it at the range, to SAPS, or any official who needs to confirm your membership.</p>
+                        <h3 class="mt-7 text-lg font-bold tracking-tight text-white">Digital Membership Card</h3>
+                        <p class="mt-3 flex-1 text-[14px] leading-[1.75] text-white/40">QR-verifiable membership card on your phone. Present it at the range, to SAPS, or any official who needs to confirm your membership.</p>
                     </div>
                 </div>
             </div>
@@ -259,16 +348,16 @@
                 ->get();
             $basicType = $membershipTypes->firstWhere('slug', 'basic');
         @endphp
-        <section id="pricing" class="bg-white py-24">
+        <section id="pricing" class="bg-[#020810] border-t border-white/[0.04] py-24">
             <div class="mx-auto max-w-7xl px-6 lg:px-8">
                 <div class="text-center">
-                    <span class="inline-block rounded-full bg-nrapa-orange/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-nrapa-orange">
-                        Membership
-                    </span>
-                    <p class="mt-4 text-3xl font-extrabold tracking-tight text-zinc-900 sm:text-4xl" style="text-wrap: balance">
+                    <div class="inline-flex items-center gap-2 rounded-full border border-[#F58220]/20 bg-[#F58220]/5 px-5 py-2">
+                        <span class="text-[10px] font-bold uppercase tracking-[0.25em] text-[#F58220]/70">Membership</span>
+                    </div>
+                    <p class="mt-6 text-[2rem] font-black leading-[1.1] tracking-[-0.02em] text-white sm:text-[2.5rem]">
                         Become a member
                     </p>
-                    <p class="mx-auto mt-4 max-w-xl text-base text-zinc-500">
+                    <p class="mx-auto mt-5 max-w-xl text-[15px] leading-[1.8] text-white/40">
                         Choose the membership that fits your needs. All packages include full portal access and digital certificates.
                     </p>
                 </div>
@@ -276,99 +365,99 @@
                 @if($membershipTypes->count() > 0)
                 <div class="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
                     @foreach($membershipTypes as $type)
-                    <div class="pricing-hover relative rounded-2xl {{ $type->is_featured ? 'border-2 border-nrapa-blue bg-white shadow-lg ring-1 ring-nrapa-blue/10' : 'border border-zinc-200 bg-white' }} p-8">
+                    <div class="card-pricing {{ $type->is_featured ? 'featured' : '' }} relative rounded-2xl p-8">
                         @if($type->is_featured)
-                        <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-nrapa-orange to-nrapa-orange-dark px-4 py-1 text-xs font-bold text-white shadow-sm">
+                        <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-[#F58220] to-[#d46f16] px-4 py-1 text-[10px] font-bold text-white shadow-sm tracking-wide uppercase">
                             Most Popular
                         </div>
                         @endif
 
                         <div class="flex items-center gap-3 mb-5">
-                            <div class="flex size-11 items-center justify-center rounded-xl {{ $type->is_featured ? 'bg-nrapa-blue/10' : 'bg-zinc-100' }}">
+                            <div class="flex size-11 items-center justify-center rounded-xl {{ $type->is_featured ? 'bg-[#0B4EA2]/15 ring-1 ring-[#0B4EA2]/20' : 'bg-white/[0.04] ring-1 ring-white/[0.06]' }}">
                                 @if($type->dedicated_type === 'both')
-                                <svg class="size-5 {{ $type->is_featured ? 'text-nrapa-blue' : 'text-zinc-500' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <svg class="size-5 {{ $type->is_featured ? 'text-[#0B4EA2]' : 'text-white/30' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
                                 </svg>
                                 @elseif($type->dedicated_type === 'hunter')
-                                <svg class="size-5 {{ $type->is_featured ? 'text-nrapa-blue' : 'text-zinc-500' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <svg class="size-5 {{ $type->is_featured ? 'text-[#0B4EA2]' : 'text-white/30' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
                                 </svg>
                                 @elseif($type->dedicated_type === 'sport')
-                                <svg class="size-5 {{ $type->is_featured ? 'text-nrapa-blue' : 'text-zinc-500' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <svg class="size-5 {{ $type->is_featured ? 'text-[#0B4EA2]' : 'text-white/30' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" />
                                 </svg>
                                 @else
-                                <svg class="size-5 {{ $type->is_featured ? 'text-nrapa-blue' : 'text-zinc-500' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <svg class="size-5 {{ $type->is_featured ? 'text-[#0B4EA2]' : 'text-white/30' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                                 </svg>
                                 @endif
                             </div>
                             @if($type->dedicated_type)
-                            <span class="text-xs font-semibold px-2.5 py-1 rounded-full {{ $type->dedicated_type === 'both' ? 'bg-purple-50 text-purple-700' : ($type->dedicated_type === 'hunter' ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700') }}">
+                            <span class="text-[10px] font-bold uppercase tracking-[0.15em] px-2.5 py-1 rounded-full {{ $type->dedicated_type === 'both' ? 'bg-purple-500/10 text-purple-400/70 ring-1 ring-purple-500/15' : ($type->dedicated_type === 'hunter' ? 'bg-amber-500/10 text-amber-400/70 ring-1 ring-amber-500/15' : 'bg-sky-500/10 text-sky-400/70 ring-1 ring-sky-500/15') }}">
                                 {{ $type->dedicated_type === 'both' ? 'Hunter & Sport' : ucfirst($type->dedicated_type) }}
                             </span>
                             @endif
                         </div>
 
-                        <h3 class="text-lg font-bold text-zinc-900">{{ $type->name }}</h3>
+                        <h3 class="text-lg font-bold text-white">{{ $type->name }}</h3>
 
                         <div class="mt-3">
                             @if($type->hasUpgradeFee() && $basicType)
                             @php $totalSignup = ($basicType->initial_price ?? 0) + ($type->upgrade_price ?? 0); @endphp
                             <div class="flex items-baseline gap-1">
-                                <span class="text-4xl font-extrabold tracking-tight text-zinc-900">R{{ number_format($totalSignup, 0) }}</span>
-                                <span class="text-sm font-medium text-zinc-400">sign-up</span>
+                                <span class="text-4xl font-extrabold tracking-tight text-white">R{{ number_format($totalSignup, 0) }}</span>
+                                <span class="text-[13px] font-medium text-white/30">sign-up</span>
                             </div>
-                            <p class="text-sm text-zinc-500 mt-1">Renewal: R{{ number_format($type->renewal_price, 0) }}/year</p>
+                            <p class="text-[13px] text-white/35 mt-1">Renewal: R{{ number_format($type->renewal_price, 0) }}/year</p>
                             @else
                             <div class="flex items-baseline gap-1">
-                                <span class="text-4xl font-extrabold tracking-tight text-zinc-900">R{{ number_format($type->initial_price, 0) }}</span>
-                                <span class="text-sm font-medium text-zinc-400">/ {{ $type->duration_type === 'lifetime' ? 'once-off' : 'year' }}</span>
+                                <span class="text-4xl font-extrabold tracking-tight text-white">R{{ number_format($type->initial_price, 0) }}</span>
+                                <span class="text-[13px] font-medium text-white/30">/ {{ $type->duration_type === 'lifetime' ? 'once-off' : 'year' }}</span>
                             </div>
                             @if($type->renewal_price > 0 && $type->renewal_price != $type->initial_price)
-                            <p class="text-sm text-zinc-500 mt-1">Renewal: R{{ number_format($type->renewal_price, 0) }}/year</p>
+                            <p class="text-[13px] text-white/35 mt-1">Renewal: R{{ number_format($type->renewal_price, 0) }}/year</p>
                             @endif
                             @endif
                         </div>
 
-                        <p class="mt-4 text-sm leading-relaxed text-zinc-500">{{ $type->description }}</p>
+                        <p class="mt-4 text-[14px] leading-[1.75] text-white/40">{{ $type->description }}</p>
 
-                        <div class="my-6 h-px bg-zinc-100"></div>
+                        <div class="my-6 h-px bg-white/[0.06]"></div>
 
                         <ul class="space-y-3">
-                            <li class="flex items-center gap-2.5 text-sm text-zinc-600">
-                                <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            <li class="flex items-center gap-2.5 text-[13px] text-white/45">
+                                <svg class="size-4 text-[#F58220]/60 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.403 12.652a3 3 0 0 0 0-5.304 3 3 0 0 0-3.75-3.751 3 3 0 0 0-5.305 0 3 3 0 0 0-3.751 3.75 3 3 0 0 0 0 5.305 3 3 0 0 0 3.75 3.751 3 3 0 0 0 5.305 0 3 3 0 0 0 3.751-3.75Zm-2.546-4.46a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd"/></svg>
                                 Virtual Safe
                             </li>
                             @if($type->allows_dedicated_status)
-                            <li class="flex items-center gap-2.5 text-sm text-zinc-600">
-                                <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            <li class="flex items-center gap-2.5 text-[13px] text-white/45">
+                                <svg class="size-4 text-[#F58220]/60 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.403 12.652a3 3 0 0 0 0-5.304 3 3 0 0 0-3.75-3.751 3 3 0 0 0-5.305 0 3 3 0 0 0-3.751 3.75 3 3 0 0 0 0 5.305 3 3 0 0 0 3.75 3.751 3 3 0 0 0 5.305 0 3 3 0 0 0 3.751-3.75Zm-2.546-4.46a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd"/></svg>
                                 Virtual Loading Bench
                             </li>
                             @endif
-                            <li class="flex items-center gap-2.5 text-sm text-zinc-600">
-                                <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            <li class="flex items-center gap-2.5 text-[13px] text-white/45">
+                                <svg class="size-4 text-[#F58220]/60 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.403 12.652a3 3 0 0 0 0-5.304 3 3 0 0 0-3.75-3.751 3 3 0 0 0-5.305 0 3 3 0 0 0-3.751 3.75 3 3 0 0 0 0 5.305 3 3 0 0 0 3.75 3.751 3 3 0 0 0 5.305 0 3 3 0 0 0 3.751-3.75Zm-2.546-4.46a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd"/></svg>
                                 QR-Verified Certificates
                             </li>
                             @if($type->requires_knowledge_test)
-                            <li class="flex items-center gap-2.5 text-sm text-zinc-600">
-                                <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            <li class="flex items-center gap-2.5 text-[13px] text-white/45">
+                                <svg class="size-4 text-[#F58220]/60 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.403 12.652a3 3 0 0 0 0-5.304 3 3 0 0 0-3.75-3.751 3 3 0 0 0-5.305 0 3 3 0 0 0-3.751 3.75 3 3 0 0 0 0 5.305 3 3 0 0 0 3.75 3.751 3 3 0 0 0 5.305 0 3 3 0 0 0 3.751-3.75Zm-2.546-4.46a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd"/></svg>
                                 Knowledge Test Access
                             </li>
                             @endif
                             @if($type->allows_dedicated_status)
-                            <li class="flex items-center gap-2.5 text-sm text-zinc-600">
-                                <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            <li class="flex items-center gap-2.5 text-[13px] text-white/45">
+                                <svg class="size-4 text-[#F58220]/60 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.403 12.652a3 3 0 0 0 0-5.304 3 3 0 0 0-3.75-3.751 3 3 0 0 0-5.305 0 3 3 0 0 0-3.751 3.75 3 3 0 0 0 0 5.305 3 3 0 0 0 3.75 3.751 3 3 0 0 0 5.305 0 3 3 0 0 0 3.751-3.75Zm-2.546-4.46a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd"/></svg>
                                 Dedicated Status Support
                             </li>
                             @endif
-                            <li class="flex items-center gap-2.5 text-sm text-zinc-600">
-                                <svg class="size-4 text-nrapa-blue shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            <li class="flex items-center gap-2.5 text-[13px] text-white/45">
+                                <svg class="size-4 text-[#F58220]/60 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.403 12.652a3 3 0 0 0 0-5.304 3 3 0 0 0-3.75-3.751 3 3 0 0 0-5.305 0 3 3 0 0 0-3.751 3.75 3 3 0 0 0 0 5.305 3 3 0 0 0 3.75 3.751 3 3 0 0 0 5.305 0 3 3 0 0 0 3.751-3.75Zm-2.546-4.46a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd"/></svg>
                                 Learning Center Access
                             </li>
                         </ul>
 
-                        <a href="{{ route('register') }}" class="mt-8 block w-full text-center rounded-xl {{ $type->is_featured ? 'bg-nrapa-blue text-white hover:bg-nrapa-blue-dark shadow-sm' : 'border border-zinc-200 text-zinc-700 hover:border-nrapa-blue hover:text-nrapa-blue' }} px-4 py-3 text-sm font-bold transition-all">
+                        <a href="{{ route('register') }}" class="{{ $type->is_featured ? 'btn-cta' : 'btn-outline text-white/50 hover:text-white' }} mt-8 block w-full text-center rounded-xl px-4 py-3 text-[13px] font-bold tracking-wide">
                             Get Started
                         </a>
                     </div>
@@ -376,8 +465,8 @@
                 </div>
                 @else
                 <div class="mt-16 text-center">
-                    <p class="text-zinc-500">Membership packages will be listed here shortly.</p>
-                    <a href="{{ route('register') }}" class="mt-4 inline-block rounded-xl bg-nrapa-blue px-8 py-3.5 text-sm font-bold text-white hover:bg-nrapa-blue-dark transition shadow-sm">
+                    <p class="text-white/40">Membership packages will be listed here shortly.</p>
+                    <a href="{{ route('register') }}" class="btn-cta mt-6 inline-block rounded-xl px-8 py-3.5 text-[13px] font-bold text-white tracking-wide">
                         Register Now
                     </a>
                 </div>
@@ -386,17 +475,19 @@
         </section>
 
         {{-- CTA Banner --}}
-        <section class="hero-gradient relative overflow-hidden">
-            <div class="hero-pattern absolute inset-0"></div>
-            <div class="relative mx-auto max-w-4xl px-6 py-20 text-center">
-                <h2 class="text-3xl font-extrabold text-white sm:text-4xl" style="text-wrap: balance">
+        <section class="hero-section relative overflow-hidden">
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden="true">
+                <div class="emblem-ring w-[600px] h-[600px] sm:w-[800px] sm:h-[800px]" style="border-color: rgba(255,255,255,0.02);"></div>
+            </div>
+            <div class="relative z-10 mx-auto max-w-4xl px-6 py-24 text-center">
+                <h2 class="text-[2rem] font-black leading-[1.1] tracking-[-0.02em] text-white sm:text-[2.5rem]">
                     We're in your corner
                 </h2>
-                <p class="mx-auto mt-4 max-w-xl text-base text-zinc-300">
+                <p class="mx-auto mt-5 max-w-xl text-[15px] leading-[1.8] text-white/45">
                     Whether you're working toward dedicated status or already there &mdash; NRAPA walks the journey with you. Endorsements, certificates, compliance, and the support you need to enjoy responsible firearm ownership.
                 </p>
-                <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-                    <a href="{{ route('register') }}" class="rounded-xl bg-nrapa-orange px-8 py-3.5 text-sm font-bold text-white shadow-lg btn-glow hover:bg-nrapa-orange-dark transition-all">
+                <div class="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-4">
+                    <a href="{{ route('register') }}" class="btn-cta rounded-xl px-8 py-3.5 text-[13px] font-bold text-white tracking-wide">
                         Apply for Membership
                     </a>
                 </div>
@@ -417,9 +508,9 @@
                     </div>
 
                     {{-- Center: Divisions --}}
-                    <div class="flex flex-col items-center text-center">
+                    <div class="flex flex-col items-start sm:items-center text-left sm:text-center">
                         <h4 class="text-[10px] font-bold uppercase tracking-[0.25em] text-white/25">Divisions</h4>
-                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 20px; align-items: center;">
+                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 20px;">
                             <a href="https://motivations.ranyati.co.za" style="display: inline-flex; align-items: center; justify-content: center; width: 144px; height: 36px; padding: 6px; border-radius: 10px; background: rgba(245,130,32,0.1); box-shadow: inset 0 0 0 1px rgba(245,130,32,0.15); transition: background 0.2s; overflow: hidden;" onmouseover="this.style.background='rgba(245,130,32,0.2)'" onmouseout="this.style.background='rgba(245,130,32,0.1)'">
                                 <img src="{{ asset('logo-ranyati_motivations-white-text.png') }}" alt="Motivations" style="max-height: 24px; max-width: 132px; width: auto; height: auto; object-fit: contain;" />
                             </a>
@@ -433,9 +524,9 @@
                     </div>
 
                     {{-- Right: Contact --}}
-                    <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                    <div class="flex flex-col items-start sm:items-end">
                         <h4 class="text-[10px] font-bold uppercase tracking-[0.25em] text-white/25">Contact</h4>
-                        <div style="margin-top: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 0;">
+                        <div class="mt-5 flex flex-col items-start sm:items-end gap-0">
                             <a href="tel:+27871510987" style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,0.4); text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.4)'">
                                 <svg style="width: 14px; height: 14px; flex-shrink: 0; color: rgba(255,255,255,0.2);" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z"/></svg>
                                 +27 87 151 0987

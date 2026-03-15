@@ -242,9 +242,9 @@
                             Trading as Ranyati Firearm Motivations (Pty) Ltd.
                         </p>
                     </div>
-                    <div class="flex flex-col items-center text-center">
+                    <div class="flex flex-col items-start sm:items-center text-left sm:text-center">
                         <h4 class="text-[10px] font-bold uppercase tracking-[0.25em] text-white/25">Divisions</h4>
-                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 20px; align-items: center;">
+                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 20px;">
                             <a href="https://motivations.ranyati.co.za" style="display: inline-flex; align-items: center; justify-content: center; width: 144px; height: 36px; padding: 6px; border-radius: 10px; background: rgba(245,130,32,0.1); box-shadow: inset 0 0 0 1px rgba(245,130,32,0.15); transition: background 0.2s; overflow: hidden;" onmouseover="this.style.background='rgba(245,130,32,0.2)'" onmouseout="this.style.background='rgba(245,130,32,0.1)'">
                                 <img src="{{ asset('logo-ranyati_motivations-white-text.png') }}" alt="Motivations" style="max-height: 24px; max-width: 132px; width: auto; height: auto; object-fit: contain;" />
                             </a>
@@ -256,9 +256,9 @@
                             </a>
                         </div>
                     </div>
-                    <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                    <div class="flex flex-col items-start sm:items-end">
                         <h4 class="text-[10px] font-bold uppercase tracking-[0.25em] text-white/25">Contact</h4>
-                        <div style="margin-top: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 0;">
+                        <div class="mt-5 flex flex-col items-start sm:items-end gap-0">
                             <a href="tel:+27871510987" style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,0.4); text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.4)'">
                                 <svg style="width: 14px; height: 14px; flex-shrink: 0; color: rgba(255,255,255,0.2);" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z"/></svg>
                                 +27 87 151 0987
