@@ -208,12 +208,6 @@
 
             <div class="relative z-10 mx-auto max-w-3xl px-6 text-center lg:px-8 pt-28 pb-20 sm:pb-24">
 
-                {{-- Accreditation badge --}}
-                <div class="anim inline-flex items-center gap-2 rounded-full border border-white/[0.06] bg-white/[0.03] px-5 py-2">
-                    <span class="size-2 rounded-full bg-[#F58220] animate-pulse"></span>
-                    <span class="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/40">SAPS Accredited &mdash; FAR 1300122 &amp; 1300127</span>
-                </div>
-
                 {{-- NRAPA Logo --}}
                 <div class="mt-10 anim-1">
                     <div class="mx-auto inline-flex items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.03] px-10 py-5 backdrop-blur-sm">
@@ -224,7 +218,7 @@
                 {{-- Heading --}}
                 <h1 class="mt-10 text-[2.5rem] font-black leading-[1.05] tracking-[-0.03em] text-white sm:text-[3.25rem] lg:text-[4rem] anim-1">
                     Your Partner in<br class="hidden sm:block">
-                    <span class="text-[#F58220]">Responsible Firearm Ownership</span>
+                    Responsible Firearm Ownership
                 </h1>
 
                 {{-- Sub text --}}
