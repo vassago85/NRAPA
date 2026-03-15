@@ -209,16 +209,13 @@
             <div class="relative z-10 mx-auto max-w-3xl px-6 text-center lg:px-8 pt-28 pb-20 sm:pb-24">
 
                 {{-- NRAPA Logo --}}
-                <div class="mt-10 anim-1">
-                    <div class="mx-auto inline-flex items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.03] px-10 py-5 backdrop-blur-sm">
-                        <img src="{{ asset('logo-nrapa-white.png') }}" alt="NRAPA" class="h-16 sm:h-20 w-auto object-contain" />
-                    </div>
+                <div class="anim" style="display: inline-flex; align-items: center; justify-content: center; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.03); padding: 3px 20px;">
+                    <img src="{{ asset('logo-nrapa-white.png') }}" alt="NRAPA" style="height: 74px; width: auto; object-fit: contain; opacity: 1;" />
                 </div>
 
                 {{-- Heading --}}
                 <h1 class="mt-10 text-[2.5rem] font-black leading-[1.05] tracking-[-0.03em] text-white sm:text-[3.25rem] lg:text-[4rem] anim-1">
-                    Your Partner in<br class="hidden sm:block">
-                    Responsible Firearm Ownership
+                    Dedicated Status<br> Simplified
                 </h1>
                 <p class="mt-4 text-[13px] font-semibold uppercase tracking-[0.25em] text-[#F58220]/70 anim-1">
                     A Division of Ranyati Group
