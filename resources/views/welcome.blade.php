@@ -411,7 +411,7 @@
                 @if($membershipTypes->count() > 0)
                 <div class="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
                     @foreach($membershipTypes as $type)
-                    <div class="card-pricing {{ $type->is_featured ? 'featured' : '' }} relative rounded-2xl p-8">
+                    <div class="card-pricing {{ $type->is_featured ? 'featured' : '' }} relative rounded-2xl p-8 flex flex-col">
                         @if($type->is_featured)
                         <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-[#F58220] to-[#d46f16] px-4 py-1 text-[10px] font-bold text-white shadow-sm tracking-wide uppercase">
                             Most Popular
@@ -466,7 +466,7 @@
                             @endif
                         </div>
 
-                        <p class="mt-4 text-[14px] leading-[1.75] text-white/40">{{ $type->description }}</p>
+                        <p class="mt-4 text-[14px] leading-[1.75] text-white/40 flex-1">{{ $type->description }}</p>
 
                         <div class="my-6 h-px bg-white/[0.06]"></div>
 
@@ -503,7 +503,7 @@
                             </li>
                         </ul>
 
-                        <a href="{{ route('register') }}" class="{{ $type->is_featured ? 'btn-cta' : 'btn-outline text-white/50 hover:text-white' }} mt-8 block w-full text-center rounded-xl px-4 py-3 text-[13px] font-bold tracking-wide">
+                        <a href="{{ route('register') }}" class="{{ $type->is_featured ? 'btn-cta' : 'btn-outline text-white/50 hover:text-white' }} mt-auto pt-8 block w-full text-center rounded-xl px-4 py-3 text-[13px] font-bold tracking-wide">
                             Get Started
                         </a>
                     </div>
