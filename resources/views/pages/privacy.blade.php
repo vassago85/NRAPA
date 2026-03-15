@@ -287,7 +287,7 @@
             <div class="mx-auto max-w-7xl px-6 lg:px-8">
                 <div class="grid gap-12 py-14 sm:grid-cols-3 sm:gap-8 sm:py-16">
                     <div>
-                        <img src="{{ asset('ranyati-group-logo.png') }}" alt="Ranyati Group" class="h-8 w-auto" />
+                        <img src="{{ asset('logo-ranyatigroup-white_text.png') }}" alt="Ranyati Group" class="h-8 w-auto" />
                         <p class="mt-5 text-[13px] leading-[1.7] text-white/30">
                             Specialist firearm administration services since 2006.<br>
                             Trading as Ranyati Firearm Motivations (Pty) Ltd.
