@@ -76,6 +76,7 @@
       <h1>NRAPA Membership Terms & Conditions</h1>
       <div class="meta">
         National Rifle & Pistol Association of South Africa (NRAPA)<br/>
+        Operated by Ranyati Firearm Motivations (Pty) Ltd<br/>
         Applicable to all members – Issued with Welcome Letter
       </div>
 
@@ -167,7 +168,7 @@
       </p>
 
       <div class="footer">
-        <div>NRAPA • www.nrapa.co.za</div>
+        <div>NRAPA • www.nrapa.co.za • Operated by Ranyati Firearm Motivations (Pty) Ltd</div>
         <div>Issued electronically</div>
       </div>
 

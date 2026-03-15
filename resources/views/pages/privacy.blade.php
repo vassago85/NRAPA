@@ -67,18 +67,21 @@
                 <div class="prose prose-zinc max-w-none prose-headings:text-zinc-900 prose-headings:font-bold prose-h2:text-xl prose-h2:mt-10 prose-h2:mb-4 prose-h3:text-lg prose-h3:mt-8 prose-h3:mb-3 prose-p:leading-relaxed prose-li:leading-relaxed prose-a:text-nrapa-blue hover:prose-a:text-nrapa-blue-dark">
 
                     <h2>1. Introduction</h2>
-                    <p>The National Rifle and Pistol Association of South Africa ("NRAPA", "we", "us", "our") is committed to protecting your privacy and personal information in accordance with the <strong>Protection of Personal Information Act 4 of 2013 ("POPIA")</strong> and other applicable South African legislation.</p>
-                    <p>This Privacy Policy explains how we collect, use, store, share, and protect your personal information when you use the NRAPA members portal ("Portal") and our related services.</p>
+                    <p>The National Rifle and Pistol Association of South Africa ("NRAPA"), operated and administered by <strong>Ranyati Firearm Motivations (Pty) Ltd</strong> ("Ranyati"), is committed to protecting your privacy and personal information in accordance with the <strong>Protection of Personal Information Act 4 of 2013 ("POPIA")</strong> and other applicable South African legislation.</p>
+                    <p>This Privacy Policy explains how we collect, use, store, share, and protect your personal information when you use the NRAPA members portal ("Portal") and our related services. References to "we", "us", or "our" refer to NRAPA and Ranyati collectively.</p>
                     <p>By using the Portal or providing us with your personal information, you acknowledge that you have read and understood this Privacy Policy and consent to the processing of your personal information as described herein.</p>
 
                     <h2>2. Responsible Party</h2>
                     <p>For purposes of POPIA, the responsible party is:</p>
                     <ul>
-                        <li><strong>Organisation:</strong> National Rifle and Pistol Association of South Africa (NRAPA)</li>
+                        <li><strong>Operator:</strong> Ranyati Firearm Motivations (Pty) Ltd</li>
+                        <li><strong>Association:</strong> National Rifle and Pistol Association of South Africa (NRAPA)</li>
                         <li><strong>Address:</strong> 241 Jean Avenue, Centurion, Gauteng, South Africa</li>
                         <li><strong>Email:</strong> <a href="mailto:info@nrapa.co.za">info@nrapa.co.za</a></li>
                         <li><strong>FAR Numbers:</strong> 1300122 (Sport) &amp; 1300127 (Hunting)</li>
+                        <li><strong>Ranyati Group:</strong> <a href="https://ranyati.co.za">ranyati.co.za</a></li>
                     </ul>
+                    <p>Ranyati processes personal information on behalf of NRAPA as the operator (as defined in POPIA Section 1). Where NRAPA is the responsible party, Ranyati acts under NRAPA's authority and in accordance with a processing agreement.</p>
 
                     <h2>3. Personal Information We Collect</h2>
                     <p>We collect and process the following categories of personal information:</p>
@@ -179,7 +182,10 @@
                     <h3>5.2 QR Certificate Verification</h3>
                     <p>When a third party (such as a SAPS official, DFO, or range officer) scans a QR code on your certificate, they will be able to see limited verification information including your name, membership number, membership status, and the validity of the certificate. This is necessary for the legitimate purpose of certificate verification.</p>
 
-                    <h3>5.3 Service Providers</h3>
+                    <h3>5.3 Ranyati Group Entities</h3>
+                    <p>Your personal information may be shared within Ranyati's group of companies (including Ranyati Motivations, Ranyati Storage, and any future divisions) solely for the purposes of administering your NRAPA membership and related services. All Ranyati entities are bound by this Privacy Policy.</p>
+
+                    <h3>5.4 Service Providers</h3>
                     <p>We engage trusted third-party service providers to assist in operating the Portal. These may include:</p>
                     <ul>
                         <li><strong>Hosting providers</strong> for server infrastructure.</li>
@@ -189,7 +195,7 @@
                     </ul>
                     <p>All service providers are contractually bound to process your data in accordance with POPIA and only for the purposes we specify.</p>
 
-                    <h3>5.4 We Do Not</h3>
+                    <h3>5.5 We Do Not</h3>
                     <ul>
                         <li>Sell your personal information to any third party.</li>
                         <li>Share your information with marketing companies.</li>
@@ -272,10 +278,12 @@
                     <h2>15. Contact Us</h2>
                     <p>For any questions, concerns, or requests regarding this Privacy Policy or the processing of your personal information, please contact:</p>
                     <ul>
-                        <li><strong>Organisation:</strong> National Rifle and Pistol Association of South Africa (NRAPA)</li>
+                        <li><strong>Association:</strong> National Rifle and Pistol Association of South Africa (NRAPA)</li>
+                        <li><strong>Operated by:</strong> Ranyati Firearm Motivations (Pty) Ltd</li>
                         <li><strong>Address:</strong> 241 Jean Avenue, Centurion, Gauteng, South Africa</li>
                         <li><strong>Email:</strong> <a href="mailto:info@nrapa.co.za">info@nrapa.co.za</a></li>
-                        <li><strong>Website:</strong> <a href="https://nrapa.co.za">nrapa.co.za</a></li>
+                        <li><strong>NRAPA Portal:</strong> <a href="https://nrapa.co.za">nrapa.co.za</a></li>
+                        <li><strong>Ranyati Group:</strong> <a href="https://ranyati.co.za">ranyati.co.za</a></li>
                     </ul>
 
                 </div>
@@ -322,7 +330,12 @@
                         </div>
                     </div>
                 </div>
-                <div class="border-t border-white/[0.04] py-6">
+                <div class="border-t border-white/[0.04] py-6 flex flex-col items-center gap-2">
+                    <div class="flex gap-4 items-center">
+                        <a href="{{ route('terms-and-conditions') }}" class="text-[11px] text-white/30 hover:text-white/60 transition no-underline">Terms &amp; Conditions</a>
+                        <span class="text-white/10">&bull;</span>
+                        <a href="{{ route('home') }}" class="text-[11px] text-white/30 hover:text-white/60 transition no-underline">Home</a>
+                    </div>
                     <p class="text-center text-[10px] tracking-[0.1em] text-white/15">
                         &copy; {{ date('Y') }} Ranyati Firearm Motivations (Pty) Ltd. All rights reserved.
                     </p>

@@ -577,7 +577,12 @@
                         </div>
                     </div>
                 </div>
-                <div style="border-top: 1px solid rgba(255,255,255,0.04); padding: 24px 0;">
+                <div style="border-top: 1px solid rgba(255,255,255,0.04); padding: 24px 0; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                    <div style="display: flex; gap: 16px; align-items: center;">
+                        <a href="{{ route('terms-and-conditions') }}" style="font-size: 11px; color: rgba(255,255,255,0.3); text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='rgba(255,255,255,0.6)'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">Terms &amp; Conditions</a>
+                        <span style="color: rgba(255,255,255,0.1);">&bull;</span>
+                        <a href="{{ route('privacy-policy') }}" style="font-size: 11px; color: rgba(255,255,255,0.3); text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='rgba(255,255,255,0.6)'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">Privacy Policy</a>
+                    </div>
                     <p style="text-align: center; font-size: 10px; letter-spacing: 0.1em; color: rgba(255,255,255,0.15);">
                         &copy; {{ date('Y') }} Ranyati Firearm Motivations (Pty) Ltd. All rights reserved.
                     </p>

@@ -67,7 +67,8 @@
                 <div class="prose prose-zinc max-w-none prose-headings:text-zinc-900 prose-headings:font-bold prose-h2:text-xl prose-h2:mt-10 prose-h2:mb-4 prose-h3:text-lg prose-h3:mt-8 prose-h3:mb-3 prose-p:leading-relaxed prose-li:leading-relaxed prose-a:text-nrapa-blue hover:prose-a:text-nrapa-blue-dark">
 
                     <h2>1. Introduction</h2>
-                    <p>These Terms and Conditions ("Terms") govern your use of the National Rifle and Pistol Association of South Africa ("NRAPA", "we", "us", "our") members portal at <strong>members.nrapa.co.za</strong> and all related services, including membership registration, certificate issuance, endorsement applications, and related administration.</p>
+                    <p>These Terms and Conditions ("Terms") govern your use of the National Rifle and Pistol Association of South Africa ("NRAPA") members portal at <strong>members.nrapa.co.za</strong> and all related services, including membership registration, certificate issuance, endorsement applications, and related administration.</p>
+                    <p>NRAPA is operated and administered by <strong>Ranyati Firearm Motivations (Pty) Ltd</strong> ("Ranyati", registration number pending), a specialist firearm administration company. References to "we", "us", or "our" in these Terms refer to NRAPA and Ranyati collectively, as applicable.</p>
                     <p>By registering an account, applying for membership, or using any of our services, you agree to be bound by these Terms. If you do not agree, you must not use our services.</p>
                     <p>NRAPA is a South African hunting and sport shooting association accredited by the South African Police Service (SAPS) under the Firearms Control Act 60 of 2000, with FAR numbers <strong>1300122</strong> (Sport) and <strong>1300127</strong> (Hunting).</p>
 
@@ -76,6 +77,7 @@
                         <li><strong>"Member"</strong> means any natural person who has applied for and been accepted as a member of NRAPA and whose membership fees are current.</li>
                         <li><strong>"Dedicated Status"</strong> means Dedicated Hunter and/or Dedicated Sport Shooter status as defined in the Firearms Control Act 60 of 2000 and the Firearms Control Regulations.</li>
                         <li><strong>"Portal"</strong> means the NRAPA online members portal and all associated digital services.</li>
+                        <li><strong>"Ranyati"</strong> means Ranyati Firearm Motivations (Pty) Ltd, the company that operates and administers NRAPA and its Portal.</li>
                         <li><strong>"FCA"</strong> means the Firearms Control Act 60 of 2000 and its regulations.</li>
                         <li><strong>"SAPS"</strong> means the South African Police Service.</li>
                         <li><strong>"POPIA"</strong> means the Protection of Personal Information Act 4 of 2013.</li>
@@ -181,7 +183,7 @@
                     <p>Members subject to disciplinary proceedings will be afforded a fair opportunity to be heard in accordance with the principles of natural justice.</p>
 
                     <h2>9. Intellectual Property</h2>
-                    <p>All content on the Portal, including logos, text, graphics, images, software, and the NRAPA brand, is the intellectual property of NRAPA or its licensors and is protected by South African copyright and trademark law. You may not reproduce, distribute, or create derivative works from any Portal content without prior written consent from NRAPA.</p>
+                    <p>All content on the Portal, including logos, text, graphics, images, software, and the NRAPA and Ranyati brands, is the intellectual property of Ranyati Firearm Motivations (Pty) Ltd or its licensors and is protected by South African copyright and trademark law. You may not reproduce, distribute, or create derivative works from any Portal content without prior written consent from NRAPA or Ranyati.</p>
 
                     <h2>10. Limitation of Liability</h2>
                     <ul>
@@ -193,7 +195,7 @@
                     </ul>
 
                     <h2>11. Indemnity</h2>
-                    <p>You indemnify and hold harmless NRAPA, its executive committee, officials, employees, and agents from and against any claims, damages, losses, or expenses (including legal fees) arising from:</p>
+                    <p>You indemnify and hold harmless NRAPA, Ranyati Firearm Motivations (Pty) Ltd, their respective executive committees, directors, officials, employees, and agents from and against any claims, damages, losses, or expenses (including legal fees) arising from:</p>
                     <ul>
                         <li>Your use of the Portal or services.</li>
                         <li>Your breach of these Terms.</li>
@@ -221,10 +223,12 @@
                     <h2>16. Contact Information</h2>
                     <p>For any queries regarding these Terms, please contact us:</p>
                     <ul>
-                        <li><strong>Organisation:</strong> National Rifle and Pistol Association of South Africa (NRAPA)</li>
+                        <li><strong>Association:</strong> National Rifle and Pistol Association of South Africa (NRAPA)</li>
+                        <li><strong>Operated by:</strong> Ranyati Firearm Motivations (Pty) Ltd</li>
                         <li><strong>Address:</strong> 241 Jean Avenue, Centurion, Gauteng, South Africa</li>
                         <li><strong>Email:</strong> <a href="mailto:info@nrapa.co.za">info@nrapa.co.za</a></li>
-                        <li><strong>Website:</strong> <a href="https://nrapa.co.za">nrapa.co.za</a></li>
+                        <li><strong>NRAPA Portal:</strong> <a href="https://nrapa.co.za">nrapa.co.za</a></li>
+                        <li><strong>Ranyati Group:</strong> <a href="https://ranyati.co.za">ranyati.co.za</a></li>
                     </ul>
 
                 </div>
@@ -271,7 +275,12 @@
                         </div>
                     </div>
                 </div>
-                <div class="border-t border-white/[0.04] py-6">
+                <div class="border-t border-white/[0.04] py-6 flex flex-col items-center gap-2">
+                    <div class="flex gap-4 items-center">
+                        <a href="{{ route('privacy-policy') }}" class="text-[11px] text-white/30 hover:text-white/60 transition no-underline">Privacy Policy</a>
+                        <span class="text-white/10">&bull;</span>
+                        <a href="{{ route('home') }}" class="text-[11px] text-white/30 hover:text-white/60 transition no-underline">Home</a>
+                    </div>
                     <p class="text-center text-[10px] tracking-[0.1em] text-white/15">
                         &copy; {{ date('Y') }} Ranyati Firearm Motivations (Pty) Ltd. All rights reserved.
                     </p>
