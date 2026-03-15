@@ -795,6 +795,9 @@ Route::middleware(['auth', 'verified', 'developer'])->prefix('developer')->name(
             'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
         ]);
     })->name('certificates.preview');
+
+    Route::get('document-preview', [\App\Http\Controllers\DocumentPreviewController::class, 'index'])->name('document-preview.index');
+    Route::get('document-preview/{type}', [\App\Http\Controllers\DocumentPreviewController::class, 'show'])->name('document-preview.show');
 });
 
 // Admin Routes

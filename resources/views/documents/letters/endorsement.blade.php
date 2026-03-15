@@ -1,6 +1,3 @@
-@extends('documents.layouts.nrapa-official')
-
-@section('content')
 @php
     $farNumbers = \App\Helpers\DocumentDataHelper::getFarNumbers();
     $logoUrl = \App\Helpers\DocumentDataHelper::getLogoUrl();
@@ -25,243 +22,508 @@
         'other' => $request->purpose_other_text ?? 'Other purpose',
         default => 'Firearm licence application',
     };
+
+    // Base64 encode the target background for reliable PDF rendering
+    $targetBgPath = public_path('Target.png');
+    if (!file_exists($targetBgPath)) $targetBgPath = public_path('nrapa-target-bg.png');
+    $targetBgData = file_exists($targetBgPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($targetBgPath)) : '';
+
+    // Base64 encode the horizontal logo (blue text, genuine PNG)
+    $logoHorizPath = public_path('logo-nrapa-blue-text.png');
+    $logoHorizData = file_exists($logoHorizPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoHorizPath)) : '';
 @endphp
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>Endorsement Letter — NRAPA</title>
+    <style>
+        @page { size: A4 portrait; margin: 0; }
 
-<div class="doc-wrapper">
-    {{-- Blue Header --}}
-    <div class="doc-header">
-        <div class="doc-org">
-            <div class="doc-logo">
-                @if ($logoUrl)
-                    <img src="{{ $logoUrl }}" alt="NRAPA" />
-                @else
-                    <span class="doc-logo-fallback">NRAPA</span>
-                @endif
-            </div>
-            <div class="doc-org-text">
-                <div class="doc-org-name">NRAPA</div>
-                <div class="doc-org-sub">National Rifle &amp; Pistol Association of South Africa</div>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            page-break-inside: avoid !important;
+        }
+
+        :root {
+            --blue: #1f4e8c;
+            --orange: #f58220;
+            --panel: rgba(255, 255, 255, 0.20);
+            --border: rgba(255, 255, 255, 0.35);
+            --text: #222222;
+            --muted: #6a6a6a;
+            --status-green: #1f6b3a;
+            --font: "Inter", "Helvetica Neue", Arial, sans-serif;
+        }
+
+        html, body {
+            width: 210mm;
+            height: 297mm;
+            font-family: var(--font);
+            font-size: 12px;
+            line-height: 1.45;
+            color: var(--text);
+            background: #fff;
+            font-feature-settings: "tnum";
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .page {
+            width: 210mm;
+            height: 297mm;
+            padding: 6mm 8mm 0 8mm;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+        }
+
+        /* Target graphic — DO NOT MOVE */
+        .bg-graphic {
+            position: absolute;
+            top: 6mm;
+            right: 8mm;
+            width: 60%;
+            opacity: 1;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .bg-graphic img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .content {
+            position: relative;
+            z-index: 1;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header { margin-bottom: 6px; margin-top: 6px; }
+        .header-logo { max-height: 86px; width: auto; }
+
+        /* FAR info banner */
+        .far-banner {
+            position: relative;
+            width: 66%;
+            background: rgba(255, 255, 255, 0.20);
+            padding: 6px 14px;
+            border-radius: 6px 0 0 6px;
+            margin-top: 8px;
+            overflow: visible;
+        }
+        .far-banner::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 100%;
+            width: 20px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.20);
+            clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+        }
+        .far-badge {
+            display: inline-block;
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 500;
+        }
+        .far-badge b { color: var(--blue); font-weight: 600; }
+
+        .far-row { display: flex; gap: 20px; margin-top: 3px; font-size: 11px; color: var(--muted); }
+        .far-row b { color: var(--blue); font-weight: 600; }
+
+        /* Endorsement banner with angled right edge */
+        .endorsement-banner {
+            position: relative;
+            width: 66%;
+            background: rgba(255, 255, 255, 0.20);
+            padding: 10px 14px;
+            border-radius: 6px 0 0 6px;
+            margin: 8px 0 6px 0;
+            overflow: visible;
+        }
+        .endorsement-banner::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 100%;
+            width: 20px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.20);
+            clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+        }
+        .endorsement-banner-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--blue);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin: 0;
+        }
+        .endorsement-banner-subtitle {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 3px;
+            font-style: italic;
+        }
+
+        /* Info grid */
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px 14px;
+        }
+        .card-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--blue);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 4px;
+            margin-bottom: 6px;
+        }
+
+        .kv-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 4px 0;
+            font-size: 11px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .kv-row:last-child { border-bottom: none; }
+        .kv-label { font-size: 11px; font-weight: 500; color: var(--muted); }
+        .kv-value { font-weight: 600; font-size: 12px; color: var(--text); text-align: right; max-width: 60%; word-break: break-word; }
+        .kv-value a { color: var(--blue); font-weight: 500; text-decoration: none; word-break: break-all; font-size: 9px; }
+
+        /* Component card */
+        .components-card { margin-top: 10px; padding: 12px 14px; }
+        .component-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 6px 0;
+            font-size: 11px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .component-item:last-child { border-bottom: none; }
+        .component-type { font-weight: 600; color: var(--blue); }
+        .component-detail { color: var(--muted); font-size: 10px; }
+
+        /* Letter body */
+        .letter-body {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 14px 16px;
+            margin-top: 10px;
+            font-size: 12px;
+            line-height: 1.45;
+            color: #2c2c2c;
+        }
+        .letter-body b { color: var(--text); }
+        .letter-body .purpose-line {
+            display: block;
+            margin: 6px 0;
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.25);
+            border-left: 4px solid var(--blue);
+            border-radius: 0 4px 4px 0;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        /* Bottom grid */
+        .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+
+        .verify-card { display: block; }
+        .qr-box {
+            width: 77px;
+            height: 77px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 2px;
+        }
+        .qr-box img { width: 100%; height: 100%; object-fit: contain; }
+        .verify-text { font-size: 10px; color: var(--muted); line-height: 1.4; }
+        .verify-text strong { display: block; font-size: 11px; color: var(--text); margin-bottom: 2px; }
+        .verify-text a { color: var(--blue); font-weight: 500; text-decoration: none; }
+
+        .signatory-card { text-align: left; }
+        .sig-box {
+            height: 36px;
+            background: rgba(255, 255, 255, 0.85) !important;
+            border: 1px dashed var(--border);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin: 4px 0 6px 0;
+        }
+        .sig-box img { max-height: 32px; max-width: 100%; object-fit: contain; }
+        .sig-line { height: 1px; background: var(--border); margin: 4px 0; }
+        .sig-name { font-weight: 600; font-size: 12px; color: var(--blue); }
+        .sig-title { font-size: 10px; color: var(--muted); }
+        .sig-date { font-size: 9px; color: var(--muted); margin-top: 2px; }
+
+        /* Commissioner */
+        .commissioner { margin-top: 12px; }
+        .commissioner-title {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--blue);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .commissioner-sub {
+            font-size: 9px;
+            color: var(--muted);
+            margin-top: 1px;
+        }
+        .commissioner-box {
+            margin-top: 4px;
+            height: 64px;
+            border: 2px dashed #d7d7d7;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+            font-size: 10px;
+            background: transparent;
+            overflow: hidden;
+        }
+        .commissioner-box img { max-height: 100%; max-width: 100%; object-fit: contain; }
+
+        /* Orange footer bar */
+        .footer-bar {
+            background: var(--orange);
+            color: #000;
+            font-size: 10px;
+            text-align: center;
+            padding: 10px 14px;
+            margin-top: auto;
+            border-radius: 6px;
+            line-height: 1.5;
+            letter-spacing: 0.3px;
+        }
+        .footer-bar .contacts { font-weight: 600; }
+        .footer-bar .disclaimer { font-size: 9px; margin-top: 2px; }
+
+        @media print {
+            html, body { background: #fff !important; }
+            .page { margin: 0; box-shadow: none; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+
+    {{-- Target / circuit background graphic --}}
+    @if($targetBgData)
+    <div class="bg-graphic">
+        <img src="{{ $targetBgData }}" alt=""/>
+    </div>
+    @endif
+
+    <div class="content">
+
+        {{-- Header: Horizontal logo + FAR info --}}
+        <div class="header">
+            @if($logoHorizData)
+                <img src="{{ $logoHorizData }}" alt="NRAPA" class="header-logo"/>
+            @elseif($logoUrl)
+                <img src="{{ $logoUrl }}" alt="NRAPA" class="header-logo"/>
+            @endif
+            <div class="far-banner">
+                <div class="far-badge"><b>FAR Accredited</b> &nbsp;|&nbsp; SAPS Recognised</div>
+                <div class="far-row">
+                    <span><b>FAR Sport Shooting:</b> {{ $farNumbers['sport'] }}</span>
+                    <span><b>FAR Hunting:</b> {{ $farNumbers['hunting'] }}</span>
+                </div>
             </div>
         </div>
-        <span class="doc-badge">Endorsement</span>
-    </div>
 
-    {{-- Orange Accent Stripe --}}
-    <div class="doc-accent"></div>
+        {{-- Title banner with wedge --}}
+        <div class="endorsement-banner">
+            <div class="endorsement-banner-title">Endorsement Letter</div>
+            <div class="endorsement-banner-subtitle">Issued for firearm licence application purposes</div>
+        </div>
 
-    {{-- Title --}}
-    <div class="doc-title" style="padding: 10px 24px;">
-        <h1 style="font-size: 16px;">Endorsement Letter</h1>
-        <div class="doc-subtitle" style="font-size: 9px; margin-top: 2px;">Issued for firearm licence application purposes | FAR Sport: {{ $farNumbers['sport'] }} | FAR Hunting: {{ $farNumbers['hunting'] }}</div>
-    </div>
-
-    <hr class="sep" style="margin: 0 24px;"/>
-
-    {{-- Content --}}
-    <div style="padding: 10px 24px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
-        <div>
-            {{-- Member + Letter Details --}}
-            <div class="doc-grid" style="gap: 12px;">
-                <div class="doc-section" style="padding: 10px 14px;">
-                    <div class="doc-section-title" style="font-size: 10px; margin-bottom: 8px;">Applicant / Member</div>
-                    <div class="doc-field" style="margin-bottom: 6px;">
-                        <div class="doc-field-label" style="font-size: 8px;">Full Name</div>
-                        <div class="doc-field-value name" style="font-size: 13px;">{{ $user->getIdName() }}</div>
-                    </div>
-                    <div class="doc-field" style="margin-bottom: 6px;">
-                        <div class="doc-field-label" style="font-size: 8px;">ID / Passport</div>
-                        <div class="doc-field-value mono" style="font-size: 11px;">{{ $user->getIdNumber() ?? 'N/A' }}</div>
-                    </div>
-                    <div class="doc-field-row" style="gap: 12px; margin-bottom: 6px;">
-                        <div class="doc-field">
-                            <div class="doc-field-label" style="font-size: 8px;">Member No.</div>
-                            <div class="doc-field-value mono" style="font-size: 11px;">{{ $membership->membership_number ?? 'N/A' }}</div>
-                        </div>
-                        <div class="doc-field">
-                            <div class="doc-field-label" style="font-size: 8px;">Status</div>
-                            <div class="doc-field-value" style="font-size: 11px;"><span style="color:var(--emerald);">Good Standing</span></div>
-                        </div>
-                    </div>
-                    <div class="doc-field-row" style="gap: 12px;">
-                        <div class="doc-field">
-                            <div class="doc-field-label" style="font-size: 8px;">Dedicated Status</div>
-                            <div class="doc-field-value" style="font-size: 11px;">{{ $request->dedicated_status_label }}</div>
-                        </div>
-                        <div class="doc-field">
-                            <div class="doc-field-label" style="font-size: 8px;">Category</div>
-                            <div class="doc-field-value" style="font-size: 11px;">{{ $request->dedicated_category_label }}</div>
-                        </div>
-                    </div>
+        {{-- Info grid: Member + Letter details --}}
+        <div class="info-grid">
+            <div class="card">
+                <div class="card-title">Applicant / Member</div>
+                <div class="kv-row">
+                    <span class="kv-label">Full Name</span>
+                    <span class="kv-value">{{ $user->getIdName() }}</span>
                 </div>
-
-                <div class="doc-section" style="padding: 10px 14px;">
-                    <div class="doc-section-title" style="font-size: 10px; margin-bottom: 8px;">Letter Details</div>
-                    <div class="doc-field" style="margin-bottom: 6px;">
-                        <div class="doc-field-label" style="font-size: 8px;">Endorsement Reference</div>
-                        <div class="doc-field-value mono" style="font-size: 11px;">{{ $request->letter_reference ?? 'N/A' }}</div>
-                    </div>
-                    <div class="doc-field" style="margin-bottom: 6px;">
-                        <div class="doc-field-label" style="font-size: 8px;">Date Issued</div>
-                        <div class="doc-field-value" style="font-size: 11px;">{{ $request->issued_at?->format('d F Y') ?? now()->format('d F Y') }}</div>
-                    </div>
-                    <div class="doc-field">
-                        <div class="doc-field-label" style="font-size: 8px;">Verification</div>
-                        <div class="doc-field-value"><a href="{{ $verifyUrl }}" style="font-size:9px;">{{ $verifyUrl }}</a></div>
-                    </div>
+                <div class="kv-row">
+                    <span class="kv-label">ID / Passport</span>
+                    <span class="kv-value">{{ $user->getIdNumber() ?? 'N/A' }}</span>
+                </div>
+                <div class="kv-row">
+                    <span class="kv-label">Membership Number</span>
+                    <span class="kv-value">{{ $membership->membership_number ?? 'N/A' }}</span>
+                </div>
+                <div class="kv-row">
+                    <span class="kv-label">Membership Status</span>
+                    <span class="kv-value" style="color:#1f6b3a; font-weight:600;">Member in Good Standing</span>
+                </div>
+                <div class="kv-row">
+                    <span class="kv-label">Dedicated Status</span>
+                    <span class="kv-value">{{ $request->dedicated_status_label }}</span>
+                </div>
+                <div class="kv-row">
+                    <span class="kv-label">Dedicated Category</span>
+                    <span class="kv-value">{{ $request->dedicated_category_label }}</span>
                 </div>
             </div>
 
-            <div style="height:8px"></div>
-
-            {{-- Firearm Details --}}
-            @if ($firearm)
-            <div class="doc-section" style="padding: 10px 14px;">
-                <div class="doc-section-title" style="font-size: 10px; margin-bottom: 8px;">Firearm Details</div>
-                <div class="doc-field-row" style="gap: 12px; margin-bottom: 6px;">
-                    <div class="doc-field">
-                        <div class="doc-field-label" style="font-size: 8px;">Make</div>
-                        <div class="doc-field-value" style="font-size: 11px;">{{ $firearm->make_display ?? $firearm->make ?? 'N/A' }}</div>
-                    </div>
-                    <div class="doc-field">
-                        <div class="doc-field-label" style="font-size: 8px;">Model</div>
-                        <div class="doc-field-value" style="font-size: 11px;">{{ $firearm->model_display ?? $firearm->model ?? 'N/A' }}</div>
-                    </div>
-                    <div class="doc-field">
-                        <div class="doc-field-label" style="font-size: 8px;">Calibre</div>
-                        <div class="doc-field-value" style="font-size: 11px;">{{ $firearm->calibre_display ?? 'N/A' }}</div>
-                    </div>
+            <div class="card">
+                <div class="card-title">Letter Details</div>
+                <div class="kv-row">
+                    <span class="kv-label">Endorsement Ref</span>
+                    <span class="kv-value">{{ $request->letter_reference ?? 'N/A' }}</span>
                 </div>
-                <div class="doc-field-row" style="gap: 12px;">
-                    <div class="doc-field">
-                        <div class="doc-field-label" style="font-size: 8px;">Action</div>
-                        <div class="doc-field-value" style="font-size: 11px;">{{ $firearm->action ?? 'N/A' }}</div>
-                    </div>
-                    @php
-                        $serial = 'N/A';
-                        if ($firearm->components && $firearm->components->isNotEmpty()) {
-                            $serial = $firearm->components->where('component_type', 'receiver')->first()?->serial_number
-                                ?? $firearm->components->where('component_type', 'frame')->first()?->serial_number
-                                ?? $firearm->components->where('component_type', 'barrel')->first()?->serial_number
-                                ?? 'N/A';
-                        }
-                    @endphp
-                    <div class="doc-field">
-                        <div class="doc-field-label" style="font-size: 8px;">Serial Number</div>
-                        <div class="doc-field-value mono" style="font-size: 11px;">{{ $serial }}</div>
-                    </div>
-                    @if (!empty($firearm->barrel_serial_number))
-                    <div class="doc-field">
-                        <div class="doc-field-label" style="font-size: 8px;">Barrel Serial</div>
-                        <div class="doc-field-value mono" style="font-size: 11px;">{{ $firearm->barrel_serial_number }}</div>
-                    </div>
+                <div class="kv-row">
+                    <span class="kv-label">Issued Date</span>
+                    <span class="kv-value">{{ $request->issued_at?->format('d F Y') ?? now()->format('d F Y') }}</span>
+                </div>
+            </div>
+        </div>
+
+        {{-- Component endorsements --}}
+        @if ($request->components && $request->components->isNotEmpty())
+        <div class="card components-card">
+            <div class="card-title">{{ $firearm ? 'Firearm & Component Endorsements' : 'Component Endorsements' }}</div>
+            @if($firearm)
+            <div class="component-item">
+                <div>
+                    <span class="component-type">Firearm</span>
+                    &mdash; {{ trim(($firearm->firearmMake->name ?? '') . ' ' . ($firearm->firearmModel->name ?? '')) }}
+                </div>
+                <div class="component-detail">
+                    @if($firearm->firearmCalibre)
+                        Calibre: {{ $firearm->firearmCalibre->name }}
+                    @endif
+                    @if($firearm->serial_number)
+                        &nbsp;| Serial: {{ $firearm->serial_number }}
                     @endif
                 </div>
             </div>
-            <div style="height:8px"></div>
             @endif
-
-            {{-- Component Endorsements --}}
-            @if ($request->components && $request->components->isNotEmpty())
-            <div class="doc-section" style="padding: 10px 14px;">
-                <div class="doc-section-title" style="font-size: 10px; margin-bottom: 8px;">Component Endorsements</div>
-                @foreach ($request->components as $component)
-                <div class="doc-field" style="padding:4px 0; border-bottom:1px solid var(--line);">
-                    <div class="doc-field-label" style="font-size: 8px;">{{ $component->component_type_label }}</div>
-                    <div class="doc-field-value" style="font-size: 11px;">
-                        @if ($component->component_make || $component->component_model)
-                            {{ trim(($component->component_make ?? '') . ' ' . ($component->component_model ?? '')) }}
-                        @endif
-                        @if ($component->component_serial)
-                            <span style="font-size:9px; color:var(--muted);"> (Serial: {{ $component->component_serial }})</span>
-                        @endif
-                    </div>
-                    @if ($component->component_type === 'barrel' && ($component->diameter || $component->calibre_display))
-                        <div style="font-size: 9px; color: var(--muted);">{{ $component->diameter ? 'Diameter: ' . $component->diameter : 'Calibre: ' . $component->calibre_display }}</div>
-                    @elseif ($component->component_type === 'action')
-                        @if ($component->bolt_face_label ?? $component->bolt_face)
-                            <div style="font-size: 9px; color: var(--muted);">Bolt face: {{ $component->bolt_face_label ?? $component->bolt_face }}</div>
-                        @endif
-                        @if ($component->action_type_label ?? $component->action_type)
-                            <div style="font-size: 9px; color: var(--muted);">Action type: {{ $component->action_type_label ?? $component->action_type }}</div>
-                        @endif
+            @foreach ($request->components as $component)
+            <div class="component-item">
+                <div>
+                    <span class="component-type">{{ $component->component_type_label }}</span>
+                    @if ($component->component_make || $component->component_model)
+                        &mdash; {{ trim(($component->component_make ?? '') . ' ' . ($component->component_model ?? '')) }}
+                    @endif
+                </div>
+                <div class="component-detail">
+                    @if ($component->component_type === 'barrel' && $component->diameter)
+                        Diameter: {{ $component->diameter }}
                     @elseif ($component->calibre_display)
-                        <div style="font-size: 9px; color: var(--muted);">Calibre: {{ $component->calibre_display }}</div>
+                        Calibre: {{ $component->calibre_display }}
                     @endif
-                    @if ($component->component_description)
-                        <div style="font-size: 9px; color: var(--muted);">{{ $component->component_description }}</div>
+                    @if ($component->component_serial)
+                        &nbsp;| Serial: {{ $component->component_serial }}
                     @endif
                 </div>
-                @endforeach
             </div>
-            <div style="height:8px"></div>
-            @endif
+            @endforeach
+        </div>
+        @endif
 
-            {{-- Endorsement Statement --}}
-            <div class="doc-notice" style="padding: 10px 14px; font-size: 11px; line-height: 1.5;">
-                To whom it may concern,<br/><br/>
-                This letter serves to confirm that <b>{{ $user->getIdName() }}</b> (ID/Passport: <b>{{ $user->getIdNumber() ?? 'N/A' }}</b>) is a
-                <b>member in good standing</b> of the National Rifle &amp; Pistol Association of South Africa (NRAPA).
-                <br/><br/>
-                <b>This endorsement is issued for:</b> {{ $purposeText }}<br/>
-                Issued under the member's {{ $request->dedicated_category_label }} status.
-                <br/><br/>
-                The Association supports the member's application for the {{ $firearm ? 'firearm' : 'component(s)' }} described above, subject to compliance with the Firearms Control Act (Act 60 of 2000, as amended) and relevant Regulations.
-            </div>
+        {{-- Letter body --}}
+        <div class="letter-body">
+            To whom it may concern,<br/><br/>
+            This letter serves to confirm that <b>{{ $user->getIdName() }}</b>
+            (ID/Passport: <b>{{ $user->getIdNumber() ?? 'N/A' }}</b>) is a
+            <b>member in good standing</b> of the National Rifle &amp; Pistol Association of South Africa (NRAPA).
+            <br/><br/>
+            This endorsement is issued for the following purpose(s):
+            <span class="purpose-line">{{ $purposeText }}</span>
+            Issued under the member's <b>{{ $request->dedicated_category_label }}</b> status.
+            <br/><br/>
+            The Association supports the member's application for the {{ $firearm ? 'firearm and ' : '' }}component(s) described above, issued under the member's compliant dedicated status, subject to compliance with the Firearms Control Act (Act 60 of 2000, as amended) and relevant Regulations.
         </div>
 
-        <div>
-            <div style="height:10px"></div>
-
-            {{-- QR + Signatory + Commissioner in one row --}}
-            <div style="display: flex; gap: 12px;">
-                <div class="doc-qr-section" style="padding: 10px 14px; flex: 0 0 auto;">
-                    <div class="doc-qr-box" style="width: 70px; height: 70px;">
+        {{-- Bottom: QR verification + Signatory --}}
+        <div class="bottom-grid">
+            <div class="card verify-card">
+                <div class="card-title">Verification</div>
+                <div style="display:flex; gap:10px; align-items:flex-start; margin-top:4px;">
+                    <div class="qr-box">
                         <img src="{{ $qrCodeUrl }}" alt="QR Code"/>
                     </div>
-                    <div class="doc-qr-text" style="font-size: 9px;">
-                        <span class="verify-label" style="font-size: 10px;">Verify Endorsement</span>
-                        Scan QR code or visit:<br/>
-                        <a href="{{ $verifyUrl }}" style="font-size: 8px;">{{ $verifyUrl }}</a>
-                    </div>
-                </div>
-
-                <div class="doc-signatory" style="padding: 10px 14px; flex: 1;">
-                    <div class="doc-field-label" style="font-size: 8px;">Authorised Signatory</div>
-                    <div style="height:4px"></div>
-                    <div class="placeholder-white signature-box" style="height: 36px;">
-                        {!! $signatureHtml !!}
-                    </div>
-                    <div class="sig-line"></div>
-                    <div class="sig-name" style="font-size: 11px;">{{ $signatory['name'] }}</div>
-                    <div class="sig-title" style="font-size: 10px;">{{ $signatory['title'] }}</div>
-                    <div style="font-size: 9px; color: var(--muted); margin-top:2px;">Issued: {{ $request->issued_at?->format('d F Y') ?? now()->format('d F Y') }}</div>
-                </div>
-
-                <div class="doc-notice" style="padding: 10px 14px; flex: 1;">
-                    <div class="doc-field-label" style="font-size: 8px; margin-bottom:4px;">Commissioner of Oaths</div>
-                    <div class="placeholder-white oaths-scan" style="height:70px;">
-                        {!! $commissionerHtml !!}
+                    <div class="verify-text">
+                        <strong>Verify this endorsement</strong>
+                        Scan the QR code or visit the link below.
+                        <br/>
+                        <a href="{{ $verifyUrl }}" style="color:var(--blue); word-break:break-all; font-size:8px;">{{ $verifyUrl }}</a>
+                        <br/>
+                        Online status shown: <b>Member in Good Standing</b>
                     </div>
                 </div>
             </div>
 
-            <div style="margin-top: 8px; text-align: center; font-size: 8px; color: var(--muted);">
-                This document is generated electronically and is valid without a physical signature when verified via QR code.
+            <div class="card signatory-card">
+                <div class="card-title">Authorised NRAPA Signatory</div>
+                <div class="sig-box">{!! $signatureHtml !!}</div>
+                <div style="font-size:8px; color:var(--muted); margin-top:2px;">Signature placeholder must remain white.</div>
+                <div class="sig-line"></div>
+                <div class="sig-name">{{ $signatory['name'] }}</div>
+                <div class="sig-title">{{ $signatory['title'] }}</div>
+                <div class="sig-date">Issued at {{ $request->issued_at?->format('d F Y') ?? now()->format('d F Y') }}</div>
             </div>
         </div>
+
+        {{-- Commissioner of Oaths --}}
+        <div class="commissioner">
+            <div class="commissioner-title">Commissioner of Oaths (Scan Upload &mdash; Optional)</div>
+            <div class="commissioner-sub">If required, upload the commissioned scan in the admin dashboard. Placeholder must remain white.</div>
+            <div class="commissioner-box">
+                @if($commissionerHtml && trim(strip_tags($commissionerHtml)))
+                    {!! $commissionerHtml !!}
+                @else
+                    Commissioner of Oaths scan
+                @endif
+            </div>
+        </div>
+
+
     </div>
 
-    {{-- Blue Footer --}}
-    <div class="doc-footer" style="padding: 8px 24px;">
-        <div>
-            <span class="doc-footer-cert" style="font-size: 9px;">{{ $request->letter_reference ?? 'N/A' }}</span>
-            &nbsp;&mdash;&nbsp;
-            <span style="font-size: 8px;">{{ $contact['email'] }} | {{ $contact['tel'] }}</span>
+    {{-- Orange footer bar --}}
+    <div class="footer-bar">
+        <div class="contacts">
+            TEL: {{ $contact['tel'] }} &bull;
+            FAX: {{ $contact['fax'] }} &bull;
+            E-MAIL: {{ $contact['email'] }} &bull;
+            ADDRESS: {{ $contact['physical_address'] }}
         </div>
-        <div class="doc-footer-far" style="font-size: 7px;">
-            FAR Sport: <span class="far-sport">{{ $farNumbers['sport'] }}</span>
-            &nbsp;|&nbsp; Hunting: <span class="far-hunting">{{ $farNumbers['hunting'] }}</span>
-        </div>
+        <div class="disclaimer">This document is generated electronically and is valid without a physical signature when verified via QR code</div>
     </div>
+
 </div>
-@endsection
+</body>
+</html>
