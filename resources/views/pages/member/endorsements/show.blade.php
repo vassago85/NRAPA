@@ -362,6 +362,43 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
                 </div>
             </div>
 
+            {{-- Motivations Referral CTA --}}
+            @if($request->isIssued())
+                @php
+                    $motivationsUrl = 'https://motivations.ranyati.co.za/enquire?' . http_build_query([
+                        'name' => $request->user->getIdName(),
+                        'email' => $request->user->email,
+                        'type' => $request->request_type_label,
+                        'purpose' => $request->purpose_label,
+                        'membership' => $request->user->activeMembership?->membership_number,
+                    ]);
+                @endphp
+                <div class="rounded-xl border border-[#F58220]/30 bg-[#F58220]/5 dark:bg-[#F58220]/10 overflow-hidden">
+                    <div class="p-6">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-10 h-10 rounded-full bg-[#F58220]/15 flex items-center justify-center flex-shrink-0">
+                                <svg class="w-5 h-5 text-[#F58220]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                            </div>
+                            <h3 class="font-semibold text-zinc-900 dark:text-white text-sm">Need a Firearm Motivation?</h3>
+                        </div>
+                        <p class="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed mb-4">
+                            Our Motivations division can prepare a professional motivation for your licence application.
+                        </p>
+                        <a href="{{ $motivationsUrl }}" target="_blank"
+                            class="w-full px-4 py-2.5 text-sm font-semibold text-white rounded-lg flex items-center justify-center gap-2 transition-all"
+                            style="background: linear-gradient(135deg, #F58220 0%, #d46f16 100%); box-shadow: 0 2px 8px -2px rgba(245,130,32,0.4);">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/>
+                            </svg>
+                            Request a Motivation
+                        </a>
+                        <p class="mt-2 text-center text-[10px] text-zinc-400 dark:text-zinc-500">Powered by Ranyati Motivations</p>
+                    </div>
+                </div>
+            @endif
+
             {{-- Admin Notes --}}
             @if($request->admin_notes)
                 <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
