@@ -434,7 +434,7 @@
                     </div>
 
                     {{-- Right: Contact --}}
-                    <div class="text-left">
+                    <div class="text-right">
                         <h4 class="text-[10px] font-bold uppercase tracking-[0.25em] text-white/25">Contact</h4>
                         <ul class="mt-5 space-y-3">
                             <li>
