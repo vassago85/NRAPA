@@ -32,3 +32,10 @@ Schedule::command('nrapa:daily-database-backup')
     ->timezone('Africa/Johannesburg')
     ->withoutOverlapping()
     ->runInBackground();
+
+// Auto-renew lifetime member certificates daily at 6 AM
+Schedule::command('nrapa:renew-lifetime-certificates')
+    ->dailyAt('06:00')
+    ->timezone('Africa/Johannesburg')
+    ->withoutOverlapping()
+    ->runInBackground();

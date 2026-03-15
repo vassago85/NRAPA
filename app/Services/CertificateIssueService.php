@@ -166,7 +166,7 @@ class CertificateIssueService
 
         // Check if user has dedicated sport shooter status
         $hasSportStatus = $user->dedicatedStatusApplications()
-            ->where('dedicated_type', 'sport_shooter')
+            ->whereIn('dedicated_type', ['sport', 'sport_shooter'])
             ->where('status', 'approved')
             ->where(function ($q) {
                 $q->whereNull('valid_until')
@@ -257,6 +257,166 @@ class CertificateIssueService
                 'template' => $certType->template,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
+            ]);
+        }
+
+        return $certificate;
+    }
+
+    /**
+     * Issue a Dedicated Hunter & Sport Shooter Certificate (Section 16).
+     * Requires both approved dedicated hunter AND sport statuses.
+     */
+    public function issueDedicatedBothCertificate(User $user, User $issuer): ?Certificate
+    {
+        $hasHunterStatus = $user->dedicatedStatusApplications()
+            ->where('dedicated_type', 'hunter')
+            ->where('status', 'approved')
+            ->where(fn ($q) => $q->whereNull('valid_until')->orWhere('valid_until', '>=', now()))
+            ->exists();
+
+        $hasSportStatus = $user->dedicatedStatusApplications()
+            ->whereIn('dedicated_type', ['sport', 'sport_shooter'])
+            ->where('status', 'approved')
+            ->where(fn ($q) => $q->whereNull('valid_until')->orWhere('valid_until', '>=', now()))
+            ->exists();
+
+        if (!$hasHunterStatus || !$hasSportStatus) {
+            throw new \Exception('User does not have both approved dedicated hunter and sport shooter status.');
+        }
+
+        if (!$this->standingService->isInGoodStanding($user)) {
+            throw new \Exception('User is not in good standing.');
+        }
+
+        $membership = $user->activeMembership;
+        if (!$membership) {
+            throw new \Exception('User does not have an active membership.');
+        }
+
+        $missingDocs = \App\Models\EndorsementRequest::getMissingRequiredDocuments($user);
+        if (count($missingDocs) > 0) {
+            $docNames = implode(', ', array_column($missingDocs, 'name'));
+            throw new \Exception("User is missing required valid documents: {$docNames}");
+        }
+
+        $activityCheck = \App\Models\EndorsementRequest::checkActivityRequirements($user);
+        if (!$activityCheck['met']) {
+            throw new \Exception("User does not meet activity requirements: {$activityCheck['message']}");
+        }
+
+        $certType = CertificateType::firstOrCreate(
+            ['slug' => 'dedicated-both-certificate'],
+            [
+                'name' => 'Dedicated Hunter & Sport Shooter Certificate',
+                'description' => 'Section 16 certificate for members with both dedicated hunter and sport shooter status',
+                'template' => 'documents.certificates.dedicated-status',
+                'validity_months' => null,
+                'is_active' => true,
+                'sort_order' => 12,
+            ]
+        );
+
+        $certificate = Certificate::create(array_merge([
+            'user_id' => $user->id,
+            'membership_id' => $membership->id,
+            'certificate_type_id' => $certType->id,
+            'issued_by' => $issuer->id,
+            'valid_from' => now(),
+            'valid_until' => null,
+        ], $this->getDefaultSignatoryData()));
+
+        $certificate->refresh();
+        $certificate->loadMissing(['user', 'membership.type', 'certificateType']);
+
+        try {
+            $filePath = $this->renderer->renderCertificate($certificate, $certType->template);
+            $checksum = null;
+            try {
+                $fullPath = Storage::disk('local')->path($filePath);
+                if (file_exists($fullPath)) {
+                    $checksum = hash_file('sha256', $fullPath);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Failed to calculate certificate checksum', ['file_path' => $filePath, 'error' => $e->getMessage()]);
+            }
+            $certificate->update(['file_path' => $filePath, 'checksum' => $checksum]);
+        } catch (\Exception $e) {
+            Log::error('Failed to generate certificate document', [
+                'certificate_id' => $certificate->id,
+                'template' => $certType->template,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return $certificate;
+    }
+
+    /**
+     * Issue an Occasional Hunter or Sport Shooter Certificate (Section 15).
+     * For basic members without dedicated status. Minimal requirements: active membership + ID document.
+     */
+    public function issueOccasionalCertificate(User $user, User $issuer, string $discipline = 'hunter'): ?Certificate
+    {
+        $membership = $user->activeMembership;
+        if (!$membership) {
+            throw new \Exception('User does not have an active membership.');
+        }
+
+        $missingDocs = $this->getMissingRequiredDocumentsForMembership($user);
+        if (count($missingDocs) > 0) {
+            $docNames = implode(' and ', $missingDocs);
+            throw new \Exception("Certificate requires {$docNames} to be uploaded.");
+        }
+
+        $slug = $discipline === 'sport' ? 'occasional-sport-certificate' : 'occasional-hunter-certificate';
+        $name = $discipline === 'sport' ? 'Occasional Sport Shooter Certificate' : 'Occasional Hunter Certificate';
+
+        $certType = CertificateType::firstOrCreate(
+            ['slug' => $slug],
+            [
+                'name' => $name,
+                'description' => "Section 15 certificate for occasional " . ($discipline === 'sport' ? 'sport shooters' : 'hunters'),
+                'template' => 'documents.certificates.dedicated-status',
+                'validity_months' => 12,
+                'is_active' => true,
+                'sort_order' => $discipline === 'sport' ? 14 : 13,
+            ]
+        );
+
+        $validUntil = $membership->expires_at
+            ? min(now()->addMonths(12), $membership->expires_at)
+            : now()->addMonths(12);
+
+        $certificate = Certificate::create(array_merge([
+            'user_id' => $user->id,
+            'membership_id' => $membership->id,
+            'certificate_type_id' => $certType->id,
+            'issued_by' => $issuer->id,
+            'valid_from' => now(),
+            'valid_until' => $validUntil,
+        ], $this->getDefaultSignatoryData()));
+
+        $certificate->refresh();
+        $certificate->loadMissing(['user', 'membership.type', 'certificateType']);
+
+        try {
+            $filePath = $this->renderer->renderCertificate($certificate, $certType->template);
+            $checksum = null;
+            try {
+                $fullPath = Storage::disk('local')->path($filePath);
+                if (file_exists($fullPath)) {
+                    $checksum = hash_file('sha256', $fullPath);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Failed to calculate certificate checksum', ['file_path' => $filePath, 'error' => $e->getMessage()]);
+            }
+            $certificate->update(['file_path' => $filePath, 'checksum' => $checksum]);
+        } catch (\Exception $e) {
+            Log::error('Failed to generate certificate document', [
+                'certificate_id' => $certificate->id,
+                'template' => $certType->template,
+                'error' => $e->getMessage(),
             ]);
         }
 

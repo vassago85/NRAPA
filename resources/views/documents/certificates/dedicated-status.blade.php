@@ -8,10 +8,12 @@
     $commissionerHtml = \App\Helpers\DocumentDataHelper::getCommissionerScanHtml($certificate->commissioner_oaths_scan_path);
 
     $certTypeSlug = $certificate->certificateType->slug ?? '';
+    $isOccasional = str_contains($certTypeSlug, 'occasional');
+    $isBoth = str_contains($certTypeSlug, 'both');
     $isHunting = str_contains($certTypeSlug, 'hunter') || str_contains($certTypeSlug, 'hunting');
     $isSport = str_contains($certTypeSlug, 'sport');
 
-    if (!$isHunting && !$isSport) {
+    if (!$isOccasional && !$isBoth && !$isHunting && !$isSport) {
         $approvedApps = $certificate->user->dedicatedStatusApplications()
             ->where('status', 'approved')
             ->where(function ($q) {
@@ -19,10 +21,24 @@
             })
             ->get();
         $isHunting = $approvedApps->contains('dedicated_type', 'hunter');
-        $isSport = $approvedApps->contains('dedicated_type', 'sport_shooter');
+        $isSport = $approvedApps->contains('dedicated_type', 'sport') || $approvedApps->contains('dedicated_type', 'sport_shooter');
+        $isBoth = $isHunting && $isSport;
     }
 
-    $dedicatedTitle = $isHunting ? 'Dedicated Hunter' : ($isSport ? 'Dedicated Sport Shooter' : 'Dedicated Member');
+    $isDedicated = $isBoth || $isHunting || $isSport;
+    $sectionNumber = ($isDedicated && !$isOccasional) ? 16 : 15;
+
+    if ($isOccasional) {
+        $dedicatedTitle = $isHunting ? 'Occasional Hunter' : ($isSport ? 'Occasional Sport Shooter' : 'Occasional Member');
+    } elseif ($isBoth) {
+        $dedicatedTitle = 'Dedicated Hunter & Sport Shooter';
+    } elseif ($isHunting) {
+        $dedicatedTitle = 'Dedicated Hunter';
+    } elseif ($isSport) {
+        $dedicatedTitle = 'Dedicated Sport Shooter';
+    } else {
+        $dedicatedTitle = 'Dedicated Member';
+    }
 
     $membership = $certificate->membership;
     $statusEffectiveDate = $membership->activated_at?->format('d F Y') ?? $membership->applied_at?->format('d F Y') ?? 'N/A';
@@ -38,7 +54,7 @@
 @section('document-banner')
 <div class="doc-banner">
     <div class="doc-banner-title">{{ $dedicatedTitle }} Certificate</div>
-    <div class="doc-banner-subtitle">Firearms Control Act (Act 60 of 2000, as amended)</div>
+    <div class="doc-banner-subtitle">Firearms Control Act (Act 60 of 2000) — Section {{ $sectionNumber }}</div>
 </div>
 @endsection
 
@@ -92,8 +108,12 @@
                 </span>
             </div>
             <div class="kv-row">
-                <span class="kv-label">Dedicated Status</span>
+                <span class="kv-label">{{ $isOccasional ? 'Occasional Status' : 'Dedicated Status' }}</span>
                 <span class="kv-value" style="color:var(--status-green);">&#10003; {{ $dedicatedTitle }}</span>
+            </div>
+            <div class="kv-row">
+                <span class="kv-label">Section</span>
+                <span class="kv-value">Section {{ $sectionNumber }} — Firearms Control Act</span>
             </div>
             <div class="kv-row">
                 <span class="kv-label">Effective Date</span>
@@ -104,9 +124,13 @@
 
     {{-- Declaration --}}
     <div class="letter-body">
-        I, <b>{{ $signatory['name'] }}</b>, {{ $signatory['title'] }} of NRAPA, declare that the above member is a <b>Dedicated Member in good standing</b>.
-        Dedicated Status has been awarded in accordance with the Firearms Control Act (Act 60 of 2000, as amended).
-        This certificate confirms that at the time of issue, the member's documents are valid and activity requirements are up to date.
+        @if ($isOccasional)
+            I, <b>{{ $signatory['name'] }}</b>, {{ $signatory['title'] }} of NRAPA, confirm that the above member holds active membership and is recognised as an <b>{{ $dedicatedTitle }}</b> under Section {{ $sectionNumber }} of the Firearms Control Act (Act 60 of 2000).
+        @else
+            I, <b>{{ $signatory['name'] }}</b>, {{ $signatory['title'] }} of NRAPA, declare that the above member is a <b>{{ $dedicatedTitle }} in good standing</b>.
+            Dedicated Status has been awarded in accordance with Section {{ $sectionNumber }} of the Firearms Control Act (Act 60 of 2000).
+            This certificate confirms that at the time of issue, the member's documents are valid and activity requirements are up to date.
+        @endif
     </div>
 
     {{-- Commissioner + Signatory --}}

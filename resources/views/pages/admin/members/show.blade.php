@@ -306,6 +306,9 @@ new #[Title('Member Details - Admin')] class extends Component {
             $certificate = match($documentType) {
                 'dedicated-hunter' => $issueService->issueDedicatedHunterCertificate($this->user, $issuer),
                 'dedicated-sport' => $issueService->issueDedicatedSportCertificate($this->user, $issuer),
+                'dedicated-both' => $issueService->issueDedicatedBothCertificate($this->user, $issuer),
+                'occasional-hunter' => $issueService->issueOccasionalCertificate($this->user, $issuer, 'hunter'),
+                'occasional-sport' => $issueService->issueOccasionalCertificate($this->user, $issuer, 'sport'),
                 'membership-certificate' => $issueService->issueMembershipCertificate($this->user, $issuer),
                 'membership-card' => $issueService->issueMembershipCard($this->user, $issuer),
                 'welcome-letter' => $issueService->issueWelcomeLetter($this->user, $issuer),
@@ -887,6 +890,47 @@ new #[Title('Member Details - Admin')] class extends Component {
                             @disabled(!$hasSportStatus || $hasSportCert)
                             class="w-full px-3 py-2 text-xs font-medium text-white bg-nrapa-blue hover:bg-nrapa-blue-dark rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                         @if($hasSportCert) Already Issued @else Issue Certificate @endif
+                    </button>
+                </div>
+
+                {{-- Dedicated Both Certificate --}}
+                @php
+                    $hasBothStatus = $hasHunterStatus && $hasSportStatus;
+                    $hasBothCert = $this->user->certificates()
+                        ->whereHas('certificateType', fn($q) => $q->where('slug', 'dedicated-both-certificate'))
+                        ->whereNull('revoked_at')
+                        ->exists();
+                @endphp
+                <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/50">
+                    <h3 class="text-sm font-semibold text-zinc-900 dark:text-white mb-2">Dedicated Hunter & Sport Shooter (S16)</h3>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Section 16 — Both dedicated statuses required</p>
+                    @if(!$hasBothStatus)
+                        <p class="text-xs text-amber-600 dark:text-amber-400 mb-3">Member does not have both approved dedicated statuses</p>
+                    @endif
+                    <button wire:click="issueDocument('dedicated-both')"
+                            @disabled(!$hasBothStatus || $hasBothCert)
+                            class="w-full px-3 py-2 text-xs font-medium text-white bg-nrapa-blue hover:bg-nrapa-blue-dark rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        @if($hasBothCert) Already Issued @else Issue Certificate @endif
+                    </button>
+                </div>
+
+                {{-- Occasional Hunter Certificate --}}
+                <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/50">
+                    <h3 class="text-sm font-semibold text-zinc-900 dark:text-white mb-2">Occasional Hunter (S15)</h3>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Section 15 — For members without dedicated hunter status</p>
+                    <button wire:click="issueDocument('occasional-hunter')"
+                            class="w-full px-3 py-2 text-xs font-medium text-white bg-nrapa-blue hover:bg-nrapa-blue-dark rounded-lg transition-colors">
+                        Issue Certificate
+                    </button>
+                </div>
+
+                {{-- Occasional Sport Shooter Certificate --}}
+                <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/50">
+                    <h3 class="text-sm font-semibold text-zinc-900 dark:text-white mb-2">Occasional Sport Shooter (S15)</h3>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Section 15 — For members without dedicated sport shooter status</p>
+                    <button wire:click="issueDocument('occasional-sport')"
+                            class="w-full px-3 py-2 text-xs font-medium text-white bg-nrapa-blue hover:bg-nrapa-blue-dark rounded-lg transition-colors">
+                        Issue Certificate
                     </button>
                 </div>
 

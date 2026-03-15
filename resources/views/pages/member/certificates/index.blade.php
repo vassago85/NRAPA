@@ -107,24 +107,123 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
      */
     public function requestCertificate(): void
     {
-        [$canRequest] = $this->renewalStatus;
-        if (!$canRequest) {
-            session()->flash('error', 'You are not eligible to request a certificate at this time.');
+        $this->requestCertificateByType('membership-certificate');
+    }
+
+    /**
+     * Build list of certificate types the member is eligible to request.
+     */
+    #[Computed]
+    public function eligibleCertificateTypes(): array
+    {
+        $membership = $this->user->activeMembership;
+        if (!$membership) return [];
+
+        $types = [];
+
+        $types[] = [
+            'slug' => 'membership-certificate',
+            'name' => 'Membership Certificate',
+            'description' => 'Proof of active, paid-up membership in good standing',
+            'icon' => 'shield-check',
+        ];
+
+        $dedicatedType = $membership->type->dedicated_type ?? null;
+        $hasHunter = $dedicatedType === 'hunter' || $dedicatedType === 'both';
+        $hasSport  = $dedicatedType === 'sport' || $dedicatedType === 'both' || $dedicatedType === 'sport_shooter';
+
+        if ($hasHunter && $hasSport) {
+            $types[] = [
+                'slug' => 'dedicated-both-certificate',
+                'name' => 'Dedicated Hunter & Sport Shooter Certificate',
+                'description' => 'Section 16 — Firearms Control Act',
+                'icon' => 'trophy',
+            ];
+        } elseif ($hasHunter) {
+            $types[] = [
+                'slug' => 'dedicated-hunter-certificate',
+                'name' => 'Dedicated Hunter Certificate',
+                'description' => 'Section 16 — Firearms Control Act',
+                'icon' => 'trophy',
+            ];
+        } elseif ($hasSport) {
+            $types[] = [
+                'slug' => 'dedicated-sport-certificate',
+                'name' => 'Dedicated Sport Shooter Certificate',
+                'description' => 'Section 16 — Firearms Control Act',
+                'icon' => 'trophy',
+            ];
+        }
+
+        if (!$hasHunter && !$hasSport) {
+            $types[] = [
+                'slug' => 'occasional-hunter-certificate',
+                'name' => 'Occasional Hunter Certificate',
+                'description' => 'Section 15 — Firearms Control Act',
+                'icon' => 'identification',
+            ];
+            $types[] = [
+                'slug' => 'occasional-sport-certificate',
+                'name' => 'Occasional Sport Shooter Certificate',
+                'description' => 'Section 15 — Firearms Control Act',
+                'icon' => 'identification',
+            ];
+        }
+
+        return $types;
+    }
+
+    /**
+     * Check if member already has a valid certificate of a given type.
+     */
+    public function hasValidCertOfType(string $slug): ?Certificate
+    {
+        return $this->user->certificates()
+            ->whereHas('certificateType', fn ($q) => $q->where('slug', $slug))
+            ->whereNull('revoked_at')
+            ->where(fn ($q) => $q->whereNull('valid_until')->orWhere('valid_until', '>', now()))
+            ->latest('issued_at')
+            ->first();
+    }
+
+    /**
+     * Request a specific certificate type.
+     */
+    public function requestCertificateByType(string $slug): void
+    {
+        $membership = $this->user->activeMembership;
+        if (!$membership) {
+            session()->flash('error', 'You need an active membership to request a certificate.');
+            return;
+        }
+
+        if (!$this->hasIdDocument) {
+            session()->flash('error', 'Please upload your ID document first.');
             return;
         }
 
         try {
             $service = app(\App\Services\CertificateIssueService::class);
-            $certificate = $service->issueMembershipCertificate($this->user, $this->user, skipChecks: true);
+
+            $certificate = match($slug) {
+                'membership-certificate' => $service->issueMembershipCertificate($this->user, $this->user, skipChecks: true),
+                'dedicated-hunter-certificate' => $service->issueDedicatedHunterCertificate($this->user, $this->user),
+                'dedicated-sport-certificate' => $service->issueDedicatedSportCertificate($this->user, $this->user),
+                'dedicated-both-certificate' => $service->issueDedicatedBothCertificate($this->user, $this->user),
+                'occasional-hunter-certificate' => $service->issueOccasionalCertificate($this->user, $this->user, 'hunter'),
+                'occasional-sport-certificate' => $service->issueOccasionalCertificate($this->user, $this->user, 'sport'),
+                default => throw new \Exception('Unknown certificate type.'),
+            };
 
             if ($certificate) {
-                session()->flash('success', 'Your Membership Certificate has been issued successfully!');
+                session()->flash('success', $certificate->certificateType->name . ' has been issued successfully!');
             } else {
                 session()->flash('error', 'Unable to generate certificate. Please try again later.');
             }
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Member certificate request failed', [
                 'user_id' => $this->user->id,
+                'slug' => $slug,
                 'error' => $e->getMessage(),
             ]);
             session()->flash('error', $e->getMessage());
@@ -308,88 +407,74 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
         </div>
     @endif
 
-    {{-- Membership Certificate Info & Request (members only) --}}
+    {{-- Certificate Request Section (members only) --}}
     @if(!$this->isAdmin)
     @php
-        [$canRequest, $renewalReason] = $this->renewalStatus;
         $membership = $this->user->activeMembership;
-        $currentCert = $this->currentMembershipCert;
     @endphp
     <div class="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/10 overflow-hidden">
-        <div class="p-5">
-            <div class="flex items-start gap-4">
-                <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-nrapa-blue/10 dark:bg-nrapa-blue/20 flex items-center justify-center">
-                    <svg class="w-5 h-5 text-nrapa-blue dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
-                    </svg>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <h3 class="font-semibold text-zinc-900 dark:text-white">Membership Certificate</h3>
-                    <div class="mt-2 text-sm text-zinc-600 dark:text-zinc-400 space-y-1.5">
-                        <p>To receive your Membership Certificate, you need:</p>
-                        <ul class="space-y-1 ml-1">
-                            <li class="flex items-center gap-2">
-                                @if($membership)
-                                    <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                @else
-                                    <svg class="w-4 h-4 text-zinc-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01"/></svg>
-                                @endif
-                                <span class="{{ $membership ? 'text-emerald-700 dark:text-emerald-400' : '' }}">An active NRAPA membership</span>
-                            </li>
-                            <li class="flex items-center gap-2">
-                                @if($this->hasIdDocument)
-                                    <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                @else
-                                    <svg class="w-4 h-4 text-zinc-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01"/></svg>
-                                @endif
-                                <span class="{{ $this->hasIdDocument ? 'text-emerald-700 dark:text-emerald-400' : '' }}">Your ID document uploaded (full name & ID number)</span>
-                            </li>
-                        </ul>
-
-                        @if($currentCert && $currentCert->isValid() && $currentCert->valid_until)
-                            <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
-                                You can request a renewed certificate once your current one is within 30 days of expiry.
-                                Your membership must also be valid for at least 3 more months.
-                            </p>
-                        @endif
-                    </div>
-
-                    {{-- Status & Action --}}
-                    <div class="mt-3 flex flex-col sm:flex-row sm:items-center gap-3">
-                        @if($canRequest)
-                            <button wire:click="requestCertificate" wire:loading.attr="disabled"
-                                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-nrapa-blue hover:bg-nrapa-blue-dark rounded-lg transition-colors disabled:opacity-50">
-                                <span wire:loading.remove wire:target="requestCertificate">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                </span>
-                                <svg wire:loading wire:target="requestCertificate" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
-                                @if($renewalReason === 'request_first')
-                                    Request Membership Certificate
-                                @elseif($renewalReason === 'request_renewal')
-                                    Renew Certificate
-                                @else
-                                    Request New Certificate
-                                @endif
-                            </button>
-                        @endif
-
-                        @if(!$canRequest && !in_array($renewalReason, ['request_first', 'request_renewal', 'request_new']))
-                            <p class="text-sm text-zinc-500 dark:text-zinc-400 italic">
-                                {{ $renewalReason }}
-                            </p>
-                        @endif
-
-                        @if(!$this->hasIdDocument)
-                            <a href="{{ route('documents.index') }}" wire:navigate
-                                class="inline-flex items-center gap-1.5 text-sm font-medium text-nrapa-blue hover:text-nrapa-blue-dark dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-                                Upload ID Document
-                            </a>
-                        @endif
-                    </div>
-                </div>
-            </div>
+        <div class="flex items-center gap-3 border-b border-blue-200 dark:border-blue-800 p-5">
+            <svg class="w-5 h-5 text-nrapa-blue dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+            </svg>
+            <h3 class="font-semibold text-zinc-900 dark:text-white">Request Certificates</h3>
         </div>
+
+        @if(!$membership)
+            <div class="p-5 text-sm text-zinc-500 dark:text-zinc-400">
+                You need an active membership to request certificates.
+            </div>
+        @elseif(!$this->hasIdDocument)
+            <div class="p-5">
+                <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-3">Please upload your ID document before requesting certificates.</p>
+                <a href="{{ route('documents.index') }}" wire:navigate
+                    class="inline-flex items-center gap-1.5 text-sm font-medium text-nrapa-blue hover:text-nrapa-blue-dark dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                    Upload ID Document
+                </a>
+            </div>
+        @else
+            <div class="divide-y divide-blue-100 dark:divide-blue-800/50">
+                @foreach($this->eligibleCertificateTypes as $certType)
+                    @php
+                        $existingCert = $this->hasValidCertOfType($certType['slug']);
+                    @endphp
+                    <div class="p-4 flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="flex-shrink-0 w-9 h-9 rounded-lg bg-nrapa-blue/10 dark:bg-nrapa-blue/20 flex items-center justify-center">
+                                @if(str_contains($certType['slug'], 'dedicated') || str_contains($certType['slug'], 'occasional'))
+                                    <svg class="w-4 h-4 text-nrapa-blue dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+                                @else
+                                    <svg class="w-4 h-4 text-nrapa-blue dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                                @endif
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-sm font-medium text-zinc-900 dark:text-white truncate">{{ $certType['name'] }}</p>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ $certType['description'] }}</p>
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0">
+                            @if($existingCert)
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    Valid
+                                </span>
+                            @else
+                                <button wire:click="requestCertificateByType('{{ $certType['slug'] }}')" wire:loading.attr="disabled"
+                                    wire:target="requestCertificateByType('{{ $certType['slug'] }}')"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-nrapa-blue hover:bg-nrapa-blue-dark rounded-lg transition-colors disabled:opacity-50">
+                                    <span wire:loading.remove wire:target="requestCertificateByType('{{ $certType['slug'] }}')">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                    </span>
+                                    <svg wire:loading wire:target="requestCertificateByType('{{ $certType['slug'] }}')" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                                    Request
+                                </button>
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
     </div>
     @endif
 

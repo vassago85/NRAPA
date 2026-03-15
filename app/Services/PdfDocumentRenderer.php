@@ -105,7 +105,9 @@ class PdfDocumentRenderer implements DocumentRenderer
         if ($slug === 'membership-certificate' || $slug === 'paid-up-certificate' || $slug === 'good-standing-certificate') {
             $template = 'documents.certificates.good-standing';
         } elseif ($slug === 'dedicated-hunter-certificate' || $slug === 'dedicated-hunter' || 
-                  $slug === 'dedicated-sport-certificate' || $slug === 'dedicated-sport') {
+                  $slug === 'dedicated-sport-certificate' || $slug === 'dedicated-sport' ||
+                  $slug === 'dedicated-both-certificate' ||
+                  $slug === 'occasional-hunter-certificate' || $slug === 'occasional-sport-certificate') {
             $template = 'documents.certificates.dedicated-status';
         }
         

@@ -199,28 +199,52 @@ class MembershipConfigurationSeeder extends Seeder
                 'sort_order' => 11,
             ],
             [
+                'slug' => 'dedicated-both-certificate',
+                'name' => 'Dedicated Hunter & Sport Shooter Certificate',
+                'description' => 'Section 16 certificate for members with both dedicated hunter and sport shooter status',
+                'template' => 'documents.certificates.dedicated-status',
+                'validity_months' => null,
+                'sort_order' => 12,
+            ],
+            [
+                'slug' => 'occasional-hunter-certificate',
+                'name' => 'Occasional Hunter Certificate',
+                'description' => 'Section 15 certificate for occasional hunters',
+                'template' => 'documents.certificates.dedicated-status',
+                'validity_months' => 12,
+                'sort_order' => 13,
+            ],
+            [
+                'slug' => 'occasional-sport-certificate',
+                'name' => 'Occasional Sport Shooter Certificate',
+                'description' => 'Section 15 certificate for occasional sport shooters',
+                'template' => 'documents.certificates.dedicated-status',
+                'validity_months' => 12,
+                'sort_order' => 14,
+            ],
+            [
                 'slug' => 'membership-certificate',
                 'name' => 'Membership Certificate',
                 'description' => 'Certificate confirming member is paid-up, active, and in good standing',
                 'template' => 'documents.certificates.good-standing',
                 'validity_months' => 12,
-                'sort_order' => 12,
+                'sort_order' => 15,
             ],
             [
                 'slug' => 'membership-card',
                 'name' => 'Membership Card',
                 'description' => 'NRAPA membership identification card (simple card format, wallet compatible)',
                 'template' => 'documents.membership-card',
-                'validity_months' => null, // Valid as long as membership is active
-                'sort_order' => 13,
+                'validity_months' => null,
+                'sort_order' => 20,
             ],
             [
                 'slug' => 'welcome-letter',
                 'name' => 'Welcome Letter',
                 'description' => 'Welcome letter for new members',
                 'template' => 'documents.welcome-letter',
-                'validity_months' => null, // Informational, no expiry
-                'sort_order' => 14,
+                'validity_months' => null,
+                'sort_order' => 21,
             ],
         ];
 
