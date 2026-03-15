@@ -89,25 +89,13 @@
 
         /* FAR info banner */
         .far-banner {
-            position: relative;
             width: 66%;
             background: linear-gradient(90deg, rgba(31,78,140,0.07) 0%, rgba(245,130,32,0.07) 100%);
             border: 1px solid var(--border);
             padding: 6px 14px;
-            border-radius: 6px 0 0 6px;
+            border-radius: 6px;
             margin-top: 4px;
             margin-left: 2.5%;
-            overflow: visible;
-        }
-        .far-banner::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 100%;
-            width: 20px;
-            height: 100%;
-            background: rgba(245,130,32,0.07);
-            clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
         }
         .far-badge {
             display: inline-block;
@@ -120,26 +108,14 @@
         .far-row { display: flex; gap: 20px; margin-top: 3px; font-size: 11px; color: var(--muted); }
         .far-row b { color: var(--blue); font-weight: 600; }
 
-        /* Document title banner with angled right edge */
+        /* Document title banner */
         .doc-banner {
-            position: relative;
             width: 66%;
             background: linear-gradient(90deg, rgba(31,78,140,0.07) 0%, rgba(245,130,32,0.07) 100%);
             border: 1px solid var(--border);
             padding: 8px 14px;
-            border-radius: 6px 0 0 6px;
+            border-radius: 6px;
             margin: 4px 0 4px 2.5%;
-            overflow: visible;
-        }
-        .doc-banner::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 100%;
-            width: 20px;
-            height: 100%;
-            background: rgba(245,130,32,0.07);
-            clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
         }
         .doc-banner-title {
             font-size: 17px;
@@ -158,9 +134,6 @@
 
         /* Info grid */
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; width: 95%; margin-left: auto; margin-right: auto; }
-        .info-grid .card {
-            background: linear-gradient(90deg, rgba(31,78,140,0.07) 0%, rgba(245,130,32,0.07) 100%), var(--panel);
-        }
 
         .card {
             background: var(--panel);
