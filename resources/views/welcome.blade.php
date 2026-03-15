@@ -4,8 +4,8 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>NRAPA - Members Portal</title>
-        <link rel="icon" href="/nrapa-logo.png" type="image/png">
-        <link rel="apple-touch-icon" href="/nrapa-logo.png">
+        <link rel="icon" href="/nrapa-icon.png" type="image/png">
+        <link rel="apple-touch-icon" href="/nrapa-icon.png">
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <style>
             .hero-gradient {

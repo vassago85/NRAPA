@@ -6,8 +6,8 @@
         
         <title>{{ $title ?? 'NRAPA Digital Card' }}</title>
         
-        <link rel="icon" href="/nrapa-logo.png" type="image/png">
-        <link rel="apple-touch-icon" href="/nrapa-logo.png">
+        <link rel="icon" href="/nrapa-icon.png" type="image/png">
+        <link rel="apple-touch-icon" href="/nrapa-icon.png">
         
         {{-- PWA / Add to Home Screen Meta Tags --}}
         <meta name="apple-mobile-web-app-capable" content="yes">
