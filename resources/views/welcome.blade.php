@@ -59,7 +59,7 @@
                 background: linear-gradient(180deg, rgba(12,35,65,0.6) 0%, rgba(8,22,42,0.75) 100%);
                 border: 1px solid rgba(255,255,255,0.06);
                 position: relative;
-                overflow: hidden;
+                overflow: visible;
                 transition: all 0.4s cubic-bezier(0.4, 0, 0.15, 1);
             }
             .card-pricing:hover {
@@ -460,9 +460,10 @@
                             @endif
                         </div>
 
-                        <p class="mt-4 text-[14px] leading-[1.75] text-white/40 flex-1">{{ $type->description }}</p>
+                        <p class="mt-4 text-[14px] leading-[1.75] text-white/40">{{ $type->description }}</p>
 
-                        <div class="my-6 h-px bg-white/[0.06]"></div>
+                        <div class="mt-auto pt-6">
+                        <div class="mb-6 h-px bg-white/[0.06]"></div>
 
                         <ul class="space-y-3">
                             <li class="flex items-center gap-2.5 text-[13px] text-white/45">
@@ -497,9 +498,10 @@
                             </li>
                         </ul>
 
-                        <a href="{{ route('register') }}" class="{{ $type->is_featured ? 'btn-cta' : 'btn-outline text-white/50 hover:text-white' }} mt-auto pt-8 block w-full text-center rounded-xl px-4 py-3 text-[13px] font-bold tracking-wide">
+                        <a href="{{ route('register') }}" class="{{ $type->is_featured ? 'btn-cta' : 'btn-outline text-white/50 hover:text-white' }} mt-8 block w-full text-center rounded-xl px-4 py-3 text-[13px] font-bold tracking-wide">
                             Get Started
                         </a>
+                        </div>
                     </div>
                     @endforeach
                 </div>
