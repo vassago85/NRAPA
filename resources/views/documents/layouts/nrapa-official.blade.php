@@ -158,6 +158,9 @@
 
         /* Info grid */
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; width: 95%; margin-left: auto; margin-right: auto; }
+        .info-grid .card {
+            background: linear-gradient(90deg, rgba(31,78,140,0.07) 0%, rgba(245,130,32,0.07) 100%), var(--panel);
+        }
 
         .card {
             background: var(--panel);
