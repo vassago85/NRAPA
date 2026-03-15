@@ -220,6 +220,9 @@
                     Your Partner in<br class="hidden sm:block">
                     Responsible Firearm Ownership
                 </h1>
+                <p class="mt-4 text-[13px] font-semibold uppercase tracking-[0.25em] text-[#F58220]/70 anim-1">
+                    A Division of Ranyati Group
+                </p>
 
                 {{-- Sub text --}}
                 <p class="mx-auto mt-7 max-w-lg text-[15px] leading-[1.8] text-white/45 anim-2">
