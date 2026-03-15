@@ -60,9 +60,8 @@
         {{-- Header --}}
         <header class="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#061e3c]/80 backdrop-blur-xl">
             <nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-3 lg:px-8" aria-label="Global">
-                <a href="/" class="flex items-center gap-3 group">
-                    <img src="{{ asset('nrapa-logo.png') }}" alt="NRAPA" class="size-9 object-contain transition group-hover:scale-105" />
-                    <span class="text-lg font-bold tracking-tight text-white">NRAPA</span>
+                <a href="https://ranyati.co.za" class="flex items-center group" target="_blank" rel="noopener">
+                    <img src="{{ asset('logo-ranyatigroup-horizontal-white.png') }}" alt="Ranyati Group" class="h-7 w-auto object-contain transition group-hover:opacity-80" />
                 </a>
                 <div class="hidden sm:flex items-center gap-8">
                     <a href="#features" class="text-sm font-medium text-zinc-300 hover:text-white transition">Features</a>
@@ -98,18 +97,18 @@
                 </div>
 
                 <div class="mt-8 animate-fade-up-delay">
-                    <div class="mx-auto size-28 rounded-2xl bg-white/95 p-3 shadow-lg shadow-black/10 ring-1 ring-white/20">
-                        <img src="{{ asset('nrapa-logo.png') }}" alt="NRAPA" class="size-full object-contain" />
+                    <div class="mx-auto inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-10 py-5 backdrop-blur-sm">
+                        <img src="{{ asset('logo-nrapa-white.png') }}" alt="NRAPA" class="h-16 sm:h-20 w-auto object-contain" />
                     </div>
                 </div>
 
-                <h1 class="mt-8 text-4xl font-extrabold tracking-tight text-white sm:text-6xl lg:text-7xl animate-fade-up-delay" style="text-wrap: balance">
-                    National Rifle &amp;<br>
-                    <span class="text-nrapa-orange">Pistol Association</span>
+                <h1 class="mt-8 text-3xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl animate-fade-up-delay" style="text-wrap: balance">
+                    Your Partner in<br>
+                    <span class="text-nrapa-orange">Responsible Firearm Ownership</span>
                 </h1>
 
                 <p class="mx-auto mt-6 max-w-2xl text-lg leading-8 text-zinc-300 animate-fade-up-delay-2">
-                    Your partner in responsible firearm ownership. We help you obtain dedicated status, manage your licences, and stay compliant with the Firearms Control Act &mdash; so you can focus on what you love, whether it's on the range or in the bush.
+                    We help you obtain dedicated status, manage your licences, and stay compliant with the Firearms Control Act &mdash; so you can focus on what you love, whether it's on the range or in the bush.
                 </p>
 
                 <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-up-delay-2">
