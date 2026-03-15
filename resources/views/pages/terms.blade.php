@@ -242,9 +242,9 @@
                             Trading as Ranyati Firearm Motivations (Pty) Ltd.
                         </p>
                     </div>
-                    <div>
+                    <div class="flex flex-col items-center text-center">
                         <h4 class="text-[10px] font-bold uppercase tracking-[0.25em] text-white/25">Divisions</h4>
-                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 20px;">
+                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 20px; align-items: center;">
                             <a href="https://motivations.ranyati.co.za" style="display: inline-flex; align-items: center; justify-content: center; width: 144px; height: 36px; padding: 6px; border-radius: 10px; background: rgba(245,130,32,0.1); box-shadow: inset 0 0 0 1px rgba(245,130,32,0.15); transition: background 0.2s; overflow: hidden;" onmouseover="this.style.background='rgba(245,130,32,0.2)'" onmouseout="this.style.background='rgba(245,130,32,0.1)'">
                                 <img src="{{ asset('logo-ranyati_motivations-white-text.png') }}" alt="Motivations" style="max-height: 24px; max-width: 132px; width: auto; height: auto; object-fit: contain;" />
                             </a>

@@ -408,8 +408,8 @@
         <footer class="bg-[#020810] border-t border-white/[0.04]">
             <div class="mx-auto max-w-7xl px-6 lg:px-8">
                 <div class="grid gap-12 py-14 sm:grid-cols-3 sm:gap-8 sm:py-16">
-                    {{-- Logo + description --}}
-                    <div>
+                    {{-- Left: Ranyati Group --}}
+                    <div class="text-left">
                         <img src="{{ asset('logo-ranyatigroup-white_text.png') }}" alt="Ranyati Group" class="h-8 w-auto" />
                         <p class="mt-5 text-[13px] leading-[1.7] text-white/30">
                             Specialist firearm administration services since 2006.<br>
@@ -417,10 +417,10 @@
                         </p>
                     </div>
 
-                    {{-- Divisions --}}
-                    <div>
+                    {{-- Center: Divisions --}}
+                    <div class="flex flex-col items-center text-center">
                         <h4 class="text-[10px] font-bold uppercase tracking-[0.25em] text-white/25">Divisions</h4>
-                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 20px;">
+                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 20px; align-items: center;">
                             <a href="https://motivations.ranyati.co.za" style="display: inline-flex; align-items: center; justify-content: center; width: 144px; height: 36px; padding: 6px; border-radius: 10px; background: rgba(245,130,32,0.1); box-shadow: inset 0 0 0 1px rgba(245,130,32,0.15); transition: background 0.2s; overflow: hidden;" onmouseover="this.style.background='rgba(245,130,32,0.2)'" onmouseout="this.style.background='rgba(245,130,32,0.1)'">
                                 <img src="{{ asset('logo-ranyati_motivations-white-text.png') }}" alt="Motivations" style="max-height: 24px; max-width: 132px; width: auto; height: auto; object-fit: contain;" />
                             </a>
@@ -433,8 +433,8 @@
                         </div>
                     </div>
 
-                    {{-- Contact --}}
-                    <div>
+                    {{-- Right: Contact --}}
+                    <div class="text-left">
                         <h4 class="text-[10px] font-bold uppercase tracking-[0.25em] text-white/25">Contact</h4>
                         <ul class="mt-5 space-y-3">
                             <li>
