@@ -294,7 +294,7 @@
                         <li><strong>Operated by:</strong> Ranyati Firearm Motivations (Pty) Ltd</li>
                         <li><strong>Address:</strong> 241 Jean Avenue, Centurion, Gauteng, South Africa</li>
                         <li><strong>Email:</strong> <a href="mailto:info@nrapa.co.za">info@nrapa.co.za</a></li>
-                        <li><strong>NRAPA Portal:</strong> <a href="https://nrapa.co.za">nrapa.co.za</a></li>
+                        <li><strong>NRAPA Portal:</strong> <a href="https://nrapa.ranyati.co.za">nrapa.ranyati.co.za</a></li>
                         <li><strong>Ranyati Group:</strong> <a href="https://ranyati.co.za">ranyati.co.za</a></li>
                     </ul>
 

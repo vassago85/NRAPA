@@ -119,7 +119,7 @@
 <div class="doc-footer">
     <div>
         <strong>National Rifle & Pistol Association of South Africa</strong><br>
-        www.nrapa.co.za
+        nrapa.ranyati.co.za
     </div>
     <div style="text-align:right;">
         This is an informational document. For official certificates, please refer to your member portal.

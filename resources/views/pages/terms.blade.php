@@ -79,7 +79,7 @@
                 <div class="prose prose-zinc max-w-none prose-headings:text-zinc-900 prose-headings:font-bold prose-h2:text-xl prose-h2:mt-10 prose-h2:mb-4 prose-h3:text-lg prose-h3:mt-8 prose-h3:mb-3 prose-p:leading-relaxed prose-li:leading-relaxed prose-a:text-nrapa-blue hover:prose-a:text-nrapa-blue-dark">
 
                     <h2>1. Introduction</h2>
-                    <p>These Terms and Conditions ("Terms") govern your use of the National Rifle and Pistol Association of South Africa ("NRAPA") members portal at <strong>members.nrapa.co.za</strong> and all related services, including membership registration, certificate issuance, endorsement applications, and related administration.</p>
+                    <p>These Terms and Conditions ("Terms") govern your use of the National Rifle and Pistol Association of South Africa ("NRAPA") members portal at <strong>nrapa.ranyati.co.za</strong> and all related services, including membership registration, certificate issuance, endorsement applications, and related administration.</p>
                     <p>NRAPA is operated and administered by <strong>Ranyati Firearm Motivations (Pty) Ltd</strong> ("Ranyati", registration number pending), a specialist firearm administration company. References to "we", "us", or "our" in these Terms refer to NRAPA and Ranyati collectively, as applicable.</p>
                     <p>By registering an account, applying for membership, or using any of our services, you agree to be bound by these Terms. If you do not agree, you must not use our services.</p>
                     <p>NRAPA is a South African hunting and sport shooting association accredited by the South African Police Service (SAPS) under the Firearms Control Act 60 of 2000, with FAR numbers <strong>1300122</strong> (Sport) and <strong>1300127</strong> (Hunting).</p>
@@ -239,7 +239,7 @@
                         <li><strong>Operated by:</strong> Ranyati Firearm Motivations (Pty) Ltd</li>
                         <li><strong>Address:</strong> 241 Jean Avenue, Centurion, Gauteng, South Africa</li>
                         <li><strong>Email:</strong> <a href="mailto:info@nrapa.co.za">info@nrapa.co.za</a></li>
-                        <li><strong>NRAPA Portal:</strong> <a href="https://nrapa.co.za">nrapa.co.za</a></li>
+                        <li><strong>NRAPA Portal:</strong> <a href="https://nrapa.ranyati.co.za">nrapa.ranyati.co.za</a></li>
                         <li><strong>Ranyati Group:</strong> <a href="https://ranyati.co.za">ranyati.co.za</a></li>
                     </ul>
 

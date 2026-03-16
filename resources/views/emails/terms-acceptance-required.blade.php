@@ -58,5 +58,5 @@
 
 @section('footer')
     National Rifle &amp; Pistol Association of South Africa (NRAPA)<br>
-    www.nrapa.co.za
+    nrapa.ranyati.co.za
 @endsection

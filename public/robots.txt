@@ -4,4 +4,4 @@ Disallow: /admin
 Disallow: /dev
 Disallow: /email
 
-Sitemap: https://nrapa.co.za/sitemap.xml
+Sitemap: https://nrapa.ranyati.co.za/sitemap.xml

@@ -125,7 +125,7 @@
 <div class="doc-footer">
     <div>
         <strong>National Rifle & Pistol Association of South Africa</strong><br>
-        www.nrapa.co.za
+        nrapa.ranyati.co.za
     </div>
     <div style="text-align:right;">
         This document is generated electronically and is valid without physical signature when verified via QR code.

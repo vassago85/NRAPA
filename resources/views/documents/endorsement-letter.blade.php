@@ -135,7 +135,7 @@
 <div class="doc-footer">
     <div>
         <strong>National Rifle & Pistol Association of South Africa</strong><br>
-        www.nrapa.co.za
+        nrapa.ranyati.co.za
     </div>
     <div style="text-align:right;">
         @if($request->letter_reference)

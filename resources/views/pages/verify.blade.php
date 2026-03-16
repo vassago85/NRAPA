@@ -8,18 +8,18 @@
     <meta property="og:title" content="NRAPA Certificate Verification">
     <meta property="og:description" content="Verify the authenticity of NRAPA certificates and documents.">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://nrapa.co.za/verify">
+    <meta property="og:url" content="https://nrapa.ranyati.co.za/verify">
     <script type="application/ld+json">
     {
         "@@context": "https://schema.org",
         "@type": "WebPage",
         "name": "NRAPA Certificate Verification",
         "description": "Verify the authenticity of NRAPA membership certificates and endorsement documents.",
-        "url": "https://nrapa.co.za/verify",
+        "url": "https://nrapa.ranyati.co.za/verify",
         "isPartOf": {
             "@type": "WebSite",
             "name": "NRAPA",
-            "url": "https://nrapa.co.za"
+            "url": "https://nrapa.ranyati.co.za"
         }
     }
     </script>
@@ -118,7 +118,7 @@
             <div class="mt-8 border-t border-zinc-800 pt-6">
                 <p class="text-center text-sm text-zinc-500">
                     National Rifle & Pistol Association of South Africa<br>
-                    <a href="{{ route('home') }}" class="text-emerald-400 hover:text-emerald-300">www.nrapa.co.za</a>
+                    <a href="{{ route('home') }}" class="text-emerald-400 hover:text-emerald-300">nrapa.ranyati.co.za</a>
                 </p>
             </div>
         </div>

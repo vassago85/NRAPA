@@ -168,7 +168,7 @@
       </p>
 
       <div class="footer">
-        <div>NRAPA • www.nrapa.co.za • Operated by Ranyati Firearm Motivations (Pty) Ltd</div>
+        <div>NRAPA • nrapa.ranyati.co.za • Operated by Ranyati Firearm Motivations (Pty) Ltd</div>
         <div>Issued electronically</div>
       </div>
 

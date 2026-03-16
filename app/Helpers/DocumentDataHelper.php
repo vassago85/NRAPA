@@ -202,7 +202,7 @@ class DocumentDataHelper
     public static function getContactInfo(): array
     {
         return [
-            'website' => SystemSetting::get('nrapa_website', 'www.nrapa.co.za'),
+            'website' => SystemSetting::get('nrapa_website', 'nrapa.ranyati.co.za'),
             'email' => SystemSetting::get('nrapa_email', 'info@nrapa.co.za'),
             'tel' => SystemSetting::get('nrapa_tel', '+27 (0) 87 151 0988'),
             'fax' => SystemSetting::get('nrapa_fax', '+27 (0) 86 529 2791'),
