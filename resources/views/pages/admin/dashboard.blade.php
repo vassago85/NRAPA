@@ -37,7 +37,10 @@ new class extends Component {
         
         // Pending approvals
         try {
-            $this->pendingDocuments = MemberDocument::where('status', 'pending')->count();
+            $this->pendingDocuments = MemberDocument::where('status', 'pending')
+                ->whereDoesntHave('shootingActivityAsEvidence')
+                ->whereDoesntHave('shootingActivityAsAdditional')
+                ->count();
             $this->pendingMemberships = Membership::where('status', 'applied')->count();
             $this->pendingActivities = ShootingActivity::where('status', 'pending')->count();
             $this->pendingCalibres = CalibreRequest::where('status', 'pending')->count();

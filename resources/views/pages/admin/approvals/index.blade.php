@@ -5,6 +5,7 @@ use App\Models\CalibreRequest;
 use App\Models\EndorsementRequest;
 use App\Models\MemberDocument;
 use App\Models\Membership;
+use App\Models\ShootingActivity;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Attributes\Computed;
@@ -20,8 +21,10 @@ new #[Title('All Approvals - Admin')] class extends Component {
     {
         $approvals = collect();
 
-        // Pending Documents
+        // Pending Documents (exclude documents linked to activities to avoid double-counting)
         $pendingDocuments = MemberDocument::where('status', 'pending')
+            ->whereDoesntHave('shootingActivityAsEvidence')
+            ->whereDoesntHave('shootingActivityAsAdditional')
             ->with(['user'])
             ->orderBy('created_at', 'asc')
             ->get()
@@ -52,7 +55,21 @@ new #[Title('All Approvals - Admin')] class extends Component {
                 ];
             });
 
-        // Activities are approved only via Admin > Activities (not document approvals)
+        // Pending Activities
+        $pendingActivities = ShootingActivity::where('status', 'pending')
+            ->with(['user', 'activityType'])
+            ->orderBy('created_at', 'asc')
+            ->get()
+            ->map(function ($activity) {
+                return [
+                    'type' => 'activity',
+                    'id' => $activity->id,
+                    'title' => ($activity->activityType?->name ?? 'Shooting Activity') . ' - ' . ($activity->activity_date?->format('d M Y') ?? 'N/A'),
+                    'user' => $activity->user,
+                    'date' => $activity->created_at,
+                    'route' => route('admin.activities.show', $activity),
+                ];
+            });
 
         // Pending Calibre Requests
         $pendingCalibres = CalibreRequest::where('status', 'pending')
@@ -91,11 +108,10 @@ new #[Title('All Approvals - Admin')] class extends Component {
                 ];
             });
 
-        // Combine all (excluding activities - approve those via Activities only) and sort by date
-        // Filter out items where user was deleted to prevent null errors
         return $approvals
             ->merge($pendingDocuments)
             ->merge($pendingMemberships)
+            ->merge($pendingActivities)
             ->merge($pendingCalibres)
             ->merge($pendingEndorsements)
             ->filter(fn ($item) => $item['user'] !== null)
@@ -106,8 +122,12 @@ new #[Title('All Approvals - Admin')] class extends Component {
     #[Computed]
     public function stats()
     {
-        $docs = MemberDocument::where('status', 'pending')->count();
+        $docs = MemberDocument::where('status', 'pending')
+            ->whereDoesntHave('shootingActivityAsEvidence')
+            ->whereDoesntHave('shootingActivityAsAdditional')
+            ->count();
         $memberships = Membership::where('status', 'applied')->count();
+        $activities = ShootingActivity::where('status', 'pending')->count();
         $calibres = CalibreRequest::where('status', 'pending')->count();
         $endorsements = EndorsementRequest::whereIn('status', [
             EndorsementRequest::STATUS_SUBMITTED,
@@ -117,9 +137,10 @@ new #[Title('All Approvals - Admin')] class extends Component {
         return [
             'documents' => $docs,
             'memberships' => $memberships,
+            'activities' => $activities,
             'calibres' => $calibres,
             'endorsements' => $endorsements,
-            'total' => $docs + $memberships + $calibres + $endorsements,
+            'total' => $docs + $memberships + $activities + $calibres + $endorsements,
         ];
     }
 
@@ -152,8 +173,18 @@ new #[Title('All Approvals - Admin')] class extends Component {
         $admin = auth()->user();
         $cleared = 0;
 
-        // Approve all pending documents
-        $pendingDocs = MemberDocument::where('status', 'pending')->get();
+        // Approve all pending activities (cascades to their evidence documents)
+        $pendingActivities = ShootingActivity::where('status', 'pending')->get();
+        foreach ($pendingActivities as $activity) {
+            $activity->approve($admin);
+            $cleared++;
+        }
+
+        // Approve remaining pending documents (excluding any already verified by activity cascade)
+        $pendingDocs = MemberDocument::where('status', 'pending')
+            ->whereDoesntHave('shootingActivityAsEvidence')
+            ->whereDoesntHave('shootingActivityAsAdditional')
+            ->get();
         foreach ($pendingDocs as $doc) {
             $doc->verify($admin);
             $cleared++;
@@ -162,7 +193,6 @@ new #[Title('All Approvals - Admin')] class extends Component {
         // Approve all pending memberships
         $pendingMemberships = Membership::where('status', 'applied')->with(['user', 'type'])->get();
         foreach ($pendingMemberships as $membership) {
-            // Use the same logic as the approval show page
             $expiresAt = $membership->type->calculateExpiryDate(now());
             $membership->update([
                 'status' => 'active',
@@ -177,7 +207,6 @@ new #[Title('All Approvals - Admin')] class extends Component {
                 ]);
             }
 
-            // Send approval email (skip if already sent to prevent duplicates)
             try {
                 if ($membership->user && !$membership->welcome_email_sent_at) {
                     Mail::to($membership->user->email)->queue(new MembershipApproved(
@@ -195,8 +224,6 @@ new #[Title('All Approvals - Admin')] class extends Component {
 
             $cleared++;
         }
-
-        // Activities are approved only via Admin > Activities (not here)
 
         // Approve all pending calibre requests
         $pendingCalibres = CalibreRequest::where('status', 'pending')->get();
@@ -281,8 +308,8 @@ new #[Title('All Approvals - Admin')] class extends Component {
         @endif
     </div>
 
-    {{-- Stats (document/membership/calibre/endorsement approvals only; activities approved via Activities) --}}
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+    {{-- Stats --}}
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Total Pending</p>
             <p class="mt-1 text-2xl font-bold text-amber-600 dark:text-amber-400">{{ $this->stats['total'] }}</p>
@@ -294,6 +321,10 @@ new #[Title('All Approvals - Admin')] class extends Component {
         <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Memberships</p>
             <p class="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ $this->stats['memberships'] }}</p>
+        </div>
+        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+            <p class="text-sm text-zinc-500 dark:text-zinc-400">Activities</p>
+            <p class="mt-1 text-2xl font-bold text-purple-600 dark:text-purple-400">{{ $this->stats['activities'] }}</p>
         </div>
         <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Calibres</p>

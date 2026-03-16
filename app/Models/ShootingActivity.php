@@ -246,7 +246,7 @@ class ShootingActivity extends Model
     // ===== Actions =====
 
     /**
-     * Approve the activity.
+     * Approve the activity and auto-verify its linked evidence documents.
      */
     public function approve(User $admin): void
     {
@@ -255,10 +255,19 @@ class ShootingActivity extends Model
             'verified_at' => now(),
             'verified_by' => $admin->id,
         ]);
+
+        $this->load(['evidenceDocument', 'additionalDocument']);
+
+        if ($this->evidenceDocument && $this->evidenceDocument->status === 'pending') {
+            $this->evidenceDocument->verify($admin);
+        }
+        if ($this->additionalDocument && $this->additionalDocument->status === 'pending') {
+            $this->additionalDocument->verify($admin);
+        }
     }
 
     /**
-     * Reject the activity.
+     * Reject the activity and auto-reject its linked evidence documents.
      */
     public function reject(User $admin, string $reason): void
     {
@@ -269,7 +278,15 @@ class ShootingActivity extends Model
             'verified_by' => $admin->id,
         ]);
 
-        // Send notification to member
+        $this->load(['evidenceDocument', 'additionalDocument']);
+
+        if ($this->evidenceDocument && $this->evidenceDocument->status === 'pending') {
+            $this->evidenceDocument->reject($admin, "Activity rejected: {$reason}");
+        }
+        if ($this->additionalDocument && $this->additionalDocument->status === 'pending') {
+            $this->additionalDocument->reject($admin, "Activity rejected: {$reason}");
+        }
+
         $this->notifyRejection($reason);
     }
 

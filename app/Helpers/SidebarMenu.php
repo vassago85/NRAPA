@@ -127,7 +127,10 @@ class SidebarMenu
             $totalPending = 0;
             try {
                 if (\Illuminate\Support\Facades\Schema::hasTable('member_documents')) {
-                    $totalPending += \App\Models\MemberDocument::where('status', 'pending')->count();
+                    $totalPending += \App\Models\MemberDocument::where('status', 'pending')
+                        ->whereDoesntHave('shootingActivityAsEvidence')
+                        ->whereDoesntHave('shootingActivityAsAdditional')
+                        ->count();
                 }
                 if (\Illuminate\Support\Facades\Schema::hasTable('memberships')) {
                     $totalPending += \App\Models\Membership::where('status', 'applied')->count();

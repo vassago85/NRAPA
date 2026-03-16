@@ -297,15 +297,19 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                 <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">My Documents</h1>
                 <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Upload and manage your documents for membership and firearm applications.</p>
             </div>
-            <button wire:click="openUploadModal()"
-                class="inline-flex items-center gap-2 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                </svg>
-                Upload Document
-            </button>
         </div>
     </x-slot>
+
+    {{-- Action Bar --}}
+    <div class="mb-6 flex justify-end">
+        <button wire:click="openUploadModal()"
+            class="inline-flex items-center gap-2 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+            </svg>
+            Upload Document
+        </button>
+    </div>
 
     {{-- Flash Messages --}}
     @if(session('success'))

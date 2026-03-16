@@ -188,6 +188,22 @@ class MemberDocument extends Model
         return $this->belongsTo(User::class, 'verified_by');
     }
 
+    /**
+     * Get the shooting activity that uses this document as evidence.
+     */
+    public function shootingActivityAsEvidence(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ShootingActivity::class, 'evidence_document_id');
+    }
+
+    /**
+     * Get the shooting activity that uses this document as additional evidence.
+     */
+    public function shootingActivityAsAdditional(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ShootingActivity::class, 'additional_document_id');
+    }
+
     // ===== Status Checks =====
 
     /**
