@@ -51,15 +51,9 @@ class CertificateIssueService
      */
     public function issueDedicatedHunterCertificate(User $user, User $issuer): ?Certificate
     {
-        // Check if user has dedicated hunter status
-        $hasHunterStatus = $user->dedicatedStatusApplications()
-            ->where('dedicated_type', 'hunter')
-            ->where('status', 'approved')
-            ->where(function ($q) {
-                $q->whereNull('valid_until')
-                    ->orWhere('valid_until', '>=', now());
-            })
-            ->exists();
+        // Check if user has dedicated hunter status via membership type
+        $dedicatedType = $user->activeMembership?->type?->dedicated_type;
+        $hasHunterStatus = in_array($dedicatedType, ['hunter', 'both']);
 
         if (!$hasHunterStatus) {
             throw new \Exception('User does not have approved dedicated hunter status.');
@@ -164,15 +158,9 @@ class CertificateIssueService
             throw new \Exception('User must accept Terms & Conditions before certificates can be issued.');
         }
 
-        // Check if user has dedicated sport shooter status
-        $hasSportStatus = $user->dedicatedStatusApplications()
-            ->whereIn('dedicated_type', ['sport', 'sport_shooter'])
-            ->where('status', 'approved')
-            ->where(function ($q) {
-                $q->whereNull('valid_until')
-                    ->orWhere('valid_until', '>=', now());
-            })
-            ->exists();
+        // Check if user has dedicated sport shooter status via membership type
+        $dedicatedType = $user->activeMembership?->type?->dedicated_type;
+        $hasSportStatus = in_array($dedicatedType, ['sport', 'sport_shooter', 'both']);
 
         if (!$hasSportStatus) {
             throw new \Exception('User does not have approved dedicated sport shooter status.');
@@ -269,17 +257,9 @@ class CertificateIssueService
      */
     public function issueDedicatedBothCertificate(User $user, User $issuer): ?Certificate
     {
-        $hasHunterStatus = $user->dedicatedStatusApplications()
-            ->where('dedicated_type', 'hunter')
-            ->where('status', 'approved')
-            ->where(fn ($q) => $q->whereNull('valid_until')->orWhere('valid_until', '>=', now()))
-            ->exists();
-
-        $hasSportStatus = $user->dedicatedStatusApplications()
-            ->whereIn('dedicated_type', ['sport', 'sport_shooter'])
-            ->where('status', 'approved')
-            ->where(fn ($q) => $q->whereNull('valid_until')->orWhere('valid_until', '>=', now()))
-            ->exists();
+        $dedicatedType = $user->activeMembership?->type?->dedicated_type;
+        $hasHunterStatus = in_array($dedicatedType, ['hunter', 'both']);
+        $hasSportStatus = in_array($dedicatedType, ['sport', 'sport_shooter', 'both']);
 
         if (!$hasHunterStatus || !$hasSportStatus) {
             throw new \Exception('User does not have both approved dedicated hunter and sport shooter status.');

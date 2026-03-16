@@ -841,13 +841,8 @@ new #[Title('Member Details - Admin')] class extends Component {
             <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {{-- Dedicated Hunter Certificate --}}
                 @php
-                    $hasHunterStatus = $this->user->dedicatedStatusApplications()
-                        ->where('dedicated_type', 'hunter')
-                        ->where('status', 'approved')
-                        ->where(function ($q) {
-                            $q->whereNull('valid_until')->orWhere('valid_until', '>=', now());
-                        })
-                        ->exists();
+                    $memberDedicatedType = $this->user->activeMembership?->type?->dedicated_type;
+                    $hasHunterStatus = in_array($memberDedicatedType, ['hunter', 'both']);
                     $hasHunterCert = $this->user->certificates()
                         ->whereHas('certificateType', fn($q) => $q->where('slug', 'dedicated-hunter-certificate'))
                         ->whereNull('revoked_at')
@@ -868,13 +863,7 @@ new #[Title('Member Details - Admin')] class extends Component {
 
                 {{-- Dedicated Sport Certificate --}}
                 @php
-                    $hasSportStatus = $this->user->dedicatedStatusApplications()
-                        ->where('dedicated_type', 'sport_shooter')
-                        ->where('status', 'approved')
-                        ->where(function ($q) {
-                            $q->whereNull('valid_until')->orWhere('valid_until', '>=', now());
-                        })
-                        ->exists();
+                    $hasSportStatus = in_array($memberDedicatedType, ['sport', 'sport_shooter', 'both']);
                     $hasSportCert = $this->user->certificates()
                         ->whereHas('certificateType', fn($q) => $q->where('slug', 'dedicated-sport-certificate'))
                         ->whereNull('revoked_at')

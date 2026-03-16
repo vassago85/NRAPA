@@ -57,6 +57,20 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
     }
 
     /**
+     * Check if member has a valid (issued, non-expired) endorsement approved by admin.
+     */
+    #[Computed]
+    public function hasApprovedEndorsement(): bool
+    {
+        return \App\Models\EndorsementRequest::where('user_id', $this->user->id)
+            ->where('status', 'issued')
+            ->where(function ($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->exists();
+    }
+
+    /**
      * Determine if the member can request a new/renewed membership certificate.
      * Returns [bool $canRequest, string $reason]
      */
@@ -199,6 +213,12 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
 
         if (!$this->hasIdDocument) {
             session()->flash('error', 'Please upload your ID document first.');
+            return;
+        }
+
+        $isDedicated = str_contains($slug, 'dedicated') || str_contains($slug, 'occasional');
+        if ($isDedicated && !$this->hasApprovedEndorsement) {
+            session()->flash('error', 'An endorsement must be approved by admin before this certificate can be issued. Please request an endorsement first.');
             return;
         }
 
@@ -453,12 +473,23 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
                                 <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ $certType['description'] }}</p>
                             </div>
                         </div>
+                        @php
+                            $isDedicated = str_contains($certType['slug'], 'dedicated') || str_contains($certType['slug'], 'occasional');
+                            $needsEndorsement = $isDedicated && !$this->hasApprovedEndorsement;
+                        @endphp
                         <div class="flex-shrink-0">
                             @if($existingCert)
                                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                     Valid
                                 </span>
+                            @elseif($needsEndorsement)
+                                <a href="{{ route('member.endorsements.create') }}" wire:navigate
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors"
+                                    title="An endorsement must be approved by admin before this certificate can be issued">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    Endorsement Required
+                                </a>
                             @else
                                 <button wire:click="requestCertificateByType('{{ $certType['slug'] }}')" wire:loading.attr="disabled"
                                     wire:target="requestCertificateByType('{{ $certType['slug'] }}')"
