@@ -901,10 +901,9 @@ class EndorsementRequest extends Model
     {
         $year = date('Y');
         $prefix = 'END';
-        
-        // Get the last reference for this year
-        $lastRef = self::whereYear('issued_at', $year)
-            ->whereNotNull('letter_reference')
+        $yearPrefix = "{$prefix}-{$year}-";
+
+        $lastRef = self::where('letter_reference', 'like', "{$yearPrefix}%")
             ->orderBy('letter_reference', 'desc')
             ->value('letter_reference');
 
