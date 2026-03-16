@@ -1573,7 +1573,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                     <div>
                                         <dt class="text-zinc-500">Calibre</dt>
                                         <dd class="font-medium text-zinc-900 dark:text-white">
-                                            {{ $calibreId ? $this->calibres->find($calibreId)?->name : $calibreManual }}
+                                            {{ $calibreId ? \App\Models\FirearmCalibre::find($calibreId)?->name : $calibreManual }}
                                         </dd>
                                     </div>
                                 @endif
