@@ -450,19 +450,36 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
 
         // Additional validation for step 2
         if ($this->currentStep === 2) {
-            // First validate the basic rules
+            // Populate legacy fields from FirearmSearchPanel reference fields before validation
+            if (!$isComponent) {
+                if (empty($this->make) && ($this->firearmMakeId || $this->makeTextOverride)) {
+                    $this->make = $this->makeTextOverride
+                        ?: ($this->firearmMakeId ? \App\Models\FirearmMake::find($this->firearmMakeId)?->name : '')
+                        ?: '';
+                }
+                if (empty($this->model) && ($this->firearmModelId || $this->modelTextOverride)) {
+                    $this->model = $this->modelTextOverride
+                        ?: ($this->firearmModelId ? \App\Models\FirearmModel::find($this->firearmModelId)?->name : '')
+                        ?: '';
+                }
+                if (empty($this->calibreId) && $this->firearmCalibreId) {
+                    $this->calibreId = $this->firearmCalibreId;
+                }
+                if (empty($this->calibreManual) && $this->calibreTextOverride) {
+                    $this->calibreManual = $this->calibreTextOverride;
+                }
+            }
+
             $this->validate($rules);
             
             if ($isComponent) {
-                // For barrel components, diameter is required
                 if ($this->firearmCategory === 'barrel' && empty($this->componentDiameter)) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
                         'componentDiameter' => 'Barrel diameter is required.',
                     ]);
                 }
             } else {
-                // For full firearms, calibre and serial are required
-                if (empty($this->calibreId) && empty($this->calibreManual)) {
+                if (empty($this->calibreId) && empty($this->calibreManual) && empty($this->firearmCalibreId) && empty($this->calibreTextOverride)) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
                         'calibre' => 'Calibre/Gauge is required (select from list or enter manually).',
                     ]);
@@ -492,9 +509,9 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                         && !empty($this->serialNumber)
                         && ($this->firearmCategory !== 'barrel' || !empty($this->componentDiameter)))
                     : (!empty($this->actionType)
-                        && (!empty($this->calibreId) || !empty($this->calibreManual))
-                        && !empty($this->make)
-                        && !empty($this->model)
+                        && (!empty($this->calibreId) || !empty($this->calibreManual) || !empty($this->firearmCalibreId) || !empty($this->calibreTextOverride))
+                        && (!empty($this->make) || !empty($this->firearmMakeId) || !empty($this->makeTextOverride))
+                        && (!empty($this->model) || !empty($this->firearmModelId) || !empty($this->modelTextOverride))
                         && $this->hasAtLeastOneSerial)
             ),
             3 => true, // Components are optional
@@ -734,9 +751,9 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         } else {
             // Full firearm endorsements
             if (empty($this->actionType)) return false;
-            if (empty($this->calibreId) && empty($this->calibreManual)) return false;
-            if (empty($this->make)) return false;
-            if (empty($this->model)) return false;
+            if (empty($this->calibreId) && empty($this->calibreManual) && empty($this->firearmCalibreId) && empty($this->calibreTextOverride)) return false;
+            if (empty($this->make) && empty($this->firearmMakeId) && empty($this->makeTextOverride)) return false;
+            if (empty($this->model) && empty($this->firearmModelId) && empty($this->modelTextOverride)) return false;
             if (!$this->hasAtLeastOneSerial) return false;
         }
         
@@ -777,13 +794,13 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             if (empty($this->actionType)) {
                 $errors[] = 'Action type is required.';
             }
-            if (empty($this->calibreId) && empty($this->calibreManual)) {
+            if (empty($this->calibreId) && empty($this->calibreManual) && empty($this->firearmCalibreId) && empty($this->calibreTextOverride)) {
                 $errors[] = 'Calibre/Gauge is required (select from list or enter manually).';
             }
-            if (empty($this->make)) {
+            if (empty($this->make) && empty($this->firearmMakeId) && empty($this->makeTextOverride)) {
                 $errors[] = 'Firearm make is required.';
             }
-            if (empty($this->model)) {
+            if (empty($this->model) && empty($this->firearmModelId) && empty($this->modelTextOverride)) {
                 $errors[] = 'Firearm model is required.';
             }
             if (!$this->hasAtLeastOneSerial) {
@@ -1289,7 +1306,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                  x-data="{ panelData: @entangle('firearmPanelData') }"
                  @firearm-data-updated.window="panelData = $event.detail.data; $wire.syncFirearmPanelData(panelData)">
                 <h2 class="text-xl font-semibold text-zinc-900 dark:text-white mb-6">
-                    {{ $this->isComponentCategory ? 'What are you requesting endorsement for?' : 'Firearm Details (SAPS 271 Form Section E)' }}
+                    {{ $this->isComponentCategory ? 'What are you requesting endorsement for?' : 'Firearm Details' }}
                 </h2>
 
                 <p class="mb-4 text-sm text-zinc-500 dark:text-zinc-400">All endorsements are Section 16 for dedicated sport or hunting.</p>
@@ -1373,7 +1390,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                             </div>
                         @endif
 
-                        {{-- FirearmSearchPanel component (re-mounts when category changes to set calibre filter) --}}
+                        {{-- FirearmSearchPanel: Calibre, Make/Model, Serial Numbers --}}
                         @php
                             $firearmPanelData = $this->firearmPanelData ?? [];
                         @endphp
@@ -1382,20 +1399,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                             :initial-data="$firearmPanelData"
                         />
 
-                        {{-- SAPS 271 Form Section E Fields --}}
-                        <div class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-4">
-                            <p class="text-sm text-blue-700 dark:text-blue-300">
-                                <strong>Note:</strong> These fields align with SAPS Form 271 Section E - Description of Firearm. 
-                                At least one serial number (barrel, frame, or receiver) is required.
-                            </p>
-                        </div>
-
-                        {{-- 1.1 Action Type --}}
+                        {{-- Action Type & Ignition --}}
                         <div class="grid gap-6 md:grid-cols-2">
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                                     Action Type <span class="text-red-500">*</span>
-                                    <span class="text-xs text-zinc-500">(1.1)</span>
                                 </label>
                                 <select wire:model.live="actionType" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
                                     <option value="">Select...</option>
@@ -1424,113 +1432,13 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                             @endif
                         </div>
 
-                        {{-- 1.2 Metal Engraving --}}
+                        {{-- Metal Engraving --}}
                         <div>
                             <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                                 Names/Addresses Engraved in Metal
-                                <span class="text-xs text-zinc-500">(1.2)</span>
                             </label>
                             <input type="text" wire:model="metalEngraving" placeholder="If any text is engraved on the firearm" 
                                 class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                        </div>
-
-                        {{-- Note: Calibre, Make, and Model are handled by FirearmSearchPanel component above --}}
-
-                        {{-- 1.5 & 1.6 Make and Model (Legacy - handled by FirearmSearchPanel) --}}
-                        <div class="grid gap-6 md:grid-cols-2">
-                            <div>
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                    Make <span class="text-red-500">*</span>
-                                    <span class="text-xs text-zinc-500">(1.5)</span>
-                                </label>
-                                <input type="text" wire:model.live="make" placeholder="e.g., Glock, CZ, Howa" 
-                                    class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                @error('make') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                    Model <span class="text-red-500">*</span>
-                                    <span class="text-xs text-zinc-500">(1.6)</span>
-                                </label>
-                                <input type="text" wire:model.live="model" placeholder="e.g., 17, Shadow 2, 1500" 
-                                    class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                @error('model') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                            </div>
-                        </div>
-
-                        {{-- Serial Numbers Section - At least one required --}}
-                        <div class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                            <h4 class="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-3">
-                                Serial Numbers <span class="text-red-500">*</span>
-                                <span class="font-normal text-amber-700 dark:text-amber-300">(At least one required)</span>
-                            </h4>
-                            
-                            {{-- 1.7 & 1.8 Barrel --}}
-                            <div class="grid gap-4 md:grid-cols-2 mb-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                        Barrel Serial Number
-                                        <span class="text-xs text-zinc-500">(1.7)</span>
-                                    </label>
-                                    <input type="text" wire:model.live="barrelSerialNumber" placeholder="Barrel serial" 
-                                        class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                        Barrel Make
-                                        <span class="text-xs text-zinc-500">(1.8)</span>
-                                    </label>
-                                    <input type="text" wire:model="barrelMake" placeholder="Barrel manufacturer" 
-                                        class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                </div>
-                            </div>
-
-                            {{-- 1.9 & 1.10 Frame --}}
-                            <div class="grid gap-4 md:grid-cols-2 mb-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                        Frame Serial Number
-                                        <span class="text-xs text-zinc-500">(1.9)</span>
-                                    </label>
-                                    <input type="text" wire:model.live="frameSerialNumber" placeholder="Frame serial" 
-                                        class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                        Frame Make
-                                        <span class="text-xs text-zinc-500">(1.10)</span>
-                                    </label>
-                                    <input type="text" wire:model="frameMake" placeholder="Frame manufacturer" 
-                                        class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                </div>
-                            </div>
-
-                            {{-- 1.11 & 1.12 Receiver --}}
-                            <div class="grid gap-4 md:grid-cols-2">
-                                <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                        Receiver Serial Number
-                                        <span class="text-xs text-zinc-500">(1.11)</span>
-                                    </label>
-                                    <input type="text" wire:model.live="receiverSerialNumber" placeholder="Receiver serial" 
-                                        class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                        Receiver Make
-                                        <span class="text-xs text-zinc-500">(1.12)</span>
-                                    </label>
-                                    <input type="text" wire:model="receiverMake" placeholder="Receiver manufacturer" 
-                                        class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                </div>
-                            </div>
-
-                            @if(!$this->hasAtLeastOneSerial)
-                                <p class="mt-3 text-sm text-red-600 dark:text-red-400">
-                                    Please provide at least one serial number (barrel, frame, or receiver).
-                                </p>
-                            @endif
-                            @error('serial') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
                         </div>
 
                         {{-- Licence Information --}}
