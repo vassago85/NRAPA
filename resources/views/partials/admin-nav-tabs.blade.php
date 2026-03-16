@@ -53,12 +53,16 @@
                 Documents
             </a>
 
+            @php $pendingActivities = \App\Models\ShootingActivity::where('status', 'pending')->count(); @endphp
             <a href="{{ route('admin.activities.index') }}" wire:navigate
                class="flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 {{ str_starts_with($currentRoute, 'admin.activities.') ? $active : $inactive }} transition-colors whitespace-nowrap">
                 <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
                 </svg>
                 Activities
+                @if($pendingActivities > 0)
+                    <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-semibold bg-amber-500 text-white">{{ $pendingActivities }}</span>
+                @endif
             </a>
 
             <a href="{{ route('admin.billing.index') }}" wire:navigate
