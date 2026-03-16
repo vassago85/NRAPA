@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         {{-- Google Search Console verification — replace PLACEHOLDER with actual code --}}
-        <meta name="google-site-verification" content="GOOGLE_SITE_VERIFICATION_NRAPA">
+        <meta name="google-site-verification" content="ofpn02fgz8G9-u_lZnCwMckrIFkddbLv68ZdBOMEMu8">
         {{-- Google Analytics 4 — replace G-XXXXXXXXXX with actual measurement ID --}}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-JV2NSWMYTQ"></script>
         <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-JV2NSWMYTQ');</script>
