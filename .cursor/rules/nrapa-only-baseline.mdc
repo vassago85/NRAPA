@@ -1,0 +1,26 @@
+---
+description: Git baseline commits for NRAPA landing page versions
+alwaysApply: true
+---
+
+# NRAPA Landing Page Version History
+
+## Current production version (pure NRAPA, no Ranyati branding)
+
+- **Landing page from commit:** ab356ac
+- **Message:** Fix 500 on admin activities page: add null safety for deleted users/dates
+- **Note:** This is the last landing page before any Ranyati branding was added
+
+## Ranyati-branded landing page (parked)
+
+- **Commit:** fd3f56b — Landing page with Ranyati "About" section, three service pillars, WhatsApp CTAs
+- **Commit:** 22b88e4 — Added WhatsApp availability hours + Africa/Johannesburg timezone
+- **First Ranyati commit:** c4c7e03 — "Add Ranyati branding to landing page"
+
+To restore the Ranyati-branded version with WhatsApp hours:
+
+```bash
+git show 22b88e4:resources/views/welcome.blade.php > resources/views/welcome.blade.php
+git show 22b88e4:resources/views/pages/admin/settings/index.blade.php > resources/views/pages/admin/settings/index.blade.php
+git show 22b88e4:config/app.php > config/app.php
+```
