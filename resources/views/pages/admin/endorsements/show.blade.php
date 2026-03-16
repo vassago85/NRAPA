@@ -158,22 +158,20 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
      */
     protected function autoIssueEndorsementLetter(): void
     {
-        // Determine dedicated category - try multiple sources
+        // Determine dedicated category: admin override > member's choice > membership status
         $category = $this->selectedDedicatedCategory ?: null;
         
+        if (empty($category)) {
+            $category = $this->request->dedicated_category ?: null;
+        }
+
         if (empty($category)) {
             $status = $this->memberDedicatedStatus;
             $category = $status['category'] ?? null;
         }
         
-        // Fallback: determine from the member's endorsement purpose or membership
         if (empty($category)) {
-            $purpose = $this->request->purpose ?? '';
-            $category = match(true) {
-                str_contains(strtolower($purpose), 'sport') && str_contains(strtolower($purpose), 'hunt') => 'Dedicated Sport Shooter & Dedicated Hunter',
-                str_contains(strtolower($purpose), 'hunt') => 'Dedicated Hunter',
-                default => 'Dedicated Sport Shooter', // Sensible default for Section 16
-            };
+            $category = 'Dedicated Sport Shooter';
         }
         
         // Update selectedDedicatedCategory for consistency

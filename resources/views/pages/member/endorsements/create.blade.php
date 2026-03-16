@@ -18,7 +18,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
 
     // Wizard state
     public int $currentStep = 1;
-    public int $totalSteps = 5;
+    public int $totalSteps = 4;
 
     // Step 1: Request type
     public string $requestType = '';
@@ -57,16 +57,17 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     // FirearmSearchPanel data
     public ?array $firearmPanelData = null;
 
-    // Step 3: Components (barrels, actions, etc. - available for both new and renewal)
-    public bool $requestComponent = false;
-    public array $components = [];
-
-    // Step 4: Purpose & Notes
+    // Step 3: Purpose & Dedicated Category
+    public string $dedicatedCategory = '';
     public string $purpose = '';
     public string $purposeOtherText = '';
     public string $memberNotes = '';
 
-    // Step 5: Declaration & Review
+    // Components (optional, available via components panel if needed in future)
+    public bool $requestComponent = false;
+    public array $components = [];
+
+    // Step 4: Declaration & Review
     public bool $declarationAccepted = false;
 
     // Request being edited
@@ -133,6 +134,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     protected function loadFromRequest(EndorsementRequest $request): void
     {
         $this->requestType = $request->request_type;
+        $this->dedicatedCategory = $request->dedicated_category ?? '';
         $this->purpose = $request->purpose ?? '';
         $this->purposeOtherText = $request->purpose_other_text ?? '';
         $this->memberNotes = $request->member_notes ?? '';
@@ -356,15 +358,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         }
         
         if ($this->currentStep < $this->totalSteps) {
-            $isComponent = EndorsementFirearm::isComponentCategory($this->firearmCategory);
-            // Skip component step for new requests and component categories
-            if ($this->currentStep === 2 && ($this->requestType === 'new' || $isComponent)) {
-                $this->currentStep = 4; // Skip to purpose
-            } else {
-                $this->currentStep++;
-            }
-            
-            // Scroll to top of form after step change
+            $this->currentStep++;
             $this->js('window.scrollTo({ top: 0, behavior: "smooth" })');
         }
     }
@@ -372,13 +366,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     public function previousStep(): void
     {
         if ($this->currentStep > 1) {
-            $isComponent = EndorsementFirearm::isComponentCategory($this->firearmCategory);
-            // Skip component step for new requests and component categories
-            if ($this->currentStep === 4 && ($this->requestType === 'new' || $isComponent)) {
-                $this->currentStep = 2; // Back to firearm/component
-            } else {
-                $this->currentStep--;
-            }
+            $this->currentStep--;
         }
     }
 
@@ -393,8 +381,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     {
         if (empty($this->requestType)) return 1;
         if (empty($this->firearmCategory)) return 2;
-        if ($this->requestType === 'new') return 5;
-        return 5;
+        return 4;
     }
 
     protected function validateCurrentStep(): void
@@ -415,12 +402,12 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                     'make' => 'required|string|max:255',
                     'model' => 'required|string|max:255',
                 ],
-            3 => [], // Components optional
-            4 => [
+            3 => [
+                'dedicatedCategory' => 'required|in:Dedicated Sport Shooter,Dedicated Hunter,Dedicated Sport Shooter & Dedicated Hunter',
                 'purpose' => 'required',
                 'purposeOtherText' => 'required_if:purpose,other|max:500',
             ],
-            5 => [], // Declaration validated on submit
+            4 => [], // Declaration validated on submit
             default => [],
         };
 
@@ -490,10 +477,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                         && (!empty($this->model) || !empty($this->firearmModelId) || !empty($this->modelTextOverride))
                         && $this->hasAtLeastOneSerial)
             ),
-            3 => true, // Components are optional
-            4 => !empty($this->purpose) 
+            3 => !empty($this->dedicatedCategory)
+                && !empty($this->purpose) 
                 && ($this->purpose !== 'other' || !empty($this->purposeOtherText)),
-            5 => $this->declarationAccepted, // For submit button
+            4 => $this->declarationAccepted, // For submit button
             default => false,
         };
     }
@@ -733,6 +720,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             if (!$this->hasAtLeastOneSerial) return false;
         }
         
+        if (empty($this->dedicatedCategory)) return false;
         if (empty($this->purpose)) return false;
         if ($this->purpose === 'other' && empty($this->purposeOtherText)) return false;
 
@@ -784,6 +772,9 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             }
         }
         
+        if (empty($this->dedicatedCategory)) {
+            $errors[] = 'Dedicated category is required (Sport Shooter, Hunter, or Both).';
+        }
         if (empty($this->purpose)) {
             $errors[] = 'Purpose is required.';
         }
@@ -888,6 +879,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             'status' => EndorsementRequest::STATUS_DRAFT,
             'purpose' => $this->purpose ?: null,
             'purpose_other_text' => $this->purpose === 'other' ? $this->purposeOtherText : null,
+            'dedicated_category' => $this->dedicatedCategory ?: null,
             'member_notes' => $this->memberNotes ?: null,
             'declaration_accepted_at' => $this->declarationAccepted ? now() : null,
             'declaration_text' => $this->declarationAccepted ? $this->getDeclarationText() : null,
@@ -1160,17 +1152,12 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             @php
                 $steps = [
                     1 => 'Type',
-                    2 => 'Firearm / Component',
-                    3 => 'Components',
-                    4 => 'Purpose',
-                    5 => 'Review',
+                    2 => 'Firearm',
+                    3 => 'Purpose',
+                    4 => 'Review',
                 ];
-                $skipStep3 = $requestType === 'new' || \App\Models\EndorsementFirearm::isComponentCategory($firearmCategory);
             @endphp
             @foreach($steps as $num => $label)
-                @if($num === 3 && $skipStep3)
-                    @continue
-                @endif
                 <div class="flex items-center {{ !$loop->last ? 'flex-1' : '' }}">
                     <button 
                         wire:click="goToStep({{ $num }})"
@@ -1417,125 +1404,38 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             </div>
         @endif
 
-        {{-- Step 3: Components (Barrels, Actions, etc.) --}}
+        {{-- Step 3: Dedicated Category & Purpose --}}
         @if($currentStep === 3)
             <div class="p-6">
-                <h2 class="text-xl font-semibold text-zinc-900 dark:text-white mb-6">Component Endorsement</h2>
-
-                <div class="mb-6">
-                    <label class="flex items-center gap-3 cursor-pointer">
-                        <input type="checkbox" wire:model.live="requestComponent" 
-                            class="w-5 h-5 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500">
-                        <span class="text-zinc-900 dark:text-white font-medium">Request component endorsement</span>
-                    </label>
-                    <p class="mt-1 ml-8 text-sm text-zinc-500 dark:text-zinc-400">
-                        Enable to request endorsement for firearm components (barrels, actions, etc.)
-                    </p>
-                </div>
-
-                @if($requestComponent)
-                    <div class="space-y-4">
-                        @foreach($components as $index => $component)
-                            <div class="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-700">
-                                <div class="flex justify-between items-start mb-4">
-                                    <h4 class="text-sm font-semibold text-zinc-900 dark:text-white">Component {{ $index + 1 }}</h4>
-                                    <button wire:click="removeComponent({{ $index }})" type="button"
-                                        class="text-red-500 hover:text-red-700 dark:text-red-400">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                        </svg>
-                                    </button>
-                                </div>
-
-                                <div class="grid gap-4 md:grid-cols-2">
-                                    <div>
-                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Component Type <span class="text-red-500">*</span></label>
-                                        <select wire:model="components.{{ $index }}.component_type" 
-                                            class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                            <option value="">Select...</option>
-                                            @foreach($componentTypeOptions as $value => $label)
-                                                <option value="{{ $value }}">{{ $label }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Serial Number</label>
-                                        <input type="text" wire:model="components.{{ $index }}.component_serial" 
-                                            class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white font-mono">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Make</label>
-                                        <input type="text" wire:model="components.{{ $index }}.component_make" 
-                                            class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Model</label>
-                                        <input type="text" wire:model="components.{{ $index }}.component_model" 
-                                            class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                    </div>
-                                </div>
-
-                                @if($component['component_type'] === 'barrel')
-                                    <div class="mt-4">
-                                        <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
-                                            Specify either <strong>calibre</strong> or <strong>diameter</strong> for the barrel (diameter is used when barrel is licensed before chambering).
-                                        </p>
-                                        <div class="grid gap-4 md:grid-cols-2">
-                                            <div>
-                                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                                    Diameter
-                                                    <span class="text-xs text-zinc-500">(For barrels before chambering)</span>
-                                                </label>
-                                                <input type="text" wire:model="components.{{ $index }}.diameter" 
-                                                    placeholder="e.g., 6.5mm, .308, 7.62mm"
-                                                    class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                            </div>
-                                            <div>
-                                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Calibre</label>
-                                                <select wire:model="components.{{ $index }}.calibre_id" 
-                                                    class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                                    <option value="">Select calibre...</option>
-                                                    @foreach($this->calibres as $cal)
-                                                        <option value="{{ $cal->id }}">{{ $cal->name }}</option>
-                                                    @endforeach
-                                                </select>
-                                                @if(empty($components[$index]['calibre_id']))
-                                                    <input type="text" wire:model="components.{{ $index }}.calibre_manual" 
-                                                        placeholder="Or enter calibre manually"
-                                                        class="w-full mt-2 px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endif
-
-                                <div class="mt-4">
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Description</label>
-                                    <input type="text" wire:model="components.{{ $index }}.component_description" 
-                                        placeholder="Additional details about the component"
-                                        class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                </div>
-                            </div>
-                        @endforeach
-
-                        <button wire:click="addComponent" type="button"
-                            class="w-full p-4 border-2 border-dashed border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-500 dark:text-zinc-400 hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
-                            <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                            </svg>
-                            Add Component
-                        </button>
-                    </div>
-                @endif
-            </div>
-        @endif
-
-        {{-- Step 4: Purpose & Notes --}}
-        @if($currentStep === 4)
-            <div class="p-6">
-                <h2 class="text-xl font-semibold text-zinc-900 dark:text-white mb-6">Purpose & Notes</h2>
+                <h2 class="text-xl font-semibold text-zinc-900 dark:text-white mb-6">Dedicated Status & Purpose</h2>
 
                 <div class="space-y-6">
+                    {{-- Dedicated Category --}}
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
+                            Dedicated Status Category <span class="text-red-500">*</span>
+                        </label>
+                        <div class="grid gap-3 md:grid-cols-3">
+                            @foreach([
+                                'Dedicated Sport Shooter' => ['label' => 'Dedicated Sport Shooter', 'desc' => 'Section 16 sport shooting licence'],
+                                'Dedicated Hunter' => ['label' => 'Dedicated Hunter', 'desc' => 'Section 16 dedicated hunting licence'],
+                                'Dedicated Sport Shooter & Dedicated Hunter' => ['label' => 'Sport Shooter & Hunter', 'desc' => 'Both dedicated categories'],
+                            ] as $catValue => $catInfo)
+                                <label class="relative cursor-pointer">
+                                    <input type="radio" wire:model.live="dedicatedCategory" value="{{ $catValue }}" class="peer sr-only">
+                                    <div class="p-4 border-2 rounded-xl transition-all text-center
+                                        peer-checked:border-emerald-600 peer-checked:bg-emerald-50 dark:peer-checked:bg-emerald-900/20
+                                        border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600">
+                                        <span class="block font-semibold text-sm text-zinc-900 dark:text-white">{{ $catInfo['label'] }}</span>
+                                        <span class="block text-xs text-zinc-500 dark:text-zinc-400 mt-1">{{ $catInfo['desc'] }}</span>
+                                    </div>
+                                </label>
+                            @endforeach
+                        </div>
+                        @error('dedicatedCategory') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    {{-- Purpose --}}
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                             Purpose of Endorsement <span class="text-red-500">*</span>
@@ -1574,8 +1474,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             </div>
         @endif
 
-        {{-- Step 5: Review & Submit --}}
-        @if($currentStep === 5)
+        {{-- Step 4: Review & Submit --}}
+        @if($currentStep === 4)
             <div class="p-6">
                 <h2 class="text-xl font-semibold text-zinc-900 dark:text-white mb-6">Review & Submit</h2>
 
@@ -1660,6 +1560,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                             <div>
                                 <dt class="text-zinc-500">Request Type</dt>
                                 <dd class="font-medium text-zinc-900 dark:text-white">{{ $requestType === 'new' ? 'New Endorsement' : 'Renewal Endorsement' }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-zinc-500">Dedicated Category</dt>
+                                <dd class="font-medium text-zinc-900 dark:text-white">{{ $dedicatedCategory ?: 'Not selected' }}</dd>
                             </div>
                             <div>
                                 <dt class="text-zinc-500">Purpose</dt>
@@ -1826,15 +1730,13 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                 </button>
 
                 @if($currentStep < $totalSteps)
-                    @if(!($currentStep === 3 && $requestType === 'new'))
-                        <button wire:click="nextStep" type="button"
-                            @disabled(!$this->canProceedToNextStep)
-                            wire:loading.attr="disabled"
-                            class="px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-nrapa-blue">
-                            <span wire:loading.remove wire:target="nextStep">Next</span>
-                            <span wire:loading wire:target="nextStep">Processing...</span>
-                        </button>
-                    @endif
+                    <button wire:click="nextStep" type="button"
+                        @disabled(!$this->canProceedToNextStep)
+                        wire:loading.attr="disabled"
+                        class="px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-nrapa-blue">
+                        <span wire:loading.remove wire:target="nextStep">Next</span>
+                        <span wire:loading wire:target="nextStep">Processing...</span>
+                    </button>
                 @else
                     <button wire:click="submitRequest" type="button"
                         @disabled(!$this->canSubmit)
