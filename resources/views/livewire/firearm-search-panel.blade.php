@@ -141,7 +141,7 @@ use Illuminate\Support\Facades\Schema;
                 </label>
                 <input 
                     type="text"
-                    wire:model="calibreCode"
+                    wire:model.live.debounce.500ms="calibreCode"
                     placeholder="e.g., 1300122"
                     class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
                 />
@@ -308,7 +308,7 @@ use Illuminate\Support\Facades\Schema;
                     </label>
                     <input 
                         type="text"
-                        wire:model.blur="barrelSerialNumber"
+                        wire:model.live.debounce.500ms="barrelSerialNumber"
                         placeholder="Barrel serial..."
                         class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
                     />
@@ -319,7 +319,7 @@ use Illuminate\Support\Facades\Schema;
                     </label>
                     <input 
                         type="text"
-                        wire:model.blur="barrelMakeText"
+                        wire:model.live.debounce.500ms="barrelMakeText"
                         placeholder="Barrel make..."
                         class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
                     />
@@ -334,7 +334,7 @@ use Illuminate\Support\Facades\Schema;
                     </label>
                     <input 
                         type="text"
-                        wire:model.blur="frameSerialNumber"
+                        wire:model.live.debounce.500ms="frameSerialNumber"
                         placeholder="Frame serial..."
                         class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
                     />
@@ -345,7 +345,7 @@ use Illuminate\Support\Facades\Schema;
                     </label>
                     <input 
                         type="text"
-                        wire:model.blur="frameMakeText"
+                        wire:model.live.debounce.500ms="frameMakeText"
                         placeholder="Frame make..."
                         class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
                     />
@@ -360,7 +360,7 @@ use Illuminate\Support\Facades\Schema;
                     </label>
                     <input 
                         type="text"
-                        wire:model.blur="receiverSerialNumber"
+                        wire:model.live.debounce.500ms="receiverSerialNumber"
                         placeholder="Receiver serial..."
                         class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
                     />
@@ -371,7 +371,7 @@ use Illuminate\Support\Facades\Schema;
                     </label>
                     <input 
                         type="text"
-                        wire:model.blur="receiverMakeText"
+                        wire:model.live.debounce.500ms="receiverMakeText"
                         placeholder="Receiver make..."
                         class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
                     />
