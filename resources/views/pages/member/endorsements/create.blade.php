@@ -59,7 +59,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
 
     // Step 3: Purpose & Dedicated Category
     public string $dedicatedCategory = '';
-    public string $purpose = '';
+    public string $purpose = 'section_16_application';
     public string $purposeOtherText = '';
     public string $memberNotes = '';
 
@@ -413,8 +413,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                 ],
             3 => [
                 'dedicatedCategory' => 'required|in:Dedicated Sport Shooter,Dedicated Hunter,Dedicated Sport Shooter & Dedicated Hunter',
-                'purpose' => 'required',
-                'purposeOtherText' => 'required_if:purpose,other|max:500',
             ],
             4 => [], // Declaration validated on submit
             default => [],
@@ -486,9 +484,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                         && (!empty($this->model) || !empty($this->firearmModelId) || !empty($this->modelTextOverride))
                         && $this->hasAtLeastOneSerial)
             ),
-            3 => !empty($this->dedicatedCategory)
-                && !empty($this->purpose) 
-                && ($this->purpose !== 'other' || !empty($this->purposeOtherText)),
+            3 => !empty($this->dedicatedCategory),
             4 => $this->declarationAccepted, // For submit button
             default => false,
         };
@@ -730,8 +726,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         }
         
         if (empty($this->dedicatedCategory)) return false;
-        if (empty($this->purpose)) return false;
-        if ($this->purpose === 'other' && empty($this->purposeOtherText)) return false;
 
         return true;
     }
@@ -783,9 +777,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         
         if (empty($this->dedicatedCategory)) {
             $errors[] = 'Dedicated category is required (Sport Shooter, Hunter, or Both).';
-        }
-        if (empty($this->purpose)) {
-            $errors[] = 'Purpose is required.';
         }
 
         return $errors;
@@ -1131,7 +1122,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             'requestTypeOptions' => EndorsementRequest::getRequestTypeOptions(),
             'categoryOptions' => EndorsementFirearm::getCategoryOptions(),
             'licenceSectionOptions' => EndorsementFirearm::getLicenceSectionOptions(),
-            'purposeOptions' => EndorsementRequest::getPurposeOptions(),
             'componentTypeOptions' => EndorsementComponent::getComponentTypeOptions(),
         ];
     }
@@ -1161,7 +1151,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                 $steps = [
                     1 => 'Type',
                     2 => 'Firearm',
-                    3 => 'Purpose',
+                    3 => 'Dedicated Status',
                     4 => 'Review',
                 ];
             @endphp
@@ -1405,7 +1395,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         {{-- Step 3: Dedicated Category & Purpose --}}
         @if($currentStep === 3)
             <div class="p-6">
-                <h2 class="text-xl font-semibold text-zinc-900 dark:text-white mb-6">Dedicated Status & Purpose</h2>
+                <h2 class="text-xl font-semibold text-zinc-900 dark:text-white mb-6">Dedicated Status</h2>
 
                 <div class="space-y-6">
                     {{-- Dedicated Category --}}
@@ -1442,33 +1432,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                         </div>
                         @error('dedicatedCategory') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
-
-                    {{-- Purpose --}}
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                            Purpose of Endorsement <span class="text-red-500">*</span>
-                        </label>
-                        <select wire:model.live="purpose" 
-                            class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                            <option value="">Select purpose...</option>
-                            @foreach($purposeOptions as $value => $label)
-                                <option value="{{ $value }}">{{ $label }}</option>
-                            @endforeach
-                        </select>
-                        @error('purpose') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                    </div>
-
-                    @if($purpose === 'other')
-                        <div>
-                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                Please specify <span class="text-red-500">*</span>
-                            </label>
-                            <input type="text" wire:model="purposeOtherText" 
-                                placeholder="Describe the purpose..."
-                                class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                            @error('purposeOtherText') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                        </div>
-                    @endif
 
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
@@ -1572,13 +1535,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                             <div>
                                 <dt class="text-zinc-500">Dedicated Category</dt>
                                 <dd class="font-medium text-zinc-900 dark:text-white">{{ $dedicatedCategory ?: 'Not selected' }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-zinc-500">Purpose</dt>
-                                <dd class="font-medium text-zinc-900 dark:text-white">
-                                    {{ $purposeOptions[$purpose] ?? $purpose }}
-                                    @if($purpose === 'other') - {{ $purposeOtherText }} @endif
-                                </dd>
                             </div>
                         </dl>
                     </div>
