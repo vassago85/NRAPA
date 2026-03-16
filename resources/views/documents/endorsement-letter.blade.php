@@ -87,12 +87,22 @@
             <span class="doc-value">{{ ucfirst(str_replace('_', ' ', $request->firearm->action_type)) }}</span>
         </div>
         @endif
-        @if($request->components && $request->components->isNotEmpty())
+        @if(!empty($request->firearm->serial_numbers))
         <div style="margin-top:8px;">
             <span class="doc-label">Serial Numbers:</span>
             <ul class="doc-list" style="margin-top:4px;">
+                @foreach($request->firearm->serial_numbers as $type => $info)
+                    <li>{{ ucfirst($type) }}: {{ $info['serial'] }}@if($info['make']) ({{ $info['make'] }})@endif</li>
+                @endforeach
+            </ul>
+        </div>
+        @endif
+        @if($request->components && $request->components->isNotEmpty())
+        <div style="margin-top:8px;">
+            <span class="doc-label">Components:</span>
+            <ul class="doc-list" style="margin-top:4px;">
                 @foreach($request->components as $component)
-                    <li>{{ ucfirst($component->type) }}: {{ $component->serial ?? 'N/A' }}</li>
+                    <li>{{ ucfirst($component->component_type) }}: {{ $component->component_serial ?? 'N/A' }}</li>
                 @endforeach
             </ul>
         </div>

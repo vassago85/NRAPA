@@ -91,21 +91,21 @@
             $makeName = $firearm->make_display ?? '';
             $modelName = $firearm->model_display ?? '';
             $calibreName = $firearm->calibre_display ?? '';
-            $serialDisplay = $firearm->barrel_serial_number ?? $firearm->frame_serial_number ?? $firearm->receiver_serial_number ?? $firearm->serial_number ?? '';
         @endphp
         <div class="component-item">
             <div>
-                <span class="component-type">Firearm</span>
+                <span class="component-type">{{ $firearm->firearm_type_label ?? 'Firearm' }}</span>
                 &mdash; {{ trim($makeName . ' ' . $modelName) }}
             </div>
             <div class="component-detail">
-                @if($calibreName)
-                    Calibre: {{ $calibreName }}
-                @endif
-                @if($serialDisplay)
-                    &nbsp;| Serial: {{ $serialDisplay }}
-                @endif
+                @if($calibreName) Calibre: {{ $calibreName }} @endif
             </div>
+            @foreach($firearm->serial_numbers as $type => $info)
+                <div class="component-detail">
+                    {{ ucfirst($type) }} Serial: {{ $info['serial'] }}
+                    @if($info['make']) ({{ $info['make'] }}) @endif
+                </div>
+            @endforeach
         </div>
         @endif
         @if($hasComponents)

@@ -717,11 +717,19 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                                     <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->firearm->make_display ?? $request->firearm->make }} {{ $request->firearm->model_display ?? $request->firearm->model }}</dd>
                                 </div>
                             @endif
-                            @if($request->firearm->serial_number)
-                                <div>
-                                    <dt class="text-zinc-500">Serial Number</dt>
-                                    <dd class="font-mono font-medium text-zinc-900 dark:text-white">{{ $request->firearm->serial_number }}</dd>
-                                </div>
+                            @php $serials = $request->firearm->serial_numbers; @endphp
+                            @if(!empty($serials))
+                                @foreach($serials as $type => $info)
+                                    <div>
+                                        <dt class="text-zinc-500">{{ ucfirst($type) }} Serial</dt>
+                                        <dd class="font-mono font-medium text-zinc-900 dark:text-white">
+                                            {{ $info['serial'] }}
+                                            @if($info['make'])
+                                                <span class="text-zinc-500">({{ $info['make'] }})</span>
+                                            @endif
+                                        </dd>
+                                    </div>
+                                @endforeach
                             @endif
                             @if($request->firearm->licence_section)
                                 <div>
