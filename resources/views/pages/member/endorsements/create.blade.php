@@ -1130,7 +1130,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         return [
             'requestTypeOptions' => EndorsementRequest::getRequestTypeOptions(),
             'categoryOptions' => EndorsementFirearm::getCategoryOptions(),
-            'ignitionOptions' => EndorsementFirearm::getIgnitionTypeOptions(),
             'licenceSectionOptions' => EndorsementFirearm::getLicenceSectionOptions(),
             'purposeOptions' => EndorsementRequest::getPurposeOptions(),
             'componentTypeOptions' => EndorsementComponent::getComponentTypeOptions(),
@@ -1352,7 +1351,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                             :initial-data="$firearmPanelData"
                         />
 
-                        {{-- Action Type & Ignition --}}
+                        {{-- Action Type --}}
                         <div class="grid gap-6 md:grid-cols-2">
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
@@ -1371,16 +1370,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Other Action (specify)</label>
                                     <input type="text" wire:model="actionOtherSpecify" placeholder="Specify action type" 
                                         class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                </div>
-                            @else
-                                <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Ignition Type</label>
-                                    <select wire:model.live="ignitionType" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                                        <option value="">Select...</option>
-                                        @foreach($ignitionOptions as $value => $label)
-                                            <option value="{{ $value }}">{{ $label }}</option>
-                                        @endforeach
-                                    </select>
                                 </div>
                             @endif
                         </div>
