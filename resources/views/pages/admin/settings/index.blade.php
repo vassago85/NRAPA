@@ -47,6 +47,12 @@ new #[Title('Settings - Admin')] class extends Component {
     public bool $documentTypeIsActive = true;
     public string $documentTypeChangeReason = '';
 
+    // Certificate Type Form
+    public ?int $editingCertificateTypeId = null;
+    public ?int $certificateTypeValidityMonths = null;
+    public string $certificateTypeDescription = '';
+    public bool $certificateTypeIsActive = true;
+
     // Document Requirements
     public ?int $configuringMembershipTypeId = null;
     public array $selectedDocumentTypes = [];
@@ -342,6 +348,49 @@ new #[Title('Settings - Admin')] class extends Component {
         $this->documentTypeArchiveMonths = 12;
         $this->documentTypeIsActive = true;
         $this->documentTypeChangeReason = '';
+    }
+
+    // ==================== CERTIFICATE TYPE METHODS ====================
+
+    public function editCertificateType(int $id): void
+    {
+        $type = CertificateType::findOrFail($id);
+        $this->editingCertificateTypeId = $id;
+        $this->certificateTypeDescription = $type->description ?? '';
+        $this->certificateTypeValidityMonths = $type->validity_months;
+        $this->certificateTypeIsActive = $type->is_active;
+    }
+
+    public function cancelEditCertificateType(): void
+    {
+        $this->editingCertificateTypeId = null;
+        $this->certificateTypeDescription = '';
+        $this->certificateTypeValidityMonths = null;
+        $this->certificateTypeIsActive = true;
+    }
+
+    public function saveCertificateType(): void
+    {
+        if (!$this->editingCertificateTypeId) return;
+
+        $type = CertificateType::findOrFail($this->editingCertificateTypeId);
+
+        $type->update([
+            'description' => $this->certificateTypeDescription ?: null,
+            'validity_months' => $this->certificateTypeValidityMonths ?: null,
+            'is_active' => $this->certificateTypeIsActive,
+        ]);
+
+        session()->flash('success', "Certificate type \"{$type->name}\" updated successfully.");
+        $this->cancelEditCertificateType();
+        unset($this->certificateTypes);
+    }
+
+    public function toggleCertificateTypeActive(int $id): void
+    {
+        $type = CertificateType::findOrFail($id);
+        $type->update(['is_active' => !$type->is_active]);
+        unset($this->certificateTypes);
     }
 
     // ==================== DOCUMENT REQUIREMENTS METHODS ====================
@@ -1150,6 +1199,48 @@ new #[Title('Settings - Admin')] class extends Component {
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Configure certificate templates for members.</p>
         </div>
 
+        {{-- Edit Form --}}
+        @if($editingCertificateTypeId)
+            @php $editingCertType = \App\Models\CertificateType::find($editingCertificateTypeId); @endphp
+            @if($editingCertType)
+            <div class="border-b border-zinc-200 bg-amber-50 p-6 dark:border-zinc-700 dark:bg-amber-900/10">
+                <h3 class="mb-4 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+                    Editing: {{ $editingCertType->name }}
+                </h3>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="sm:col-span-2">
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Description</label>
+                        <input type="text" wire:model="certificateTypeDescription"
+                            class="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-700 dark:text-white"
+                            placeholder="Certificate description...">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Validity (months)</label>
+                        <input type="number" wire:model="certificateTypeValidityMonths" min="1" max="999"
+                            class="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-700 dark:text-white"
+                            placeholder="Leave empty for indefinite">
+                        <p class="mt-1 text-xs text-zinc-500">Leave empty for indefinite validity.</p>
+                    </div>
+                    <div class="flex items-end">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" wire:model="certificateTypeIsActive"
+                                class="rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500">
+                            <span class="text-sm text-zinc-700 dark:text-zinc-300">Active</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="mt-4 flex gap-2">
+                    <button wire:click="saveCertificateType" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+                        Save Changes
+                    </button>
+                    <button wire:click="cancelEditCertificateType" class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+            @endif
+        @endif
+
         <div class="overflow-x-auto">
             <table class="w-full">
                 <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
@@ -1157,11 +1248,12 @@ new #[Title('Settings - Admin')] class extends Component {
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Name</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Validity</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Status</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400"></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
                     @forelse($this->certificateTypes as $type)
-                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
+                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 {{ $editingCertificateTypeId === $type->id ? 'bg-amber-50/50 dark:bg-amber-900/5' : '' }}">
                         <td class="whitespace-nowrap px-6 py-4">
                             <p class="font-medium text-zinc-900 dark:text-white">{{ $type->name }}</p>
                             <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ $type->description }}</p>
@@ -1174,16 +1266,25 @@ new #[Title('Settings - Admin')] class extends Component {
                             @endif
                         </td>
                         <td class="whitespace-nowrap px-6 py-4">
-                            @if($type->is_active)
-                            <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Active</span>
-                            @else
-                            <span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200">Inactive</span>
-                            @endif
+                            <button wire:click="toggleCertificateTypeActive({{ $type->id }})"
+                                class="cursor-pointer">
+                                @if($type->is_active)
+                                <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Active</span>
+                                @else
+                                <span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200">Inactive</span>
+                                @endif
+                            </button>
+                        </td>
+                        <td class="whitespace-nowrap px-6 py-4 text-right">
+                            <button wire:click="editCertificateType({{ $type->id }})"
+                                class="text-sm font-medium text-nrapa-blue hover:text-nrapa-blue-dark dark:text-blue-400 dark:hover:text-blue-300">
+                                Edit
+                            </button>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="3" class="px-6 py-8 text-center text-zinc-500 dark:text-zinc-400">
+                        <td colspan="4" class="px-6 py-8 text-center text-zinc-500 dark:text-zinc-400">
                             No certificate types configured.
                         </td>
                     </tr>

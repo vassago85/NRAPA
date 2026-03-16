@@ -636,8 +636,16 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                             <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->request_type_label }}</dd>
                         </div>
                         <div>
-                            <dt class="text-zinc-500">Purpose</dt>
-                            <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->purpose_label }}</dd>
+                            <dt class="text-zinc-500">Dedicated Category</dt>
+                            <dd class="font-medium text-zinc-900 dark:text-white">
+                                @if($request->dedicated_category)
+                                    <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                        {{ $request->dedicated_category }}
+                                    </span>
+                                @else
+                                    <span class="text-amber-600 dark:text-amber-400">Not specified</span>
+                                @endif
+                            </dd>
                         </div>
                         <div>
                             <dt class="text-zinc-500">Submitted</dt>
