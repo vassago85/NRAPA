@@ -87,17 +87,23 @@
     <div class="card components-card">
         <div class="card-title">{{ $endorsedHeading }}</div>
         @if($firearm)
+        @php
+            $makeName = $firearm->make_display ?? '';
+            $modelName = $firearm->model_display ?? '';
+            $calibreName = $firearm->calibre_display ?? '';
+            $serialDisplay = $firearm->barrel_serial_number ?? $firearm->frame_serial_number ?? $firearm->receiver_serial_number ?? $firearm->serial_number ?? '';
+        @endphp
         <div class="component-item">
             <div>
                 <span class="component-type">Firearm</span>
-                &mdash; {{ trim(($firearm->firearmMake->name ?? '') . ' ' . ($firearm->firearmModel->name ?? '')) }}
+                &mdash; {{ trim($makeName . ' ' . $modelName) }}
             </div>
             <div class="component-detail">
-                @if($firearm->firearmCalibre)
-                    Calibre: {{ $firearm->firearmCalibre->name }}
+                @if($calibreName)
+                    Calibre: {{ $calibreName }}
                 @endif
-                @if($firearm->serial_number)
-                    &nbsp;| Serial: {{ $firearm->serial_number }}
+                @if($serialDisplay)
+                    &nbsp;| Serial: {{ $serialDisplay }}
                 @endif
             </div>
         </div>

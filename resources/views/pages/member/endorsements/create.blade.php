@@ -247,40 +247,16 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
      */
     public function syncFirearmPanelData(array $data): void
     {
+        // Calibre, Make/Model from FirearmSearchPanel
         $this->firearmCalibreId = $data['firearm_calibre_id'] ?? null;
         $this->calibreTextOverride = $data['calibre_text_override'] ?? null;
         $this->firearmMakeId = $data['firearm_make_id'] ?? null;
         $this->makeTextOverride = $data['make_text_override'] ?? null;
         $this->firearmModelId = $data['firearm_model_id'] ?? null;
         $this->modelTextOverride = $data['model_text_override'] ?? null;
-        
-        // Map FirearmSearchPanel firearm_type to SAPS 271 compliant category
-        $this->firearmCategory = match($data['firearm_type'] ?? '') {
-            'rifle' => 'rifle',
-            'shotgun' => 'shotgun',
-            'handgun' => 'handgun',
-            'combination' => 'combination',
-            'other' => 'other',
-            default => '',
-        };
-        
-        // Set firearm_type_other if provided
-        if (isset($data['firearm_type_other']) && $data['firearm_type'] === 'other') {
-            $this->firearmTypeOther = $data['firearm_type_other'];
-        }
-        
-        // Map action type back
-        $this->actionType = match($data['action_type'] ?? '') {
-            'semi_automatic' => 'semi_auto',
-            'automatic' => 'automatic',
-            'manual' => 'bolt_action', // Default
-            'other' => 'other',
-            default => '',
-        };
-        
-        $this->actionOtherSpecify = $data['action_type_other'] ?? '';
-        $this->metalEngraving = $data['engraved_text'] ?? '';
         $this->calibreCode = $data['calibre_code'] ?? '';
+
+        // Serial numbers from FirearmSearchPanel
         $this->barrelSerialNumber = $data['barrel_serial_number'] ?? '';
         $this->barrelMake = $data['barrel_make_text'] ?? '';
         $this->frameSerialNumber = $data['frame_serial_number'] ?? '';
@@ -288,7 +264,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         $this->receiverSerialNumber = $data['receiver_serial_number'] ?? '';
         $this->receiverMake = $data['receiver_make_text'] ?? '';
         
-        // Set legacy fields for backward compatibility
+        // Legacy fields for backward compatibility
         $this->calibreId = $this->firearmCalibreId;
         $this->calibreManual = $this->calibreTextOverride;
         $this->make = $this->makeTextOverride
@@ -942,39 +918,20 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                 'model' => null,
             ]);
         } else {
-            // Full firearm endorsement
-            // Get data from FirearmSearchPanel if available, otherwise use legacy fields
+            // Full firearm endorsement - use parent properties directly
+            // (FirearmSearchPanel syncs calibre/make/model/serials via syncFirearmPanelData)
             $firearmData = $this->firearmPanelData ?? $this->getFirearmPanelInitialData();
-            
-            // Map FirearmSearchPanel firearm_type to SAPS 271 compliant category
-            $firearmCategory = match($firearmData['firearm_type'] ?? '') {
-                'rifle' => 'rifle',
-                'shotgun' => 'shotgun',
-                'handgun' => 'handgun',
-                'combination' => 'combination',
-                'other' => 'other',
-                default => $this->firearmCategory,
-            };
-            
-            // Map action type
-            $actionType = match($firearmData['action_type'] ?? '') {
-                'semi_automatic' => 'semi_auto',
-                'automatic' => 'automatic',
-                'manual' => 'bolt_action',
-                'other' => 'other',
-                default => $this->actionType,
-            };
             
             $firearm->fill([
                 'endorsement_request_id' => $request->id,
-                'firearm_category' => $firearmCategory,          // 1. Type (SAPS 271 compliant)
-                'firearm_type_other' => ($firearmCategory === 'other' && !empty($firearmData['firearm_type_other'])) 
-                    ? $firearmData['firearm_type_other'] 
+                'firearm_category' => $this->firearmCategory,
+                'firearm_type_other' => ($this->firearmCategory === 'other' && !empty($this->firearmTypeOther)) 
+                    ? $this->firearmTypeOther 
                     : null,
                 'ignition_type' => $this->ignitionType ?: null,
-                'action_type' => $actionType,                     // 1.1 Action
-                'action_other_specify' => $firearmData['action_type_other'] ?? $this->actionOtherSpecify ?: null,
-                'metal_engraving' => $firearmData['engraved_text'] ?? $this->metalEngraving ?: null,    // 1.2 Engraving
+                'action_type' => $this->actionType ?: null,
+                'action_other_specify' => $this->actionOtherSpecify ?: null,
+                'metal_engraving' => $this->metalEngraving ?: null,
                 // New reference system
                 'firearm_calibre_id' => $firearmData['firearm_calibre_id'] ?? $this->firearmCalibreId,
                 'calibre_text_override' => $firearmData['calibre_text_override'] ?? $this->calibreTextOverride,
