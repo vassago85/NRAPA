@@ -89,7 +89,7 @@ class CertificateIssueService
                 'name' => 'Dedicated Hunter Certificate',
                 'description' => 'Official certificate confirming Dedicated Hunter Status with valid documents and activities up to date',
                 'template' => 'documents.certificates.dedicated-status',
-                'validity_months' => null, // Valid as long as membership is active and requirements met
+                'validity_months' => 12,
                 'is_active' => true,
                 'sort_order' => 10,
             ]
@@ -102,7 +102,7 @@ class CertificateIssueService
             'certificate_type_id' => $certType->id,
             'issued_by' => $issuer->id,
             'valid_from' => now(),
-            'valid_until' => null, // Valid as long as membership is active
+            'valid_until' => now()->addYear(),
         ], $this->getDefaultSignatoryData()));
 
         // Refresh to ensure all relationships are loaded
@@ -196,7 +196,7 @@ class CertificateIssueService
                 'name' => 'Dedicated Sport Shooter Certificate',
                 'description' => 'Official certificate confirming Dedicated Sport Shooter Status with valid documents and activities up to date',
                 'template' => 'documents.certificates.dedicated-status',
-                'validity_months' => null, // Valid as long as membership is active and requirements met
+                'validity_months' => 12,
                 'is_active' => true,
                 'sort_order' => 11,
             ]
@@ -209,7 +209,7 @@ class CertificateIssueService
             'certificate_type_id' => $certType->id,
             'issued_by' => $issuer->id,
             'valid_from' => now(),
-            'valid_until' => null,
+            'valid_until' => now()->addYear(),
         ], $this->getDefaultSignatoryData()));
 
         // Refresh to ensure all relationships are loaded
@@ -291,7 +291,7 @@ class CertificateIssueService
                 'name' => 'Dedicated Hunter & Sport Shooter Certificate',
                 'description' => 'Section 16 certificate for members with both dedicated hunter and sport shooter status',
                 'template' => 'documents.certificates.dedicated-status',
-                'validity_months' => null,
+                'validity_months' => 12,
                 'is_active' => true,
                 'sort_order' => 12,
             ]
@@ -303,7 +303,7 @@ class CertificateIssueService
             'certificate_type_id' => $certType->id,
             'issued_by' => $issuer->id,
             'valid_from' => now(),
-            'valid_until' => null,
+            'valid_until' => now()->addYear(),
         ], $this->getDefaultSignatoryData()));
 
         $certificate->refresh();
