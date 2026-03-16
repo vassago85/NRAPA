@@ -860,6 +860,34 @@ new #[Title('Dashboard')] class extends Component {
                 </div>
 
                 {{-- Documents --}}
+                @php
+                    $idSlugs = ['identity-document', 'id-document'];
+                    $idTypeIds = \App\Models\DocumentType::whereIn('slug', $idSlugs)->pluck('id');
+                    $idDoc = $idTypeIds->isNotEmpty()
+                        ? \App\Models\MemberDocument::where('user_id', $this->user->id)
+                            ->whereIn('document_type_id', $idTypeIds)
+                            ->orderByRaw("FIELD(status, 'verified', 'pending', 'rejected') ASC")
+                            ->first()
+                        : null;
+
+                    $poaType = \App\Models\DocumentType::where('slug', 'proof-of-address')->first();
+                    $poaDoc = $poaType
+                        ? \App\Models\MemberDocument::where('user_id', $this->user->id)
+                            ->where('document_type_id', $poaType->id)
+                            ->orderByRaw("FIELD(status, 'verified', 'pending', 'rejected') ASC")
+                            ->first()
+                        : null;
+
+                    $docStatusLabel = function ($doc) {
+                        if (!$doc) return 'Not uploaded';
+                        return match($doc->status) {
+                            'verified' => 'Verified',
+                            'pending'  => 'Uploaded, pending verification',
+                            'rejected' => 'Rejected',
+                            default    => ucfirst($doc->status),
+                        };
+                    };
+                @endphp
                 <div class="flex items-start sm:items-center justify-between gap-2 py-2 border-b border-zinc-100 dark:border-zinc-700">
                     <div class="flex items-start sm:items-center gap-2 sm:gap-3 min-w-0">
                         <svg class="size-5 text-zinc-400 dark:text-zinc-500 flex-shrink-0 mt-0.5 sm:mt-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -873,7 +901,9 @@ new #[Title('Dashboard')] class extends Component {
                                     Required Documents
                                 </a>
                             @endif
-                            <p class="text-xs text-zinc-500 dark:text-zinc-400">ID & Proof of Address</p>
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                                ID: {{ $docStatusLabel($idDoc) }} &middot; PoA: {{ $docStatusLabel($poaDoc) }}
+                            </p>
                         </div>
                     </div>
                     @if($documentsComplete)
