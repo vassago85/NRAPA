@@ -4,6 +4,18 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Privacy Policy - NRAPA</title>
+        <meta name="description" content="NRAPA Privacy Policy. Learn how we collect, use, store, and protect your personal information in compliance with POPIA. Operated by Ranyati Firearm Motivations.">
+        <link rel="canonical" href="{{ url('/privacy-policy') }}">
+        <meta property="og:type" content="website">
+        <meta property="og:site_name" content="NRAPA">
+        <meta property="og:title" content="Privacy Policy - NRAPA">
+        <meta property="og:description" content="How NRAPA collects, uses, and protects your personal information under POPIA.">
+        <meta property="og:url" content="{{ url('/privacy-policy') }}">
+        <meta property="og:image" content="{{ asset('nrapa-icon.png') }}">
+        <meta name="twitter:card" content="summary">
+        <meta name="twitter:title" content="Privacy Policy - NRAPA">
+        <meta name="twitter:description" content="How NRAPA collects, uses, and protects your personal information under POPIA.">
+        <meta name="twitter:image" content="{{ asset('nrapa-icon.png') }}">
         <link rel="icon" href="/nrapa-icon.png" type="image/png">
         <link rel="apple-touch-icon" href="/nrapa-icon.png">
         @vite(['resources/css/app.css', 'resources/js/app.js'])

@@ -4,6 +4,32 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Certificate Verification - NRAPA</title>
+    <meta name="description" content="Verify the authenticity of NRAPA certificates and membership documents using QR code verification.">
+    <link rel="canonical" href="{{ url()->current() }}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="NRAPA">
+    <meta property="og:title" content="Certificate Verification - NRAPA">
+    <meta property="og:description" content="Verify the authenticity of NRAPA-issued certificates and documents.">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Certificate Verification - NRAPA">
+    <meta name="twitter:description" content="Verify the authenticity of NRAPA-issued certificates and documents.">
+    <meta name="robots" content="noindex">
+    <link rel="icon" href="/nrapa-icon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/nrapa-icon.png">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "Certificate Verification",
+        "description": "Verify the authenticity of NRAPA certificates and membership documents.",
+        "publisher": {
+            "@type": "Organization",
+            "name": "NRAPA",
+            "url": "{{ url('/') }}"
+        }
+    }
+    </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-zinc-950 text-white antialiased">

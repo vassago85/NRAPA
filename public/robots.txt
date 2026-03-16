@@ -1,2 +1,7 @@
 User-agent: *
-Disallow:
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /dev
+Disallow: /email
+
+Sitemap: https://nrapa.co.za/sitemap.xml

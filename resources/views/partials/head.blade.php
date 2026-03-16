@@ -1,5 +1,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+{{-- Google Analytics 4 — replace G-XXXXXXXXXX with actual measurement ID --}}
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-JV2NSWMYTQ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-JV2NSWMYTQ');</script>
 
 <title>{{ $title ?? config('app.name') }}</title>
 

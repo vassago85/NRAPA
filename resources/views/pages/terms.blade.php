@@ -4,6 +4,18 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Terms and Conditions - NRAPA</title>
+        <meta name="description" content="Terms and Conditions for the NRAPA members portal. Covers membership, dedicated status, certificates, portal usage, and the Firearms Control Act.">
+        <link rel="canonical" href="{{ url('/terms-and-conditions') }}">
+        <meta property="og:type" content="website">
+        <meta property="og:site_name" content="NRAPA">
+        <meta property="og:title" content="Terms and Conditions - NRAPA">
+        <meta property="og:description" content="Terms and Conditions for the NRAPA members portal. Membership, dedicated status, and portal usage terms.">
+        <meta property="og:url" content="{{ url('/terms-and-conditions') }}">
+        <meta property="og:image" content="{{ asset('nrapa-icon.png') }}">
+        <meta name="twitter:card" content="summary">
+        <meta name="twitter:title" content="Terms and Conditions - NRAPA">
+        <meta name="twitter:description" content="Terms and Conditions for the NRAPA members portal. Membership, dedicated status, and portal usage terms.">
+        <meta name="twitter:image" content="{{ asset('nrapa-icon.png') }}">
         <link rel="icon" href="/nrapa-icon.png" type="image/png">
         <link rel="apple-touch-icon" href="/nrapa-icon.png">
         @vite(['resources/css/app.css', 'resources/js/app.js'])
