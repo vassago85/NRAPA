@@ -170,6 +170,9 @@
 
         /* Component card */
         .components-card { margin-top: 6px; padding: 10px 14px; width: 95%; margin-left: auto; margin-right: auto; }
+        .firearm-grid { padding: 6px 0; border-bottom: 1px solid #ececec; }
+        .firearm-grid .kv-row { padding: 3px 0; }
+        .firearm-grid .kv-label { min-width: 100px; }
         .component-item {
             display: flex;
             justify-content: space-between;
