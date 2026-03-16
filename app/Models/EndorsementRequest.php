@@ -903,7 +903,8 @@ class EndorsementRequest extends Model
         $prefix = 'END';
         $yearPrefix = "{$prefix}-{$year}-";
 
-        $lastRef = self::where('letter_reference', 'like', "{$yearPrefix}%")
+        $lastRef = self::withTrashed()
+            ->where('letter_reference', 'like', "{$yearPrefix}%")
             ->orderBy('letter_reference', 'desc')
             ->value('letter_reference');
 
