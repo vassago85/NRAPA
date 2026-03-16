@@ -67,7 +67,7 @@
         <h3 style="margin-bottom:8px;">Firearm Details</h3>
         <div class="doc-row">
             <span class="doc-label">Firearm Type:</span>
-            <span class="doc-value">{{ $request->firearm->firearm_type_label ?? 'N/A' }}</span>
+            <span class="doc-value">{{ $request->firearm->category_label ?? 'N/A' }}</span>
         </div>
         <div class="doc-row" style="margin-top:6px;">
             <span class="doc-label">Make:</span>

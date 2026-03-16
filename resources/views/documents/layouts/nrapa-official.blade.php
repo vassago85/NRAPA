@@ -113,9 +113,9 @@
             width: 66%;
             background: linear-gradient(90deg, rgba(31,78,140,0.07) 0%, rgba(245,130,32,0.07) 100%);
             border: 1px solid var(--border);
-            padding: 8px 14px;
+            padding: 6px 14px;
             border-radius: 6px;
-            margin: 4px 0 4px 2.5%;
+            margin: 2px 0 2px 2.5%;
         }
         .doc-banner-title {
             font-size: 17px;
@@ -133,7 +133,7 @@
         }
 
         /* Info grid */
-        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; width: 95%; margin-left: auto; margin-right: auto; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px; width: 95%; margin-left: auto; margin-right: auto; }
         .info-grid .card {
             background: var(--panel);
         }
@@ -142,24 +142,24 @@
             background: var(--panel);
             border: 1px solid var(--border);
             border-radius: 6px;
-            padding: 10px 12px;
+            padding: 8px 12px;
         }
         .card-title {
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: var(--blue);
             border-bottom: 1px solid var(--border);
-            padding-bottom: 4px;
-            margin-bottom: 6px;
+            padding-bottom: 3px;
+            margin-bottom: 4px;
         }
 
         .kv-row {
             display: flex;
             justify-content: flex-start;
             align-items: baseline;
-            padding: 3px 0;
+            padding: 2px 0;
             font-size: 11px;
             border-bottom: 1px solid #ececec;
         }
@@ -169,15 +169,22 @@
         .kv-value a { color: var(--blue); font-weight: 500; text-decoration: none; word-break: break-all; font-size: 9px; }
 
         /* Component card */
-        .components-card { margin-top: 6px; padding: 10px 14px; width: 95%; margin-left: auto; margin-right: auto; }
-        .firearm-grid { padding: 6px 0; border-bottom: 1px solid #ececec; }
-        .firearm-grid .kv-row { padding: 3px 0; }
-        .firearm-grid .kv-label { min-width: 100px; }
+        .components-card { margin-top: 4px; padding: 8px 12px; width: 95%; margin-left: auto; margin-right: auto; }
+        .firearm-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 2px 10px;
+            padding: 4px 0;
+            border-bottom: 1px solid #ececec;
+        }
+        .fg-cell { padding: 2px 0; }
+        .fg-label { display: block; font-size: 9px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; }
+        .fg-value { display: block; font-size: 12px; font-weight: 700; color: var(--text); }
         .component-item {
             display: flex;
             justify-content: space-between;
             align-items: baseline;
-            padding: 4px 0;
+            padding: 3px 0;
             font-size: 11px;
             border-bottom: 1px solid #ececec;
         }
@@ -190,10 +197,10 @@
             background: var(--panel);
             border: 1px solid var(--border);
             border-radius: 6px;
-            padding: 10px 14px;
-            margin-top: 6px;
-            font-size: 12px;
-            line-height: 1.4;
+            padding: 8px 12px;
+            margin-top: 4px;
+            font-size: 11px;
+            line-height: 1.35;
             color: #2c2c2c;
             width: 95%;
             margin-left: auto;
@@ -202,8 +209,8 @@
         .letter-body b { color: var(--text); }
         .letter-body .purpose-line {
             display: block;
-            margin: 6px 0;
-            padding: 6px 12px;
+            margin: 4px 0;
+            padding: 4px 10px;
             background: #f2f2f2;
             border-left: 4px solid var(--blue);
             border-radius: 0 4px 4px 0;
@@ -214,7 +221,7 @@
         .letter-body li { margin: 2px 0; font-size: 11px; }
 
         /* Bottom grid */
-        .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; width: 95%; margin-left: auto; margin-right: auto; }
+        .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px; width: 95%; margin-left: auto; margin-right: auto; }
 
         .verify-card { display: block; }
         .qr-box {
@@ -274,8 +281,8 @@
             background: var(--panel);
             border: 1px solid var(--border);
             border-radius: 6px;
-            padding: 10px 14px;
-            margin-top: 6px;
+            padding: 8px 12px;
+            margin-top: 4px;
             width: 95%;
             margin-left: auto;
             margin-right: auto;

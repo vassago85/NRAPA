@@ -94,32 +94,32 @@
             $actionLabel = $firearm->action_type ? ucfirst(str_replace('_', ' ', $firearm->action_type)) : null;
         @endphp
         <div class="firearm-grid">
-            <div class="kv-row">
-                <span class="kv-label">Type</span>
-                <span class="kv-value" style="font-weight:700; font-size:13px;">{{ $firearm->firearm_type_label ?? 'Firearm' }}</span>
+            <div class="fg-cell">
+                <span class="fg-label">Type</span>
+                <span class="fg-value">{{ $firearm->category_label ?? 'Firearm' }}</span>
             </div>
             @if(trim($makeName . ' ' . $modelName))
-            <div class="kv-row">
-                <span class="kv-label">Make / Model</span>
-                <span class="kv-value" style="font-weight:700; font-size:13px;">{{ trim($makeName . ' ' . $modelName) }}</span>
+            <div class="fg-cell">
+                <span class="fg-label">Make / Model</span>
+                <span class="fg-value">{{ trim($makeName . ' ' . $modelName) }}</span>
             </div>
             @endif
             @if($calibreName)
-            <div class="kv-row">
-                <span class="kv-label">Calibre</span>
-                <span class="kv-value" style="font-weight:700; font-size:13px;">{{ $calibreName }}</span>
+            <div class="fg-cell">
+                <span class="fg-label">Calibre</span>
+                <span class="fg-value">{{ $calibreName }}</span>
             </div>
             @endif
             @if($actionLabel)
-            <div class="kv-row">
-                <span class="kv-label">Action</span>
-                <span class="kv-value" style="font-weight:700; font-size:13px;">{{ $actionLabel }}</span>
+            <div class="fg-cell">
+                <span class="fg-label">Action</span>
+                <span class="fg-value">{{ $actionLabel }}</span>
             </div>
             @endif
             @foreach($firearm->serial_numbers as $type => $info)
-            <div class="kv-row">
-                <span class="kv-label">{{ ucfirst($type) }} Serial</span>
-                <span class="kv-value" style="font-weight:700; font-size:13px;">{{ $info['serial'] }}@if($info['make']) <span style="font-weight:400; color:var(--muted);">({{ $info['make'] }})</span>@endif</span>
+            <div class="fg-cell">
+                <span class="fg-label">{{ ucfirst($type) }} Serial</span>
+                <span class="fg-value">{{ $info['serial'] }}@if($info['make']) <span style="font-weight:400; font-size:10px; color:var(--muted);">({{ $info['make'] }})</span>@endif</span>
             </div>
             @endforeach
         </div>
