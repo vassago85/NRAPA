@@ -3,7 +3,26 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Certificate Verification - NRAPA</title>
+    <title>Certificate Verification — NRAPA</title>
+    <meta name="description" content="Verify the authenticity of NRAPA certificates and documents using QR code verification.">
+    <meta property="og:title" content="NRAPA Certificate Verification">
+    <meta property="og:description" content="Verify the authenticity of NRAPA certificates and documents.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://nrapa.co.za/verify">
+    <script type="application/ld+json">
+    {
+        "@@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "NRAPA Certificate Verification",
+        "description": "Verify the authenticity of NRAPA membership certificates and endorsement documents.",
+        "url": "https://nrapa.co.za/verify",
+        "isPartOf": {
+            "@type": "WebSite",
+            "name": "NRAPA",
+            "url": "https://nrapa.co.za"
+        }
+    }
+    </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-zinc-950 text-white antialiased">
