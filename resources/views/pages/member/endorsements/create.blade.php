@@ -126,8 +126,17 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             $this->editingRequest = $request->load(['firearm', 'components']);
             $this->loadFromRequest($request);
         } else {
-            // Initialize empty firearm panel data for new requests
             $this->firearmPanelData = [];
+        }
+
+        // Auto-select dedicated category when only one option is available
+        if (empty($this->dedicatedCategory)) {
+            $dedicatedType = $user->activeMembership?->type?->dedicated_type;
+            $this->dedicatedCategory = match($dedicatedType) {
+                'sport', 'sport_shooter' => 'Dedicated Sport Shooter',
+                'hunter' => 'Dedicated Hunter',
+                default => '',
+            };
         }
     }
 
@@ -1411,16 +1420,26 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
 
                 <div class="space-y-6">
                     {{-- Dedicated Category --}}
+                    @php
+                        $dedicatedType = auth()->user()->activeMembership?->type?->dedicated_type;
+                        $allCategories = [
+                            'Dedicated Sport Shooter' => ['label' => 'Dedicated Sport Shooter', 'desc' => 'Section 16 sport shooting licence'],
+                            'Dedicated Hunter' => ['label' => 'Dedicated Hunter', 'desc' => 'Section 16 dedicated hunting licence'],
+                            'Dedicated Sport Shooter & Dedicated Hunter' => ['label' => 'Sport Shooter & Hunter', 'desc' => 'Both dedicated categories'],
+                        ];
+                        $availableCategories = match($dedicatedType) {
+                            'sport', 'sport_shooter' => collect($allCategories)->only(['Dedicated Sport Shooter'])->all(),
+                            'hunter' => collect($allCategories)->only(['Dedicated Hunter'])->all(),
+                            'both' => $allCategories,
+                            default => $allCategories,
+                        };
+                    @endphp
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
                             Dedicated Status Category <span class="text-red-500">*</span>
                         </label>
-                        <div class="grid gap-3 md:grid-cols-3">
-                            @foreach([
-                                'Dedicated Sport Shooter' => ['label' => 'Dedicated Sport Shooter', 'desc' => 'Section 16 sport shooting licence'],
-                                'Dedicated Hunter' => ['label' => 'Dedicated Hunter', 'desc' => 'Section 16 dedicated hunting licence'],
-                                'Dedicated Sport Shooter & Dedicated Hunter' => ['label' => 'Sport Shooter & Hunter', 'desc' => 'Both dedicated categories'],
-                            ] as $catValue => $catInfo)
+                        <div class="grid gap-3 md:grid-cols-{{ count($availableCategories) }}">
+                            @foreach($availableCategories as $catValue => $catInfo)
                                 <label class="relative cursor-pointer">
                                     <input type="radio" wire:model.live="dedicatedCategory" value="{{ $catValue }}" class="peer sr-only">
                                     <div class="p-4 border-2 rounded-xl transition-all text-center
