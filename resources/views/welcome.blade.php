@@ -3,63 +3,12 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        {{-- Google Search Console verification — replace PLACEHOLDER with actual code --}}
-        <meta name="google-site-verification" content="ofpn02fgz8G9-u_lZnCwMckrIFkddbLv68ZdBOMEMu8">
-        {{-- Google Analytics 4 — replace G-XXXXXXXXXX with actual measurement ID --}}
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-JV2NSWMYTQ"></script>
-        <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-JV2NSWMYTQ');</script>
-        <title>NRAPA — Dedicated Status Simplified | SAPS Accredited Association</title>
-        <meta name="description" content="NRAPA is a SAPS-accredited hunting and sport shooting association. Obtain dedicated status, manage your licences, and stay compliant with the Firearms Control Act. A division of Ranyati Group.">
-        <link rel="canonical" href="{{ url('/') }}">
-        <meta property="og:type" content="website">
-        <meta property="og:site_name" content="NRAPA">
-        <meta property="og:title" content="NRAPA — Dedicated Status Simplified">
-        <meta property="og:description" content="SAPS-accredited association for dedicated sport shooters and hunters. Membership, endorsements, certificates, and compliance — all in one portal.">
-        <meta property="og:url" content="{{ url('/') }}">
-        <meta property="og:image" content="{{ asset('nrapa-icon.png') }}">
-        <meta name="twitter:card" content="summary">
-        <meta name="twitter:title" content="NRAPA — Dedicated Status Simplified">
-        <meta name="twitter:description" content="SAPS-accredited association for dedicated sport shooters and hunters. Membership, endorsements, certificates, and compliance.">
-        <meta name="twitter:image" content="{{ asset('nrapa-icon.png') }}">
+        <title>NRAPA - Members Portal</title>
         <link rel="icon" href="/nrapa-icon.png" type="image/png">
         <link rel="apple-touch-icon" href="/nrapa-icon.png">
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=inter:300,400,500,600,700,800,900" rel="stylesheet" />
         @vite(['resources/css/app.css', 'resources/js/app.js'])
-        <script type="application/ld+json">
-        {
-            "@context": "https://schema.org",
-            "@type": "Organization",
-            "name": "NRAPA — National Rifle and Pistol Association of South Africa",
-            "alternateName": "NRAPA",
-            "url": "{{ url('/') }}",
-            "logo": "{{ asset('nrapa-icon.png') }}",
-            "description": "SAPS-accredited hunting and sport shooting association offering dedicated status, membership certificates, endorsements, and compliance support under the Firearms Control Act.",
-            "parentOrganization": {
-                "@type": "Organization",
-                "name": "Ranyati Firearm Motivations (Pty) Ltd",
-                "url": "https://ranyati.co.za"
-            },
-            "contactPoint": {
-                "@type": "ContactPoint",
-                "telephone": "+27-87-151-0987",
-                "email": "info@nrapa.co.za",
-                "contactType": "customer service",
-                "areaServed": "ZA",
-                "availableLanguage": ["English", "Afrikaans"]
-            },
-            "address": {
-                "@type": "PostalAddress",
-                "streetAddress": "241 Jean Avenue",
-                "addressLocality": "Centurion",
-                "addressRegion": "Gauteng",
-                "addressCountry": "ZA"
-            },
-            "sameAs": [
-                "https://ranyati.co.za"
-            ]
-        }
-        </script>
         <style>
             body { font-family: 'Inter', system-ui, sans-serif; background: #020810; }
 
