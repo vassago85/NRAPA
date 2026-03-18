@@ -1,8 +1,6 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
@@ -13,7 +11,7 @@ return new class extends Migration
     public function up(): void
     {
         $driver = DB::getDriverName();
-        
+
         if ($driver === 'mysql') {
             // MySQL doesn't support ALTER ENUM directly, so we need to modify the column
             DB::statement("ALTER TABLE endorsement_requests MODIFY COLUMN status ENUM('draft', 'submitted', 'under_review', 'pending_documents', 'approved', 'issued', 'rejected', 'cancelled') DEFAULT 'draft'");
@@ -21,7 +19,7 @@ return new class extends Migration
             // SQLite doesn't support ALTER ENUM, so we need to recreate the table with the new constraint
             // This is safe because we're in a migration and can recreate the constraint
             $tableName = 'endorsement_requests';
-            
+
             // Use raw SQL to recreate the table with the updated CHECK constraint
             // SQLite allows us to recreate the table and copy data
             DB::statement("
@@ -55,19 +53,19 @@ return new class extends Migration
                     FOREIGN KEY (issued_by) REFERENCES users(id) ON DELETE SET NULL
                 )
             ");
-            
+
             // Copy data from old table to new table
             DB::statement("
                 INSERT INTO {$tableName}_new 
                 SELECT * FROM {$tableName}
             ");
-            
+
             // Drop old table
             DB::statement("DROP TABLE {$tableName}");
-            
+
             // Rename new table to original name
             DB::statement("ALTER TABLE {$tableName}_new RENAME TO {$tableName}");
-            
+
             // Recreate indexes
             DB::statement("CREATE INDEX IF NOT EXISTS idx_endorsement_requests_user_status ON {$tableName}(user_id, status)");
             DB::statement("CREATE INDEX IF NOT EXISTS idx_endorsement_requests_status_created ON {$tableName}(status, created_at)");

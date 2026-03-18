@@ -130,8 +130,8 @@ class KnowledgeTest extends Model
 
     /**
      * Scope to tests for a specific dedicated type.
-     * 
-     * @param string|null $userDedicatedType The user's membership dedicated_type
+     *
+     * @param  string|null  $userDedicatedType  The user's membership dedicated_type
      */
     public function scopeForDedicatedType($query, ?string $userDedicatedType)
     {
@@ -192,7 +192,7 @@ class KnowledgeTest extends Model
      */
     public function getDedicatedTypeDisplayAttribute(): ?string
     {
-        return match($this->dedicated_type) {
+        return match ($this->dedicated_type) {
             'hunter' => 'Dedicated Hunter',
             'sport' => 'Dedicated Sport Shooter',
             'sport_shooter' => 'Dedicated Sport Shooter', // Legacy support
@@ -238,7 +238,7 @@ class KnowledgeTest extends Model
      */
     public function hasDocument(): bool
     {
-        return !empty($this->document_path);
+        return ! empty($this->document_path);
     }
 
     /**
@@ -246,7 +246,7 @@ class KnowledgeTest extends Model
      */
     public function getDocumentUrlAttribute(): ?string
     {
-        if (!$this->hasDocument()) {
+        if (! $this->hasDocument()) {
             return null;
         }
 

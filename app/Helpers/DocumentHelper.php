@@ -9,10 +9,8 @@ class DocumentHelper
 {
     /**
      * Get the logo URL for documents.
-     * 
+     *
      * Checks system settings first, then falls back to public assets.
-     * 
-     * @return string|null
      */
     public static function getLogoUrl(): ?string
     {
@@ -23,14 +21,14 @@ class DocumentHelper
             if (filter_var($logoPath, FILTER_VALIDATE_URL)) {
                 return $logoPath;
             }
-            
+
             // If it's a storage path, get the URL
             $disk = StorageHelper::getPublicDisk();
             if (Storage::disk($disk)->exists($logoPath)) {
                 return StorageHelper::getUrl($logoPath);
             }
         }
-        
+
         // Fallback to public logo if exists (check common locations)
         // Check for exact filename first (case-insensitive, handle spaces)
         $publicDir = public_path();
@@ -45,14 +43,14 @@ class DocumentHelper
             'images/nrapa-logo.png',
             'images/NRAPA Logo.png',
         ];
-        
+
         foreach ($logoFiles as $logoFile) {
             $fullPath = public_path($logoFile);
             if (file_exists($fullPath)) {
                 return asset($logoFile);
             }
         }
-        
+
         // Also check for any file starting with "logo" or "nrapa" (case-insensitive)
         if (is_dir($publicDir)) {
             $files = scandir($publicDir);
@@ -69,7 +67,7 @@ class DocumentHelper
                 }
             }
         }
-        
+
         return null;
     }
 }

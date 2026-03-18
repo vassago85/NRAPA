@@ -15,7 +15,9 @@ class MembershipType extends Model
      */
     // Dedicated type constants
     public const DEDICATED_TYPE_HUNTER = 'hunter';
+
     public const DEDICATED_TYPE_SPORT = 'sport';
+
     public const DEDICATED_TYPE_BOTH = 'both';
 
     // Available icons for membership types (Heroicons)
@@ -162,13 +164,13 @@ class MembershipType extends Model
                 if ($this->dedicated_type === 'both') {
                     // Both type can use hunter, sport, or both tests
                     $q->whereIn('dedicated_type', ['hunter', 'sport', 'sport_shooter', 'both'])
-                      ->orWhereNull('dedicated_type');
+                        ->orWhereNull('dedicated_type');
                 } elseif ($this->dedicated_type === 'hunter') {
                     $q->whereIn('dedicated_type', ['hunter', 'both'])
-                      ->orWhereNull('dedicated_type');
+                        ->orWhereNull('dedicated_type');
                 } elseif ($this->dedicated_type === 'sport' || $this->dedicated_type === 'sport_shooter') {
                     $q->whereIn('dedicated_type', ['sport', 'sport_shooter', 'both'])
-                      ->orWhereNull('dedicated_type');
+                        ->orWhereNull('dedicated_type');
                 } else {
                     // No dedicated type - only general tests
                     $q->whereNull('dedicated_type');
@@ -184,7 +186,7 @@ class MembershipType extends Model
     public function hasUserPassedAllRequiredTests(User $user): bool
     {
         $requiredTests = $this->requiredKnowledgeTests()->pluck('knowledge_tests.id');
-        
+
         if ($requiredTests->isEmpty()) {
             return true; // No required tests means they've "passed"
         }
@@ -206,7 +208,7 @@ class MembershipType extends Model
     public function getOutstandingTestsForUser(User $user)
     {
         $requiredTestIds = $this->requiredKnowledgeTests()->pluck('knowledge_tests.id');
-        
+
         $passedTestIds = KnowledgeTestAttempt::where('user_id', $user->id)
             ->whereIn('knowledge_test_id', $requiredTestIds)
             ->where(function ($q) {

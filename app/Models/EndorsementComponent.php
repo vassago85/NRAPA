@@ -10,7 +10,9 @@ class EndorsementComponent extends Model
 {
     // Component type constants (only barrel, action, and receiver are allowed)
     public const TYPE_BARREL = 'barrel';
+
     public const TYPE_ACTION = 'action';
+
     public const TYPE_RECEIVER = 'receiver';
 
     /**
@@ -111,8 +113,11 @@ class EndorsementComponent extends Model
 
     // Action type options for action components (subset of EndorsementFirearm action types)
     public const ACTION_BOLT_ACTION = 'bolt_action';
+
     public const ACTION_SEMI_AUTO = 'semi_auto';
+
     public const ACTION_SINGLE_SHOT = 'single_shot';
+
     public const ACTION_OTHER = 'other';
 
     public static function getActionTypeOptions(): array
@@ -162,17 +167,17 @@ class EndorsementComponent extends Model
     public function getSummaryAttribute(): string
     {
         $parts = [$this->component_type_label];
-        
+
         if ($this->component_make) {
             $parts[] = $this->component_make;
         }
-        
+
         if ($this->component_model) {
             $parts[] = $this->component_model;
         }
-        
+
         if ($this->calibre_display) {
-            $parts[] = '(' . $this->calibre_display . ')';
+            $parts[] = '('.$this->calibre_display.')';
         }
 
         if ($this->component_type === self::TYPE_ACTION && $this->action_type) {
@@ -187,17 +192,19 @@ class EndorsementComponent extends Model
 
     public function getActionTypeLabelAttribute(): ?string
     {
-        if (!$this->action_type) {
+        if (! $this->action_type) {
             return null;
         }
+
         return self::getActionTypeOptions()[$this->action_type] ?? ucfirst(str_replace('_', ' ', $this->action_type));
     }
 
     public function getBoltFaceLabelAttribute(): ?string
     {
-        if (!$this->bolt_face) {
+        if (! $this->bolt_face) {
             return null;
         }
+
         return self::getBoltFaceOptions()[$this->bolt_face] ?? ucfirst($this->bolt_face);
     }
 }

@@ -52,7 +52,7 @@ class DocumentPreviewController extends Controller
 
     public function show(string $type)
     {
-        if (!isset(self::DOCUMENT_TYPES[$type])) {
+        if (! isset(self::DOCUMENT_TYPES[$type])) {
             abort(404, "Unknown document type: {$type}");
         }
 
@@ -111,7 +111,7 @@ class DocumentPreviewController extends Controller
 
         $certificate = new Certificate([
             'certificate_number' => 'NRAPA-CERT-2026-PREVIEW',
-            'qr_code' => 'preview-qr-' . $slug,
+            'qr_code' => 'preview-qr-'.$slug,
             'issued_at' => now(),
             'valid_until' => now()->addYear(),
             'signatory_name' => 'Paul Charsley',
@@ -120,7 +120,7 @@ class DocumentPreviewController extends Controller
             'commissioner_oaths_scan_path' => null,
         ]);
         $certificate->id = 999999;
-        $certificate->uuid = 'preview-cert-' . $slug;
+        $certificate->uuid = 'preview-cert-'.$slug;
         $certificate->setRelation('user', $user);
         $certificate->setRelation('membership', $membership);
         $certificate->setRelation('certificateType', $certType);

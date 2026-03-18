@@ -5,8 +5,8 @@ namespace App\Models;
 use App\Helpers\StorageHelper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class LearningArticle extends Model
@@ -18,7 +18,9 @@ class LearningArticle extends Model
      */
     // Dedicated type constants (matches MembershipType)
     public const DEDICATED_TYPE_HUNTER = 'hunter';
+
     public const DEDICATED_TYPE_SPORT = 'sport';
+
     public const DEDICATED_TYPE_BOTH = 'both';
 
     protected $fillable = [
@@ -151,7 +153,7 @@ class LearningArticle extends Model
      */
     public function isCompletedBy(User $user): bool
     {
-        if (!$this->hasPages()) {
+        if (! $this->hasPages()) {
             return $this->isReadBy($user);
         }
 
@@ -163,7 +165,7 @@ class LearningArticle extends Model
      */
     public function getCompletionPercentageFor(User $user): int
     {
-        if (!$this->hasPages()) {
+        if (! $this->hasPages()) {
             return $this->isReadBy($user) ? 100 : 0;
         }
 
@@ -190,7 +192,7 @@ class LearningArticle extends Model
      */
     public function hasFeaturedImage(): bool
     {
-        return !empty($this->featured_image);
+        return ! empty($this->featured_image);
     }
 
     /**
@@ -200,11 +202,11 @@ class LearningArticle extends Model
      */
     public function getFeaturedImageUrlAttribute(): ?string
     {
-        if (!$this->hasFeaturedImage()) {
+        if (! $this->hasFeaturedImage()) {
             return null;
         }
 
-        return '/storage/' . ltrim($this->featured_image, '/');
+        return '/storage/'.ltrim($this->featured_image, '/');
     }
 
     /**
@@ -221,7 +223,7 @@ class LearningArticle extends Model
      */
     public function hasDocument(): bool
     {
-        return !empty($this->document_path);
+        return ! empty($this->document_path);
     }
 
     /**
@@ -230,7 +232,7 @@ class LearningArticle extends Model
      */
     public function getDocumentUrlAttribute(): ?string
     {
-        if (!$this->hasDocument()) {
+        if (! $this->hasDocument()) {
             return null;
         }
 
@@ -250,7 +252,7 @@ class LearningArticle extends Model
      */
     public function markAsReadBy(User $user): void
     {
-        if (!$this->isReadBy($user)) {
+        if (! $this->isReadBy($user)) {
             $this->readers()->attach($user->id, ['read_at' => now()]);
         }
     }
@@ -323,8 +325,8 @@ class LearningArticle extends Model
     /**
      * Scope to filter by user's dedicated type access.
      * Uses article's dedicated_type if set, otherwise falls back to category's dedicated_type.
-     * 
-     * @param string|null $userDedicatedType The user's membership dedicated_type
+     *
+     * @param  string|null  $userDedicatedType  The user's membership dedicated_type
      */
     public function scopeForDedicatedType($query, ?string $userDedicatedType)
     {
@@ -343,11 +345,11 @@ class LearningArticle extends Model
                         ->orWhere('dedicated_type', self::DEDICATED_TYPE_BOTH);
                 })
                 // Also filter by category's dedicated_type if article doesn't have one
-                ->whereHas('category', function ($catQ) use ($userDedicatedType) {
-                    $catQ->whereNull('dedicated_type')
-                        ->orWhere('dedicated_type', $userDedicatedType)
-                        ->orWhere('dedicated_type', self::DEDICATED_TYPE_BOTH);
-                });
+                    ->whereHas('category', function ($catQ) use ($userDedicatedType) {
+                        $catQ->whereNull('dedicated_type')
+                            ->orWhere('dedicated_type', $userDedicatedType)
+                            ->orWhere('dedicated_type', self::DEDICATED_TYPE_BOTH);
+                    });
             });
         }
 
@@ -371,7 +373,7 @@ class LearningArticle extends Model
      */
     public function getDedicatedTypeLabelAttribute(): string
     {
-        return match($this->effective_dedicated_type) {
+        return match ($this->effective_dedicated_type) {
             self::DEDICATED_TYPE_HUNTER => 'Dedicated Hunters',
             self::DEDICATED_TYPE_SPORT => 'Dedicated Sport Shooters',
             self::DEDICATED_TYPE_BOTH => 'All Dedicated Members',

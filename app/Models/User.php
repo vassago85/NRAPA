@@ -27,14 +27,18 @@ class User extends Authenticatable implements MustVerifyEmail
      * Role hierarchy constants.
      */
     public const ROLE_DEVELOPER = 'developer';
+
     public const ROLE_OWNER = 'owner';
+
     public const ROLE_ADMIN = 'admin';
+
     public const ROLE_MEMBER = 'member';
 
     /**
      * Admin type constants.
      */
     public const ADMIN_TYPE_SUPER = 'super_admin';
+
     public const ADMIN_TYPE_STANDARD = 'standard_admin';
 
     /**
@@ -156,7 +160,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         $userLevel = self::ROLE_HIERARCHY[$this->role] ?? 0;
         $requiredLevel = self::ROLE_HIERARCHY[$role] ?? 0;
-        
+
         return $userLevel >= $requiredLevel;
     }
 
@@ -170,11 +174,11 @@ class User extends Authenticatable implements MustVerifyEmail
         if ($this->isDeveloper()) {
             return true; // Developers can manage everyone
         }
-        
+
         if ($this->isOwner()) {
             return $role === self::ROLE_ADMIN; // Owners can only manage admins
         }
-        
+
         return false;
     }
 
@@ -187,17 +191,17 @@ class User extends Authenticatable implements MustVerifyEmail
         if ($this->id === $user->id) {
             return false;
         }
-        
+
         // Developers can manage anyone except other developers
         if ($this->isDeveloper()) {
-            return !$user->isDeveloper();
+            return ! $user->isDeveloper();
         }
-        
+
         // Owners can manage admins they nominated
         if ($this->isOwner()) {
             return $user->isAdmin() && $user->nominated_by === $this->id;
         }
-        
+
         return false;
     }
 
@@ -206,7 +210,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function getRoleDisplayNameAttribute(): string
     {
-        return match($this->role) {
+        return match ($this->role) {
             self::ROLE_DEVELOPER => 'Site Developer',
             self::ROLE_OWNER => 'Owner',
             self::ROLE_ADMIN => 'Administrator',
@@ -231,7 +235,7 @@ class User extends Authenticatable implements MustVerifyEmail
         // When soft-deleting, modify email and id_number to free them up for reuse
         // and clean up pending/draft endorsement requests and other orphaned data
         static::deleting(function (User $user) {
-            if (!$user->isForceDeleting()) {
+            if (! $user->isForceDeleting()) {
                 $timestamp = now()->timestamp;
                 $user->email = "deleted_{$timestamp}_{$user->email}";
                 if ($user->id_number) {
@@ -339,7 +343,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         try {
             $activeTerms = TermsVersion::active();
-            if (!$activeTerms) {
+            if (! $activeTerms) {
                 return false; // No active terms = must accept
             }
 
@@ -475,7 +479,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * Check if user has a specific permission.
-     * 
+     *
      * Hard rules:
      * - Developer has ALL permissions (system level)
      * - Owner has ALL permissions (NRAPA level)
@@ -538,7 +542,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function grantPermission(Permission $permission, User $grantedBy): void
     {
-        if (!$grantedBy->canGrantPermissions()) {
+        if (! $grantedBy->canGrantPermissions()) {
             throw new \Exception('User cannot grant permissions');
         }
 
@@ -563,12 +567,12 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function grantPermissions(array $permissionSlugs, User $grantedBy): void
     {
-        if (!$grantedBy->canGrantPermissions()) {
+        if (! $grantedBy->canGrantPermissions()) {
             throw new \Exception('User cannot grant permissions');
         }
 
         $permissions = Permission::whereIn('slug', $permissionSlugs)->get();
-        
+
         foreach ($permissions as $permission) {
             $this->permissions()->syncWithoutDetaching([
                 $permission->id => [
@@ -584,12 +588,12 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function syncPermissions(array $permissionSlugs, User $grantedBy): void
     {
-        if (!$grantedBy->canGrantPermissions()) {
+        if (! $grantedBy->canGrantPermissions()) {
             throw new \Exception('User cannot grant permissions');
         }
 
         $permissions = Permission::whereIn('slug', $permissionSlugs)->pluck('id');
-        
+
         $syncData = $permissions->mapWithKeys(fn ($id) => [
             $id => [
                 'granted_by' => $grantedBy->id,
@@ -704,14 +708,14 @@ class User extends Authenticatable implements MustVerifyEmail
 
         // Developers can delete anyone except other developers
         if ($this->isDeveloper()) {
-            return !$targetUser->isDeveloper();
+            return ! $targetUser->isDeveloper();
         }
 
         // Owners can delete members only (NOT admins)
         if ($this->isOwner()) {
             return $targetUser->isMember();
         }
-        
+
         // Admins cannot delete anyone (must request deletion)
         if ($this->isAdmin()) {
             return false;
@@ -732,7 +736,7 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         // Only admins request deletion (owners/devs delete directly)
-        if (!$this->isAdmin()) {
+        if (! $this->isAdmin()) {
             return false;
         }
 
@@ -755,7 +759,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function has2FAEnabled(): bool
     {
-        return !empty($this->two_factor_secret) && !empty($this->two_factor_confirmed_at);
+        return ! empty($this->two_factor_secret) && ! empty($this->two_factor_confirmed_at);
     }
 
     /**
@@ -763,8 +767,8 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function hasExceeded2FALoginLimit(): bool
     {
-        return $this->requires2FA() && 
-               !$this->has2FAEnabled() && 
+        return $this->requires2FA() &&
+               ! $this->has2FAEnabled() &&
                $this->logins_without_2fa >= self::MAX_LOGINS_WITHOUT_2FA;
     }
 
@@ -773,10 +777,10 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function getRemainingLoginsWithout2FA(): int
     {
-        if (!$this->requires2FA() || $this->has2FAEnabled()) {
+        if (! $this->requires2FA() || $this->has2FAEnabled()) {
             return -1; // Unlimited
         }
-        
+
         return max(0, self::MAX_LOGINS_WITHOUT_2FA - $this->logins_without_2fa);
     }
 
@@ -785,7 +789,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function incrementLoginWithout2FA(): void
     {
-        if ($this->requires2FA() && !$this->has2FAEnabled()) {
+        if ($this->requires2FA() && ! $this->has2FAEnabled()) {
             $this->increment('logins_without_2fa');
         }
     }
@@ -866,17 +870,17 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getIdName(): string
     {
         $idDoc = $this->getVerifiedIdDocument();
-        
+
         if ($idDoc && $idDoc->metadata) {
             $surname = $idDoc->metadata['surname'] ?? '';
             $names = $idDoc->metadata['names'] ?? '';
-            
+
             if ($surname || $names) {
                 // Format as "SURNAME, Names" for official documents
-                return trim(strtoupper($surname) . ', ' . $names);
+                return trim(strtoupper($surname).', '.$names);
             }
         }
-        
+
         // Fallback to display name
         return $this->name;
     }
@@ -888,13 +892,14 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getIdSurname(): string
     {
         $idDoc = $this->getVerifiedIdDocument();
-        
-        if ($idDoc && $idDoc->metadata && !empty($idDoc->metadata['surname'])) {
+
+        if ($idDoc && $idDoc->metadata && ! empty($idDoc->metadata['surname'])) {
             return strtoupper($idDoc->metadata['surname']);
         }
-        
+
         // Fallback to last word of display name
         $parts = explode(' ', $this->name);
+
         return strtoupper(end($parts));
     }
 
@@ -905,14 +910,15 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getIdFirstNames(): string
     {
         $idDoc = $this->getVerifiedIdDocument();
-        
-        if ($idDoc && $idDoc->metadata && !empty($idDoc->metadata['names'])) {
+
+        if ($idDoc && $idDoc->metadata && ! empty($idDoc->metadata['names'])) {
             return $idDoc->metadata['names'];
         }
-        
+
         // Fallback to all but last word of display name
         $parts = explode(' ', $this->name);
         array_pop($parts);
+
         return implode(' ', $parts) ?: $this->name;
     }
 
@@ -923,11 +929,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getIdNumber(): ?string
     {
         $idDoc = $this->getVerifiedIdDocument();
-        
-        if ($idDoc && $idDoc->metadata && !empty($idDoc->metadata['identity_number'])) {
+
+        if ($idDoc && $idDoc->metadata && ! empty($idDoc->metadata['identity_number'])) {
             return $idDoc->metadata['identity_number'];
         }
-        
+
         // Fallback to users table column
         return $this->id_number;
     }
@@ -955,7 +961,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public function canDisable2FA(): bool
     {
         // Users who require 2FA cannot disable it
-        return !$this->requires2FA();
+        return ! $this->requires2FA();
     }
 
     /**
@@ -983,11 +989,11 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         if ($this->isDeveloper()) {
-            return !$targetUser->isDeveloper();
+            return ! $targetUser->isDeveloper();
         }
 
         if ($this->isOwner()) {
-            return !$targetUser->isDeveloper() && !$targetUser->isOwner();
+            return ! $targetUser->isDeveloper() && ! $targetUser->isOwner();
         }
 
         if ($this->isAdmin()) {

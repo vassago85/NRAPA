@@ -56,13 +56,13 @@ class ActivityTag extends Model
      */
     public function scopeForTrack($query, ?string $track)
     {
-        if (!$track) {
+        if (! $track) {
             return $query->whereNull('track');
         }
 
         return $query->where(function ($q) use ($track) {
             $q->where('track', $track)
-              ->orWhereNull('track');
+                ->orWhereNull('track');
         });
     }
 

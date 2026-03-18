@@ -8,7 +8,7 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Add dedicated_type to learning categories and articles.
      * - null = General content (visible to all members)
      * - 'hunter' = Only for dedicated hunters

@@ -2,7 +2,6 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,7 +15,7 @@ class EnsureUserIsDeveloper
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$request->user() || !$request->user()->isDeveloper()) {
+        if (! $request->user() || ! $request->user()->isDeveloper()) {
             abort(403, 'Unauthorized. Developer access required.');
         }
 

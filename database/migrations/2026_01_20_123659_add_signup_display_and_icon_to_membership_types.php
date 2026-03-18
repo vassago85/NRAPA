@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('membership_types', function (Blueprint $table) {
             // Separate flag for showing on signup/apply pages (different from landing page)
             $table->boolean('display_on_signup')->default(true)->after('display_on_landing');
-            
+
             // Icon for visual identification (Heroicon name, e.g., 'shield-check', 'star', 'trophy')
             $table->string('icon', 50)->nullable()->after('name');
         });

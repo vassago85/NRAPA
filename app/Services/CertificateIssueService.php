@@ -2,16 +2,13 @@
 
 namespace App\Services;
 
+use App\Contracts\DocumentRenderer;
 use App\Models\Certificate;
 use App\Models\CertificateType;
-use App\Models\User;
 use App\Models\Membership;
-use App\Contracts\DocumentRenderer;
-use App\Services\MembershipStandingService;
-use Illuminate\Support\Facades\Hash;
+use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class CertificateIssueService
 {
@@ -27,7 +24,7 @@ class CertificateIssueService
     protected function getDefaultSignatoryData(): array
     {
         $data = [];
-        
+
         // Check if columns exist before adding them
         if (\Illuminate\Support\Facades\Schema::hasColumn('certificates', 'signatory_name')) {
             $data['signatory_name'] = \App\Models\SystemSetting::get('default_signatory_name', null);
@@ -41,7 +38,7 @@ class CertificateIssueService
         if (\Illuminate\Support\Facades\Schema::hasColumn('certificates', 'commissioner_oaths_scan_path')) {
             $data['commissioner_oaths_scan_path'] = \App\Helpers\DocumentDataHelper::getDefaultCommissionerScanPath();
         }
-        
+
         return $data;
     }
 
@@ -55,17 +52,17 @@ class CertificateIssueService
         $dedicatedType = $user->activeMembership?->type?->dedicated_type;
         $hasHunterStatus = in_array($dedicatedType, ['hunter', 'both']);
 
-        if (!$hasHunterStatus) {
+        if (! $hasHunterStatus) {
             throw new \Exception('User does not have approved dedicated hunter status.');
         }
 
         // Check good standing
-        if (!$this->standingService->isInGoodStanding($user)) {
+        if (! $this->standingService->isInGoodStanding($user)) {
             throw new \Exception('User is not in good standing.');
         }
 
         $membership = $user->activeMembership;
-        if (!$membership) {
+        if (! $membership) {
             throw new \Exception('User does not have an active membership.');
         }
 
@@ -78,7 +75,7 @@ class CertificateIssueService
 
         // Check activity requirements are met
         $activityCheck = \App\Models\EndorsementRequest::checkActivityRequirements($user);
-        if (!$activityCheck['met']) {
+        if (! $activityCheck['met']) {
             throw new \Exception("User does not meet activity requirements: {$activityCheck['message']}");
         }
 
@@ -112,7 +109,7 @@ class CertificateIssueService
         // Generate document
         try {
             $filePath = $this->renderer->renderCertificate($certificate, $certType->template);
-            
+
             // Calculate checksum (if file exists)
             $checksum = null;
             try {
@@ -154,7 +151,7 @@ class CertificateIssueService
     {
         // Check terms acceptance
         $activeTerms = \App\Models\TermsVersion::active();
-        if ($activeTerms && !$user->hasAcceptedActiveTerms()) {
+        if ($activeTerms && ! $user->hasAcceptedActiveTerms()) {
             throw new \Exception('User must accept Terms & Conditions before certificates can be issued.');
         }
 
@@ -162,17 +159,17 @@ class CertificateIssueService
         $dedicatedType = $user->activeMembership?->type?->dedicated_type;
         $hasSportStatus = in_array($dedicatedType, ['sport', 'sport_shooter', 'both']);
 
-        if (!$hasSportStatus) {
+        if (! $hasSportStatus) {
             throw new \Exception('User does not have approved dedicated sport shooter status.');
         }
 
         // Check good standing
-        if (!$this->standingService->isInGoodStanding($user)) {
+        if (! $this->standingService->isInGoodStanding($user)) {
             throw new \Exception('User is not in good standing.');
         }
 
         $membership = $user->activeMembership;
-        if (!$membership) {
+        if (! $membership) {
             throw new \Exception('User does not have an active membership.');
         }
 
@@ -185,7 +182,7 @@ class CertificateIssueService
 
         // Check activity requirements are met
         $activityCheck = \App\Models\EndorsementRequest::checkActivityRequirements($user);
-        if (!$activityCheck['met']) {
+        if (! $activityCheck['met']) {
             throw new \Exception("User does not meet activity requirements: {$activityCheck['message']}");
         }
 
@@ -219,7 +216,7 @@ class CertificateIssueService
         // Generate document
         try {
             $filePath = $this->renderer->renderCertificate($certificate, $certType->template);
-            
+
             // Calculate checksum (if file exists)
             $checksum = null;
             try {
@@ -261,16 +258,16 @@ class CertificateIssueService
         $hasHunterStatus = in_array($dedicatedType, ['hunter', 'both']);
         $hasSportStatus = in_array($dedicatedType, ['sport', 'sport_shooter', 'both']);
 
-        if (!$hasHunterStatus || !$hasSportStatus) {
+        if (! $hasHunterStatus || ! $hasSportStatus) {
             throw new \Exception('User does not have both approved dedicated hunter and sport shooter status.');
         }
 
-        if (!$this->standingService->isInGoodStanding($user)) {
+        if (! $this->standingService->isInGoodStanding($user)) {
             throw new \Exception('User is not in good standing.');
         }
 
         $membership = $user->activeMembership;
-        if (!$membership) {
+        if (! $membership) {
             throw new \Exception('User does not have an active membership.');
         }
 
@@ -281,7 +278,7 @@ class CertificateIssueService
         }
 
         $activityCheck = \App\Models\EndorsementRequest::checkActivityRequirements($user);
-        if (!$activityCheck['met']) {
+        if (! $activityCheck['met']) {
             throw new \Exception("User does not meet activity requirements: {$activityCheck['message']}");
         }
 
@@ -339,7 +336,7 @@ class CertificateIssueService
     public function issueOccasionalCertificate(User $user, User $issuer, string $discipline = 'hunter'): ?Certificate
     {
         $membership = $user->activeMembership;
-        if (!$membership) {
+        if (! $membership) {
             throw new \Exception('User does not have an active membership.');
         }
 
@@ -356,7 +353,7 @@ class CertificateIssueService
             ['slug' => $slug],
             [
                 'name' => $name,
-                'description' => "Section 15 certificate for occasional " . ($discipline === 'sport' ? 'sport shooters' : 'hunters'),
+                'description' => 'Section 15 certificate for occasional '.($discipline === 'sport' ? 'sport shooters' : 'hunters'),
                 'template' => 'documents.certificates.dedicated-status',
                 'validity_months' => 12,
                 'is_active' => true,
@@ -406,25 +403,25 @@ class CertificateIssueService
     /**
      * Issue a Membership Certificate (proof of paid-up, active member in good standing).
      *
-     * @param bool $skipChecks When true, skips terms and good-standing checks (used during admin approval).
+     * @param  bool  $skipChecks  When true, skips terms and good-standing checks (used during admin approval).
      */
     public function issueMembershipCertificate(User $user, User $issuer, bool $skipChecks = false): ?Certificate
     {
-        if (!$skipChecks) {
+        if (! $skipChecks) {
             // Check terms acceptance
             $activeTerms = \App\Models\TermsVersion::active();
-            if ($activeTerms && !$user->hasAcceptedActiveTerms()) {
+            if ($activeTerms && ! $user->hasAcceptedActiveTerms()) {
                 throw new \Exception('User must accept Terms & Conditions before certificates can be issued.');
             }
 
             // Check good standing
-            if (!$this->standingService->isInGoodStanding($user)) {
+            if (! $this->standingService->isInGoodStanding($user)) {
                 throw new \Exception('User is not in good standing.');
             }
         }
 
         $membership = $user->activeMembership;
-        if (!$membership) {
+        if (! $membership) {
             throw new \Exception('User does not have an active membership.');
         }
 
@@ -449,7 +446,7 @@ class CertificateIssueService
         );
 
         // Calculate validity
-        $validUntil = $membership->expires_at 
+        $validUntil = $membership->expires_at
             ? min(now()->addMonths(12), $membership->expires_at)
             : now()->addMonths(12);
 
@@ -470,7 +467,7 @@ class CertificateIssueService
         // Generate document
         try {
             $filePath = $this->renderer->renderCertificate($certificate, $certType->template);
-            
+
             // Calculate checksum (if file exists)
             $checksum = null;
             try {
@@ -508,7 +505,7 @@ class CertificateIssueService
     public function issueMembershipCard(User $user, User $issuer): ?Certificate
     {
         $membership = $user->activeMembership;
-        if (!$membership) {
+        if (! $membership) {
             throw new \Exception('User does not have an active membership.');
         }
 
@@ -542,7 +539,7 @@ class CertificateIssueService
         // Generate document
         try {
             $filePath = $this->renderer->renderCertificate($certificate, $certType->template);
-            
+
             // Calculate checksum (if file exists)
             $checksum = null;
             try {
@@ -580,12 +577,12 @@ class CertificateIssueService
     {
         // Check terms acceptance
         $activeTerms = \App\Models\TermsVersion::active();
-        if ($activeTerms && !$user->hasAcceptedActiveTerms()) {
+        if ($activeTerms && ! $user->hasAcceptedActiveTerms()) {
             throw new \Exception('User must accept Terms & Conditions before welcome letter can be issued.');
         }
 
         $membership = $user->activeMembership;
-        if (!$membership) {
+        if (! $membership) {
             throw new \Exception('User does not have an active membership.');
         }
 
@@ -619,7 +616,7 @@ class CertificateIssueService
         // Generate document
         try {
             $filePath = $this->renderer->renderWelcomeLetter($user, $certType->template);
-            
+
             // Calculate checksum (if file exists)
             $checksum = null;
             try {
@@ -671,7 +668,7 @@ class CertificateIssueService
             ->whereIn('status', ['pending', 'verified'])
             ->exists();
 
-        if (!$hasId) {
+        if (! $hasId) {
             $missing[] = 'ID document';
         }
 
@@ -702,7 +699,7 @@ class CertificateIssueService
     {
         try {
             // Must have an active membership
-            if (!$user->activeMembership) {
+            if (! $user->activeMembership) {
                 return null;
             }
 
@@ -723,6 +720,7 @@ class CertificateIssueService
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }

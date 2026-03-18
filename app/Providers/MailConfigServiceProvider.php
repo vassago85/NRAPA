@@ -32,14 +32,14 @@ class MailConfigServiceProvider extends ServiceProvider
     {
         try {
             // Check if the table exists
-            if (!\Schema::hasTable('system_settings')) {
+            if (! \Schema::hasTable('system_settings')) {
                 return;
             }
 
             $mailMailer = SystemSetting::get('mail_mailer');
 
             // Only override if we have a mailer setting in database
-            if (!$mailMailer) {
+            if (! $mailMailer) {
                 return;
             }
 

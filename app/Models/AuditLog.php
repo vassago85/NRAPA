@@ -102,13 +102,12 @@ class AuditLog extends Model
 
     /**
      * Static helper to create an audit log entry.
-     * 
-     * @param string $event The event name (e.g., 'membership_approved')
-     * @param Model $auditable The model being audited
-     * @param array|null $oldValues Old values (optional)
-     * @param array|null $newValues New values (optional)
-     * @param User|null $user The user performing the action (defaults to auth user)
-     * @return static
+     *
+     * @param  string  $event  The event name (e.g., 'membership_approved')
+     * @param  Model  $auditable  The model being audited
+     * @param  array|null  $oldValues  Old values (optional)
+     * @param  array|null  $newValues  New values (optional)
+     * @param  User|null  $user  The user performing the action (defaults to auth user)
      */
     public static function log(
         string $event,

@@ -7,10 +7,10 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Migrates existing serial_number from user_firearms to receiver component
      * in firearm_components table (non-destructive - keeps serial_number column).
-     * 
+     *
      * This ensures backwards compatibility while moving to canonical structure.
      */
     public function up(): void
@@ -20,16 +20,16 @@ return new class extends Migration
             ->whereNotNull('serial_number')
             ->where('serial_number', '!=', '')
             ->get();
-        
+
         foreach ($firearms as $firearm) {
             // Check if receiver component already exists
             $existingReceiver = DB::table('firearm_components')
                 ->where('firearm_id', $firearm->id)
                 ->where('type', 'receiver')
                 ->first();
-            
+
             // Only create if receiver doesn't exist
-            if (!$existingReceiver) {
+            if (! $existingReceiver) {
                 DB::table('firearm_components')->insert([
                     'firearm_id' => $firearm->id,
                     'type' => 'receiver',
@@ -45,7 +45,7 @@ return new class extends Migration
 
     /**
      * Reverse the migrations.
-     * 
+     *
      * Note: This does NOT delete the components, just documents the reverse.
      * In practice, you may want to keep the components even if rolling back.
      */

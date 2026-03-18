@@ -11,109 +11,109 @@ class SidebarMenu
     {
         $user = auth()->user();
         $menu = [];
-        
+
         // Check if admin/owner/dev is viewing as member
         $viewingAsMember = session('view_as_member', false);
         $isAdminRole = $user->hasRoleLevel(\App\Models\User::ROLE_ADMIN);
-        $showMemberArea = !$isAdminRole || $viewingAsMember;
+        $showMemberArea = ! $isAdminRole || $viewingAsMember;
 
         // 1. MEMBER AREA (only visible to members OR admin/owner/dev viewing as member)
         if ($showMemberArea) {
-        // Check if user has an active membership
-        $hasActiveMembership = $user->activeMembership !== null;
+            // Check if user has an active membership
+            $hasActiveMembership = $user->activeMembership !== null;
 
-        // Virtual Card section (shown at top if active membership)
-        if ($hasActiveMembership) {
-            $menu[] = [
-                'section' => 'VIRTUAL CARD',
-                'items' => [
+            // Virtual Card section (shown at top if active membership)
+            if ($hasActiveMembership) {
+                $menu[] = [
+                    'section' => 'VIRTUAL CARD',
+                    'items' => [
+                        [
+                            'label' => 'My Virtual Card',
+                            'route' => 'card',
+                            'icon' => 'credit-card',
+                            'roles' => ['member', 'admin', 'owner', 'developer'],
+                        ],
+                    ],
+                ];
+            }
+
+            $memberAreaItems = [
+                [
+                    'label' => 'Dashboard',
+                    'route' => 'dashboard',
+                    'icon' => 'home',
+                    'roles' => ['member', 'admin', 'owner', 'developer'],
+                ],
+                [
+                    'label' => 'My Membership',
+                    'route' => 'membership.index',
+                    'icon' => 'badge',
+                    'roles' => ['member', 'admin', 'owner', 'developer'],
+                ],
+            ];
+
+            // Only show these items if user has active membership (or is admin/owner/dev not viewing as member)
+            if ($hasActiveMembership || ($isAdminRole && ! $viewingAsMember)) {
+                // Add active member-only items (require membership.required middleware)
+                $activeMemberItems = [
                     [
-                        'label' => 'My Virtual Card',
-                        'route' => 'card',
-                        'icon' => 'credit-card',
+                        'label' => 'Documents',
+                        'route' => 'documents.index',
+                        'icon' => 'document',
                         'roles' => ['member', 'admin', 'owner', 'developer'],
                     ],
-                ],
-            ];
-        }
-        
-        $memberAreaItems = [
-            [
-                'label' => 'Dashboard',
-                'route' => 'dashboard',
-                'icon' => 'home',
-                'roles' => ['member', 'admin', 'owner', 'developer'],
-            ],
-            [
-                'label' => 'My Membership',
-                'route' => 'membership.index',
-                'icon' => 'badge',
-                'roles' => ['member', 'admin', 'owner', 'developer'],
-            ],
-        ];
+                    [
+                        'label' => 'Activities',
+                        'route' => 'activities.index',
+                        'icon' => 'clipboard',
+                        'roles' => ['member', 'admin', 'owner', 'developer'],
+                    ],
+                    [
+                        'label' => 'Virtual Safe',
+                        'route' => 'armoury.index',
+                        'icon' => 'shield-check',
+                        'roles' => ['member', 'admin', 'owner', 'developer'],
+                    ],
+                    [
+                        'label' => 'Endorsements',
+                        'route' => 'member.endorsements.index',
+                        'icon' => 'document-check',
+                        'roles' => ['member', 'admin', 'owner', 'developer'],
+                    ],
+                    [
+                        'label' => 'Certificates',
+                        'route' => 'certificates.index',
+                        'icon' => 'badge-check',
+                        'roles' => ['member', 'admin', 'owner', 'developer'],
+                    ],
+                ];
 
-        // Only show these items if user has active membership (or is admin/owner/dev not viewing as member)
-        if ($hasActiveMembership || ($isAdminRole && !$viewingAsMember)) {
-            // Add active member-only items (require membership.required middleware)
-            $activeMemberItems = [
-                [
-                    'label' => 'Documents',
-                    'route' => 'documents.index',
-                    'icon' => 'document',
-                    'roles' => ['member', 'admin', 'owner', 'developer'],
-                ],
-                [
-                    'label' => 'Activities',
-                    'route' => 'activities.index',
-                    'icon' => 'clipboard',
-                    'roles' => ['member', 'admin', 'owner', 'developer'],
-                ],
-                [
-                    'label' => 'Virtual Safe',
-                    'route' => 'armoury.index',
-                    'icon' => 'shield-check',
-                    'roles' => ['member', 'admin', 'owner', 'developer'],
-                ],
-                [
-                    'label' => 'Endorsements',
-                    'route' => 'member.endorsements.index',
-                    'icon' => 'document-check',
-                    'roles' => ['member', 'admin', 'owner', 'developer'],
-                ],
-                [
-                    'label' => 'Certificates',
-                    'route' => 'certificates.index',
-                    'icon' => 'badge-check',
-                    'roles' => ['member', 'admin', 'owner', 'developer'],
-                ],
-            ];
+                // Learning items under collapsible group (Certificates moved above)
+                $learningItems = [
+                    [
+                        'label' => 'Learning Center',
+                        'route' => 'learning.index',
+                        'icon' => 'book-open',
+                    ],
+                    [
+                        'label' => 'Knowledge Tests',
+                        'route' => 'knowledge-test.index',
+                        'icon' => 'academic-cap',
+                    ],
+                ];
 
-            // Learning items under collapsible group (Certificates moved above)
-            $learningItems = [
-                [
-                    'label' => 'Learning Center',
+                $memberAreaItems = array_merge($memberAreaItems, $activeMemberItems);
+
+                // Add Learning group (collapsible) - after Certificates and Endorsements
+                $memberAreaItems[] = [
+                    'label' => 'Learning',
                     'route' => 'learning.index',
                     'icon' => 'book-open',
-                ],
-                [
-                    'label' => 'Knowledge Tests',
-                    'route' => 'knowledge-test.index',
-                    'icon' => 'academic-cap',
-                ],
-            ];
-
-            $memberAreaItems = array_merge($memberAreaItems, $activeMemberItems);
-            
-            // Add Learning group (collapsible) - after Certificates and Endorsements
-            $memberAreaItems[] = [
-                'label' => 'Learning',
-                'route' => 'learning.index',
-                'icon' => 'book-open',
-                'roles' => ['member', 'admin', 'owner', 'developer'],
-                'collapsible' => true,
-                'children' => $learningItems,
-            ];
-        }
+                    'roles' => ['member', 'admin', 'owner', 'developer'],
+                    'collapsible' => true,
+                    'children' => $learningItems,
+                ];
+            }
 
             $menu[] = [
                 'section' => 'MEMBER AREA',
@@ -148,7 +148,8 @@ class SidebarMenu
                         \App\Models\EndorsementRequest::STATUS_PENDING_DOCUMENTS,
                     ])->count();
                 }
-            } catch (\Exception $e) {}
+            } catch (\Exception $e) {
+            }
 
             $menu[] = [
                 'section' => 'ADMINISTRATION',
@@ -396,7 +397,7 @@ class SidebarMenu
             'developer.certificates.index',
             'developer.certificates.show',
         ];
-        
+
         // If checking a certificate route, also check if current route is any certificate route
         if (in_array($route, $certificateRoutes)) {
             foreach ($certificateRoutes as $certRoute) {
@@ -405,7 +406,7 @@ class SidebarMenu
                 }
             }
         }
-        
+
         // Virtual Safe sidebar item should highlight on all related pages
         if ($route === 'armoury.index') {
             $virtualSafeRoutes = [
@@ -419,7 +420,7 @@ class SidebarMenu
                 }
             }
         }
-        
+
         // Approvals sidebar item should highlight on all approval-related pages
         if ($route === 'admin.approvals.index') {
             $approvalRoutes = [
@@ -435,22 +436,23 @@ class SidebarMenu
                 }
             }
         }
-        
-        if (!request()->routeIs($route)) {
+
+        if (! request()->routeIs($route)) {
             return false;
         }
-        
+
         // If no params specified, route match is sufficient
         if ($params === null) {
             return true;
         }
-        
+
         // Check if all params match
         foreach ($params as $key => $value) {
             if (request($key) != $value) {
                 return false;
             }
         }
+
         return true;
     }
 }

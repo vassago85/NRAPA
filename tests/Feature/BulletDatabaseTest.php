@@ -1,8 +1,6 @@
 <?php
 
 use App\Models\Bullet;
-use App\Models\BulletSource;
-use App\Models\User;
 use App\Services\Bullets\BulletUpsertService;
 
 test('bullet model stores both diameter units', function () {
@@ -52,7 +50,7 @@ test('bullet unique constraint prevents duplicates', function () {
 });
 
 test('upsert service creates bullet with auto-computed diameter_mm', function () {
-    $service = new BulletUpsertService();
+    $service = new BulletUpsertService;
 
     $bullet = $service->upsert([
         'manufacturer' => 'TestMfr',
@@ -71,7 +69,7 @@ test('upsert service creates bullet with auto-computed diameter_mm', function ()
 });
 
 test('upsert service resolves diameter from caliber label', function () {
-    $service = new BulletUpsertService();
+    $service = new BulletUpsertService;
 
     $bullet = $service->upsert([
         'manufacturer' => 'TestMfr',
@@ -90,7 +88,7 @@ test('upsert service resolves diameter from caliber label', function () {
 });
 
 test('bullet sources can be attached', function () {
-    $service = new BulletUpsertService();
+    $service = new BulletUpsertService;
 
     $bullet = $service->upsert([
         'manufacturer' => 'SrcTest',

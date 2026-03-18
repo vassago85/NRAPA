@@ -14,9 +14,9 @@ class BulletUpsertService
     public function upsert(array $data): Bullet
     {
         // Ensure both diameter units exist
-        if (!empty($data['diameter_in']) && empty($data['diameter_mm'])) {
+        if (! empty($data['diameter_in']) && empty($data['diameter_mm'])) {
             $data['diameter_mm'] = Bullet::inToMm((float) $data['diameter_in']);
-        } elseif (!empty($data['diameter_mm']) && empty($data['diameter_in'])) {
+        } elseif (! empty($data['diameter_mm']) && empty($data['diameter_in'])) {
             $data['diameter_in'] = Bullet::mmToIn((float) $data['diameter_mm']);
         } elseif (empty($data['diameter_in']) && empty($data['diameter_mm'])) {
             // Try caliber lookup
@@ -28,9 +28,9 @@ class BulletUpsertService
         }
 
         // Ensure both length units if one provided
-        if (!empty($data['length_in']) && empty($data['length_mm'])) {
+        if (! empty($data['length_in']) && empty($data['length_mm'])) {
             $data['length_mm'] = Bullet::inToMm((float) $data['length_in']);
-        } elseif (!empty($data['length_mm']) && empty($data['length_in'])) {
+        } elseif (! empty($data['length_mm']) && empty($data['length_in'])) {
             $data['length_in'] = Bullet::mmToIn((float) $data['length_mm']);
         }
 
@@ -48,10 +48,10 @@ class BulletUpsertService
                 'bullet_label' => $data['bullet_label'],
                 'diameter_in' => (float) $data['diameter_in'],
                 'diameter_mm' => (float) $data['diameter_mm'],
-                'length_in' => !empty($data['length_in']) ? (float) $data['length_in'] : null,
-                'length_mm' => !empty($data['length_mm']) ? (float) $data['length_mm'] : null,
-                'bc_g1' => !empty($data['bc_g1']) ? (float) $data['bc_g1'] : null,
-                'bc_g7' => !empty($data['bc_g7']) ? (float) $data['bc_g7'] : null,
+                'length_in' => ! empty($data['length_in']) ? (float) $data['length_in'] : null,
+                'length_mm' => ! empty($data['length_mm']) ? (float) $data['length_mm'] : null,
+                'bc_g1' => ! empty($data['bc_g1']) ? (float) $data['bc_g1'] : null,
+                'bc_g7' => ! empty($data['bc_g7']) ? (float) $data['bc_g7'] : null,
                 'construction' => $data['construction'] ?? 'other',
                 'intended_use' => $data['intended_use'] ?? 'other',
                 'source_url' => $data['source_url'],

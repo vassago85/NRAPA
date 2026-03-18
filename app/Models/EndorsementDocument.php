@@ -13,29 +13,47 @@ class EndorsementDocument extends Model
 
     // Document type constants
     public const TYPE_SA_ID = 'sa_id';
+
     public const TYPE_PROOF_OF_ADDRESS = 'proof_of_address';
+
     public const TYPE_DEDICATED_STATUS_CERTIFICATE = 'dedicated_status_certificate';
+
     public const TYPE_MEMBERSHIP_PROOF = 'membership_proof';
+
     public const TYPE_ACTIVITY_PROOF = 'activity_proof';
+
     public const TYPE_PREVIOUS_ENDORSEMENT = 'previous_endorsement_letter';
+
     public const TYPE_FIREARM_LICENCE = 'firearm_licence_card';
+
     public const TYPE_COMPETENCY_CERTIFICATE = 'competency_certificate';
+
     public const TYPE_OTHER = 'other';
 
     // Status constants
     public const STATUS_REQUIRED = 'required';
+
     public const STATUS_PENDING_UPLOAD = 'pending_upload';
+
     public const STATUS_UPLOADED = 'uploaded';
+
     public const STATUS_VERIFIED = 'verified';
+
     public const STATUS_REJECTED = 'rejected';
+
     public const STATUS_WAIVED = 'waived';
+
     public const STATUS_SYSTEM_VERIFIED = 'system_verified';
 
     // Activity type constants (for activity proof)
     public const ACTIVITY_MATCH = 'match';
+
     public const ACTIVITY_TRAINING = 'training';
+
     public const ACTIVITY_HUNT = 'hunt';
+
     public const ACTIVITY_PRACTICE = 'practice';
+
     public const ACTIVITY_COMPETITION = 'competition';
 
     /**
@@ -398,7 +416,10 @@ class EndorsementDocument extends Model
      */
     public function getActivityTypeLabelAttribute(): ?string
     {
-        if (!$this->activity_type) return null;
+        if (! $this->activity_type) {
+            return null;
+        }
+
         return self::getActivityTypeOptions()[$this->activity_type] ?? ucfirst($this->activity_type);
     }
 
@@ -407,7 +428,10 @@ class EndorsementDocument extends Model
      */
     public function getDisciplineLabelAttribute(): ?string
     {
-        if (!$this->activity_discipline) return null;
+        if (! $this->activity_discipline) {
+            return null;
+        }
+
         return self::getDisciplineOptions()[$this->activity_discipline] ?? strtoupper($this->activity_discipline);
     }
 
@@ -416,7 +440,7 @@ class EndorsementDocument extends Model
      */
     public function getStatusBadgeClassAttribute(): string
     {
-        return match($this->status) {
+        return match ($this->status) {
             self::STATUS_REQUIRED => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
             self::STATUS_PENDING_UPLOAD => 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
             self::STATUS_UPLOADED => 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
@@ -433,14 +457,16 @@ class EndorsementDocument extends Model
      */
     public function getFileSizeFormattedAttribute(): ?string
     {
-        if (!$this->file_size) return null;
-        
+        if (! $this->file_size) {
+            return null;
+        }
+
         if ($this->file_size < 1024) {
-            return $this->file_size . ' B';
+            return $this->file_size.' B';
         } elseif ($this->file_size < 1048576) {
-            return round($this->file_size / 1024, 1) . ' KB';
+            return round($this->file_size / 1024, 1).' KB';
         } else {
-            return round($this->file_size / 1048576, 1) . ' MB';
+            return round($this->file_size / 1048576, 1).' MB';
         }
     }
 }

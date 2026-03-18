@@ -18,10 +18,10 @@ return new class extends Migration
             $table->string('alias');
             $table->string('normalized_alias')->unique();
             $table->timestamps();
-            
+
             $table->index('firearm_calibre_id');
             $table->index('normalized_alias');
-            
+
             // Fulltext index for search (MySQL)
             if (DB::getDriverName() === 'mysql') {
                 $table->fullText(['alias', 'normalized_alias']);

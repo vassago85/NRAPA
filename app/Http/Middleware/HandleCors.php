@@ -22,7 +22,7 @@ class HandleCors
 
         // Add CORS headers
         $origin = $request->header('Origin') ?? '*';
-        
+
         $response->headers->set('Access-Control-Allow-Origin', $origin);
         $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
         $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-CSRF-TOKEN, X-Livewire');

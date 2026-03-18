@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Models\NotificationPreference;
 use App\Models\User;
 use App\Models\UserFirearm;
 use Illuminate\Console\Command;
@@ -12,6 +11,7 @@ use Illuminate\Support\Facades\Mail;
 class CheckLicenseExpiry extends Command
 {
     protected $signature = 'nrapa:send-license-expiry-notifications';
+
     protected $description = 'Check for expiring firearm licenses and send notifications';
 
     // Default intervals in months
@@ -20,9 +20,9 @@ class CheckLicenseExpiry extends Command
     public function handle(): int
     {
         $this->info('Checking for expiring firearm licenses...');
-        
+
         $notificationsSent = 0;
-        
+
         // Get all users with active memberships who have firearms
         $users = User::whereHas('activeMembership')
             ->whereHas('firearms', function ($query) {
@@ -39,7 +39,7 @@ class CheckLicenseExpiry extends Command
 
         foreach ($users as $user) {
             $intervals = $this->getUserIntervals($user);
-            
+
             if (empty($intervals)) {
                 continue; // User has disabled license expiry notifications
             }
@@ -56,7 +56,7 @@ class CheckLicenseExpiry extends Command
         }
 
         $this->info("License expiry check complete. {$notificationsSent} notifications sent.");
-        
+
         return Command::SUCCESS;
     }
 
@@ -66,9 +66,9 @@ class CheckLicenseExpiry extends Command
     protected function getUserIntervals(User $user): array
     {
         $prefs = $user->notificationPreferences;
-        
+
         // Check if user has disabled license expiry notifications
-        if ($prefs && !$prefs->notify_license_expiry) {
+        if ($prefs && ! $prefs->notify_license_expiry) {
             return [];
         }
 

@@ -13,11 +13,11 @@ class FirearmReferenceSeeder extends Seeder
     public function run(): void
     {
         $this->command->info('Importing firearm reference data...');
-        
+
         Artisan::call('nrapa:import-firearm-reference', [
             '--force' => false,
         ]);
-        
+
         $this->command->info(Artisan::output());
     }
 }

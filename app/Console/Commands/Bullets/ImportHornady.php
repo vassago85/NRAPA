@@ -15,10 +15,10 @@ class ImportHornady extends ImportBulletsCommand
 
     public function handle(): int
     {
-        $parser = new HornadyParser();
+        $parser = new HornadyParser;
         $this->info('Importing Hornady bullets...');
 
-        if ($this->option('bc-only') || !$this->option('catalog')) {
+        if ($this->option('bc-only') || ! $this->option('catalog')) {
             $this->importBcTable($parser);
         }
 
@@ -27,6 +27,7 @@ class ImportHornady extends ImportBulletsCommand
         }
 
         $this->printSummary();
+
         return self::SUCCESS;
     }
 
@@ -35,13 +36,14 @@ class ImportHornady extends ImportBulletsCommand
         $this->info('Fetching BC table from hornady.com/bc ...');
         $html = $this->fetchUrl('https://www.hornady.com/bc');
 
-        if (!$html) {
+        if (! $html) {
             $this->error('Failed to fetch BC table.');
+
             return;
         }
 
         $bullets = $parser->parseBcTable($html);
-        $this->info('Parsed ' . count($bullets) . ' entries from BC table.');
+        $this->info('Parsed '.count($bullets).' entries from BC table.');
 
         if ($this->option('dry-run')) {
             $this->table(
@@ -51,6 +53,7 @@ class ImportHornady extends ImportBulletsCommand
                     $b['bc_g1'] ?? '-', $b['bc_g7'] ?? '-',
                 ])->toArray()
             );
+
             return;
         }
 

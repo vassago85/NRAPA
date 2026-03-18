@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             // Add role column: developer > owner > admin > member
             $table->enum('role', ['developer', 'owner', 'admin', 'member'])->default('member')->after('is_admin');
-            
+
             // Track who nominated owners/admins
             $table->foreignId('nominated_by')->nullable()->after('role')->constrained('users')->nullOnDelete();
             $table->timestamp('nominated_at')->nullable()->after('nominated_by');

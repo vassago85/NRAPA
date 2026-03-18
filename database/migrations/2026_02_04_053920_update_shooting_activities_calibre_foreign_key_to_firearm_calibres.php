@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -12,12 +12,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasTable('shooting_activities')) {
+        if (! Schema::hasTable('shooting_activities')) {
             return;
         }
 
         $driver = DB::getDriverName();
-        
+
         // Drop existing foreign key constraint if it exists
         if ($driver === 'mysql' || $driver === 'mariadb') {
             // Check if foreign key exists before dropping (only drop if pointing to 'calibres' table)
@@ -29,8 +29,8 @@ return new class extends Migration
                 AND COLUMN_NAME = 'calibre_id' 
                 AND REFERENCED_TABLE_NAME = 'calibres'
             ");
-            
-            if (!empty($foreignKeys)) {
+
+            if (! empty($foreignKeys)) {
                 foreach ($foreignKeys as $fk) {
                     try {
                         DB::statement("ALTER TABLE shooting_activities DROP FOREIGN KEY `{$fk->CONSTRAINT_NAME}`");
@@ -61,8 +61,8 @@ return new class extends Migration
                 })
                 ->pluck('calibre_id', 'id')
                 ->toArray();
-            
-            if (!empty($invalidCalibres)) {
+
+            if (! empty($invalidCalibres)) {
                 // Set invalid calibre_id values to NULL
                 DB::table('shooting_activities')
                     ->whereIn('id', array_keys($invalidCalibres))
@@ -75,8 +75,8 @@ return new class extends Migration
         if (Schema::hasTable('firearm_calibres')) {
             // Find all shooting_activities with calibre_id that don't exist in firearm_calibres
             $validCalibreIds = DB::table('firearm_calibres')->pluck('id')->toArray();
-            
-            if (!empty($validCalibreIds)) {
+
+            if (! empty($validCalibreIds)) {
                 // Set invalid calibre_id values to NULL
                 DB::table('shooting_activities')
                     ->whereNotNull('calibre_id')
@@ -102,7 +102,7 @@ return new class extends Migration
                     AND COLUMN_NAME = 'calibre_id' 
                     AND REFERENCED_TABLE_NAME = 'firearm_calibres'
                 ");
-                
+
                 if (empty($existingFk)) {
                     Schema::table('shooting_activities', function (Blueprint $table) {
                         $table->foreign('calibre_id')
@@ -128,12 +128,12 @@ return new class extends Migration
      */
     public function down(): void
     {
-        if (!Schema::hasTable('shooting_activities')) {
+        if (! Schema::hasTable('shooting_activities')) {
             return;
         }
 
         $driver = DB::getDriverName();
-        
+
         // Drop the firearm_calibres foreign key
         if ($driver === 'mysql' || $driver === 'mariadb') {
             $foreignKeys = DB::select("
@@ -144,8 +144,8 @@ return new class extends Migration
                 AND COLUMN_NAME = 'calibre_id' 
                 AND REFERENCED_TABLE_NAME = 'firearm_calibres'
             ");
-            
-            if (!empty($foreignKeys)) {
+
+            if (! empty($foreignKeys)) {
                 foreach ($foreignKeys as $fk) {
                     try {
                         DB::statement("ALTER TABLE shooting_activities DROP FOREIGN KEY `{$fk->CONSTRAINT_NAME}`");

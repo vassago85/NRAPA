@@ -13,7 +13,7 @@ return new class extends Migration
     {
         if (Schema::hasTable('notification_preferences')) {
             Schema::table('notification_preferences', function (Blueprint $table) {
-                if (!Schema::hasColumn('notification_preferences', 'notify_document_rejected')) {
+                if (! Schema::hasColumn('notification_preferences', 'notify_document_rejected')) {
                     $table->boolean('notify_document_rejected')->default(true)->after('notify_document_uploaded');
                 }
             });

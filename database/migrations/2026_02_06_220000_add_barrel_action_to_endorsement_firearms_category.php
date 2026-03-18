@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -22,7 +22,7 @@ return new class extends Migration
             }
 
             // Add component_diameter column for barrel components
-            if (!Schema::hasColumn('endorsement_firearms', 'component_diameter')) {
+            if (! Schema::hasColumn('endorsement_firearms', 'component_diameter')) {
                 Schema::table('endorsement_firearms', function (Blueprint $table) {
                     $table->string('component_diameter')->nullable()->after('firearm_type_other')
                         ->comment('Barrel diameter for barrel component endorsements (e.g. 6.5mm)');

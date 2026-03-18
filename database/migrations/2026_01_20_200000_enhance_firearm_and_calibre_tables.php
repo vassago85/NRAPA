@@ -17,13 +17,13 @@ return new class extends Migration
             $table->enum('ignition_type', ['rimfire', 'centerfire', 'both'])->nullable()->after('category');
             $table->enum('action_type', [
                 'single_shot',
-                'revolver', 
+                'revolver',
                 'semi_auto',
                 'bolt_action',
                 'lever_action',
                 'pump_action',
                 'break_action',
-                'other'
+                'other',
             ])->nullable()->after('ignition_type');
             $table->text('description')->nullable()->after('action_type');
         });

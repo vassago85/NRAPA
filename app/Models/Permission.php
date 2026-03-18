@@ -23,32 +23,47 @@ class Permission extends Model
 
     // Permission Groups
     public const GROUP_MEMBERSHIP = 'membership';
+
     public const GROUP_DOCUMENTS = 'documents';
+
     public const GROUP_FIREARM = 'firearm';
+
     public const GROUP_ADMIN = 'admin';
 
     // Membership Management Permissions
     public const APPROVE_MEMBERSHIP = 'approve_membership';
+
     public const REJECT_MEMBERSHIP = 'reject_membership';
+
     public const SUSPEND_MEMBERSHIP = 'suspend_membership';
+
     public const EDIT_MEMBER_PROFILE = 'edit_member_profile';
 
     // Document Management Permissions
     public const VIEW_DOCUMENTS = 'view_documents';
+
     public const VERIFY_DOCUMENTS = 'verify_documents';
+
     public const REJECT_DOCUMENTS = 'reject_documents';
+
     public const ARCHIVE_DOCUMENTS = 'archive_documents';
 
     // Firearm & Compliance Permissions
     public const REVIEW_FIREARM_MOTIVATION = 'review_firearm_motivation';
+
     public const APPROVE_FIREARM_MOTIVATION = 'approve_firearm_motivation';
+
     public const OVERRIDE_COMPLIANCE_DECISION = 'override_compliance_decision';
 
     // Admin & System Permissions
     public const VIEW_AUDIT_LOGS = 'view_audit_logs';
+
     public const MANAGE_ANNOUNCEMENTS = 'manage_announcements';
+
     public const EXPORT_DATA = 'export_data';
+
     public const SYSTEM_OVERRIDE = 'system_override';
+
     public const MANAGE_CONFIG = 'manage_config'; // For membership types, document types, etc.
 
     /**

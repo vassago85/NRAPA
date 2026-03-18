@@ -2,27 +2,24 @@
 
 namespace App\Helpers;
 
-use App\Models\User;
-use App\Models\TermsVersion;
 use App\Mail\TermsAcceptanceRequiredMail;
-use Illuminate\Support\Facades\Mail;
+use App\Models\TermsVersion;
+use App\Models\User;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class TermsHelper
 {
     /**
      * Check if user needs to accept terms and send email if needed.
-     * 
-     * @param User $user
-     * @return void
      */
     public static function checkAndNotify(User $user): void
     {
         try {
             // Check if there's an active terms version
             $activeTerms = TermsVersion::active();
-            
-            if (!$activeTerms) {
+
+            if (! $activeTerms) {
                 // No active terms - nothing to accept
                 return;
             }
@@ -47,19 +44,17 @@ class TermsHelper
 
     /**
      * Send terms acceptance required email to user.
-     * 
-     * @param User $user
-     * @return void
      */
     public static function sendTermsAcceptanceEmail(User $user): void
     {
         try {
             $activeTerms = TermsVersion::active();
-            
-            if (!$activeTerms) {
+
+            if (! $activeTerms) {
                 Log::warning('TermsHelper::sendTermsAcceptanceEmail - No active terms version found', [
                     'user_id' => $user->id,
                 ]);
+
                 return;
             }
 
@@ -68,12 +63,13 @@ class TermsHelper
                 Log::info('TermsHelper::sendTermsAcceptanceEmail - User already accepted terms', [
                     'user_id' => $user->id,
                 ]);
+
                 return;
             }
 
             // Send the email
             Mail::to($user->email)->send(new TermsAcceptanceRequiredMail($user));
-            
+
             Log::info('TermsHelper::sendTermsAcceptanceEmail - Email sent successfully', [
                 'user_id' => $user->id,
                 'terms_version_id' => $activeTerms->id,

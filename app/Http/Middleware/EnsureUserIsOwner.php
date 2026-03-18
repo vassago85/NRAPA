@@ -17,7 +17,7 @@ class EnsureUserIsOwner
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$request->user() || !$request->user()->hasRoleLevel(User::ROLE_OWNER)) {
+        if (! $request->user() || ! $request->user()->hasRoleLevel(User::ROLE_OWNER)) {
             abort(403, 'Unauthorized. Owner access required.');
         }
 

@@ -4,8 +4,8 @@ namespace Database\Seeders;
 
 use App\Models\SystemSetting;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class SystemSettingsSeeder extends Seeder
 {
@@ -16,7 +16,7 @@ class SystemSettingsSeeder extends Seeder
     {
         // Use raw SQL for SQLite compatibility and to avoid locking issues
         $now = now()->toDateTimeString();
-        
+
         // FAR Sport Shooting Number
         try {
             // Try raw SQL first (works better with SQLite)
@@ -41,7 +41,7 @@ class SystemSettingsSeeder extends Seeder
                 );
                 $this->command->info('  ✓ FAR Sport Shooting: 1300122');
             } catch (\Exception $e2) {
-                $this->command->warn('  ✗ Failed to set far_sport_number: ' . $e2->getMessage());
+                $this->command->warn('  ✗ Failed to set far_sport_number: '.$e2->getMessage());
             }
         }
 
@@ -68,7 +68,7 @@ class SystemSettingsSeeder extends Seeder
                 );
                 $this->command->info('  ✓ FAR Hunting: 1300127');
             } catch (\Exception $e2) {
-                $this->command->warn('  ✗ Failed to set far_hunting_number: ' . $e2->getMessage());
+                $this->command->warn('  ✗ Failed to set far_hunting_number: '.$e2->getMessage());
             }
         }
 

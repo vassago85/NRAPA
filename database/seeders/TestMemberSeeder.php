@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\ActivityType;
-use App\Models\FirearmCalibre;
 use App\Models\Certificate;
 use App\Models\CertificateType;
 use App\Models\Country;
@@ -12,6 +11,7 @@ use App\Models\DocumentType;
 use App\Models\EndorsementFirearm;
 use App\Models\EndorsementRequest;
 use App\Models\EventCategory;
+use App\Models\FirearmCalibre;
 use App\Models\FirearmType;
 use App\Models\KnowledgeTest;
 use App\Models\KnowledgeTestAttempt;
@@ -27,7 +27,7 @@ use Illuminate\Support\Str;
 
 /**
  * TestMemberSeeder - Creates a fully-qualified test member for development/staging.
- * 
+ *
  * This seeder creates a test member with ALL requirements completed:
  * - Active membership (Dedicated Sport Shooter)
  * - Passed knowledge test
@@ -35,11 +35,11 @@ use Illuminate\Support\Str;
  * - Approved shooting activities
  * - Approved dedicated status
  * - Valid membership certificate
- * 
+ *
  * Test Credentials:
  * Email: testmember@nrapa.test
  * Password: TestMember2026!
- * 
+ *
  * WARNING: Only run in development/staging environments!
  */
 class TestMemberSeeder extends Seeder
@@ -52,6 +52,7 @@ class TestMemberSeeder extends Seeder
         // Safety check - don't run in production
         if (app()->environment('production')) {
             $this->command->warn('TestMemberSeeder skipped - production environment detected.');
+
             return;
         }
 
@@ -67,23 +68,23 @@ class TestMemberSeeder extends Seeder
 
         // 3. Create verified documents
         $this->createVerifiedDocuments($user);
-        $this->command->info("  ✓ Verified documents created");
+        $this->command->info('  ✓ Verified documents created');
 
         // 4. Create passed knowledge test
         $this->createPassedKnowledgeTest($user);
-        $this->command->info("  ✓ Knowledge test passed");
+        $this->command->info('  ✓ Knowledge test passed');
 
         // 5. Create approved shooting activities
         $this->createApprovedActivities($user);
-        $this->command->info("  ✓ Approved activities created");
+        $this->command->info('  ✓ Approved activities created');
 
         // 6. Create approved dedicated status
         $dedicatedStatus = $this->createApprovedDedicatedStatus($user, $membership);
-        $this->command->info("  ✓ Dedicated status approved");
+        $this->command->info('  ✓ Dedicated status approved');
 
         // 7. Create membership certificate
         $this->createCertificates($user, $membership);
-        $this->command->info("  ✓ Certificates issued");
+        $this->command->info('  ✓ Certificates issued');
 
         // 8. Create approved endorsement letter
         $endorsementRequest = $this->createApprovedEndorsementLetter($user, $membership);
@@ -140,20 +141,20 @@ class TestMemberSeeder extends Seeder
     {
         // Get the Dedicated Sport Shooter membership type
         $membershipType = MembershipType::where('slug', 'dedicated-sport')->first();
-        
-        if (!$membershipType) {
+
+        if (! $membershipType) {
             // Fallback to any active membership type that allows dedicated status
             $membershipType = MembershipType::where('is_active', true)
                 ->where('allows_dedicated_status', true)
                 ->first();
         }
 
-        if (!$membershipType) {
+        if (! $membershipType) {
             throw new \RuntimeException('No suitable membership type found. Run MembershipConfigurationSeeder first.');
         }
 
         // Get the developer user for approvals
-        $developer = User::where('role', User::ROLE_DEVELOPER)->first() 
+        $developer = User::where('role', User::ROLE_DEVELOPER)->first()
             ?? User::where('email', 'paul@charsley.co.za')->first()
             ?? User::first();
 
@@ -210,8 +211,8 @@ class TestMemberSeeder extends Seeder
 
         foreach ($documentsToCreate as $slug => $data) {
             $documentType = DocumentType::where('slug', $slug)->first();
-            
-            if (!$documentType) {
+
+            if (! $documentType) {
                 continue;
             }
 
@@ -229,7 +230,7 @@ class TestMemberSeeder extends Seeder
                 'uuid' => Str::uuid()->toString(),
                 'user_id' => $user->id,
                 'document_type_id' => $documentType->id,
-                'file_path' => 'documents/test/' . $data['original_filename'],
+                'file_path' => 'documents/test/'.$data['original_filename'],
                 'original_filename' => $data['original_filename'],
                 'mime_type' => 'application/pdf',
                 'file_size' => 102400, // 100KB
@@ -238,8 +239,8 @@ class TestMemberSeeder extends Seeder
                 'uploaded_at' => now()->subDays(25),
                 'verified_at' => now()->subDays(24),
                 'verified_by' => $developer?->id,
-                'expires_at' => $documentType->expiry_months 
-                    ? now()->addMonths($documentType->expiry_months) 
+                'expires_at' => $documentType->expiry_months
+                    ? now()->addMonths($documentType->expiry_months)
                     : null,
             ]);
         }
@@ -261,8 +262,8 @@ class TestMemberSeeder extends Seeder
 
         // Try to find a knowledge test, or create a minimal one
         $knowledgeTest = KnowledgeTest::where('is_active', true)->first();
-        
-        if (!$knowledgeTest) {
+
+        if (! $knowledgeTest) {
             // Create a basic knowledge test for testing purposes
             $knowledgeTest = KnowledgeTest::create([
                 'name' => 'Dedicated Sport Shooter Knowledge Test',
@@ -410,8 +411,8 @@ class TestMemberSeeder extends Seeder
 
         foreach ($certificateTypes as $slug) {
             $certificateType = CertificateType::where('slug', $slug)->first();
-            
-            if (!$certificateType) {
+
+            if (! $certificateType) {
                 continue;
             }
 
@@ -508,7 +509,7 @@ class TestMemberSeeder extends Seeder
         try {
             $renderer = app(\App\Contracts\DocumentRenderer::class);
             $letterPath = $renderer->renderEndorsementLetter($request, 'documents.letters.endorsement');
-            
+
             // Issue the letter
             $request->issue($developer, $letterReference, $letterPath);
         } catch (\Exception $e) {

@@ -36,7 +36,7 @@ class CalibreSeeder extends Seeder
             ['name' => '.500 Linebaugh', 'category' => 'handgun', 'ignition_type' => 'centerfire', 'is_common' => false],
             ['name' => '.500 JRH', 'category' => 'handgun', 'ignition_type' => 'centerfire', 'is_common' => false],
             ['name' => '.500 S&W Magnum', 'category' => 'handgun', 'ignition_type' => 'centerfire', 'is_common' => false],
-            
+
             // Handgun - Centerfire - Self-loading (Semi-auto)
             ['name' => '5.45×18mm', 'category' => 'handgun', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => ['5.45x18mm PSM']],
             ['name' => '5.7×28mm', 'category' => 'handgun', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => ['5.7x28mm FN']],
@@ -55,7 +55,7 @@ class CalibreSeeder extends Seeder
             ['name' => '.45 ACP', 'category' => 'handgun', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['.45 Auto', '11.43×23mm']],
             ['name' => '.45 GAP', 'category' => 'handgun', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => ['.45 Glock']],
             ['name' => '.50 Action Express', 'category' => 'handgun', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => ['.50 AE']],
-            
+
             // Handgun - Rimfire
             ['name' => '.17 HM2', 'category' => 'handgun', 'ignition_type' => 'rimfire', 'is_common' => false, 'aliases' => ['.17 Hornady Mach 2']],
             ['name' => '.17 HMR', 'category' => 'handgun', 'ignition_type' => 'rimfire', 'is_common' => false, 'aliases' => ['.17 Hornady Magnum Rimfire']],
@@ -63,7 +63,7 @@ class CalibreSeeder extends Seeder
             ['name' => '.22 Long', 'category' => 'handgun', 'ignition_type' => 'rimfire', 'is_common' => false],
             ['name' => '.22 LR', 'category' => 'handgun', 'ignition_type' => 'rimfire', 'is_common' => true, 'aliases' => ['.22 Long Rifle', '.22']],
             ['name' => '.22 WMR', 'category' => 'handgun', 'ignition_type' => 'rimfire', 'is_common' => false, 'aliases' => ['.22 Magnum', '.22 Winchester Magnum Rimfire']],
-            
+
             // ===== SHOTGUN CALIBRES =====
             ['name' => '.410 Bore', 'category' => 'shotgun', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['.410', '410 Gauge']],
             ['name' => '28 Gauge', 'category' => 'shotgun', 'ignition_type' => 'centerfire', 'is_common' => false],
@@ -73,7 +73,7 @@ class CalibreSeeder extends Seeder
             ['name' => '12 Gauge', 'category' => 'shotgun', 'ignition_type' => 'centerfire', 'is_common' => true],
             ['name' => '10 Gauge', 'category' => 'shotgun', 'ignition_type' => 'centerfire', 'is_common' => false],
             ['name' => '8 Gauge', 'category' => 'shotgun', 'ignition_type' => 'centerfire', 'is_common' => false, 'is_obsolete' => true],
-            
+
             // ===== RIFLE CALIBRES =====
             // Rifle - Rimfire
             ['name' => '2mm Kolibri', 'category' => 'rifle', 'ignition_type' => 'rimfire', 'is_common' => false, 'is_obsolete' => true],
@@ -94,7 +94,7 @@ class CalibreSeeder extends Seeder
             ['name' => '.44 Henry Rimfire', 'category' => 'rifle', 'ignition_type' => 'rimfire', 'is_common' => false, 'is_obsolete' => true],
             ['name' => '.56-52 Spencer', 'category' => 'rifle', 'ignition_type' => 'rimfire', 'is_common' => false, 'is_obsolete' => true],
             ['name' => '.56-56 Spencer', 'category' => 'rifle', 'ignition_type' => 'rimfire', 'is_common' => false, 'is_obsolete' => true],
-            
+
             // Rifle - Centerfire (common modern calibres)
             ['name' => '.17 Hornet', 'category' => 'rifle', 'ignition_type' => 'centerfire', 'is_common' => false],
             ['name' => '.17 Remington', 'category' => 'rifle', 'ignition_type' => 'centerfire', 'is_common' => false],
@@ -134,7 +134,7 @@ class CalibreSeeder extends Seeder
         $sortOrder = 0;
         foreach ($calibres as $calibre) {
             $sortOrder++;
-            
+
             Calibre::updateOrCreate(
                 ['slug' => Str::slug($calibre['name'])],
                 [
@@ -150,6 +150,6 @@ class CalibreSeeder extends Seeder
             );
         }
 
-        $this->command->info('Seeded ' . count($calibres) . ' calibres.');
+        $this->command->info('Seeded '.count($calibres).' calibres.');
     }
 }

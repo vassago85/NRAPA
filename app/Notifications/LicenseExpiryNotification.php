@@ -69,5 +69,4 @@ class LicenseExpiryNotification extends Notification implements ShouldQueue
             default => 'low',
         };
     }
-
 }

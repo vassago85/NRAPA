@@ -59,6 +59,7 @@ class ReloadingInventory extends Model
                 $name .= " {$this->bullet_type}";
             }
         }
+
         return $name;
     }
 
@@ -71,8 +72,10 @@ class ReloadingInventory extends Model
     {
         if ($this->type === 'powder') {
             $grains = $this->quantity * 15.4324;
-            return number_format($grains, 0) . ' grains';
+
+            return number_format($grains, 0).' grains';
         }
+
         return number_format($this->quantity, 0);
     }
 
@@ -90,16 +93,16 @@ class ReloadingInventory extends Model
      */
     public function getFriendlyPriceAttribute(): ?string
     {
-        if (!$this->cost_per_unit || $this->cost_per_unit <= 0) {
+        if (! $this->cost_per_unit || $this->cost_per_unit <= 0) {
             return null;
         }
 
         return match ($this->type) {
-            'powder' => '~R' . number_format($this->cost_per_unit * 453.592, 0) . '/lb',
-            'primer' => 'R' . number_format($this->cost_per_unit * 100, 0) . '/100',
-            'bullet' => 'R' . number_format($this->cost_per_unit * 100, 0) . '/100',
-            'brass'  => 'R' . number_format($this->cost_per_unit * 50, 0) . '/50',
-            default  => 'R' . number_format($this->cost_per_unit, 2) . '/unit',
+            'powder' => '~R'.number_format($this->cost_per_unit * 453.592, 0).'/lb',
+            'primer' => 'R'.number_format($this->cost_per_unit * 100, 0).'/100',
+            'bullet' => 'R'.number_format($this->cost_per_unit * 100, 0).'/100',
+            'brass' => 'R'.number_format($this->cost_per_unit * 50, 0).'/50',
+            default => 'R'.number_format($this->cost_per_unit, 2).'/unit',
         };
     }
 
@@ -109,7 +112,7 @@ class ReloadingInventory extends Model
      */
     public function getPriceForLoadAttribute(): ?float
     {
-        if (!$this->cost_per_unit || $this->cost_per_unit <= 0) {
+        if (! $this->cost_per_unit || $this->cost_per_unit <= 0) {
             return null;
         }
 
@@ -142,6 +145,7 @@ class ReloadingInventory extends Model
     public function getIsLowStockAttribute(): bool
     {
         $threshold = $this->low_stock_threshold ?? $this->getDefaultThreshold();
+
         return $this->quantity < $threshold;
     }
 
@@ -174,8 +178,9 @@ class ReloadingInventory extends Model
     {
         $threshold = $this->effective_threshold;
         if ($this->type === 'powder') {
-            return number_format($threshold * 15.4324, 0) . ' grains';
+            return number_format($threshold * 15.4324, 0).' grains';
         }
+
         return number_format($threshold, 0);
     }
 

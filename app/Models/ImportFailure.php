@@ -65,7 +65,8 @@ class ImportFailure extends Model
     public function getNameAttribute(): string
     {
         $data = $this->row_data;
-        return trim(($data['initials'] ?? '') . ' ' . ($data['surname'] ?? ''));
+
+        return trim(($data['initials'] ?? '').' '.($data['surname'] ?? ''));
     }
 
     /**

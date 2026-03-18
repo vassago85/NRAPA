@@ -76,6 +76,7 @@ class Bullet extends Model
         if ($inches === null) {
             $this->length_in = null;
             $this->length_mm = null;
+
             return;
         }
         $this->length_in = round($inches, 3);
@@ -90,6 +91,7 @@ class Bullet extends Model
         if ($mm === null) {
             $this->length_mm = null;
             $this->length_in = null;
+
             return;
         }
         $this->length_mm = round($mm, 3);
@@ -102,6 +104,7 @@ class Bullet extends Model
     public static function unitsMatch(float $inches, float $mm, float $toleranceMm = 0.001): bool
     {
         $expectedMm = $inches * 25.4;
+
         return abs($expectedMm - $mm) <= $toleranceMm;
     }
 
@@ -113,6 +116,7 @@ class Bullet extends Model
         if ($this->twist_note) {
             $parts[] = "({$this->twist_note})";
         }
+
         return implode(' ', $parts);
     }
 
@@ -128,9 +132,10 @@ class Bullet extends Model
 
     public function getLengthDisplayAttribute(): ?string
     {
-        if (!$this->length_in && !$this->length_mm) {
+        if (! $this->length_in && ! $this->length_mm) {
             return null;
         }
+
         return "{$this->length_in}\" / {$this->length_mm}mm";
     }
 
@@ -150,6 +155,7 @@ class Bullet extends Model
         if ($this->bc_reference) {
             $display .= " ({$this->bc_reference})";
         }
+
         return $display;
     }
 
@@ -193,22 +199,22 @@ class Bullet extends Model
     public static function caliberDiameters(): array
     {
         return [
-            '17 Cal'  => ['in' => 0.172, 'mm' => 4.369],
-            '20 Cal'  => ['in' => 0.204, 'mm' => 5.182],
-            '22 Cal'  => ['in' => 0.224, 'mm' => 5.690],
-            '6mm'     => ['in' => 0.243, 'mm' => 6.172],
-            '25 Cal'  => ['in' => 0.257, 'mm' => 6.528],
-            '6.5mm'   => ['in' => 0.264, 'mm' => 6.706],
+            '17 Cal' => ['in' => 0.172, 'mm' => 4.369],
+            '20 Cal' => ['in' => 0.204, 'mm' => 5.182],
+            '22 Cal' => ['in' => 0.224, 'mm' => 5.690],
+            '6mm' => ['in' => 0.243, 'mm' => 6.172],
+            '25 Cal' => ['in' => 0.257, 'mm' => 6.528],
+            '6.5mm' => ['in' => 0.264, 'mm' => 6.706],
             '270 Cal' => ['in' => 0.277, 'mm' => 7.036],
-            '7mm'     => ['in' => 0.284, 'mm' => 7.214],
-            '30 Cal'  => ['in' => 0.308, 'mm' => 7.823],
-            '8mm'     => ['in' => 0.323, 'mm' => 8.204],
+            '7mm' => ['in' => 0.284, 'mm' => 7.214],
+            '30 Cal' => ['in' => 0.308, 'mm' => 7.823],
+            '8mm' => ['in' => 0.323, 'mm' => 8.204],
             '338 Cal' => ['in' => 0.338, 'mm' => 8.585],
-            '35 Cal'  => ['in' => 0.358, 'mm' => 9.093],
+            '35 Cal' => ['in' => 0.358, 'mm' => 9.093],
             '375 Cal' => ['in' => 0.375, 'mm' => 9.525],
             '416 Cal' => ['in' => 0.416, 'mm' => 10.566],
             '458 Cal' => ['in' => 0.458, 'mm' => 11.633],
-            '50 Cal'  => ['in' => 0.510, 'mm' => 12.954],
+            '50 Cal' => ['in' => 0.510, 'mm' => 12.954],
         ];
     }
 
@@ -263,9 +269,9 @@ class Bullet extends Model
     {
         return $query->where(function ($q) use ($search) {
             $q->where('bullet_label', 'like', "%{$search}%")
-              ->orWhere('manufacturer', 'like', "%{$search}%")
-              ->orWhere('brand_line', 'like', "%{$search}%")
-              ->orWhere('sku_or_part_no', 'like', "%{$search}%");
+                ->orWhere('manufacturer', 'like', "%{$search}%")
+                ->orWhere('brand_line', 'like', "%{$search}%")
+                ->orWhere('sku_or_part_no', 'like', "%{$search}%");
         });
     }
 
@@ -280,6 +286,7 @@ class Bullet extends Model
         if ($max) {
             $query->where('weight_gr', '<=', $max);
         }
+
         return $query;
     }
 
@@ -300,8 +307,8 @@ class Bullet extends Model
             'bc_g1' => ['nullable', 'numeric', 'min:0.010', 'max:2.000'],
             'bc_g7' => ['nullable', 'numeric', 'min:0.010', 'max:2.000'],
             'bc_reference' => ['nullable', 'string', 'max:32'],
-            'construction' => ['required', 'in:' . implode(',', array_keys(self::constructionTypes()))],
-            'intended_use' => ['required', 'in:' . implode(',', array_keys(self::intendedUses()))],
+            'construction' => ['required', 'in:'.implode(',', array_keys(self::constructionTypes()))],
+            'intended_use' => ['required', 'in:'.implode(',', array_keys(self::intendedUses()))],
             'twist_note' => ['nullable', 'string', 'max:64'],
             'sku_or_part_no' => ['nullable', 'string', 'max:64'],
             'source_url' => ['required', 'string', 'max:255', 'url'],

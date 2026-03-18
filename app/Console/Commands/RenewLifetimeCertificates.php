@@ -2,8 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Certificate;
-use App\Models\Membership;
 use App\Models\User;
 use App\Services\CertificateIssueService;
 use Illuminate\Console\Command;
@@ -12,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 class RenewLifetimeCertificates extends Command
 {
     protected $signature = 'nrapa:renew-lifetime-certificates';
+
     protected $description = 'Auto-renew membership certificates for lifetime members whose certificates are expiring within 30 days or have expired';
 
     public function handle(): int
@@ -34,10 +33,10 @@ class RenewLifetimeCertificates extends Command
                 ->latest('issued_at')
                 ->first();
 
-            $needsRenewal = !$currentCert
+            $needsRenewal = ! $currentCert
                 || ($currentCert->valid_until && $currentCert->valid_until->lte(now()->addDays(30)));
 
-            if (!$needsRenewal) {
+            if (! $needsRenewal) {
                 continue;
             }
 

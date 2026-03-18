@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class AccountResetLog extends Model
 {
     public const TYPE_PASSWORD = 'password';
+
     public const TYPE_2FA = '2fa';
 
     protected $fillable = [
@@ -57,7 +58,7 @@ class AccountResetLog extends Model
      */
     public function getResetTypeLabelAttribute(): string
     {
-        return match($this->reset_type) {
+        return match ($this->reset_type) {
             self::TYPE_PASSWORD => 'Password Reset',
             self::TYPE_2FA => '2FA Reset',
             default => 'Unknown',

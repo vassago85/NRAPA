@@ -10,31 +10,48 @@ class EndorsementFirearm extends Model
 {
     // Firearm category constants (SAPS 271 Form Section E compliant)
     public const CATEGORY_RIFLE = 'rifle';
+
     public const CATEGORY_SHOTGUN = 'shotgun';
+
     public const CATEGORY_HANDGUN = 'handgun';
+
     public const CATEGORY_COMBINATION = 'combination';
+
     public const CATEGORY_OTHER = 'other';
+
     public const CATEGORY_BARREL = 'barrel';
+
     public const CATEGORY_ACTION = 'action';
 
     // Ignition type constants
     public const IGNITION_RIMFIRE = 'rimfire';
+
     public const IGNITION_CENTERFIRE = 'centerfire';
 
     // Action type constants
     public const ACTION_SINGLE_SHOT = 'single_shot';
+
     public const ACTION_REVOLVER = 'revolver';
+
     public const ACTION_SEMI_AUTO = 'semi_auto';
+
     public const ACTION_BOLT_ACTION = 'bolt_action';
+
     public const ACTION_LEVER_ACTION = 'lever_action';
+
     public const ACTION_PUMP_ACTION = 'pump_action';
+
     public const ACTION_BREAK_ACTION = 'break_action';
+
     public const ACTION_OTHER = 'other';
 
     // Licence section constants
     public const LICENCE_SECTION_13 = '13';
+
     public const LICENCE_SECTION_15 = '15';
+
     public const LICENCE_SECTION_16 = '16';
+
     public const LICENCE_SECTION_OTHER = 'other';
 
     /**
@@ -265,7 +282,7 @@ class EndorsementFirearm extends Model
     {
         // Map SAPS 271 firearm categories to calibre categories for filtering
         // Note: This is for legacy Calibre system - new system uses FirearmCalibre
-        return match($firearmCategory) {
+        return match ($firearmCategory) {
             self::CATEGORY_RIFLE, self::CATEGORY_COMBINATION => 'rifle', // Combination can use rifle calibres
             self::CATEGORY_SHOTGUN => 'shotgun',
             self::CATEGORY_HANDGUN => 'handgun',
@@ -281,10 +298,10 @@ class EndorsementFirearm extends Model
      */
     public function hasAtLeastOneSerialNumber(): bool
     {
-        return !empty($this->serial_number) 
-            || !empty($this->barrel_serial_number) 
-            || !empty($this->frame_serial_number) 
-            || !empty($this->receiver_serial_number);
+        return ! empty($this->serial_number)
+            || ! empty($this->barrel_serial_number)
+            || ! empty($this->frame_serial_number)
+            || ! empty($this->receiver_serial_number);
     }
 
     /**
@@ -293,33 +310,33 @@ class EndorsementFirearm extends Model
     public function getSerialNumbersAttribute(): array
     {
         $serials = [];
-        
-        if (!empty($this->barrel_serial_number)) {
+
+        if (! empty($this->barrel_serial_number)) {
             $serials['barrel'] = [
                 'serial' => $this->barrel_serial_number,
                 'make' => $this->barrel_make,
             ];
         }
-        if (!empty($this->frame_serial_number)) {
+        if (! empty($this->frame_serial_number)) {
             $serials['frame'] = [
                 'serial' => $this->frame_serial_number,
                 'make' => $this->frame_make,
             ];
         }
-        if (!empty($this->receiver_serial_number)) {
+        if (! empty($this->receiver_serial_number)) {
             $serials['receiver'] = [
                 'serial' => $this->receiver_serial_number,
                 'make' => $this->receiver_make,
             ];
         }
         // Legacy serial number
-        if (!empty($this->serial_number) && empty($serials)) {
+        if (! empty($this->serial_number) && empty($serials)) {
             $serials['general'] = [
                 'serial' => $this->serial_number,
                 'make' => null,
             ];
         }
-        
+
         return $serials;
     }
 
@@ -346,12 +363,12 @@ class EndorsementFirearm extends Model
     public function getCategoryLabelAttribute(): string
     {
         $label = self::getCategoryOptions()[$this->firearm_category] ?? ucfirst($this->firearm_category);
-        
+
         // Add specification for "other" type
         if ($this->firearm_category === self::CATEGORY_OTHER && $this->firearm_type_other) {
             return "{$label} ({$this->firearm_type_other})";
         }
-        
+
         return $label;
     }
 
@@ -360,7 +377,10 @@ class EndorsementFirearm extends Model
      */
     public function getIgnitionTypeLabelAttribute(): ?string
     {
-        if (!$this->ignition_type) return null;
+        if (! $this->ignition_type) {
+            return null;
+        }
+
         return self::getIgnitionTypeOptions()[$this->ignition_type] ?? ucfirst($this->ignition_type);
     }
 
@@ -369,7 +389,10 @@ class EndorsementFirearm extends Model
      */
     public function getActionTypeLabelAttribute(): ?string
     {
-        if (!$this->action_type) return null;
+        if (! $this->action_type) {
+            return null;
+        }
+
         return self::getActionTypeOptions()[$this->action_type] ?? ucfirst(str_replace('_', ' ', $this->action_type));
     }
 
@@ -378,8 +401,11 @@ class EndorsementFirearm extends Model
      */
     public function getLicenceSectionLabelAttribute(): ?string
     {
-        if (!$this->licence_section) return null;
-        return self::getLicenceSectionOptions()[$this->licence_section] ?? 'Section ' . $this->licence_section;
+        if (! $this->licence_section) {
+            return null;
+        }
+
+        return self::getLicenceSectionOptions()[$this->licence_section] ?? 'Section '.$this->licence_section;
     }
 
     /**
@@ -395,6 +421,7 @@ class EndorsementFirearm extends Model
         if ($this->calibre) {
             return $this->calibre->name;
         }
+
         // Fallback to override or manual
         return $this->calibre_text_override ?? $this->calibre_manual;
     }
@@ -407,6 +434,7 @@ class EndorsementFirearm extends Model
         if ($this->firearmMake) {
             return $this->firearmMake->name;
         }
+
         return $this->make_text_override ?? $this->make;
     }
 
@@ -418,6 +446,7 @@ class EndorsementFirearm extends Model
         if ($this->firearmModel) {
             return $this->firearmModel->name;
         }
+
         return $this->model_text_override ?? $this->model;
     }
 
@@ -427,16 +456,20 @@ class EndorsementFirearm extends Model
     public function getSummaryAttribute(): string
     {
         $parts = [];
-        
-        if ($this->make) $parts[] = $this->make;
-        if ($this->model) $parts[] = $this->model;
-        
+
+        if ($this->make) {
+            $parts[] = $this->make;
+        }
+        if ($this->model) {
+            $parts[] = $this->model;
+        }
+
         if (empty($parts)) {
             $parts[] = $this->category_label;
         }
-        
+
         if ($this->calibre_display) {
-            $parts[] = '(' . $this->calibre_display . ')';
+            $parts[] = '('.$this->calibre_display.')';
         }
 
         return implode(' ', $parts);
@@ -452,20 +485,20 @@ class EndorsementFirearm extends Model
         if ($this->user_firearm_id && $this->userFirearm) {
             return $this->userFirearm->saps_271_identity;
         }
-        
+
         // Otherwise build from stored fields
         $parts = [];
-        
+
         // Type
         if ($this->firearm_category) {
             $parts[] = $this->category_label;
         }
-        
+
         // Action
         if ($this->action_type) {
             $parts[] = $this->action_type_label;
         }
-        
+
         // Calibre
         if ($this->calibre_display) {
             $parts[] = $this->calibre_display;
@@ -475,7 +508,7 @@ class EndorsementFirearm extends Model
         } elseif ($this->calibre_code) {
             $parts[] = $this->calibre_code;
         }
-        
+
         // Make/Model
         if ($this->make) {
             $parts[] = $this->make;
@@ -483,7 +516,7 @@ class EndorsementFirearm extends Model
         if ($this->model) {
             $parts[] = $this->model;
         }
-        
+
         // Serial numbers
         $serials = [];
         if ($this->barrel_serial_number) {
@@ -498,11 +531,11 @@ class EndorsementFirearm extends Model
         if (empty($serials) && $this->serial_number) {
             $serials[] = "Serial: {$this->serial_number}";
         }
-        
-        if (!empty($serials)) {
+
+        if (! empty($serials)) {
             $parts[] = implode(', ', $serials);
         }
-        
+
         return implode(' - ', $parts);
     }
 }

@@ -46,7 +46,7 @@ class FirearmCalibreSeeder extends Seeder
     protected function seedSapsCalibres(string $csvPath): void
     {
         $handle = fopen($csvPath, 'r');
-        if (!$handle) {
+        if (! $handle) {
             return;
         }
 
@@ -66,15 +66,20 @@ class FirearmCalibreSeeder extends Seeder
         $seen = []; // Track normalized names to handle duplicates
 
         while (($row = fgetcsv($handle)) !== false) {
-            if (count($row) < 2) continue;
+            if (count($row) < 2) {
+                continue;
+            }
 
             $sapsCode = trim($row[0]);
             $sapsName = trim($row[1]);
-            if (empty($sapsName)) continue;
+            if (empty($sapsName)) {
+                continue;
+            }
 
             // Skip non-calibre entries
             if ($this->shouldSkipSapsEntry($sapsName)) {
                 $skipped++;
+
                 continue;
             }
 
@@ -145,27 +150,27 @@ class FirearmCalibreSeeder extends Seeder
             $calibre = FirearmCalibre::whereNotNull('saps_code')
                 ->where(function ($q) use ($normalizedName, $entry) {
                     $q->where('normalized_name', $normalizedName)
-                      ->orWhereRaw('LOWER(name) = ?', [strtolower($entry['name'])]);
+                        ->orWhereRaw('LOWER(name) = ?', [strtolower($entry['name'])]);
                 })
                 ->first();
 
-            if (!$calibre) {
+            if (! $calibre) {
                 continue; // No matching SAPS entry – skip
             }
 
             // Update metadata fields (only if not already set)
             $updates = [];
-            if (!empty($entry['bullet_diameter_mm']) && empty($calibre->bullet_diameter_mm)) {
+            if (! empty($entry['bullet_diameter_mm']) && empty($calibre->bullet_diameter_mm)) {
                 $updates['bullet_diameter_mm'] = $entry['bullet_diameter_mm'];
             }
-            if (!empty($entry['case_length_mm']) && empty($calibre->case_length_mm)) {
+            if (! empty($entry['case_length_mm']) && empty($calibre->case_length_mm)) {
                 $updates['case_length_mm'] = $entry['case_length_mm'];
             }
-            if (!empty($entry['family']) && empty($calibre->family)) {
+            if (! empty($entry['family']) && empty($calibre->family)) {
                 $updates['family'] = $entry['family'];
             }
 
-            if (!empty($updates)) {
+            if (! empty($updates)) {
                 $calibre->update($updates);
                 $enriched++;
             }
@@ -174,7 +179,7 @@ class FirearmCalibreSeeder extends Seeder
             foreach ($aliases as $alias) {
                 $normalizedAlias = FirearmCalibre::normalize($alias);
                 $existingAlias = FirearmCalibreAlias::where('normalized_alias', $normalizedAlias)->first();
-                if (!$existingAlias) {
+                if (! $existingAlias) {
                     FirearmCalibreAlias::create([
                         'firearm_calibre_id' => $calibre->id,
                         'alias' => $alias,
@@ -199,7 +204,7 @@ class FirearmCalibreSeeder extends Seeder
     protected function enrichFromCsv(string $csvPath): int
     {
         $handle = fopen($csvPath, 'r');
-        if (!$handle) {
+        if (! $handle) {
             return 0;
         }
 
@@ -207,7 +212,9 @@ class FirearmCalibreSeeder extends Seeder
         $enriched = 0;
 
         while (($row = fgetcsv($handle)) !== false) {
-            if (count($row) < 11) continue;
+            if (count($row) < 11) {
+                continue;
+            }
 
             $name = $row[0];
             $normalizedName = FirearmCalibre::normalize($name);
@@ -216,38 +223,39 @@ class FirearmCalibreSeeder extends Seeder
             $calibre = FirearmCalibre::whereNotNull('saps_code')
                 ->where(function ($q) use ($normalizedName, $name) {
                     $q->where('normalized_name', $normalizedName)
-                      ->orWhereRaw('LOWER(name) = ?', [strtolower($name)]);
+                        ->orWhereRaw('LOWER(name) = ?', [strtolower($name)]);
                 })
                 ->first();
 
-            if (!$calibre) {
+            if (! $calibre) {
                 continue;
             }
 
             $updates = [];
-            if (!empty($row[3]) && empty($calibre->family)) {
+            if (! empty($row[3]) && empty($calibre->family)) {
                 $updates['family'] = $row[3];
             }
-            if (!empty($row[4]) && empty($calibre->bullet_diameter_mm)) {
+            if (! empty($row[4]) && empty($calibre->bullet_diameter_mm)) {
                 $updates['bullet_diameter_mm'] = (float) $row[4];
             }
-            if (!empty($row[5]) && empty($calibre->case_length_mm)) {
+            if (! empty($row[5]) && empty($calibre->case_length_mm)) {
                 $updates['case_length_mm'] = (float) $row[5];
             }
-            if (!empty($row[6]) && empty($calibre->parent)) {
+            if (! empty($row[6]) && empty($calibre->parent)) {
                 $updates['parent'] = $row[6];
             }
-            if (!empty($row[10]) && empty($calibre->tags)) {
+            if (! empty($row[10]) && empty($calibre->tags)) {
                 $updates['tags'] = explode(',', $row[10]);
             }
 
-            if (!empty($updates)) {
+            if (! empty($updates)) {
                 $calibre->update($updates);
                 $enriched++;
             }
         }
 
         fclose($handle);
+
         return $enriched;
     }
 
@@ -375,7 +383,7 @@ class FirearmCalibreSeeder extends Seeder
         if (preg_match('/\b\d+\s*GA\b/i', $name) || preg_match('/\b\d+\s*GAUGE\b/i', $name)) {
             return 'shotgun';
         }
-        if (str_contains($upper, 'BORE') && !str_contains($upper, '30 BORE')) {
+        if (str_contains($upper, 'BORE') && ! str_contains($upper, '30 BORE')) {
             return 'shotgun';
         }
 

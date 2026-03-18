@@ -41,6 +41,7 @@ class LearningCenterSeeder extends Seeder
     protected function ensureArticle(LearningCategory $category, array $data, ?string $dedicatedType = null): LearningArticle
     {
         $slug = $data['slug'] ?? Str::slug($data['title']);
+
         return LearningArticle::updateOrCreate(
             ['slug' => $slug],
             [
@@ -90,11 +91,12 @@ class LearningCenterSeeder extends Seeder
     protected function getLearningCenterLogoPath(): ?string
     {
         $logoPath = public_path('nrapa-logo.png');
-        if (!file_exists($logoPath)) {
+        if (! file_exists($logoPath)) {
             return null;
         }
         $destPath = 'learning/articles/nrapa-logo.png';
         Storage::disk('public')->put($destPath, file_get_contents($logoPath));
+
         return $destPath;
     }
 
@@ -104,12 +106,13 @@ class LearningCenterSeeder extends Seeder
      */
     protected function copyQuestionImageToLearning(string $sourceFilename, string $destFilename): ?string
     {
-        $sourcePath = storage_path('app/public/question-images/' . $sourceFilename);
-        if (!file_exists($sourcePath)) {
+        $sourcePath = storage_path('app/public/question-images/'.$sourceFilename);
+        if (! file_exists($sourcePath)) {
             return null;
         }
-        $destPath = 'learning/articles/' . $destFilename;
+        $destPath = 'learning/articles/'.$destFilename;
         Storage::disk('public')->put($destPath, file_get_contents($sourcePath));
+
         return $destPath;
     }
 
@@ -118,7 +121,7 @@ class LearningCenterSeeder extends Seeder
      */
     protected function learningImageUrl(string $storagePath): string
     {
-        return '/storage/' . $storagePath;
+        return '/storage/'.$storagePath;
     }
 
     protected function seedSharedContent(): void
@@ -1420,7 +1423,7 @@ HTML;
     protected function contentAnimalTracksIntro(?string $imagePath = null): string
     {
         $imageHtml = $imagePath
-            ? '<div class="my-6"><img src="' . $this->learningImageUrl($imagePath) . '" alt="Six animal tracks for identification" class="w-full rounded-lg border border-zinc-200 dark:border-zinc-700"><p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400 text-center">Animal tracks as shown in the knowledge test — identify each track labelled A–F.</p></div>'
+            ? '<div class="my-6"><img src="'.$this->learningImageUrl($imagePath).'" alt="Six animal tracks for identification" class="w-full rounded-lg border border-zinc-200 dark:border-zinc-700"><p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400 text-center">Animal tracks as shown in the knowledge test — identify each track labelled A–F.</p></div>'
             : '';
 
         return <<<HTML
@@ -1537,7 +1540,7 @@ HTML;
     protected function contentDirectionOfTravel(?string $imagePath = null): string
     {
         $imageHtml = $imagePath
-            ? '<div class="my-6"><img src="' . $this->learningImageUrl($imagePath) . '" alt="Direction of travel from animal tracks" class="w-full rounded-lg border border-zinc-200 dark:border-zinc-700"><p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400 text-center">Antelope spoor has an arrow shape indicating the direction of movement.</p></div>'
+            ? '<div class="my-6"><img src="'.$this->learningImageUrl($imagePath).'" alt="Direction of travel from animal tracks" class="w-full rounded-lg border border-zinc-200 dark:border-zinc-700"><p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400 text-center">Antelope spoor has an arrow shape indicating the direction of movement.</p></div>'
             : '';
 
         return <<<HTML

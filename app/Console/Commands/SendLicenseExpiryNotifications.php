@@ -44,7 +44,7 @@ class SendLicenseExpiryNotifications extends Command
                 ->get();
 
             foreach ($firearms as $firearm) {
-                if (!$firearm->user || !$firearm->user->email) {
+                if (! $firearm->user || ! $firearm->user->email) {
                     continue;
                 }
 
@@ -69,7 +69,7 @@ class SendLicenseExpiryNotifications extends Command
         foreach ($expiredFirearms as $firearm) {
             // Update status to expired
             $firearm->update(['license_status' => 'expired']);
-            
+
             $this->warn("Marked firearm ID {$firearm->id} license as expired");
         }
 
@@ -87,7 +87,7 @@ class SendLicenseExpiryNotifications extends Command
         $expiryDate = $firearm->license_expiry_date->format('d M Y');
 
         // For now, we'll log this - implement actual notification later
-        Log::info("License expiry notification", [
+        Log::info('License expiry notification', [
             'user_id' => $user->id,
             'user_email' => $user->email,
             'firearm_id' => $firearm->id,

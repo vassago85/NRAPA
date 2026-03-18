@@ -26,7 +26,7 @@ return new class extends Migration
             $table->timestamp('reviewed_at')->nullable();
             $table->text('review_notes')->nullable(); // Owner's notes on approval/rejection
             $table->timestamps();
-            
+
             $table->index(['configuration_type', 'status']);
             $table->index(['status', 'created_at']);
         });

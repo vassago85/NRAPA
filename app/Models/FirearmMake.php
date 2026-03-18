@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Str;
 
 class FirearmMake extends Model
 {
@@ -78,11 +77,11 @@ class FirearmMake extends Model
     public function scopeSearch($query, string $term)
     {
         $normalizedTerm = static::normalize($term);
-        
+
         return $query->where(function ($q) use ($term, $normalizedTerm) {
             $q->where('name', 'LIKE', "%{$term}%")
-              ->orWhere('normalized_name', 'LIKE', "%{$normalizedTerm}%")
-              ->orWhere('saps_code', $term);
+                ->orWhere('normalized_name', 'LIKE', "%{$normalizedTerm}%")
+                ->orWhere('saps_code', $term);
         });
     }
 }

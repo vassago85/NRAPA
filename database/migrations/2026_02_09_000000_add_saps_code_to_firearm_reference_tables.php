@@ -14,7 +14,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (Schema::hasTable('firearm_types') && !Schema::hasColumn('firearm_types', 'saps_code')) {
+        if (Schema::hasTable('firearm_types') && ! Schema::hasColumn('firearm_types', 'saps_code')) {
             Schema::table('firearm_types', function (Blueprint $table) {
                 $table->string('saps_code')->nullable()->after('slug')
                     ->comment('SAPS 350A FirearmTypes dropdown code');
@@ -22,7 +22,7 @@ return new class extends Migration
             });
         }
 
-        if (Schema::hasTable('firearm_makes') && !Schema::hasColumn('firearm_makes', 'saps_code')) {
+        if (Schema::hasTable('firearm_makes') && ! Schema::hasColumn('firearm_makes', 'saps_code')) {
             Schema::table('firearm_makes', function (Blueprint $table) {
                 $table->string('saps_code')->nullable()->after('id')
                     ->comment('SAPS 350A FirearmMakes dropdown code');
@@ -30,7 +30,7 @@ return new class extends Migration
             });
         }
 
-        if (Schema::hasTable('firearm_calibres') && !Schema::hasColumn('firearm_calibres', 'saps_code')) {
+        if (Schema::hasTable('firearm_calibres') && ! Schema::hasColumn('firearm_calibres', 'saps_code')) {
             Schema::table('firearm_calibres', function (Blueprint $table) {
                 $table->string('saps_code')->nullable()->after('id')
                     ->comment('SAPS 350A FirearmCalibres dropdown code');

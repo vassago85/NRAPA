@@ -57,7 +57,7 @@ class ActivityType extends Model
      */
     public function scopeForTrack($query, ?string $track)
     {
-        if (!$track) {
+        if (! $track) {
             return $query;
         }
 
@@ -69,7 +69,7 @@ class ActivityType extends Model
      */
     public function scopeForGroup($query, ?string $group)
     {
-        if (!$group) {
+        if (! $group) {
             return $query;
         }
 

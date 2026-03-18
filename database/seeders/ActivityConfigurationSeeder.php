@@ -2,12 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\ActivityType;
 use App\Models\ActivityTag;
-use App\Models\Calibre;
-use App\Models\Country;
-use App\Models\FirearmType;
-use App\Models\Province;
+use App\Models\ActivityType;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 

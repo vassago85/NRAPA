@@ -33,27 +33,33 @@ class ConfigurationChangeRequest extends Model
      * Configuration types
      */
     public const TYPE_MEMBERSHIP_TYPE = 'membership_type';
+
     public const TYPE_DOCUMENT_TYPE = 'document_type';
+
     public const TYPE_DOCUMENT_REQUIREMENTS = 'document_requirements';
 
     /**
      * Actions
      */
     public const ACTION_CREATE = 'create';
+
     public const ACTION_UPDATE = 'update';
+
     public const ACTION_DELETE = 'delete';
 
     /**
      * Statuses
      */
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_APPROVED = 'approved';
+
     public const STATUS_REJECTED = 'rejected';
 
     protected static function boot(): void
     {
         parent::boot();
-        
+
         static::creating(function (ConfigurationChangeRequest $request) {
             if (empty($request->uuid)) {
                 $request->uuid = (string) Str::uuid();

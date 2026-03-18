@@ -107,7 +107,7 @@ class MemberDocument extends Model
         $idNumber = preg_replace('/[\s-]/', '', $idNumber);
 
         // SA ID must be 13 digits
-        if (!preg_match('/^\d{13}$/', $idNumber)) {
+        if (! preg_match('/^\d{13}$/', $idNumber)) {
             return null;
         }
 
@@ -117,15 +117,15 @@ class MemberDocument extends Model
         $day = substr($idNumber, 4, 2);
 
         // Determine century (assume 00-29 is 2000s, 30-99 is 1900s)
-        $fullYear = ((int)$year <= 29) ? '20' . $year : '19' . $year;
+        $fullYear = ((int) $year <= 29) ? '20'.$year : '19'.$year;
 
         // Validate date
-        if (!checkdate((int)$month, (int)$day, (int)$fullYear)) {
+        if (! checkdate((int) $month, (int) $day, (int) $fullYear)) {
             return null;
         }
 
         // Extract gender (digit 7-10, 0000-4999 = female, 5000-9999 = male)
-        $genderDigits = (int)substr($idNumber, 6, 4);
+        $genderDigits = (int) substr($idNumber, 6, 4);
         $sex = $genderDigits >= 5000 ? 'male' : 'female';
 
         return [
@@ -273,13 +273,13 @@ class MemberDocument extends Model
      */
     protected function syncIdNumberToUser(): void
     {
-        if (!$this->requiresIdMetadata()) {
+        if (! $this->requiresIdMetadata()) {
             return;
         }
 
         $idNumber = $this->metadata['identity_number'] ?? null;
 
-        if (!$idNumber || !$this->user) {
+        if (! $idNumber || ! $this->user) {
             return;
         }
 
@@ -298,6 +298,7 @@ class MemberDocument extends Model
                 'existing_user_id' => $existing->id,
                 'document_id' => $this->id,
             ]);
+
             return;
         }
 
@@ -326,7 +327,7 @@ class MemberDocument extends Model
     protected function notifyVerification(): void
     {
         $user = $this->user;
-        if (!$user) {
+        if (! $user) {
             return;
         }
 
@@ -349,7 +350,7 @@ class MemberDocument extends Model
     protected function notifyRejection(string $reason): void
     {
         $user = $this->user;
-        if (!$user) {
+        if (! $user) {
             return;
         }
 

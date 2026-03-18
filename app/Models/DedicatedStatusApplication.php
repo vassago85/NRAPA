@@ -112,7 +112,7 @@ class DedicatedStatusApplication extends Model
      */
     public function getDedicatedTypeDisplayAttribute(): string
     {
-        return match($this->dedicated_type) {
+        return match ($this->dedicated_type) {
             'hunter' => 'Dedicated Hunter',
             'sport', 'sport_shooter' => 'Dedicated Sport Shooter',
             default => 'Unknown',
@@ -127,11 +127,11 @@ class DedicatedStatusApplication extends Model
     {
         // Get the membership type to check for specific required tests
         $membershipType = $this->membership?->type;
-        
+
         if ($membershipType) {
             // If membership type has specific required tests, check those
             $requiredTestIds = $membershipType->requiredKnowledgeTests()->pluck('knowledge_tests.id');
-            
+
             if ($requiredTestIds->isNotEmpty()) {
                 $passedTestIds = KnowledgeTestAttempt::where('user_id', $this->user_id)
                     ->whereIn('knowledge_test_id', $requiredTestIds)
@@ -167,8 +167,8 @@ class DedicatedStatusApplication extends Model
     public function getOutstandingTests()
     {
         $membershipType = $this->membership?->type;
-        
-        if (!$membershipType) {
+
+        if (! $membershipType) {
             return collect();
         }
 

@@ -167,7 +167,7 @@ class LoadData extends Model
     public function getDisplayNameAttribute(): string
     {
         $parts = [$this->name];
-        
+
         // Use calibre_name accessor
         if ($this->calibre_name) {
             $parts[] = "({$this->calibre_name})";

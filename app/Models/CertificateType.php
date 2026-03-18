@@ -98,10 +98,10 @@ class CertificateType extends Model
         }
 
         // Ensure we have a Carbon instance for date manipulation
-        $date = $issueDate instanceof Carbon 
-            ? $issueDate->copy() 
+        $date = $issueDate instanceof Carbon
+            ? $issueDate->copy()
             : Carbon::instance($issueDate);
-        
+
         return $date->addMonths($this->validity_months);
     }
 

@@ -26,13 +26,13 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->json('tags')->nullable()->comment('PRS|ELR|Hunting|Service|Collector');
             $table->timestamps();
-            
+
             $table->index('category');
             $table->index('family');
             $table->index('is_active');
             $table->index('is_wildcat');
             $table->index('normalized_name');
-            
+
             // Fulltext index for search (MySQL)
             if (DB::getDriverName() === 'mysql') {
                 $table->fullText(['name', 'normalized_name']);

@@ -116,7 +116,7 @@ class Membership extends Model
         $prefix = 'NRAPA';
 
         do {
-            $number = $prefix . '-' . $year . '-' . str_pad((string) random_int(1, 99999), 5, '0', STR_PAD_LEFT);
+            $number = $prefix.'-'.$year.'-'.str_pad((string) random_int(1, 99999), 5, '0', STR_PAD_LEFT);
         } while (static::where('membership_number', $number)->exists());
 
         return $number;
@@ -129,18 +129,18 @@ class Membership extends Model
     public static function generatePaymentReference(Membership $membership): string
     {
         $prefix = SystemSetting::get('bank_reference_prefix', 'NRAPA');
-        
+
         // Get surname from user (if relationship loaded) or fetch it
         $user = $membership->user ?? User::find($membership->user_id);
         $surname = $user ? strtoupper(self::extractSurname($user->name)) : 'MEMBER';
-        
+
         // Clean surname (remove special characters, limit length)
         $surname = preg_replace('/[^A-Z]/', '', $surname);
         $surname = substr($surname, 0, 10); // Max 10 chars for surname
-        
+
         do {
             $random = str_pad((string) random_int(1, 9999), 4, '0', STR_PAD_LEFT);
-            $reference = $prefix . '-' . $surname . '-' . $random;
+            $reference = $prefix.'-'.$surname.'-'.$random;
         } while (static::where('payment_reference', $reference)->exists());
 
         return $reference;
@@ -152,6 +152,7 @@ class Membership extends Model
     protected static function extractSurname(string $fullName): string
     {
         $parts = explode(' ', trim($fullName));
+
         return count($parts) > 1 ? end($parts) : $fullName;
     }
 
@@ -271,17 +272,17 @@ class Membership extends Model
      */
     public function hasValidCompetency(): ?bool
     {
-        if (!$this->isAffiliatedClubMembership()) {
+        if (! $this->isAffiliatedClubMembership()) {
             return null;
         }
 
         $club = $this->affiliatedClub;
-        if (!$club || !$club->requires_competency) {
+        if (! $club || ! $club->requires_competency) {
             return null;
         }
 
         return MemberDocument::where('user_id', $this->user_id)
-            ->whereHas('documentType', fn($q) => $q->where('slug', 'firearm-competency'))
+            ->whereHas('documentType', fn ($q) => $q->where('slug', 'firearm-competency'))
             ->where('status', 'verified')
             ->where(function ($q) {
                 $q->whereNull('expires_at')
@@ -307,12 +308,12 @@ class Membership extends Model
      */
     public function meetsActivityRequirement(): ?bool
     {
-        if (!$this->isAffiliatedClubMembership()) {
+        if (! $this->isAffiliatedClubMembership()) {
             return null;
         }
 
         $club = $this->affiliatedClub;
-        if (!$club || $club->required_activities_per_year <= 0) {
+        if (! $club || $club->required_activities_per_year <= 0) {
             return null;
         }
 

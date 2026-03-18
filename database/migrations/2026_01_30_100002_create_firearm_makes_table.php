@@ -19,10 +19,10 @@ return new class extends Migration
             $table->string('country')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
-            
+
             $table->index('is_active');
             $table->index('normalized_name');
-            
+
             // Fulltext index for search (MySQL)
             if (DB::getDriverName() === 'mysql') {
                 $table->fullText(['name', 'normalized_name']);

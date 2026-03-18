@@ -27,13 +27,13 @@ return new class extends Migration
         // Add inventory FK columns to load_data for linking components
         Schema::table('load_data', function (Blueprint $table) {
             $table->foreignId('powder_inventory_id')->nullable()->after('brass_price_per_unit')
-                  ->constrained('reloading_inventories')->nullOnDelete();
+                ->constrained('reloading_inventories')->nullOnDelete();
             $table->foreignId('primer_inventory_id')->nullable()->after('powder_inventory_id')
-                  ->constrained('reloading_inventories')->nullOnDelete();
+                ->constrained('reloading_inventories')->nullOnDelete();
             $table->foreignId('bullet_inventory_id')->nullable()->after('primer_inventory_id')
-                  ->constrained('reloading_inventories')->nullOnDelete();
+                ->constrained('reloading_inventories')->nullOnDelete();
             $table->foreignId('brass_inventory_id')->nullable()->after('bullet_inventory_id')
-                  ->constrained('reloading_inventories')->nullOnDelete();
+                ->constrained('reloading_inventories')->nullOnDelete();
         });
     }
 

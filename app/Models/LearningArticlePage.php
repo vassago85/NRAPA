@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Helpers\StorageHelper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -58,7 +57,7 @@ class LearningArticlePage extends Model
      */
     public function hasImage(): bool
     {
-        return !empty($this->image_path);
+        return ! empty($this->image_path);
     }
 
     /**
@@ -66,11 +65,11 @@ class LearningArticlePage extends Model
      */
     public function getImageUrlAttribute(): ?string
     {
-        if (!$this->hasImage()) {
+        if (! $this->hasImage()) {
             return null;
         }
 
-        return '/storage/' . ltrim($this->image_path, '/');
+        return '/storage/'.ltrim($this->image_path, '/');
     }
 
     /**
@@ -94,7 +93,7 @@ class LearningArticlePage extends Model
      */
     public function markAsReadBy(User $user): void
     {
-        if (!$this->isReadBy($user)) {
+        if (! $this->isReadBy($user)) {
             $this->readers()->attach($user->id, ['read_at' => now()]);
         }
     }

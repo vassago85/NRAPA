@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Helpers\StorageHelper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -15,7 +14,9 @@ class LearningCategory extends Model
      */
     // Dedicated type constants (matches MembershipType)
     public const DEDICATED_TYPE_HUNTER = 'hunter';
+
     public const DEDICATED_TYPE_SPORT = 'sport';
+
     public const DEDICATED_TYPE_BOTH = 'both';
 
     protected $fillable = [
@@ -63,7 +64,7 @@ class LearningCategory extends Model
      */
     public function hasImage(): bool
     {
-        return !empty($this->image_path);
+        return ! empty($this->image_path);
     }
 
     /**
@@ -73,11 +74,11 @@ class LearningCategory extends Model
      */
     public function getImageUrlAttribute(): ?string
     {
-        if (!$this->hasImage()) {
+        if (! $this->hasImage()) {
             return null;
         }
 
-        return '/storage/' . ltrim($this->image_path, '/');
+        return '/storage/'.ltrim($this->image_path, '/');
     }
 
     /**
@@ -107,8 +108,8 @@ class LearningCategory extends Model
 
     /**
      * Scope to filter by user's dedicated type access.
-     * 
-     * @param string|null $userDedicatedType The user's membership dedicated_type
+     *
+     * @param  string|null  $userDedicatedType  The user's membership dedicated_type
      */
     public function scopeForDedicatedType($query, ?string $userDedicatedType)
     {
@@ -135,7 +136,7 @@ class LearningCategory extends Model
      */
     public function getDedicatedTypeLabelAttribute(): string
     {
-        return match($this->dedicated_type) {
+        return match ($this->dedicated_type) {
             self::DEDICATED_TYPE_HUNTER => 'Dedicated Hunters',
             self::DEDICATED_TYPE_SPORT => 'Dedicated Sport Shooters',
             self::DEDICATED_TYPE_BOTH => 'All Dedicated Members',

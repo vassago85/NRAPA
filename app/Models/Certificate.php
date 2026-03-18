@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
 
 class Certificate extends Model
 {
@@ -83,15 +83,15 @@ class Certificate extends Model
                     $certificateType = CertificateType::find($certificate->certificate_type_id);
                     if ($certificateType) {
                         // Ensure we have a Carbon instance for date calculations
-                        $validFrom = $certificate->valid_from 
+                        $validFrom = $certificate->valid_from
                             ? Carbon::parse($certificate->valid_from)
                             : Carbon::now();
-                        
+
                         $calculated = $certificateType->calculateValidUntilDate($validFrom);
                         if ($calculated) {
                             // Convert to date string for storage
-                            $certificate->valid_until = $calculated instanceof Carbon 
-                                ? $calculated->format('Y-m-d') 
+                            $certificate->valid_until = $calculated instanceof Carbon
+                                ? $calculated->format('Y-m-d')
                                 : (is_string($calculated) ? $calculated : $calculated->format('Y-m-d'));
                         }
                     }
@@ -124,7 +124,7 @@ class Certificate extends Model
         $prefix = 'CERT';
 
         do {
-            $number = $prefix . '-' . $year . '-' . str_pad((string) random_int(1, 99999), 5, '0', STR_PAD_LEFT);
+            $number = $prefix.'-'.$year.'-'.str_pad((string) random_int(1, 99999), 5, '0', STR_PAD_LEFT);
         } while (static::where('certificate_number', $number)->exists());
 
         return $number;
@@ -250,13 +250,13 @@ class Certificate extends Model
      */
     public function getSignatureImageUrl(): ?string
     {
-        if (!$this->signatory_signature_path) {
+        if (! $this->signatory_signature_path) {
             return null;
         }
 
         $disk = \App\Helpers\StorageHelper::getPublicDisk();
-        
-        if (!\Illuminate\Support\Facades\Storage::disk($disk)->exists($this->signatory_signature_path)) {
+
+        if (! \Illuminate\Support\Facades\Storage::disk($disk)->exists($this->signatory_signature_path)) {
             return null;
         }
 
@@ -268,13 +268,13 @@ class Certificate extends Model
      */
     public function getCommissionerScanUrl(): ?string
     {
-        if (!$this->commissioner_oaths_scan_path) {
+        if (! $this->commissioner_oaths_scan_path) {
             return null;
         }
 
         $disk = \App\Helpers\StorageHelper::getPublicDisk();
-        
-        if (!\Illuminate\Support\Facades\Storage::disk($disk)->exists($this->commissioner_oaths_scan_path)) {
+
+        if (! \Illuminate\Support\Facades\Storage::disk($disk)->exists($this->commissioner_oaths_scan_path)) {
             return null;
         }
 

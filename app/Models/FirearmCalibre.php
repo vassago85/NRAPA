@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Str;
 
 class FirearmCalibre extends Model
 {
@@ -62,6 +61,7 @@ class FirearmCalibre extends Model
         $normalized = strtolower(trim($name));
         $normalized = preg_replace('/\s+/', ' ', $normalized);
         $normalized = str_replace(['.', '-', '/'], '', $normalized);
+
         return $normalized;
     }
 
@@ -105,6 +105,7 @@ class FirearmCalibre extends Model
         if ($category) {
             return $query->where('category', $category);
         }
+
         return $query;
     }
 
@@ -114,15 +115,15 @@ class FirearmCalibre extends Model
     public function scopeSearch($query, string $term)
     {
         $normalizedTerm = static::normalize($term);
-        
+
         return $query->where(function ($q) use ($term, $normalizedTerm) {
             $q->where('name', 'LIKE', "%{$term}%")
-              ->orWhere('normalized_name', 'LIKE', "%{$normalizedTerm}%")
-              ->orWhere('saps_code', $term)
-              ->orWhereHas('aliases', function ($aliasQuery) use ($term, $normalizedTerm) {
-                  $aliasQuery->where('alias', 'LIKE', "%{$term}%")
-                            ->orWhere('normalized_alias', 'LIKE', "%{$normalizedTerm}%");
-              });
+                ->orWhere('normalized_name', 'LIKE', "%{$normalizedTerm}%")
+                ->orWhere('saps_code', $term)
+                ->orWhereHas('aliases', function ($aliasQuery) use ($term, $normalizedTerm) {
+                    $aliasQuery->where('alias', 'LIKE', "%{$term}%")
+                        ->orWhere('normalized_alias', 'LIKE', "%{$normalizedTerm}%");
+                });
         });
     }
 
@@ -132,11 +133,11 @@ class FirearmCalibre extends Model
     public function getDisplayNameAttribute(): string
     {
         $parts = [$this->name];
-        
+
         if ($this->family) {
             $parts[] = "({$this->family})";
         }
-        
+
         return implode(' ', $parts);
     }
 
@@ -145,7 +146,7 @@ class FirearmCalibre extends Model
      */
     public function getCategoryLabelAttribute(): string
     {
-        return match($this->category) {
+        return match ($this->category) {
             'handgun' => 'Handgun',
             'rifle' => 'Rifle',
             'shotgun' => 'Shotgun',
@@ -154,19 +155,19 @@ class FirearmCalibre extends Model
             default => ucfirst($this->category ?? 'Unknown'),
         };
     }
-    
+
     /**
      * Get ignition label.
      */
     public function getIgnitionLabelAttribute(): string
     {
-        return match($this->ignition) {
+        return match ($this->ignition) {
             'rimfire' => 'Rimfire',
             'centerfire' => 'Centerfire',
             default => ucfirst($this->ignition ?? 'Unknown'),
         };
     }
-    
+
     /**
      * Scope to filter by ignition type.
      */
@@ -175,6 +176,7 @@ class FirearmCalibre extends Model
         if ($ignition) {
             return $query->where('ignition', $ignition);
         }
+
         return $query;
     }
 
@@ -192,22 +194,23 @@ class FirearmCalibre extends Model
      */
     public function getBulletDiameterDisplayAttribute(): ?array
     {
-        if (!$this->bullet_diameter_mm) {
+        if (! $this->bullet_diameter_mm) {
             return null;
         }
 
         if ($this->isImperial()) {
             // Convert mm to inches (1 inch = 25.4 mm)
             $inches = round($this->bullet_diameter_mm / 25.4, 3);
+
             return [
                 'value' => $inches,
-                'unit' => 'in'
+                'unit' => 'in',
             ];
         }
 
         return [
             'value' => $this->bullet_diameter_mm,
-            'unit' => 'mm'
+            'unit' => 'mm',
         ];
     }
 }

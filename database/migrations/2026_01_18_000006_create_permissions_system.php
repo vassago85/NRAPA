@@ -21,7 +21,7 @@ return new class extends Migration
             $table->boolean('is_high_risk')->default(false); // For UI warning badges
             $table->unsignedSmallInteger('sort_order')->default(0);
             $table->timestamps();
-            
+
             $table->index('group');
         });
 
@@ -53,7 +53,7 @@ return new class extends Migration
             $table->string('ip_address')->nullable();
             $table->string('user_agent')->nullable();
             $table->timestamps();
-            
+
             $table->index(['user_id', 'created_at']);
             $table->index(['target_type', 'target_id']);
             $table->index('permission_used');
@@ -73,7 +73,7 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->dropColumn('admin_type');
         });
-        
+
         Schema::dropIfExists('admin_action_logs');
         Schema::dropIfExists('permission_user');
         Schema::dropIfExists('permissions');

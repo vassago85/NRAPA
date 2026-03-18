@@ -37,7 +37,7 @@ return new class extends Migration
     public function down(): void
     {
         // Re-create the old document type if needed
-        if (!DB::table('document_types')->where('slug', 'id-document')->exists()) {
+        if (! DB::table('document_types')->where('slug', 'id-document')->exists()) {
             DB::table('document_types')->insert([
                 'slug' => 'id-document',
                 'name' => 'ID Document',

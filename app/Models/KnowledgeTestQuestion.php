@@ -141,13 +141,13 @@ class KnowledgeTestQuestion extends Model
      */
     public function checkMultiSelectAnswer(array $selectedAnswers): array
     {
-        if (!$this->isMultipleSelect()) {
+        if (! $this->isMultipleSelect()) {
             return ['correct' => false, 'partial_score' => 0, 'correct_count' => 0, 'total' => 0];
         }
 
         $correctAnswers = $this->getCorrectAnswersArray();
-        $normalizedCorrect = array_map(fn($a) => strtolower(trim($a)), $correctAnswers);
-        $normalizedSelected = array_map(fn($a) => strtolower(trim($a)), $selectedAnswers);
+        $normalizedCorrect = array_map(fn ($a) => strtolower(trim($a)), $correctAnswers);
+        $normalizedSelected = array_map(fn ($a) => strtolower(trim($a)), $selectedAnswers);
 
         // Count correct selections
         $correctCount = count(array_intersect($normalizedSelected, $normalizedCorrect));
@@ -177,13 +177,13 @@ class KnowledgeTestQuestion extends Model
      */
     public function checkPriorityOrderAnswer(array $orderedAnswers): array
     {
-        if (!$this->isPriorityOrder()) {
+        if (! $this->isPriorityOrder()) {
             return ['correct' => false, 'partial_score' => 0, 'positions_correct' => 0, 'total' => 0];
         }
 
         $correctOrder = $this->getCorrectAnswersArray();
-        $normalizedCorrect = array_map(fn($a) => strtolower(trim($a)), $correctOrder);
-        $normalizedOrdered = array_map(fn($a) => strtolower(trim($a)), $orderedAnswers);
+        $normalizedCorrect = array_map(fn ($a) => strtolower(trim($a)), $correctOrder);
+        $normalizedOrdered = array_map(fn ($a) => strtolower(trim($a)), $orderedAnswers);
 
         $total = count($correctOrder);
         $positionsCorrect = 0;
@@ -214,7 +214,7 @@ class KnowledgeTestQuestion extends Model
      */
     public function checkMatchingAnswer(array $memberMatches): array
     {
-        if (!$this->isMatching()) {
+        if (! $this->isMatching()) {
             return ['correct' => false, 'partial_score' => 0, 'matches_correct' => 0, 'total' => 0];
         }
 
@@ -250,7 +250,7 @@ class KnowledgeTestQuestion extends Model
      */
     public function getMatchingAnswerOptions(): array
     {
-        if (!$this->isMatching() || !$this->correct_answers) {
+        if (! $this->isMatching() || ! $this->correct_answers) {
             return [];
         }
 
@@ -261,6 +261,7 @@ class KnowledgeTestQuestion extends Model
                 $answers[] = $value;
             }
         }
+
         return $answers;
     }
 
@@ -269,7 +270,7 @@ class KnowledgeTestQuestion extends Model
      */
     public function getMatchingDistractors(): array
     {
-        if (!$this->isMatching() || !$this->correct_answers) {
+        if (! $this->isMatching() || ! $this->correct_answers) {
             return [];
         }
 
@@ -283,7 +284,7 @@ class KnowledgeTestQuestion extends Model
     {
         $answers = $this->getMatchingAnswerOptions();
         $distractors = $this->getMatchingDistractors();
-        
+
         return array_merge($answers, $distractors);
     }
 
@@ -295,12 +296,12 @@ class KnowledgeTestQuestion extends Model
     public function getShuffledMatchingAnswers(int $seed): array
     {
         $answers = $this->getAllMatchingAnswers();
-        
+
         // Seed the random number generator for consistent shuffle
         mt_srand($seed + $this->id);
         shuffle($answers);
         mt_srand(); // Reset to true random
-        
+
         return $answers;
     }
 
@@ -373,7 +374,7 @@ class KnowledgeTestQuestion extends Model
      */
     public function hasImage(): bool
     {
-        return !empty($this->image_path);
+        return ! empty($this->image_path);
     }
 
     /**
@@ -381,7 +382,7 @@ class KnowledgeTestQuestion extends Model
      */
     public function getImageUrlAttribute(): ?string
     {
-        if (!$this->hasImage()) {
+        if (! $this->hasImage()) {
             return null;
         }
 

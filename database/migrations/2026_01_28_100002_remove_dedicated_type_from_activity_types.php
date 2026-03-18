@@ -8,7 +8,7 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Removes dedicated_type from activity_types after data migration is complete.
      */
     public function up(): void

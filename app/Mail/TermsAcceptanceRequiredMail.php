@@ -34,7 +34,7 @@ class TermsAcceptanceRequiredMail extends Mailable
     public function content(): Content
     {
         $acceptUrl = route('terms.accept');
-        
+
         return new Content(
             view: 'emails.terms-acceptance-required',
             with: [

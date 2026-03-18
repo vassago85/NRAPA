@@ -84,7 +84,7 @@ class EventCategory extends Model
     {
         return $query->where(function ($q) use ($dedicatedType) {
             $q->where('dedicated_type', $dedicatedType)
-              ->orWhere('dedicated_type', 'both');
+                ->orWhere('dedicated_type', 'both');
         });
     }
 

@@ -43,6 +43,7 @@ class BulletSeeder extends Seeder
     private function hornadyEldMatch(): array
     {
         $base = ['manufacturer' => 'Hornady', 'brand_line' => 'ELD Match', 'bc_reference' => 'Mach 2.25', 'construction' => 'cup_and_core', 'intended_use' => 'match', 'source_url' => 'https://www.hornady.com/bc'];
+
         return [
             $base + ['bullet_label' => '22 Cal 73 gr ELD Match', 'caliber_label' => '22 Cal', 'weight_gr' => 73, 'diameter_in' => 0.224, 'diameter_mm' => 5.690, 'bc_g1' => 0.398, 'bc_g7' => 0.200, 'twist_note' => null],
             $base + ['bullet_label' => '22 Cal 75 gr ELD Match', 'caliber_label' => '22 Cal', 'weight_gr' => 75, 'diameter_in' => 0.224, 'diameter_mm' => 5.690, 'bc_g1' => 0.467, 'bc_g7' => 0.235, 'twist_note' => null],
@@ -73,6 +74,7 @@ class BulletSeeder extends Seeder
     private function hornadyEldX(): array
     {
         $base = ['manufacturer' => 'Hornady', 'brand_line' => 'ELD-X', 'bc_reference' => 'Mach 2.25', 'construction' => 'cup_and_core', 'intended_use' => 'hunting', 'source_url' => 'https://www.hornady.com/bc'];
+
         return [
             $base + ['bullet_label' => '6mm 90 gr ELD-X', 'caliber_label' => '6mm', 'weight_gr' => 90, 'diameter_in' => 0.243, 'diameter_mm' => 6.172, 'bc_g1' => 0.410, 'bc_g7' => 0.206, 'twist_note' => null],
             $base + ['bullet_label' => '6mm 103 gr ELD-X', 'caliber_label' => '6mm', 'weight_gr' => 103, 'diameter_in' => 0.243, 'diameter_mm' => 6.172, 'bc_g1' => 0.512, 'bc_g7' => 0.258, 'twist_note' => null],
@@ -95,6 +97,7 @@ class BulletSeeder extends Seeder
     private function hornadyATip(): array
     {
         $base = ['manufacturer' => 'Hornady', 'brand_line' => 'A-Tip Match', 'bc_reference' => 'Mach 2.25', 'construction' => 'cup_and_core', 'intended_use' => 'match', 'source_url' => 'https://www.hornady.com/bc'];
+
         return [
             $base + ['bullet_label' => '22 Cal 76 gr A-Tip Match', 'caliber_label' => '22 Cal', 'weight_gr' => 76, 'diameter_in' => 0.224, 'diameter_mm' => 5.690, 'bc_g1' => 0.413, 'bc_g7' => 0.208, 'twist_note' => null],
             $base + ['bullet_label' => '22 Cal 90 gr A-Tip Match', 'caliber_label' => '22 Cal', 'weight_gr' => 90, 'diameter_in' => 0.224, 'diameter_mm' => 5.690, 'bc_g1' => 0.585, 'bc_g7' => 0.295, 'twist_note' => null],

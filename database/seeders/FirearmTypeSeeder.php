@@ -55,7 +55,7 @@ class FirearmTypeSeeder extends Seeder
                 'description' => 'Manual action handgun requiring reload after each shot',
                 'dedicated_type' => 'both',
             ],
-            
+
             // ===== RIFLES =====
             [
                 'name' => 'Bolt-Action Rifle',
@@ -102,7 +102,7 @@ class FirearmTypeSeeder extends Seeder
                 'description' => 'Manual action rifle operated by a pump/slide mechanism',
                 'dedicated_type' => 'both',
             ],
-            
+
             // ===== SHOTGUNS =====
             [
                 'name' => 'Break-Action Shotgun',
@@ -154,7 +154,7 @@ class FirearmTypeSeeder extends Seeder
         $sortOrder = 0;
         foreach ($firearmTypes as $type) {
             $sortOrder++;
-            
+
             FirearmType::updateOrCreate(
                 ['slug' => Str::slug($type['name'])],
                 [
@@ -175,6 +175,6 @@ class FirearmTypeSeeder extends Seeder
         $genericSlugs = ['rifle', 'shotgun', 'handgun'];
         FirearmType::whereIn('slug', $genericSlugs)->update(['is_active' => false]);
 
-        $this->command->info('Seeded ' . count($firearmTypes) . ' firearm types with SAPS codes.');
+        $this->command->info('Seeded '.count($firearmTypes).' firearm types with SAPS codes.');
     }
 }

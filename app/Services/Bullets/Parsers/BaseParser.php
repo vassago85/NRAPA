@@ -33,6 +33,7 @@ abstract class BaseParser
         if (preg_match('/(\d+)\s*(?:gr|grain)/i', $text, $m)) {
             return (int) $m[1];
         }
+
         return null;
     }
 
@@ -42,8 +43,9 @@ abstract class BaseParser
     protected function parseDiameterIn(string $text): ?float
     {
         if (preg_match('/0\.(\d{3})/', $text, $m)) {
-            return (float) ('0.' . $m[1]);
+            return (float) ('0.'.$m[1]);
         }
+
         return null;
     }
 
@@ -70,6 +72,7 @@ abstract class BaseParser
                 return $label;
             }
         }
+
         return null;
     }
 }

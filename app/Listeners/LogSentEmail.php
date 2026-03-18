@@ -14,7 +14,7 @@ class LogSentEmail
     public function handle(MessageSent $event): void
     {
         $message = $event->message;
-        
+
         // Get recipients
         $to = $message->getTo();
         $toEmail = '';
@@ -41,8 +41,8 @@ class LogSentEmail
         $user = User::where('email', $toEmail)->first();
 
         // Get the mailable class from the data if available
-        $mailableClass = $event->data['__laravel_notification'] ?? 
-                         $event->data['mailable'] ?? 
+        $mailableClass = $event->data['__laravel_notification'] ??
+                         $event->data['mailable'] ??
                          'Unknown';
 
         $body = $message->getHtmlBody() ?: $message->getTextBody();

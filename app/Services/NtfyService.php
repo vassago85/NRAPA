@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\NotificationPreference;
 use App\Models\QueuedNotification;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
@@ -11,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 class NtfyService
 {
     protected string $baseUrl;
+
     protected ?string $developerTopic;
 
     public function __construct()
@@ -37,6 +37,7 @@ class NtfyService
                 'topic' => $topic,
                 'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
@@ -46,7 +47,7 @@ class NtfyService
      */
     public function notifyDeveloper(string $title, string $message, string $priority = 'high'): bool
     {
-        if (!$this->developerTopic) {
+        if (! $this->developerTopic) {
             return false;
         }
 
@@ -61,26 +62,27 @@ class NtfyService
         $prefs = $user->notificationPreference;
 
         // If no preferences or NTFY not enabled, skip
-        if (!$prefs || !$prefs->ntfy_enabled || !$prefs->ntfy_topic) {
+        if (! $prefs || ! $prefs->ntfy_enabled || ! $prefs->ntfy_topic) {
             return false;
         }
 
         // Check if user wants this notification type
-        if (!$prefs->wantsNotification($type)) {
+        if (! $prefs->wantsNotification($type)) {
             return false;
         }
 
         // Check working hours
-        if ($prefs->respect_working_hours && !$prefs->isWithinWorkingHours()) {
+        if ($prefs->respect_working_hours && ! $prefs->isWithinWorkingHours()) {
             // Queue for later
             $this->queueNotification($user, $type, $title, $message, $priority, $data, $prefs->getNextWorkingHoursStart());
+
             return true; // Queued successfully
         }
 
         // Send immediately
         $success = $this->send($prefs->ntfy_topic, $title, $message, $priority, $this->getTagsForType($type));
 
-        if (!$success) {
+        if (! $success) {
             // Queue for retry
             $this->queueNotification($user, $type, $title, $message, $priority, $data);
         }
@@ -97,7 +99,7 @@ class NtfyService
             ->whereHas('notificationPreference', function ($q) use ($type) {
                 $q->where('ntfy_enabled', true)
                     ->whereNotNull('ntfy_topic')
-                    ->where('notify_' . $type, true);
+                    ->where('notify_'.$type, true);
             })
             ->with('notificationPreference')
             ->get();
@@ -145,17 +147,19 @@ class NtfyService
             $prefs = $notification->user->notificationPreference;
 
             // If still not in working hours (and they care), reschedule
-            if ($prefs && $prefs->respect_working_hours && !$prefs->isWithinWorkingHours()) {
+            if ($prefs && $prefs->respect_working_hours && ! $prefs->isWithinWorkingHours()) {
                 $notification->update([
                     'scheduled_for' => $prefs->getNextWorkingHoursStart(),
                 ]);
+
                 continue;
             }
 
             // Try to send
             $topic = $prefs?->ntfy_topic;
-            if (!$topic) {
+            if (! $topic) {
                 $notification->markAsFailed('No NTFY topic configured');
+
                 continue;
             }
 

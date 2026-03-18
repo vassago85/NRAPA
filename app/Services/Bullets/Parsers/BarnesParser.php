@@ -47,7 +47,7 @@ class BarnesParser extends BaseParser
         $weight = $this->parseWeight($title);
         $caliberLabel = $this->detectCaliberLabel($title);
 
-        if (!$weight || !$caliberLabel) {
+        if (! $weight || ! $caliberLabel) {
             return null;
         }
 
@@ -62,7 +62,7 @@ class BarnesParser extends BaseParser
 
         $lineMap = self::LINE_MAP[$brandLine] ?? ['use' => 'other', 'construction' => 'other'];
 
-        if (!$diameterIn && $caliberLabel) {
+        if (! $diameterIn && $caliberLabel) {
             $dims = $this->resolveDiameter($caliberLabel);
             $diameterIn = $dims['in'] ?? null;
         }
@@ -90,6 +90,7 @@ class BarnesParser extends BaseParser
         if (preg_match('/(?:requires?|recommended?)\s+1[:\s]*(\d+(?:\.\d+)?)["\s]*twist/i', $html, $m)) {
             return "Requires 1:{$m[1]} twist or faster";
         }
+
         return null;
     }
 }

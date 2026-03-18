@@ -26,10 +26,10 @@ class KnowledgeTestQuestionsSeeder extends Seeder
     {
         // Disable foreign key checks temporarily
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-        
+
         // Delete all questions for this test
         KnowledgeTestQuestion::where('knowledge_test_id', $test->id)->delete();
-        
+
         // Re-enable foreign key checks
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
     }
@@ -41,8 +41,9 @@ class KnowledgeTestQuestionsSeeder extends Seeder
     protected function seedSportShooterQuestions(): void
     {
         $test = KnowledgeTest::where('slug', 'dedicated-sport-shooter')->first();
-        if (!$test) {
+        if (! $test) {
             $this->command->error('Sport Shooter test not found. Run KnowledgeTestSeeder first.');
+
             return;
         }
 
@@ -844,7 +845,7 @@ class KnowledgeTestQuestionsSeeder extends Seeder
             $totalPoints += $q['points'];
         }
 
-        $this->command->info("Seeded " . count($questions) . " questions ({$totalPoints} total points) for Sport Shooter test.");
+        $this->command->info('Seeded '.count($questions)." questions ({$totalPoints} total points) for Sport Shooter test.");
     }
 
     /**
@@ -858,8 +859,9 @@ class KnowledgeTestQuestionsSeeder extends Seeder
     protected function seedHunterQuestions(): void
     {
         $test = KnowledgeTest::where('slug', 'dedicated-hunter')->first();
-        if (!$test) {
+        if (! $test) {
             $this->command->error('Hunter test not found. Run KnowledgeTestSeeder first.');
+
             return;
         }
 
@@ -1381,7 +1383,7 @@ class KnowledgeTestQuestionsSeeder extends Seeder
             $totalPoints += $q['points'];
         }
 
-        $this->command->info("Seeded " . count($questions) . " questions ({$totalPoints} total points) for Dedicated Hunter test.");
+        $this->command->info('Seeded '.count($questions)." questions ({$totalPoints} total points) for Dedicated Hunter test.");
     }
 
     /**
@@ -1391,8 +1393,9 @@ class KnowledgeTestQuestionsSeeder extends Seeder
     protected function seedCombinedQuestions(): void
     {
         $test = KnowledgeTest::where('slug', 'dedicated-both')->first();
-        if (!$test) {
+        if (! $test) {
             $this->command->error('Combined test not found. Run KnowledgeTestSeeder first.');
+
             return;
         }
 
@@ -2517,6 +2520,6 @@ class KnowledgeTestQuestionsSeeder extends Seeder
             $totalPoints += $q['points'];
         }
 
-        $this->command->info("Seeded " . count($questions) . " questions ({$totalPoints} total points) for Combined Hunter & Sport Shooter test.");
+        $this->command->info('Seeded '.count($questions)." questions ({$totalPoints} total points) for Combined Hunter & Sport Shooter test.");
     }
 }

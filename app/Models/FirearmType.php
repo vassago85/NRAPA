@@ -9,22 +9,33 @@ class FirearmType extends Model
 {
     // Category constants
     public const CATEGORY_HANDGUN = 'handgun';
+
     public const CATEGORY_RIFLE = 'rifle';
+
     public const CATEGORY_SHOTGUN = 'shotgun';
 
     // Ignition type constants
     public const IGNITION_RIMFIRE = 'rimfire';
+
     public const IGNITION_CENTERFIRE = 'centerfire';
+
     public const IGNITION_BOTH = 'both';
 
     // Action type constants
     public const ACTION_SINGLE_SHOT = 'single_shot';
+
     public const ACTION_REVOLVER = 'revolver';
+
     public const ACTION_SEMI_AUTO = 'semi_auto';
+
     public const ACTION_BOLT_ACTION = 'bolt_action';
+
     public const ACTION_LEVER_ACTION = 'lever_action';
+
     public const ACTION_PUMP_ACTION = 'pump_action';
+
     public const ACTION_BREAK_ACTION = 'break_action';
+
     public const ACTION_OTHER = 'other';
 
     /**
@@ -172,7 +183,7 @@ class FirearmType extends Model
      */
     public function scopeForDedicatedType($query, ?string $dedicatedType)
     {
-        if (!$dedicatedType) {
+        if (! $dedicatedType) {
             // No dedicated type - only show general firearm types
             return $query->whereNull('dedicated_type');
         }
@@ -185,8 +196,8 @@ class FirearmType extends Model
         // User has specific type - show general + their type + both
         return $query->where(function ($q) use ($dedicatedType) {
             $q->whereNull('dedicated_type')
-              ->orWhere('dedicated_type', $dedicatedType)
-              ->orWhere('dedicated_type', 'both');
+                ->orWhere('dedicated_type', $dedicatedType)
+                ->orWhere('dedicated_type', 'both');
         });
     }
 
@@ -205,8 +216,8 @@ class FirearmType extends Model
     {
         return $query->where(function ($q) use ($ignitionType) {
             $q->where('ignition_type', $ignitionType)
-              ->orWhere('ignition_type', 'both')
-              ->orWhereNull('ignition_type');
+                ->orWhere('ignition_type', 'both')
+                ->orWhereNull('ignition_type');
         });
     }
 
@@ -241,7 +252,10 @@ class FirearmType extends Model
      */
     public function getIgnitionTypeLabelAttribute(): ?string
     {
-        if (!$this->ignition_type) return null;
+        if (! $this->ignition_type) {
+            return null;
+        }
+
         return self::getIgnitionTypeOptions()[$this->ignition_type] ?? ucfirst($this->ignition_type);
     }
 
@@ -250,7 +264,10 @@ class FirearmType extends Model
      */
     public function getActionTypeLabelAttribute(): ?string
     {
-        if (!$this->action_type) return null;
+        if (! $this->action_type) {
+            return null;
+        }
+
         return self::getActionTypeOptions()[$this->action_type] ?? ucfirst(str_replace('_', ' ', $this->action_type));
     }
 }

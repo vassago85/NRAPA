@@ -2,14 +2,14 @@
 
 namespace App\Services;
 
-use App\Models\User;
 use App\Models\Membership;
+use App\Models\User;
 
 class MembershipStandingService
 {
     /**
      * Determine if a member is in good standing.
-     * 
+     *
      * Good standing requires:
      * - Active membership status
      * - Not expired (or lifetime)
@@ -22,18 +22,18 @@ class MembershipStandingService
     public function isInGoodStanding(User $user, ?Membership $membership = null): bool
     {
         $membership = $membership ?? $user->activeMembership;
-        
-        if (!$membership) {
+
+        if (! $membership) {
             return false;
         }
 
         // Check status
-        if (!$membership->isActive()) {
+        if (! $membership->isActive()) {
             return false;
         }
 
         // Check good_standing flag (if column exists)
-        if (isset($membership->good_standing) && !$membership->good_standing) {
+        if (isset($membership->good_standing) && ! $membership->good_standing) {
             return false;
         }
 
@@ -54,7 +54,7 @@ class MembershipStandingService
 
         // Check if Terms & Conditions have been accepted
         $activeTerms = \App\Models\TermsVersion::active();
-        if ($activeTerms && !$user->hasAcceptedActiveTerms()) {
+        if ($activeTerms && ! $user->hasAcceptedActiveTerms()) {
             return false;
         }
 
@@ -75,16 +75,16 @@ class MembershipStandingService
     public function getStandingReason(User $user, ?Membership $membership = null): ?string
     {
         $membership = $membership ?? $user->activeMembership;
-        
-        if (!$membership) {
+
+        if (! $membership) {
             return 'No active membership found.';
         }
 
-        if (!$membership->isActive()) {
+        if (! $membership->isActive()) {
             return "Membership status is: {$membership->status}";
         }
 
-        if (isset($membership->good_standing) && !$membership->good_standing) {
+        if (isset($membership->good_standing) && ! $membership->good_standing) {
             return 'Membership is not in good standing.';
         }
 
@@ -102,7 +102,7 @@ class MembershipStandingService
 
         // Check if Terms & Conditions have been accepted
         $activeTerms = \App\Models\TermsVersion::active();
-        if ($activeTerms && !$user->hasAcceptedActiveTerms()) {
+        if ($activeTerms && ! $user->hasAcceptedActiveTerms()) {
             return 'Pending Terms Acceptance';
         }
 
@@ -120,7 +120,7 @@ class MembershipStandingService
 
         if (isset($membership->good_standing) && $wasInGoodStanding !== $isInGoodStanding) {
             $membership->update(['good_standing' => $isInGoodStanding]);
-            
+
             // Log status change if MemberStatusHistory model exists
             if (class_exists(\App\Models\MemberStatusHistory::class)) {
                 \App\Models\MemberStatusHistory::create([
@@ -128,8 +128,8 @@ class MembershipStandingService
                     'membership_id' => $membership->id,
                     'status' => $isInGoodStanding ? 'active' : $membership->status,
                     'previous_status' => $wasInGoodStanding ? 'active' : null,
-                    'reason' => $isInGoodStanding 
-                        ? 'Good standing restored' 
+                    'reason' => $isInGoodStanding
+                        ? 'Good standing restored'
                         : $this->getStandingReason($user, $membership),
                     'changed_by' => auth()->id(),
                 ]);

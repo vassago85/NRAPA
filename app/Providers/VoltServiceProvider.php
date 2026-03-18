@@ -25,7 +25,7 @@ class VoltServiceProvider extends ServiceProvider
             resource_path('views/livewire'),
             resource_path('views/pages'),
         ]);
-        
+
         // Register route to handle Livewire JS module requests (Volt components)
         // This prevents 404 errors when Livewire tries to load module files that don't exist
         \Illuminate\Support\Facades\Route::get('/livewire-{hash}/js/{path}', function ($hash, $path) {

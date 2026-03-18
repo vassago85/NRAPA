@@ -53,7 +53,7 @@ class FirearmMakeSeeder extends Seeder
     protected function enrichWithCuratedData(string $csvPath): void
     {
         $handle = fopen($csvPath, 'r');
-        if (!$handle) {
+        if (! $handle) {
             return;
         }
 
@@ -61,11 +61,15 @@ class FirearmMakeSeeder extends Seeder
         $enriched = 0;
 
         while (($row = fgetcsv($handle)) !== false) {
-            if (count($row) < 4) continue;
+            if (count($row) < 4) {
+                continue;
+            }
 
             $name = trim($row[0]);
             $country = trim($row[2]) ?: null;
-            if (!$country) continue;
+            if (! $country) {
+                continue;
+            }
 
             $normalizedName = FirearmMake::normalize($name);
 
@@ -73,7 +77,7 @@ class FirearmMakeSeeder extends Seeder
             $make = FirearmMake::whereNotNull('saps_code')
                 ->where(function ($q) use ($normalizedName, $name) {
                     $q->where('normalized_name', $normalizedName)
-                      ->orWhereRaw('LOWER(name) = ?', [strtolower($name)]);
+                        ->orWhereRaw('LOWER(name) = ?', [strtolower($name)]);
                 })
                 ->whereNull('country')
                 ->first();
@@ -95,7 +99,7 @@ class FirearmMakeSeeder extends Seeder
     protected function seedSapsMakes(string $csvPath): void
     {
         $handle = fopen($csvPath, 'r');
-        if (!$handle) {
+        if (! $handle) {
             return;
         }
 
@@ -115,11 +119,15 @@ class FirearmMakeSeeder extends Seeder
         $seen = [];
 
         while (($row = fgetcsv($handle)) !== false) {
-            if (count($row) < 2) continue;
+            if (count($row) < 2) {
+                continue;
+            }
 
             $sapsCode = trim($row[0]);
             $sapsName = trim($row[1]);
-            if (empty($sapsName)) continue;
+            if (empty($sapsName)) {
+                continue;
+            }
 
             $normalizedName = FirearmMake::normalize($sapsName);
 
@@ -182,7 +190,7 @@ class FirearmMakeSeeder extends Seeder
 
         foreach ($words as $word) {
             // Keep short all-uppercase words as-is (acronyms like FN, CZ, BSA, H&R, etc.)
-            if (strlen($word) <= 3 && $word === strtoupper($word) && !str_contains($word, '(')) {
+            if (strlen($word) <= 3 && $word === strtoupper($word) && ! str_contains($word, '(')) {
                 $formatted[] = $word;
             }
             // Keep all-caps words that look like acronyms (no lowercase)
@@ -195,10 +203,9 @@ class FirearmMakeSeeder extends Seeder
                 if (strlen($inner) <= 3 && $inner === strtoupper($inner)) {
                     $formatted[] = $word; // Keep short acronyms in parens
                 } else {
-                    $formatted[] = '(' . ucfirst(strtolower(rtrim($inner, ')'))) . (str_ends_with($word, ')') ? ')' : '');
+                    $formatted[] = '('.ucfirst(strtolower(rtrim($inner, ')'))).(str_ends_with($word, ')') ? ')' : '');
                 }
-            }
-            else {
+            } else {
                 $formatted[] = ucfirst(strtolower($word));
             }
         }
@@ -212,26 +219,28 @@ class FirearmMakeSeeder extends Seeder
     protected function seedModelsFromCsv(string $csvPath): void
     {
         $handle = fopen($csvPath, 'r');
-        if (!$handle) {
+        if (! $handle) {
             return;
         }
 
         // Skip header row
         $header = fgetcsv($handle);
-        
+
         $count = 0;
         $makeCache = []; // Cache make IDs for performance
-        
+
         while (($row = fgetcsv($handle)) !== false) {
-            if (count($row) < 5) continue;
-            
+            if (count($row) < 5) {
+                continue;
+            }
+
             $makeName = trim($row[0]);
             $modelName = trim($row[1]);
-            
+
             // Get or cache the make ID
-            if (!isset($makeCache[$makeName])) {
+            if (! isset($makeCache[$makeName])) {
                 $make = FirearmMake::where('name', $makeName)->first();
-                if (!$make) {
+                if (! $make) {
                     // Create the make if it doesn't exist
                     $make = FirearmMake::create([
                         'name' => $makeName,
@@ -242,9 +251,9 @@ class FirearmMakeSeeder extends Seeder
                 $makeCache[$makeName] = $make->id;
             }
             $makeId = $makeCache[$makeName];
-            
+
             $normalizedModelName = FirearmModel::normalize($modelName);
-            
+
             $data = [
                 'firearm_make_id' => $makeId,
                 'name' => $modelName,

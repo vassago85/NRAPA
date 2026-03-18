@@ -16,13 +16,14 @@ class TermsVersionSeeder extends Seeder
         // Check if terms version already exists
         if (TermsVersion::where('version', '2026-01')->exists()) {
             $this->command->info('Terms version 2026-01 already exists. Skipping.');
+
             return;
         }
 
         // Read the terms HTML template
         $termsHtmlPath = resource_path('views/documents/terms/nrapa-terms.blade.php');
         $htmlContent = '';
-        
+
         if (File::exists($termsHtmlPath)) {
             // Read the Blade file and extract HTML (remove @php and @endphp blocks)
             $content = File::get($termsHtmlPath);

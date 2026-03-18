@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Certificate;
-use App\Services\MembershipStandingService;
 
 class VerificationService
 {
@@ -13,14 +12,14 @@ class VerificationService
 
     /**
      * Verify a certificate by QR code.
-     * 
+     *
      * Returns verification result with public-safe information.
      */
     public function verifyByQrCode(string $qrCode): array
     {
         $certificate = Certificate::where('qr_code', $qrCode)->first();
 
-        if (!$certificate) {
+        if (! $certificate) {
             return [
                 'valid' => false,
                 'reason' => 'Certificate not found.',
@@ -51,7 +50,7 @@ class VerificationService
 
             if ($requiresGoodStanding) {
                 $isInGoodStanding = $this->standingService->isInGoodStanding($user, $membership);
-                if (!$isInGoodStanding) {
+                if (! $isInGoodStanding) {
                     $isValid = false;
                     $reason = 'Member is not in good standing.';
                 }
@@ -64,7 +63,7 @@ class VerificationService
             $nameParts = explode(' ', $user->name);
             $initials = '';
             $surname = '';
-            
+
             if (count($nameParts) > 0) {
                 // First letter of first name
                 $initials = strtoupper(substr($nameParts[0], 0, 1));
@@ -78,8 +77,8 @@ class VerificationService
 
             // Mask membership number (show last 4 digits)
             $membershipNumber = $membership?->membership_number ?? 'N/A';
-            $maskedNumber = strlen($membershipNumber) > 4 
-                ? '****' . substr($membershipNumber, -4)
+            $maskedNumber = strlen($membershipNumber) > 4
+                ? '****'.substr($membershipNumber, -4)
                 : '****';
 
             $memberInfo = [

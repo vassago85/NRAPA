@@ -56,16 +56,16 @@ class InventoryLog extends Model
         $absQty = abs((float) $this->quantity_change);
 
         if ($item && $item->type === 'powder') {
-            $qtyStr = number_format($absQty * 15.4324, 0) . ' grains (' . number_format($absQty, 1) . 'g)';
+            $qtyStr = number_format($absQty * 15.4324, 0).' grains ('.number_format($absQty, 1).'g)';
         } else {
-            $qtyStr = number_format($absQty, 0) . ' units';
+            $qtyStr = number_format($absQty, 0).' units';
         }
 
         return match ($this->type) {
-            'usage' => "Used {$qtyStr}" . ($this->rounds ? " ({$this->rounds} rounds)" : '') . ($this->source ? " — {$this->source}" : ''),
-            'restock' => "Restocked +{$qtyStr}" . ($this->source ? " — {$this->source}" : ''),
-            'adjustment' => ((float) $this->quantity_change >= 0 ? "Added {$qtyStr}" : "Removed {$qtyStr}") . ($this->reason ? " — {$this->reason}" : ''),
-            'ladder_test' => "Ladder test used {$qtyStr}" . ($this->rounds ? " ({$this->rounds} rounds)" : '') . ($this->source ? " — {$this->source}" : ''),
+            'usage' => "Used {$qtyStr}".($this->rounds ? " ({$this->rounds} rounds)" : '').($this->source ? " — {$this->source}" : ''),
+            'restock' => "Restocked +{$qtyStr}".($this->source ? " — {$this->source}" : ''),
+            'adjustment' => ((float) $this->quantity_change >= 0 ? "Added {$qtyStr}" : "Removed {$qtyStr}").($this->reason ? " — {$this->reason}" : ''),
+            'ladder_test' => "Ladder test used {$qtyStr}".($this->rounds ? " ({$this->rounds} rounds)" : '').($this->source ? " — {$this->source}" : ''),
             default => "{$qtyStr}",
         };
     }

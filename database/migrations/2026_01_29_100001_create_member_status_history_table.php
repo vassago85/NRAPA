@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('membership_id')->nullable()->constrained();
-            
+
             // Status change
             $table->enum('status', [
                 'applied',
@@ -26,7 +26,7 @@ return new class extends Migration
                 'expired',
                 'lapsed',
             ]);
-            
+
             $table->enum('previous_status', [
                 'applied',
                 'approved',
@@ -36,17 +36,17 @@ return new class extends Migration
                 'expired',
                 'lapsed',
             ])->nullable();
-            
+
             // Change details
             $table->text('reason')->nullable();
             $table->foreignId('changed_by')->nullable()->constrained('users');
             $table->timestamp('changed_at')->useCurrent();
-            
+
             // Metadata
             $table->json('metadata')->nullable();
-            
+
             $table->timestamps();
-            
+
             // Indexes
             $table->index(['user_id', 'changed_at']);
             $table->index(['membership_id', 'changed_at']);

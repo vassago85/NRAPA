@@ -47,6 +47,6 @@ class LadderTestStep extends Model
 
     public function getHasResultsAttribute(): bool
     {
-        return !empty($this->velocities) || $this->group_size !== null || $this->es !== null || $this->sd !== null;
+        return ! empty($this->velocities) || $this->group_size !== null || $this->es !== null || $this->sd !== null;
     }
 }

@@ -5,8 +5,6 @@ namespace App\Helpers;
 use App\Models\Certificate;
 use App\Models\EndorsementRequest;
 use App\Models\SystemSetting;
-use App\Models\User;
-use App\Models\Membership;
 use Illuminate\Support\Facades\Storage;
 
 class DocumentDataHelper
@@ -19,7 +17,7 @@ class DocumentDataHelper
         // Try to get from system settings, with fallback to hardcoded values if not found
         $sport = SystemSetting::get('far_sport_number', null);
         $hunting = SystemSetting::get('far_hunting_number', null);
-        
+
         // If settings don't exist or return null/empty, use hardcoded defaults
         if (empty($sport) || $sport === 'N/A') {
             $sport = '1300122'; // Default FAR Sport Shooting number
@@ -27,7 +25,7 @@ class DocumentDataHelper
         if (empty($hunting) || $hunting === 'N/A') {
             $hunting = '1300127'; // Default FAR Hunting number
         }
-        
+
         return [
             'sport' => $sport,
             'hunting' => $hunting,
@@ -48,6 +46,7 @@ class DocumentDataHelper
     public static function getQrCodeUrl(Certificate $certificate, int $size = 200): string
     {
         $verificationUrl = $certificate->getVerificationUrl();
+
         return QrCodeHelper::generateUrl($verificationUrl, $size);
     }
 
@@ -58,11 +57,12 @@ class DocumentDataHelper
     {
         // Endorsements use letter_reference for verification, not qr_code
         if ($request->letter_reference) {
-            $verificationUrl = url('/verify/endorsement/' . $request->letter_reference);
+            $verificationUrl = url('/verify/endorsement/'.$request->letter_reference);
         } else {
             // Fallback if no letter reference yet
-            $verificationUrl = url('/verify/endorsement/' . $request->uuid);
+            $verificationUrl = url('/verify/endorsement/'.$request->uuid);
         }
+
         return QrCodeHelper::generateUrl($verificationUrl, $size);
     }
 
@@ -74,11 +74,11 @@ class DocumentDataHelper
     public static function getSignatureImageHtml(?string $signaturePath): string
     {
         // Fall back to system default signature path
-        if (!$signaturePath) {
+        if (! $signaturePath) {
             $signaturePath = static::getDefaultSignaturePath();
         }
 
-        if (!$signaturePath) {
+        if (! $signaturePath) {
             return 'Signature image (transparent PNG)';
         }
 
@@ -90,17 +90,18 @@ class DocumentDataHelper
 
         foreach ($disks as $disk) {
             try {
-                if (!Storage::disk($disk)->exists($signaturePath)) {
+                if (! Storage::disk($disk)->exists($signaturePath)) {
                     continue;
                 }
 
                 $contents = Storage::disk($disk)->get($signaturePath);
                 $mimeType = Storage::disk($disk)->mimeType($signaturePath) ?: 'image/png';
-                $dataUri = 'data:' . $mimeType . ';base64,' . base64_encode($contents);
+                $dataUri = 'data:'.$mimeType.';base64,'.base64_encode($contents);
 
-                return '<img src="' . $dataUri . '" alt="Signature" />';
+                return '<img src="'.$dataUri.'" alt="Signature" />';
             } catch (\Throwable $e) {
                 report($e);
+
                 continue;
             }
         }
@@ -116,11 +117,11 @@ class DocumentDataHelper
     public static function getCommissionerScanHtml(?string $scanPath): string
     {
         // Fall back to system default commissioner scan path
-        if (!$scanPath) {
+        if (! $scanPath) {
             $scanPath = static::getDefaultCommissionerScanPath();
         }
 
-        if (!$scanPath) {
+        if (! $scanPath) {
             return 'Commissioner of Oaths scan';
         }
 
@@ -132,7 +133,7 @@ class DocumentDataHelper
 
         foreach ($disks as $disk) {
             try {
-                if (!Storage::disk($disk)->exists($scanPath)) {
+                if (! Storage::disk($disk)->exists($scanPath)) {
                     continue;
                 }
 
@@ -140,16 +141,18 @@ class DocumentDataHelper
                 $extension = strtolower(pathinfo($scanPath, PATHINFO_EXTENSION));
                 if ($extension === 'pdf') {
                     $url = Storage::disk($disk)->url($scanPath);
-                    return '<iframe src="' . e($url) . '" style="width:100%; height:100%; border:0;"></iframe>';
+
+                    return '<iframe src="'.e($url).'" style="width:100%; height:100%; border:0;"></iframe>';
                 }
 
                 $contents = Storage::disk($disk)->get($scanPath);
                 $mimeType = Storage::disk($disk)->mimeType($scanPath) ?: 'image/png';
-                $dataUri = 'data:' . $mimeType . ';base64,' . base64_encode($contents);
+                $dataUri = 'data:'.$mimeType.';base64,'.base64_encode($contents);
 
-                return '<img src="' . e($dataUri) . '" alt="Commissioner of Oaths Scan" />';
+                return '<img src="'.e($dataUri).'" alt="Commissioner of Oaths Scan" />';
             } catch (\Throwable $e) {
                 report($e);
+
                 continue;
             }
         }

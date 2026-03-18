@@ -20,12 +20,12 @@ return new class extends Migration
             $table->enum('category_hint', ['handgun', 'rifle', 'shotgun'])->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
-            
+
             $table->unique(['firearm_make_id', 'normalized_name']);
             $table->index('firearm_make_id');
             $table->index('is_active');
             $table->index('category_hint');
-            
+
             // Fulltext index for search (MySQL)
             if (DB::getDriverName() === 'mysql') {
                 $table->fullText(['name', 'normalized_name']);

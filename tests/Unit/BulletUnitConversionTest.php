@@ -33,28 +33,28 @@ test('unitsMatch detects mismatched values', function () {
 });
 
 test('setDiameterFromIn auto-computes mm', function () {
-    $bullet = new Bullet();
+    $bullet = new Bullet;
     $bullet->setDiameterFromIn(0.264);
     expect((float) $bullet->diameter_in)->toBe(0.264);
     expect((float) $bullet->diameter_mm)->toBe(6.706);
 });
 
 test('setDiameterFromMm auto-computes inches', function () {
-    $bullet = new Bullet();
+    $bullet = new Bullet;
     $bullet->setDiameterFromMm(6.706);
     expect((float) $bullet->diameter_mm)->toBe(6.706);
     expect((float) $bullet->diameter_in)->toBe(0.264);
 });
 
 test('setLengthFromIn auto-computes mm', function () {
-    $bullet = new Bullet();
+    $bullet = new Bullet;
     $bullet->setLengthFromIn(1.345);
     expect((float) $bullet->length_in)->toBe(1.345);
     expect((float) $bullet->length_mm)->toBe(34.163);
 });
 
 test('setLengthFromIn with null clears both', function () {
-    $bullet = new Bullet();
+    $bullet = new Bullet;
     $bullet->length_in = 1.0;
     $bullet->length_mm = 25.4;
     $bullet->setLengthFromIn(null);

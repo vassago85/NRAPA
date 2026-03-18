@@ -24,7 +24,7 @@ class EnsureTermsAccepted
         }
 
         // Check if user is authenticated
-        if (!$user) {
+        if (! $user) {
             return redirect()->route('login');
         }
 
@@ -37,7 +37,7 @@ class EnsureTermsAccepted
         // Use try-catch to handle case where table doesn't exist yet
         try {
             $activeTerms = TermsVersion::active();
-            if (!$activeTerms) {
+            if (! $activeTerms) {
                 // No active terms = allow access (admin should set one)
                 return $next($request);
             }
@@ -47,7 +47,7 @@ class EnsureTermsAccepted
         }
 
         // Check if user has accepted the active terms
-        if (!$user->hasAcceptedActiveTerms()) {
+        if (! $user->hasAcceptedActiveTerms()) {
             return redirect()->route('terms.accept')
                 ->with('error', 'You must accept the Terms & Conditions to continue.');
         }

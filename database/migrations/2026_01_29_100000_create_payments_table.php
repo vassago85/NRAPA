@@ -16,13 +16,13 @@ return new class extends Migration
             $table->uuid('uuid')->unique();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('membership_id')->nullable()->constrained();
-            
+
             // Payment details
             $table->decimal('amount', 10, 2);
             $table->string('currency', 3)->default('ZAR');
             $table->string('reference')->unique();
             $table->string('payment_method')->nullable(); // bank_transfer, card, cash, etc.
-            
+
             // Status
             $table->enum('status', [
                 'pending',
@@ -32,18 +32,18 @@ return new class extends Migration
                 'refunded',
                 'cancelled',
             ])->default('pending');
-            
+
             // Timestamps
             $table->timestamp('paid_at')->nullable();
             $table->timestamp('processed_at')->nullable();
             $table->timestamp('failed_at')->nullable();
-            
+
             // Metadata
             $table->json('metadata')->nullable(); // Gateway response, transaction ID, etc.
             $table->text('notes')->nullable();
-            
+
             $table->timestamps();
-            
+
             // Indexes
             $table->index(['user_id', 'status']);
             $table->index(['membership_id', 'status']);

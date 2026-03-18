@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
 use App\Models\FirearmCalibre;
 use App\Models\FirearmMake;
-use App\Models\FirearmModel;
-use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -26,7 +25,7 @@ class FirearmReferenceController extends Controller
         }
 
         $cacheKey = "calibre_suggest_{$query}_{$category}";
-        
+
         $results = Cache::remember($cacheKey, 3600, function () use ($query, $category) {
             $calibres = FirearmCalibre::active()
                 ->notObsolete()
@@ -86,7 +85,7 @@ class FirearmReferenceController extends Controller
     public function resolveCalibre(Request $request): JsonResponse
     {
         $query = $request->get('query');
-        
+
         if (empty($query)) {
             return response()->json(['error' => 'Query parameter required'], 400);
         }
@@ -96,19 +95,19 @@ class FirearmReferenceController extends Controller
         $calibre = Cache::remember("calibre_resolve_{$normalized}", 3600, function () use ($normalized) {
             // Try exact match on normalized name
             $calibre = FirearmCalibre::where('normalized_name', $normalized)->first();
-            
-            if (!$calibre) {
+
+            if (! $calibre) {
                 // Try alias match
                 $alias = \App\Models\FirearmCalibreAlias::where('normalized_alias', $normalized)->first();
                 if ($alias) {
                     $calibre = $alias->calibre;
                 }
             }
-            
+
             return $calibre;
         });
 
-        if (!$calibre) {
+        if (! $calibre) {
             return response()->json(['error' => 'Calibre not found'], 404);
         }
 
@@ -128,7 +127,7 @@ class FirearmReferenceController extends Controller
         }
 
         $cacheKey = "make_suggest_{$query}";
-        
+
         $results = Cache::remember($cacheKey, 3600, function () use ($query) {
             $makes = FirearmMake::active()
                 ->search($query)
@@ -161,7 +160,7 @@ class FirearmReferenceController extends Controller
             'normalized_name' => $make->normalized_name,
             'country' => $make->country,
             'is_active' => $make->is_active,
-            'models' => $make->models->map(fn($m) => [
+            'models' => $make->models->map(fn ($m) => [
                 'id' => $m->id,
                 'name' => $m->name,
                 'category_hint' => $m->category_hint,
@@ -186,7 +185,7 @@ class FirearmReferenceController extends Controller
 
         $models = $query->limit(50)->get();
 
-        return response()->json($models->map(fn($model) => [
+        return response()->json($models->map(fn ($model) => [
             'id' => $model->id,
             'name' => $model->name,
             'full_name' => $model->full_name,

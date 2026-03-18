@@ -22,7 +22,7 @@ return new class extends Migration
 
             // A user can only accept each version once
             $table->unique(['user_id', 'terms_version_id']);
-            
+
             // Indexes for lookups
             $table->index('user_id');
             $table->index('terms_version_id');

@@ -14,7 +14,7 @@ class TrackLoginWithout2FA
         $user = $event->user;
 
         // Track logins for users who require 2FA but haven't enabled it
-        if ($user->requires2FA() && !$user->has2FAEnabled()) {
+        if ($user->requires2FA() && ! $user->has2FAEnabled()) {
             $user->incrementLoginWithout2FA();
         }
     }

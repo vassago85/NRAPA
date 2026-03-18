@@ -9,7 +9,7 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Updates calibre_requests table to match FirearmCalibre framework:
      * - Updates category enum to match FirearmCalibre categories
      * - Updates foreign key to point to firearm_calibres instead of calibres
@@ -17,7 +17,7 @@ return new class extends Migration
     public function up(): void
     {
         $driver = DB::getDriverName();
-        
+
         if (Schema::hasTable('calibre_requests')) {
             // Drop the old foreign key constraint if it exists
             if ($driver === 'mysql') {
@@ -30,8 +30,8 @@ return new class extends Migration
                     AND COLUMN_NAME = 'calibre_id' 
                     AND REFERENCED_TABLE_NAME = 'calibres'
                 ");
-                
-                if (!empty($foreignKeys)) {
+
+                if (! empty($foreignKeys)) {
                     foreach ($foreignKeys as $fk) {
                         DB::statement("ALTER TABLE calibre_requests DROP FOREIGN KEY `{$fk->CONSTRAINT_NAME}`");
                     }
@@ -46,7 +46,7 @@ return new class extends Migration
                     // Foreign key might not exist, continue
                 }
             }
-            
+
             // Update category enum to match FirearmCalibre categories
             if ($driver === 'mysql') {
                 // MySQL: Modify the enum column
@@ -78,7 +78,7 @@ return new class extends Migration
                             FOREIGN KEY (calibre_id) REFERENCES firearm_calibres(id) ON DELETE SET NULL
                         )
                     ");
-                
+
                     // Copy data from old table, mapping 'other' to 'rifle'
                     DB::statement("
                         INSERT INTO calibre_requests_new 
@@ -100,20 +100,20 @@ return new class extends Migration
                             updated_at
                         FROM calibre_requests
                     ");
-                    
+
                     // Drop old table and rename new one
-                    DB::statement("DROP TABLE calibre_requests");
-                    DB::statement("ALTER TABLE calibre_requests_new RENAME TO calibre_requests");
-                    
+                    DB::statement('DROP TABLE calibre_requests');
+                    DB::statement('ALTER TABLE calibre_requests_new RENAME TO calibre_requests');
+
                     // Recreate indexes
-                    DB::statement("CREATE INDEX IF NOT EXISTS idx_calibre_requests_status_created ON calibre_requests(status, created_at)");
-                    DB::statement("CREATE INDEX IF NOT EXISTS idx_calibre_requests_user_id ON calibre_requests(user_id)");
+                    DB::statement('CREATE INDEX IF NOT EXISTS idx_calibre_requests_status_created ON calibre_requests(status, created_at)');
+                    DB::statement('CREATE INDEX IF NOT EXISTS idx_calibre_requests_user_id ON calibre_requests(user_id)');
                 } else {
                     // firearm_calibres table doesn't exist yet - skip SQLite table recreation
                     // This migration will need to be re-run after firearm_calibres is created
                 }
             }
-            
+
             // Re-add foreign key constraint pointing to firearm_calibres (if it doesn't already exist)
             // Only add if firearm_calibres table exists
             if (Schema::hasTable('firearm_calibres')) {
@@ -127,7 +127,7 @@ return new class extends Migration
                         AND COLUMN_NAME = 'calibre_id' 
                         AND REFERENCED_TABLE_NAME = 'firearm_calibres'
                     ");
-                    
+
                     if (empty($existingFk)) {
                         Schema::table('calibre_requests', function (Blueprint $table) {
                             $table->foreign('calibre_id')->references('id')->on('firearm_calibres')->nullOnDelete();
@@ -150,19 +150,19 @@ return new class extends Migration
     public function down(): void
     {
         $driver = DB::getDriverName();
-        
+
         if (Schema::hasTable('calibre_requests')) {
             // Drop the foreign key constraint
             Schema::table('calibre_requests', function (Blueprint $table) {
                 $table->dropForeign(['calibre_id']);
             });
-            
+
             // Revert category enum back to original
             if ($driver === 'mysql') {
                 DB::statement("ALTER TABLE calibre_requests MODIFY COLUMN category ENUM('handgun', 'rifle', 'shotgun', 'other') DEFAULT 'rifle'");
             }
             // Note: SQLite rollback would require similar table recreation
-            
+
             // Re-add old foreign key (if calibres table still exists)
             if (Schema::hasTable('calibres')) {
                 Schema::table('calibre_requests', function (Blueprint $table) {

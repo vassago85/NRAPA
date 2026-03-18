@@ -1,12 +1,11 @@
 <?php
 
-use App\Models\User;
 use App\Models\Membership;
 use App\Models\MembershipType;
+use App\Models\User;
 use App\Services\ExcelMemberImporter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Hash;
 
 uses(RefreshDatabase::class);
 
@@ -50,11 +49,11 @@ beforeEach(function () {
 });
 
 test('excel importer can generate template', function () {
-    if (!class_exists('PhpOffice\PhpSpreadsheet\IOFactory')) {
+    if (! class_exists('PhpOffice\PhpSpreadsheet\IOFactory')) {
         $this->markTestSkipped('PhpSpreadsheet is not installed.');
     }
 
-    $importer = new ExcelMemberImporter();
+    $importer = new ExcelMemberImporter;
     $tempPath = storage_path('app/temp/test_template.xlsx');
 
     File::ensureDirectoryExists(dirname($tempPath));
@@ -76,7 +75,7 @@ test('excel importer can generate template', function () {
 });
 
 test('excel importer creates user from valid data', function () {
-    $importer = new ExcelMemberImporter();
+    $importer = new ExcelMemberImporter;
 
     $reflection = new ReflectionClass($importer);
     $method = $reflection->getMethod('createUser');
@@ -102,27 +101,27 @@ test('excel importer creates user from valid data', function () {
 });
 
 test('excel importer validates required fields', function () {
-    $importer = new ExcelMemberImporter();
+    $importer = new ExcelMemberImporter;
 
     $reflection = new ReflectionClass($importer);
     $method = $reflection->getMethod('createUser');
     $method->setAccessible(true);
 
     // Missing name
-    expect(fn() => $method->invoke($importer, ['email' => 'test@example.com'], 'password'))
+    expect(fn () => $method->invoke($importer, ['email' => 'test@example.com'], 'password'))
         ->toThrow(Exception::class, 'Name and email are required');
 
     // Missing email
-    expect(fn() => $method->invoke($importer, ['name' => 'Test'], 'password'))
+    expect(fn () => $method->invoke($importer, ['name' => 'Test'], 'password'))
         ->toThrow(Exception::class, 'Name and email are required');
 
     // Invalid email
-    expect(fn() => $method->invoke($importer, ['name' => 'Test', 'email' => 'invalid-email'], 'password'))
+    expect(fn () => $method->invoke($importer, ['name' => 'Test', 'email' => 'invalid-email'], 'password'))
         ->toThrow(Exception::class, 'Invalid email format');
 });
 
 test('excel importer creates membership for user', function () {
-    $importer = new ExcelMemberImporter();
+    $importer = new ExcelMemberImporter;
     $user = User::factory()->create();
 
     $reflection = new ReflectionClass($importer);
@@ -149,7 +148,7 @@ test('excel importer creates membership for user', function () {
 });
 
 test('excel importer generates membership number if not provided', function () {
-    $importer = new ExcelMemberImporter();
+    $importer = new ExcelMemberImporter;
     $user = User::factory()->create();
 
     $reflection = new ReflectionClass($importer);
@@ -174,11 +173,11 @@ test('excel importer generates membership number if not provided', function () {
 });
 
 test('excel importer handles missing file gracefully', function () {
-    if (!class_exists('PhpOffice\PhpSpreadsheet\IOFactory')) {
+    if (! class_exists('PhpOffice\PhpSpreadsheet\IOFactory')) {
         $this->markTestSkipped('PhpSpreadsheet is not installed.');
     }
 
-    $importer = new ExcelMemberImporter();
+    $importer = new ExcelMemberImporter;
 
     $result = $importer->importFromExcel(
         storage_path('app/temp/nonexistent.xlsx'),
@@ -193,7 +192,7 @@ test('excel importer handles missing file gracefully', function () {
 });
 
 test('excel importer parses dates correctly', function () {
-    $importer = new ExcelMemberImporter();
+    $importer = new ExcelMemberImporter;
 
     $reflection = new ReflectionClass($importer);
     $method = $reflection->getMethod('parseDate');
@@ -215,7 +214,7 @@ test('excel importer parses dates correctly', function () {
 });
 
 test('excel importer derives date of birth from SA ID number', function () {
-    $importer = new ExcelMemberImporter();
+    $importer = new ExcelMemberImporter;
 
     $reflection = new ReflectionClass($importer);
     $method = $reflection->getMethod('deriveDateOfBirthFromId');
@@ -232,7 +231,7 @@ test('excel importer derives date of birth from SA ID number', function () {
 });
 
 test('excel importer resolves membership types from common names', function () {
-    $importer = new ExcelMemberImporter();
+    $importer = new ExcelMemberImporter;
 
     $reflection = new ReflectionClass($importer);
     $method = $reflection->getMethod('resolveMembershipType');
@@ -264,7 +263,7 @@ test('excel importer resolves membership types from common names', function () {
 });
 
 test('excel importer parses row in expected column format', function () {
-    $importer = new ExcelMemberImporter();
+    $importer = new ExcelMemberImporter;
 
     $reflection = new ReflectionClass($importer);
     $method = $reflection->getMethod('parseRow');

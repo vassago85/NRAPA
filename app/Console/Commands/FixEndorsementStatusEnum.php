@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Schema;
 class FixEndorsementStatusEnum extends Command
 {
     protected $signature = 'nrapa:fix-endorsement-status-enum';
+
     protected $description = 'Fix the endorsement_requests status enum to include approved status (SQLite only)';
 
     public function handle(): int
@@ -16,6 +17,7 @@ class FixEndorsementStatusEnum extends Command
         if (DB::getDriverName() !== 'sqlite') {
             $this->info('This command is only needed for SQLite databases.');
             $this->info('For MySQL, please run: php artisan migrate');
+
             return Command::SUCCESS;
         }
 
@@ -23,9 +25,10 @@ class FixEndorsementStatusEnum extends Command
 
         try {
             $tableName = 'endorsement_requests';
-            
-            if (!Schema::hasTable($tableName)) {
+
+            if (! Schema::hasTable($tableName)) {
                 $this->error("Table {$tableName} does not exist!");
+
                 return Command::FAILURE;
             }
 
@@ -37,6 +40,7 @@ class FixEndorsementStatusEnum extends Command
                     DB::statement("UPDATE {$tableName} SET status = 'approved' WHERE id = -999");
                     // If we get here, 'approved' is already allowed
                     $this->info('Status "approved" is already allowed in the enum constraint.');
+
                     return Command::SUCCESS;
                 } catch (\Exception $e) {
                     // Constraint doesn't allow 'approved', need to fix it
@@ -96,11 +100,13 @@ class FixEndorsementStatusEnum extends Command
             DB::statement("CREATE INDEX IF NOT EXISTS idx_endorsement_requests_request_type ON {$tableName}(request_type)");
 
             $this->info('✓ Successfully updated status enum to include "approved"!');
+
             return Command::SUCCESS;
 
         } catch (\Exception $e) {
-            $this->error('Failed to fix status enum: ' . $e->getMessage());
+            $this->error('Failed to fix status enum: '.$e->getMessage());
             $this->error($e->getTraceAsString());
+
             return Command::FAILURE;
         }
     }

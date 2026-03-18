@@ -3,15 +3,15 @@
 namespace App\Services;
 
 use App\Models\ImportFailure;
-use App\Models\User;
 use App\Models\Membership;
 use App\Models\MembershipType;
+use App\Models\User;
+use Exception;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
-use Exception;
 
 class ExcelMemberImporter
 {
@@ -20,43 +20,43 @@ class ExcelMemberImporter
      */
     protected array $membershipTypeMap = [
         // Dedicated types
-        'dedicated sport'                   => 'dedicated-sport',
-        'dedicated sport shooter'           => 'dedicated-sport',
-        'dedicated hunter'                  => 'dedicated-hunter',
-        'dedicated hunting'                 => 'dedicated-hunter',
-        'dedicated hunting & sport'         => 'dedicated-both',
-        'dedicated hunter & sport'          => 'dedicated-both',
-        'dedicated hunter & sport shooter'  => 'dedicated-both',
-        'dedicated both'                    => 'dedicated-both',
+        'dedicated sport' => 'dedicated-sport',
+        'dedicated sport shooter' => 'dedicated-sport',
+        'dedicated hunter' => 'dedicated-hunter',
+        'dedicated hunting' => 'dedicated-hunter',
+        'dedicated hunting & sport' => 'dedicated-both',
+        'dedicated hunter & sport' => 'dedicated-both',
+        'dedicated hunter & sport shooter' => 'dedicated-both',
+        'dedicated both' => 'dedicated-both',
 
         // Lifetime / life membership
-        'dedicated life membership'         => 'lifetime',
-        'dedicated lifetime'                => 'lifetime',
-        'life member'                       => 'lifetime',
-        'life membership'                   => 'lifetime',
-        'lifetime'                          => 'lifetime',
-        'lifetime membership'               => 'lifetime',
+        'dedicated life membership' => 'lifetime',
+        'dedicated lifetime' => 'lifetime',
+        'life member' => 'lifetime',
+        'life membership' => 'lifetime',
+        'lifetime' => 'lifetime',
+        'lifetime membership' => 'lifetime',
 
         // Standard / regular / occasional
-        'regular member'                    => 'standard-annual',
-        'regular'                           => 'standard-annual',
-        'standard'                          => 'standard-annual',
-        'standard annual'                   => 'standard-annual',
-        'standard annual membership'        => 'standard-annual',
-        'occasional'                        => 'standard-annual',
-        'occasional member'                 => 'standard-annual',
+        'regular member' => 'standard-annual',
+        'regular' => 'standard-annual',
+        'standard' => 'standard-annual',
+        'standard annual' => 'standard-annual',
+        'standard annual membership' => 'standard-annual',
+        'occasional' => 'standard-annual',
+        'occasional member' => 'standard-annual',
 
         // Junior
-        'junior'                            => 'junior-annual',
-        'junior member'                     => 'junior-annual',
-        'junior annual'                     => 'junior-annual',
+        'junior' => 'junior-annual',
+        'junior member' => 'junior-annual',
+        'junior annual' => 'junior-annual',
     ];
 
     /**
      * Import members from Excel file.
      *
-     * @param string $filePath Path to Excel file
-     * @param array $options Import options
+     * @param  string  $filePath  Path to Excel file
+     * @param  array  $options  Import options
      * @return array ['success' => bool, 'imported' => int, 'skipped' => int, 'errors' => array]
      */
     public function importFromExcel(string $filePath, array $options = []): array
@@ -106,13 +106,15 @@ class ExcelMemberImporter
                     if ($skipDuplicates && User::where('email', $memberData['email'])->exists()) {
                         $skipped++;
                         $this->recordFailure($batchId, $rowNumber, $row, "User with email '{$memberData['email']}' already exists");
+
                         continue;
                     }
 
                     // Check for duplicate ID number
-                    if (!empty($memberData['id_number']) && $skipDuplicates && User::where('id_number', $memberData['id_number'])->exists()) {
+                    if (! empty($memberData['id_number']) && $skipDuplicates && User::where('id_number', $memberData['id_number'])->exists()) {
                         $skipped++;
                         $this->recordFailure($batchId, $rowNumber, $row, "User with ID number '{$memberData['id_number']}' already exists");
+
                         continue;
                     }
 
@@ -130,8 +132,9 @@ class ExcelMemberImporter
 
                 } catch (Exception $e) {
                     $failed++;
-                    $errors[] = "Row {$rowNumber}: " . $e->getMessage();
+                    $errors[] = "Row {$rowNumber}: ".$e->getMessage();
                     $this->recordFailure($batchId, $rowNumber, $row, $e->getMessage());
+
                     continue;
                 }
             }
@@ -149,12 +152,13 @@ class ExcelMemberImporter
 
         } catch (Exception $e) {
             DB::rollBack();
+
             return [
                 'success' => false,
                 'imported' => $imported,
                 'skipped' => $skipped,
                 'failed' => $failed,
-                'errors' => array_merge($errors, ['General error: ' . $e->getMessage()]),
+                'errors' => array_merge($errors, ['General error: '.$e->getMessage()]),
                 'batch_id' => $batchId,
             ];
         }
@@ -187,8 +191,8 @@ class ExcelMemberImporter
     /**
      * Import a single member from edited row data (for retrying a failed import).
      *
-     * @param array $rowData The edited row data (keyed: initials, surname, email, etc.)
-     * @param array $options Import options (default_password, default_membership_type, auto_approve, auto_activate)
+     * @param  array  $rowData  The edited row data (keyed: initials, surname, email, etc.)
+     * @param  array  $options  Import options (default_password, default_membership_type, auto_approve, auto_activate)
      * @return array ['success' => bool, 'error' => ?string]
      */
     public function importSingleMember(array $rowData, array $options = []): array
@@ -224,7 +228,7 @@ class ExcelMemberImporter
             }
 
             // Check for duplicate ID number
-            if (!empty($memberData['id_number']) && User::where('id_number', $memberData['id_number'])->exists()) {
+            if (! empty($memberData['id_number']) && User::where('id_number', $memberData['id_number'])->exists()) {
                 return ['success' => false, 'error' => "User with ID number '{$memberData['id_number']}' already exists."];
             }
 
@@ -247,6 +251,7 @@ class ExcelMemberImporter
 
         } catch (Exception $e) {
             DB::rollBack();
+
             return ['success' => false, 'error' => $e->getMessage()];
         }
     }
@@ -288,24 +293,24 @@ class ExcelMemberImporter
         //  - "Active" in DS Activities column, OR
         //  - Life member, OR
         //  - Renewal date is in the future (still valid)
-        $isActive = (!empty($activitiesRaw) && stripos($activitiesRaw, 'active') !== false)
+        $isActive = (! empty($activitiesRaw) && stripos($activitiesRaw, 'active') !== false)
                   || $isLifeMember
                   || ($renewalDate && $renewalDate >= date('Y-m-d'));
 
         return [
-            'name'                => $name,
-            'email'               => trim(strtolower($row[5] ?? '')),
-            'id_number'           => $idNumber,
-            'phone'               => trim($row[4] ?? ''),
-            'date_of_birth'       => $dateOfBirth,
-            'physical_address'    => null,
-            'postal_address'      => null,
-            'membership_number'   => '', // auto-generated
+            'name' => $name,
+            'email' => trim(strtolower($row[5] ?? '')),
+            'id_number' => $idNumber,
+            'phone' => trim($row[4] ?? ''),
+            'date_of_birth' => $dateOfBirth,
+            'physical_address' => null,
+            'postal_address' => null,
+            'membership_number' => '', // auto-generated
             'membership_type_raw' => $membershipTypeRaw,
-            'status'              => $isActive ? 'active' : 'applied',
-            'date_joined'         => $this->parseDate($row[0] ?? null),
-            'renewal_date'        => $renewalDate,
-            'is_life_member'      => $isLifeMember,
+            'status' => $isActive ? 'active' : 'applied',
+            'date_joined' => $this->parseDate($row[0] ?? null),
+            'renewal_date' => $renewalDate,
+            'is_life_member' => $isLifeMember,
         ];
     }
 
@@ -325,13 +330,13 @@ class ExcelMemberImporter
         $dd = substr($idNumber, 4, 2);
 
         // Validate month and day ranges
-        if ((int)$mm < 1 || (int)$mm > 12 || (int)$dd < 1 || (int)$dd > 31) {
+        if ((int) $mm < 1 || (int) $mm > 12 || (int) $dd < 1 || (int) $dd > 31) {
             return null;
         }
 
         // Determine century: if YY > current 2-digit year, born in 1900s, else 2000s
         $currentYY = (int) date('y');
-        $century = ((int)$yy > $currentYY) ? '19' : '20';
+        $century = ((int) $yy > $currentYY) ? '19' : '20';
 
         $dateStr = "{$century}{$yy}-{$mm}-{$dd}";
 
@@ -339,11 +344,12 @@ class ExcelMemberImporter
         try {
             $date = new \DateTime($dateStr);
             // Sanity check: not in the future
-            if ($date > new \DateTime()) {
+            if ($date > new \DateTime) {
                 // Try 1900s instead
                 $dateStr = "19{$yy}-{$mm}-{$dd}";
                 $date = new \DateTime($dateStr);
             }
+
             return $date->format('Y-m-d');
         } catch (Exception $e) {
             return null;
@@ -355,7 +361,7 @@ class ExcelMemberImporter
      */
     protected function resolveMembershipType(?string $rawType, ?MembershipType $default): ?MembershipType
     {
-        if (!empty($rawType)) {
+        if (! empty($rawType)) {
             $normalised = strtolower(trim($rawType));
 
             // Check our mapping table first
@@ -401,13 +407,14 @@ class ExcelMemberImporter
 
         // d/m/Y or d-m-Y format
         if (is_string($value) && preg_match('#^(\d{1,2})[/\-](\d{1,2})[/\-](\d{4})$#', $value, $m)) {
-            return sprintf('%04d-%02d-%02d', (int)$m[3], (int)$m[2], (int)$m[1]);
+            return sprintf('%04d-%02d-%02d', (int) $m[3], (int) $m[2], (int) $m[1]);
         }
 
         // Try to parse Excel date (numeric value)
         if (is_numeric($value)) {
             try {
                 $date = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($value);
+
                 return $date->format('Y-m-d');
             } catch (Exception $e) {
                 // Fall through
@@ -417,6 +424,7 @@ class ExcelMemberImporter
         // Last resort: let PHP try
         try {
             $date = new \DateTime($value);
+
             return $date->format('Y-m-d');
         } catch (Exception $e) {
             return null;
@@ -434,8 +442,8 @@ class ExcelMemberImporter
         }
 
         // Validate email format
-        if (!filter_var($memberData['email'], FILTER_VALIDATE_EMAIL)) {
-            throw new Exception('Invalid email format: ' . $memberData['email']);
+        if (! filter_var($memberData['email'], FILTER_VALIDATE_EMAIL)) {
+            throw new Exception('Invalid email format: '.$memberData['email']);
         }
 
         $user = User::create([
@@ -461,7 +469,7 @@ class ExcelMemberImporter
     protected function createMembership(User $user, array $memberData, MembershipType $membershipType, bool $autoApprove, bool $autoActivate): void
     {
         // Generate membership number
-        $membershipNumber = !empty($memberData['membership_number'])
+        $membershipNumber = ! empty($memberData['membership_number'])
             ? $memberData['membership_number']
             : $this->generateMembershipNumber($membershipType);
 
@@ -472,12 +480,12 @@ class ExcelMemberImporter
 
         // Determine status
         $status = $memberData['status'] ?? 'applied';
-        if (!in_array($status, ['applied', 'approved', 'active', 'suspended', 'revoked', 'expired'])) {
+        if (! in_array($status, ['applied', 'approved', 'active', 'suspended', 'revoked', 'expired'])) {
             $status = 'applied';
         }
 
         // Use date_joined for applied_at if available, otherwise now
-        $appliedAt = !empty($memberData['date_joined'])
+        $appliedAt = ! empty($memberData['date_joined'])
             ? \Carbon\Carbon::parse($memberData['date_joined'])
             : now();
 
@@ -486,7 +494,7 @@ class ExcelMemberImporter
 
         // Determine expiry date
         $expiresAt = null;
-        if (!empty($memberData['renewal_date'])) {
+        if (! empty($memberData['renewal_date'])) {
             // Use the explicit renewal date from the spreadsheet
             $expiresAt = \Carbon\Carbon::parse($memberData['renewal_date']);
         } elseif ($membershipType->requires_renewal && $membershipType->duration_months) {
@@ -539,7 +547,7 @@ class ExcelMemberImporter
      */
     public function generateTemplate(string $filePath): void
     {
-        $spreadsheet = new Spreadsheet();
+        $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Member Import');
 

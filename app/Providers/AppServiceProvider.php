@@ -22,10 +22,11 @@ class AppServiceProvider extends ServiceProvider
             function ($app) {
                 // Check if Spatie Laravel PDF is available
                 if (class_exists(\Spatie\LaravelPdf\Facades\Pdf::class)) {
-                    return new \App\Services\PdfDocumentRenderer();
+                    return new \App\Services\PdfDocumentRenderer;
                 }
+
                 // Fallback to fake renderer for development/testing
-                return new \App\Services\FakeDocumentRenderer();
+                return new \App\Services\FakeDocumentRenderer;
             }
         );
     }

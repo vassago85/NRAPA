@@ -5,10 +5,8 @@ namespace Database\Seeders;
 use App\Models\CertificateType;
 use App\Models\Country;
 use App\Models\DocumentType;
-use App\Models\FirearmType;
 use App\Models\Province;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Str;
 
 class FormDataSeeder extends Seeder
 {
@@ -234,5 +232,4 @@ class FormDataSeeder extends Seeder
         // Call the existing FirearmTypeSeeder
         $this->call(FirearmTypeSeeder::class);
     }
-
 }

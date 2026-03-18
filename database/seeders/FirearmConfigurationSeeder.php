@@ -49,7 +49,7 @@ class FirearmConfigurationSeeder extends Seeder
                 'description' => 'A pistol designed to fire a single shot before reloading.',
                 'sort_order' => 12,
             ],
-            
+
             // Rifles - Manual Action
             [
                 'name' => 'Bolt Action Rifle',
@@ -83,7 +83,7 @@ class FirearmConfigurationSeeder extends Seeder
                 'description' => 'A rifle that opens at a hinge for loading.',
                 'sort_order' => 23,
             ],
-            
+
             // Rifles - Self-Loading
             [
                 'name' => 'Semi-Automatic Rifle',
@@ -93,7 +93,7 @@ class FirearmConfigurationSeeder extends Seeder
                 'description' => 'A rifle that automatically chambers a new round after each shot.',
                 'sort_order' => 30,
             ],
-            
+
             // Shotguns
             [
                 'name' => 'Pump Action Shotgun',
@@ -161,7 +161,7 @@ class FirearmConfigurationSeeder extends Seeder
             ['name' => '4.25mm Liliput', 'ignition_type' => 'centerfire', 'is_common' => false, 'is_obsolete' => true, 'aliases' => []],
             ['name' => '5.45×18mm', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => ['5.45x18mm PSM']],
             ['name' => '5.7×28mm', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['5.7x28', 'FN 5.7']],
-            
+
             // Rimfire
             ['name' => '.17 HM2', 'ignition_type' => 'rimfire', 'is_common' => false, 'aliases' => ['.17 Hornady Mach 2']],
             ['name' => '.17 HMR', 'ignition_type' => 'rimfire', 'is_common' => true, 'aliases' => ['.17 Hornady Magnum Rimfire']],
@@ -169,7 +169,7 @@ class FirearmConfigurationSeeder extends Seeder
             ['name' => '.22 Long', 'ignition_type' => 'rimfire', 'is_common' => false, 'aliases' => ['.22 L']],
             ['name' => '.22 LR', 'ignition_type' => 'rimfire', 'is_common' => true, 'aliases' => ['.22 Long Rifle', '.22']],
             ['name' => '.22 WMR', 'ignition_type' => 'rimfire', 'is_common' => true, 'aliases' => ['.22 Magnum', '.22 Winchester Magnum Rimfire']],
-            
+
             // Centerfire - Small
             ['name' => '.25 ACP', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['6.35mm Browning', '.25 Auto']],
             ['name' => '.25 NAA', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
@@ -179,7 +179,7 @@ class FirearmConfigurationSeeder extends Seeder
             ['name' => '.32 S&W Long', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => ['.32 S&W L']],
             ['name' => '.32 H&R Magnum', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '.327 Federal Magnum', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
-            
+
             // Centerfire - Medium
             ['name' => '.38 S&W', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '.38 Special', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['.38 Spl', '.38 S&W Special']],
@@ -190,7 +190,7 @@ class FirearmConfigurationSeeder extends Seeder
             ['name' => '9×19 Parabellum', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['9mm Luger', '9mm Para', '9mm']],
             ['name' => '9×21 IMI', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '9×23 Winchester', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
-            
+
             // Centerfire - Large
             ['name' => '.40 S&W', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['40 S&W', '10mm Short']],
             ['name' => '.41 Magnum', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => ['.41 Rem Mag']],
@@ -201,7 +201,7 @@ class FirearmConfigurationSeeder extends Seeder
             ['name' => '.45 ACP', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['.45 Auto', '11.43x23mm']],
             ['name' => '.45 GAP', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => ['.45 Glock Auto Pistol']],
             ['name' => '.45 Colt', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['.45 Long Colt', '.45 LC']],
-            
+
             // Centerfire - Magnum/Large Bore
             ['name' => '.454 Casull', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '.460 S&W Magnum', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
@@ -250,12 +250,12 @@ class FirearmConfigurationSeeder extends Seeder
             ['name' => '.17 Remington Fireball', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '.17 Tactical', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '.19 Calhoon', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
-            
+
             // .20 calibre
             ['name' => '.20 Practical', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '.20 VarTarg', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '.204 Ruger', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => []],
-            
+
             // .22 calibre centerfire
             ['name' => '.218 Bee', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '.219 Zipper', 'ignition_type' => 'centerfire', 'is_common' => false, 'is_obsolete' => true, 'aliases' => []],
@@ -274,7 +274,7 @@ class FirearmConfigurationSeeder extends Seeder
             ['name' => '.22 Nosler', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '.22 PPC', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '.22-250 Remington', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['.22-250', '.22-250 Rem']],
-            
+
             // 6mm/.24 calibre
             ['name' => '.240 Weatherby Magnum', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '.243 Winchester', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['.243 Win', '.243']],
@@ -292,7 +292,7 @@ class FirearmConfigurationSeeder extends Seeder
             ['name' => '6mm PPC', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '6mm Remington', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => []],
             ['name' => '6mm Creedmoor', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['6mm CM']],
-            
+
             // 6.5mm calibre
             ['name' => '6.5×47 Lapua', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => []],
             ['name' => '6.5×50 Arisaka', 'ignition_type' => 'centerfire', 'is_common' => false, 'is_obsolete' => true, 'aliases' => ['6.5 Japanese']],
@@ -301,7 +301,7 @@ class FirearmConfigurationSeeder extends Seeder
             ['name' => '6.5×55 Swedish', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['6.5x55 Swede', '6.5 Swedish Mauser']],
             ['name' => '6.5 Creedmoor', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['6.5 CM', '6.5 Creed']],
             ['name' => '6.5 PRC', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['6.5 Precision Rifle Cartridge']],
-            
+
             // 6.8mm/.270 calibre
             ['name' => '6.8 SPC', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['6.8 Remington SPC', '6.8x43mm']],
             ['name' => '.264 Winchester Magnum', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
@@ -309,7 +309,7 @@ class FirearmConfigurationSeeder extends Seeder
             ['name' => '.270 Weatherby Magnum', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '.270 WSM', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['.270 Winchester Short Magnum']],
             ['name' => '.275 Rigby', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
-            
+
             // 7mm calibre
             ['name' => '.280 Remington', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['7mm Express Remington']],
             ['name' => '.280 Ackley Improved', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => ['.280 AI']],
@@ -320,7 +320,7 @@ class FirearmConfigurationSeeder extends Seeder
             ['name' => '7mm STW', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => ['7mm Shooting Times Westerner']],
             ['name' => '7mm Weatherby Magnum', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '7mm PRC', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['7mm Precision Rifle Cartridge']],
-            
+
             // .30 calibre
             ['name' => '.300 AAC Blackout', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['.300 BLK', '300 Blackout', '7.62x35mm']],
             ['name' => ".300 Ham'r", 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => ['.300 Hamr']],
@@ -341,7 +341,7 @@ class FirearmConfigurationSeeder extends Seeder
             ['name' => '.30 Nosler', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '.30-30 Winchester', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['.30-30', '.30 WCF']],
             ['name' => '.30 Carbine', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['7.62x33mm']],
-            
+
             // .318-.338 calibre
             ['name' => '.318 Westley Richards', 'ignition_type' => 'centerfire', 'is_common' => false, 'is_obsolete' => true, 'aliases' => []],
             ['name' => '.333 Jeffery', 'ignition_type' => 'centerfire', 'is_common' => false, 'is_obsolete' => true, 'aliases' => []],
@@ -350,14 +350,14 @@ class FirearmConfigurationSeeder extends Seeder
             ['name' => '.338 Lapua Magnum', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['.338 Lapua', '8.6x70mm']],
             ['name' => '.340 Weatherby Magnum', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '.348 Winchester', 'ignition_type' => 'centerfire', 'is_common' => false, 'is_obsolete' => true, 'aliases' => []],
-            
+
             // .35 calibre
             ['name' => '.35 Remington', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => []],
             ['name' => '.35 Whelen', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '.358 Winchester', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '.360 Buckhammer', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '.366 TKM', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
-            
+
             // .375-.378 calibre
             ['name' => '.375 Winchester', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '.375 H&H Magnum', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['.375 Holland & Holland', '.375 H&H']],
@@ -365,7 +365,7 @@ class FirearmConfigurationSeeder extends Seeder
             ['name' => '.375 EnABLER', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '.376 Steyr', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '.378 Weatherby Magnum', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
-            
+
             // .404-.425 calibre
             ['name' => '.404 Jeffery', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => ['10.75x73mm']],
             ['name' => '.408 CheyTac', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => ['10.36x77mm']],
@@ -374,7 +374,7 @@ class FirearmConfigurationSeeder extends Seeder
             ['name' => '.416 Weatherby Magnum', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '.423 Okapi', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '.425 Westley Richards', 'ignition_type' => 'centerfire', 'is_common' => false, 'is_obsolete' => true, 'aliases' => []],
-            
+
             // .45-.475 calibre
             ['name' => '.45-70 Government', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['.45-70', '.45-70 Govt']],
             ['name' => '.450 Bushmaster', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => []],
@@ -387,7 +387,7 @@ class FirearmConfigurationSeeder extends Seeder
             ['name' => '.470 Capstick', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
             ['name' => '.470 Nitro Express', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => ['.470 NE']],
             ['name' => '.475 Turnbull', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],
-            
+
             // .50+ calibre (African/Extreme)
             ['name' => '.500 Jeffery', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => ['12.7x70mm Schuler']],
             ['name' => '.500 Nitro Express', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => ['.500 NE']],
@@ -402,7 +402,7 @@ class FirearmConfigurationSeeder extends Seeder
             ['name' => '.577 Nitro Express', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => ['.577 NE']],
             ['name' => '.600 Nitro Express', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => ['.600 NE']],
             ['name' => '.700 Nitro Express', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => ['.700 NE']],
-            
+
             // 8mm calibre (added for completeness)
             ['name' => '8×57 Mauser', 'ignition_type' => 'centerfire', 'is_common' => true, 'aliases' => ['8mm Mauser', '7.92x57mm']],
             ['name' => '8mm Remington Magnum', 'ignition_type' => 'centerfire', 'is_common' => false, 'aliases' => []],

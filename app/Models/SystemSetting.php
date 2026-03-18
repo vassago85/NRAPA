@@ -30,13 +30,13 @@ class SystemSetting extends Model
             return static::where('key', $key)->first();
         });
 
-        if (!$setting) {
+        if (! $setting) {
             return $default;
         }
 
         // Handle different types
         $value = $setting->value;
-        
+
         return match ($setting->type) {
             'boolean' => (bool) $value,
             'integer' => (int) $value,

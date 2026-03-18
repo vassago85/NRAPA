@@ -33,7 +33,7 @@ return new class extends Migration
             '10mm Auto' => '10MM',
             '.380 ACP' => '380ACP',
             '9mm Short' => '380ACP',
-            
+
             // Rifle calibres
             '.223 Remington' => '223REM',
             '5.56x45mm NATO' => '556NATO',
@@ -57,7 +57,7 @@ return new class extends Migration
             '.17 HMR' => '17HMR',
             '.22 WMR' => '22WMR',
             '.22 Magnum' => '22WMR',
-            
+
             // Shotgun gauges
             '12 Gauge' => '12GA',
             '12 Bore' => '12GA',

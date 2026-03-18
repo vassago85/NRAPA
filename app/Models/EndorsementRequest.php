@@ -15,27 +15,40 @@ class EndorsementRequest extends Model
 
     // Request type constants
     public const TYPE_NEW = 'new';
+
     public const TYPE_RENEWAL = 'renewal';
 
     // Minimum activity requirements (can be overridden via SystemSetting)
     public const DEFAULT_MIN_ACTIVITIES_SPORT = 2; // per 12 months
+
     public const DEFAULT_MIN_ACTIVITIES_HUNTER = 2; // per 24 months
 
     // Status constants
     public const STATUS_DRAFT = 'draft';
+
     public const STATUS_SUBMITTED = 'submitted';
+
     public const STATUS_UNDER_REVIEW = 'under_review';
+
     public const STATUS_PENDING_DOCUMENTS = 'pending_documents';
+
     public const STATUS_APPROVED = 'approved'; // Approved but letter not yet generated
+
     public const STATUS_ISSUED = 'issued'; // Letter generated/issued
+
     public const STATUS_REJECTED = 'rejected';
+
     public const STATUS_CANCELLED = 'cancelled';
 
     // Purpose constants
     public const PURPOSE_SECTION_16 = 'section_16_application';
+
     public const PURPOSE_STATUS_CONFIRMATION = 'status_confirmation';
+
     public const PURPOSE_LICENCE_RENEWAL = 'licence_renewal';
+
     public const PURPOSE_ADDITIONAL_FIREARM = 'additional_firearm';
+
     public const PURPOSE_OTHER = 'other';
 
     /**
@@ -180,7 +193,7 @@ class EndorsementRequest extends Model
         $warnings = [];
 
         // 1. Knowledge Test Check (once-off requirement)
-        if (!$user->hasPassedKnowledgeTest()) {
+        if (! $user->hasPassedKnowledgeTest()) {
             $errors[] = [
                 'type' => 'knowledge_test',
                 'message' => 'You must pass the dedicated status knowledge test before requesting an endorsement letter.',
@@ -204,7 +217,7 @@ class EndorsementRequest extends Model
 
         // 3. Activity Requirements Check
         $activityCheck = self::checkActivityRequirements($user);
-        if (!$activityCheck['met']) {
+        if (! $activityCheck['met']) {
             $errors[] = [
                 'type' => 'activities',
                 'message' => $activityCheck['message'],
@@ -216,7 +229,7 @@ class EndorsementRequest extends Model
 
         // 4. Active membership check
         $membership = $user->activeMembership;
-        if (!$membership) {
+        if (! $membership) {
             $errors[] = [
                 'type' => 'membership',
                 'message' => 'You must have an active membership to request an endorsement letter.',
@@ -251,7 +264,7 @@ class EndorsementRequest extends Model
                 $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
             })
             ->exists();
-        if (!$hasValidId) {
+        if (! $hasValidId) {
             $missing[] = ['slug' => 'identity-document', 'name' => 'ID', 'document_type_id' => null];
         }
 
@@ -274,7 +287,7 @@ class EndorsementRequest extends Model
                     $hasValidPoa = false;
                 }
             }
-            if (!$hasValidPoa) {
+            if (! $hasValidPoa) {
                 $missing[] = [
                     'slug' => $poaSlug,
                     'name' => 'Proof of Address',
@@ -293,8 +306,8 @@ class EndorsementRequest extends Model
     public static function checkProofOfAddressCompliance(User $user): array
     {
         $docType = DocumentType::where('slug', 'proof-of-address')->first();
-        
-        if (!$docType) {
+
+        if (! $docType) {
             return [
                 'has_document' => false,
                 'is_compliant' => false,
@@ -316,7 +329,7 @@ class EndorsementRequest extends Model
             ->orderBy('verified_at', 'desc')
             ->first();
 
-        if (!$validDocument || !$validDocument->verified_at) {
+        if (! $validDocument || ! $validDocument->verified_at) {
             return [
                 'has_document' => false,
                 'is_compliant' => false,
@@ -333,12 +346,12 @@ class EndorsementRequest extends Model
 
         return [
             'has_document' => true,
-            'is_compliant' => !$isOlderThan3Months,
+            'is_compliant' => ! $isOlderThan3Months,
             'is_older_than_3_months' => $isOlderThan3Months,
             'verified_at' => $validDocument->verified_at,
             'age_days' => $ageDays,
             'age_months' => round($ageDays / 30, 1),
-            'message' => $isOlderThan3Months 
+            'message' => $isOlderThan3Months
                 ? "Proof of Address is older than 3 months ({$ageDays} days old). New POA will be required when requesting an endorsement."
                 : "Proof of Address is up to date ({$ageDays} days old).",
         ];
@@ -387,7 +400,7 @@ class EndorsementRequest extends Model
             'approved_count' => $approvedCount,
             'required' => $required,
             'period_months' => $activityPeriodMonths,
-            'message' => $met 
+            'message' => $met
                 ? "You have {$approvedCount} approved activities (minimum {$required} required)."
                 : "You need at least {$required} approved activities in the last {$activityPeriodMonths} months. You currently have {$approvedCount}.",
         ];
@@ -399,7 +412,7 @@ class EndorsementRequest extends Model
     public static function getEligibilitySummary(User $user): array
     {
         $eligibility = self::checkUserEligibility($user);
-        
+
         return [
             'eligible' => $eligibility['eligible'],
             'knowledge_test_passed' => $user->hasPassedKnowledgeTest(),
@@ -600,19 +613,19 @@ class EndorsementRequest extends Model
     public function canSubmit(): bool
     {
         // Must be in draft status
-        if (!$this->isDraft()) {
+        if (! $this->isDraft()) {
             return false;
         }
 
         // Must have either firearm or at least one component (component-only requests allowed)
         $hasFirearm = (bool) $this->firearm;
         $hasComponents = $this->components()->exists();
-        if (!$hasFirearm && !$hasComponents) {
+        if (! $hasFirearm && ! $hasComponents) {
             return false;
         }
 
         // Must have declaration accepted
-        if (!$this->hasDeclaration()) {
+        if (! $this->hasDeclaration()) {
             return false;
         }
 
@@ -631,24 +644,24 @@ class EndorsementRequest extends Model
     public function getSubmissionErrors(): array
     {
         $errors = [];
-        
+
         // Check terms acceptance
         $activeTerms = \App\Models\TermsVersion::active();
-        if ($activeTerms && !$this->user->hasAcceptedActiveTerms()) {
+        if ($activeTerms && ! $this->user->hasAcceptedActiveTerms()) {
             $errors[] = 'You must accept the Terms & Conditions before submitting endorsement requests.';
         }
 
-        if (!$this->isDraft()) {
+        if (! $this->isDraft()) {
             $errors[] = 'Request is not in draft status.';
         }
 
         $hasFirearm = (bool) $this->firearm;
         $hasComponents = $this->components()->exists();
-        if (!$hasFirearm && !$hasComponents) {
+        if (! $hasFirearm && ! $hasComponents) {
             $errors[] = 'Either firearm details or at least one component is required.';
         }
 
-        if (!$this->hasDeclaration()) {
+        if (! $this->hasDeclaration()) {
             $errors[] = 'You must accept the declaration.';
         }
 
@@ -656,8 +669,8 @@ class EndorsementRequest extends Model
         // Admin can request documents after submission if needed
         $missingDocs = $this->getMissingRequestDocuments();
         if (count($missingDocs) > 0) {
-            $docLabels = array_map(fn($doc) => self::getDocumentTypeLabel($doc), $missingDocs);
-            $errors[] = "Note: Some documents may need to be uploaded: " . implode(', ', $docLabels) . ". Admin can request these after submission.";
+            $docLabels = array_map(fn ($doc) => self::getDocumentTypeLabel($doc), $missingDocs);
+            $errors[] = 'Note: Some documents may need to be uploaded: '.implode(', ', $docLabels).'. Admin can request these after submission.';
         }
 
         return $errors;
@@ -690,7 +703,7 @@ class EndorsementRequest extends Model
      */
     public static function getDocumentTypeLabel(string $type): string
     {
-        return match($type) {
+        return match ($type) {
             'sa_id' => 'South African ID',
             'proof_of_address' => 'Proof of Address',
             'dedicated_status_certificate' => 'Dedicated Status Certificate',
@@ -711,7 +724,7 @@ class EndorsementRequest extends Model
      */
     public function submit(): bool
     {
-        if (!$this->canSubmit()) {
+        if (! $this->canSubmit()) {
             return false;
         }
 
@@ -738,10 +751,10 @@ class EndorsementRequest extends Model
     {
         try {
             $ntfyService = app(\App\Services\NtfyService::class);
-            
+
             $title = 'New Endorsement Request Submitted';
             $subject = $this->firearm
-                ? (trim(($this->firearm->make ?? '') . ' ' . ($this->firearm->model ?? '')) ?: 'a firearm')
+                ? (trim(($this->firearm->make ?? '').' '.($this->firearm->model ?? '')) ?: 'a firearm')
                 : ($this->components->first()?->summary ?? 'a component');
             $message = sprintf(
                 '%s has submitted an endorsement request for %s. Review and approve at: %s',
@@ -831,13 +844,13 @@ class EndorsementRequest extends Model
         if ($dedicatedStatusCompliant === null || $dedicatedCategory === null) {
             $eligibility = self::getEligibilitySummary($this->user);
             $dedicatedStatusCompliant = $eligibility['eligible'] ?? false;
-            
+
             // Determine dedicated category from membership type
             $membership = $this->user->activeMembership;
             $dedicatedType = $membership?->type?->dedicated_type ?? null;
-            
+
             if ($dedicatedCategory === null) {
-                $dedicatedCategory = match($dedicatedType) {
+                $dedicatedCategory = match ($dedicatedType) {
                     'sport' => 'Dedicated Sport Shooter',
                     'hunter' => 'Dedicated Hunter',
                     'both' => 'Dedicated Sport Shooter & Dedicated Hunter',
@@ -847,7 +860,7 @@ class EndorsementRequest extends Model
         }
 
         // Block issuance if not compliant
-        if (!$dedicatedStatusCompliant) {
+        if (! $dedicatedStatusCompliant) {
             throw new \Exception('Dedicated Status is not compliant. Endorsement cannot be issued.');
         }
 
@@ -909,7 +922,7 @@ class EndorsementRequest extends Model
             ->value('letter_reference');
 
         if ($lastRef && preg_match('/(\d+)$/', $lastRef, $matches)) {
-            $nextNum = (int)$matches[1] + 1;
+            $nextNum = (int) $matches[1] + 1;
         } else {
             $nextNum = 1;
         }
@@ -1019,6 +1032,7 @@ class EndorsementRequest extends Model
         if ($this->purpose === self::PURPOSE_OTHER) {
             return $this->purpose_other_text ?? 'Other';
         }
+
         return self::getPurposeOptions()[$this->purpose] ?? '';
     }
 
@@ -1027,7 +1041,7 @@ class EndorsementRequest extends Model
      */
     public function getIsExpiredAttribute(): bool
     {
-        if (!$this->isIssued() || !$this->expires_at) {
+        if (! $this->isIssued() || ! $this->expires_at) {
             return false;
         }
 
@@ -1039,7 +1053,7 @@ class EndorsementRequest extends Model
      */
     public function getIsExpiringSoonAttribute(): bool
     {
-        if (!$this->isIssued() || !$this->expires_at || $this->is_expired) {
+        if (! $this->isIssued() || ! $this->expires_at || $this->is_expired) {
             return false;
         }
 
@@ -1051,7 +1065,7 @@ class EndorsementRequest extends Model
      */
     public function getDaysUntilExpiryAttribute(): ?int
     {
-        if (!$this->isIssued() || !$this->expires_at) {
+        if (! $this->isIssued() || ! $this->expires_at) {
             return null;
         }
 
@@ -1066,7 +1080,7 @@ class EndorsementRequest extends Model
         if ($this->dedicated_status_compliant === null) {
             return 'Not Recorded (Legacy)';
         }
-        
+
         return $this->dedicated_status_compliant ? 'Compliant' : 'Non-Compliant';
     }
 
@@ -1078,7 +1092,7 @@ class EndorsementRequest extends Model
         if (empty($this->dedicated_category)) {
             return 'Not Recorded (Legacy)';
         }
-        
+
         return $this->dedicated_category;
     }
 
@@ -1087,7 +1101,7 @@ class EndorsementRequest extends Model
      */
     public function getStatusBadgeClassAttribute(): string
     {
-        return match($this->status) {
+        return match ($this->status) {
             self::STATUS_DRAFT => 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-300',
             self::STATUS_SUBMITTED => 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
             self::STATUS_UNDER_REVIEW => 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',

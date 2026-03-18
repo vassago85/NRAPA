@@ -69,19 +69,19 @@ class ShootingActivity extends Model
             if (empty($activity->uuid)) {
                 $activity->uuid = (string) Str::uuid();
             }
-            
+
             // Auto-set track from activity type if not set
-            if (!$activity->track && $activity->activity_type_id) {
+            if (! $activity->track && $activity->activity_type_id) {
                 $activityType = ActivityType::find($activity->activity_type_id);
                 if ($activityType && $activityType->track) {
                     $activity->track = $activityType->track;
                 }
             }
         });
-        
+
         static::updating(function (ShootingActivity $activity) {
             // Auto-update track from activity type if activity type changed
-            if ($activity->isDirty('activity_type_id') && !$activity->track) {
+            if ($activity->isDirty('activity_type_id') && ! $activity->track) {
                 $activityType = ActivityType::find($activity->activity_type_id);
                 if ($activityType && $activityType->track) {
                     $activity->track = $activityType->track;
@@ -127,6 +127,7 @@ class ShootingActivity extends Model
 
     /**
      * Get the event category (legacy - kept for historical data).
+     *
      * @deprecated Use activityType() instead
      */
     public function eventCategory(): BelongsTo
@@ -136,6 +137,7 @@ class ShootingActivity extends Model
 
     /**
      * Get the event type (legacy - kept for historical data).
+     *
      * @deprecated Use tags() instead
      */
     public function eventType(): BelongsTo
@@ -296,7 +298,7 @@ class ShootingActivity extends Model
     protected function notifyRejection(string $reason): void
     {
         $user = $this->user;
-        if (!$user) {
+        if (! $user) {
             return;
         }
 
@@ -414,8 +416,8 @@ class ShootingActivity extends Model
             'start' => $startDate,
             'end' => $endDate,
             'deadline' => $deadline,
-            'label' => $startDate->format('d M Y') . ' - ' . $endDate->format('d M Y'),
-            'deadline_label' => 'Submissions due by ' . $deadline->format('d M Y'),
+            'label' => $startDate->format('d M Y').' - '.$endDate->format('d M Y'),
+            'deadline_label' => 'Submissions due by '.$deadline->format('d M Y'),
         ];
     }
 
@@ -442,6 +444,7 @@ class ShootingActivity extends Model
         if ($this->userFirearm && $this->userFirearm->calibre_display) {
             return $this->userFirearm->calibre_display;
         }
+
         return null;
     }
 }

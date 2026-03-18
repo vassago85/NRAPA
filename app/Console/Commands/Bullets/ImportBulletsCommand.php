@@ -9,8 +9,11 @@ use Illuminate\Support\Facades\Http;
 abstract class ImportBulletsCommand extends Command
 {
     protected BulletUpsertService $upsertService;
+
     protected int $importedCount = 0;
+
     protected int $skippedCount = 0;
+
     protected int $errorCount = 0;
 
     public function __construct(BulletUpsertService $upsertService)
@@ -57,7 +60,8 @@ abstract class ImportBulletsCommand extends Command
             $this->upsertService->attachSource($bullet, $sourceType, $data['source_url']);
             $this->importedCount++;
         } catch (\Exception $e) {
-            $this->error("Failed: {$data['bullet_label'] ?? 'unknown'} - {$e->getMessage()}");
+            $label = $data['bullet_label'] ?? 'unknown';
+            $this->error("Failed: {$label} - {$e->getMessage()}");
             $this->errorCount++;
         }
     }
@@ -68,7 +72,7 @@ abstract class ImportBulletsCommand extends Command
     protected function printSummary(): void
     {
         $this->newLine();
-        $this->info("Import complete:");
+        $this->info('Import complete:');
         $this->line("  Imported/updated: {$this->importedCount}");
         $this->line("  Skipped: {$this->skippedCount}");
         $this->line("  Errors: {$this->errorCount}");

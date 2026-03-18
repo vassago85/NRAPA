@@ -31,19 +31,19 @@ class Enforce2FAForAdmins
     public function handle(Request $request, Closure $next): Response
     {
         // Skip 2FA enforcement in local/development environments or test domains
-        if (app()->environment(['local', 'development', 'testing']) || 
+        if (app()->environment(['local', 'development', 'testing']) ||
             str_contains($request->getHost(), 'charsley.co.za')) {
             return $next($request);
         }
 
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return $next($request);
         }
 
         // Only apply to users who require 2FA
-        if (!$user->requires2FA()) {
+        if (! $user->requires2FA()) {
             return $next($request);
         }
 
@@ -58,14 +58,15 @@ class Enforce2FAForAdmins
         if ($user->hasExceeded2FALoginLimit()) {
             // Redirect to 2FA setup page with message
             session()->flash('error', 'You must enable two-factor authentication to continue. You have exceeded the maximum number of logins without 2FA.');
+
             return redirect()->route('two-factor.show');
         }
 
         // Show warning if approaching limit
         $remaining = $user->getRemainingLoginsWithout2FA();
-        if ($remaining > 0 && $remaining <= 3 && !$user->has2FAEnabled()) {
+        if ($remaining > 0 && $remaining <= 3 && ! $user->has2FAEnabled()) {
             // Only show once per session to avoid annoyance
-            if (!session()->has('2fa_warning_shown')) {
+            if (! session()->has('2fa_warning_shown')) {
                 session()->flash('warning', "You have {$remaining} login(s) remaining before two-factor authentication becomes mandatory.");
                 session()->put('2fa_warning_shown', true);
             }

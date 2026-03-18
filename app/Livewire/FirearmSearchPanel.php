@@ -13,32 +13,48 @@ class FirearmSearchPanel extends Component
 {
     // Calibre search
     public string $calibreSearch = '';
+
     public ?int $firearmCalibreId = null;
+
     public ?string $calibreTextOverride = null;
 
     // Make/Model search
     public string $makeSearch = '';
+
     public ?int $firearmMakeId = null;
+
     public ?string $makeTextOverride = null;
-    
+
     public string $modelSearch = '';
+
     public ?int $firearmModelId = null;
+
     public ?string $modelTextOverride = null;
 
     // SAPS 271 fields
     public string $firearmType = '';
+
     public string $firearmTypeOther = '';
+
     public string $actionType = '';
+
     public string $actionTypeOther = '';
+
     public ?string $engravedText = null;
+
     public ?string $calibreCode = null;
 
     // Serial numbers
     public ?string $barrelSerialNumber = null;
+
     public ?string $barrelMakeText = null;
+
     public ?string $frameSerialNumber = null;
+
     public ?string $frameMakeText = null;
+
     public ?string $receiverSerialNumber = null;
+
     public ?string $receiverMakeText = null;
 
     // Category filter for calibres
@@ -46,7 +62,9 @@ class FirearmSearchPanel extends Component
 
     // Show override option
     public bool $showCalibreOverride = false;
+
     public bool $showMakeOverride = false;
+
     public bool $showModelOverride = false;
 
     /**
@@ -54,7 +72,7 @@ class FirearmSearchPanel extends Component
      */
     public function mount($initialData = []): void
     {
-        if (is_array($initialData) && !empty($initialData)) {
+        if (is_array($initialData) && ! empty($initialData)) {
             $this->hydrateFromData($initialData);
         }
     }
@@ -129,7 +147,7 @@ class FirearmSearchPanel extends Component
         }
 
         // Check if table exists (migrations may not have run yet)
-        if (!Schema::hasTable('firearm_calibres')) {
+        if (! Schema::hasTable('firearm_calibres')) {
             return collect();
         }
 
@@ -160,7 +178,7 @@ class FirearmSearchPanel extends Component
         }
 
         // Check if table exists
-        if (!Schema::hasTable('firearm_makes')) {
+        if (! Schema::hasTable('firearm_makes')) {
             return collect();
         }
 
@@ -185,7 +203,7 @@ class FirearmSearchPanel extends Component
         }
 
         // Check if table exists
-        if (!Schema::hasTable('firearm_models')) {
+        if (! Schema::hasTable('firearm_models')) {
             return collect();
         }
 
@@ -199,7 +217,7 @@ class FirearmSearchPanel extends Component
 
             if ($this->calibreCategory) {
                 // Map firearm type to category hint
-                $categoryHint = match($this->firearmType) {
+                $categoryHint = match ($this->firearmType) {
                     'handgun' => 'handgun',
                     'rifle' => 'rifle',
                     'shotgun' => 'shotgun',
@@ -222,12 +240,12 @@ class FirearmSearchPanel extends Component
     #[Computed]
     public function selectedCalibre()
     {
-        if (!$this->firearmCalibreId) {
+        if (! $this->firearmCalibreId) {
             return null;
         }
 
         // Check if table exists
-        if (!Schema::hasTable('firearm_calibres')) {
+        if (! Schema::hasTable('firearm_calibres')) {
             return null;
         }
 
@@ -268,7 +286,7 @@ class FirearmSearchPanel extends Component
      */
     public function useCustomCalibre(): void
     {
-        if (!empty($this->calibreSearch)) {
+        if (! empty($this->calibreSearch)) {
             $this->calibreTextOverride = $this->calibreSearch;
             $this->firearmCalibreId = null;
             $this->showCalibreOverride = true;
@@ -286,7 +304,7 @@ class FirearmSearchPanel extends Component
             $this->makeSearch = $make->name;
             $this->makeTextOverride = null;
             $this->showMakeOverride = false;
-            
+
             // Clear model if make changes
             $this->firearmModelId = null;
             $this->modelSearch = '';
@@ -304,7 +322,7 @@ class FirearmSearchPanel extends Component
         $this->makeSearch = '';
         $this->makeTextOverride = null;
         $this->showMakeOverride = false;
-        
+
         // Clear model too
         $this->clearModel();
     }
@@ -314,7 +332,7 @@ class FirearmSearchPanel extends Component
      */
     public function useCustomMake(): void
     {
-        if (!empty($this->makeSearch)) {
+        if (! empty($this->makeSearch)) {
             $this->makeTextOverride = $this->makeSearch;
             $this->firearmMakeId = null;
             $this->showMakeOverride = true;
@@ -351,7 +369,7 @@ class FirearmSearchPanel extends Component
      */
     public function useCustomModel(): void
     {
-        if (!empty($this->modelSearch)) {
+        if (! empty($this->modelSearch)) {
             $this->modelTextOverride = $this->modelSearch;
             $this->firearmModelId = null;
             $this->showModelOverride = true;
@@ -390,7 +408,7 @@ class FirearmSearchPanel extends Component
      */
     protected function mapFirearmTypeToCategory(?string $firearmType): ?string
     {
-        return match($firearmType) {
+        return match ($firearmType) {
             'rifle' => 'rifle',
             'shotgun' => 'shotgun',
             'handgun' => 'handgun',
@@ -415,7 +433,7 @@ class FirearmSearchPanel extends Component
     public function updated($propertyName): void
     {
         // Emit data whenever any firearm field changes
-        if (str_starts_with($propertyName, 'firearm') || 
+        if (str_starts_with($propertyName, 'firearm') ||
             str_starts_with($propertyName, 'calibre') ||
             str_starts_with($propertyName, 'make') ||
             str_starts_with($propertyName, 'model') ||

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->uuid('uuid')->unique();
             $table->foreignId('endorsement_request_id')->constrained()->cascadeOnDelete();
-            
+
             // Component type
             $table->enum('component_type', [
                 'barrel',
@@ -26,26 +26,26 @@ return new class extends Migration
                 'slide',
                 'cylinder',
                 'trigger_group',
-                'other'
+                'other',
             ]);
-            
+
             // Component details
             $table->string('component_description')->nullable();
             $table->string('component_serial')->nullable();
             $table->string('component_make')->nullable();
             $table->string('component_model')->nullable();
-            
+
             // Calibre for barrels
             $table->foreignId('calibre_id')->nullable()->constrained()->nullOnDelete();
             $table->string('calibre_manual')->nullable();
-            
+
             // Whether this component relates to the firearm in the request
             $table->boolean('relates_to_firearm')->default(true);
-            
+
             $table->text('notes')->nullable();
-            
+
             $table->timestamps();
-            
+
             // Index
             $table->index('endorsement_request_id');
         });

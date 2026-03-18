@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Str;
 
 class FirearmModel extends Model
 {
@@ -72,6 +71,7 @@ class FirearmModel extends Model
         if ($makeId) {
             return $query->where('firearm_make_id', $makeId);
         }
+
         return $query;
     }
 
@@ -83,6 +83,7 @@ class FirearmModel extends Model
         if ($category) {
             return $query->where('category_hint', $category);
         }
+
         return $query;
     }
 
@@ -92,9 +93,9 @@ class FirearmModel extends Model
     public function scopeSearch($query, string $term)
     {
         $normalizedTerm = static::normalize($term);
-        
+
         return $query->where('name', 'LIKE', "%{$term}%")
-                    ->orWhere('normalized_name', 'LIKE', "%{$normalizedTerm}%");
+            ->orWhere('normalized_name', 'LIKE', "%{$normalizedTerm}%");
     }
 
     /**

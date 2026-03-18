@@ -13,11 +13,11 @@ return new class extends Migration
     {
         Schema::table('shooting_activities', function (Blueprint $table) {
             // Add reference to user's own firearm (optional - can still use generic firearm_type/calibre)
-            if (!Schema::hasColumn('shooting_activities', 'user_firearm_id')) {
+            if (! Schema::hasColumn('shooting_activities', 'user_firearm_id')) {
                 $table->foreignId('user_firearm_id')->nullable()->after('calibre_id')
                     ->constrained('user_firearms')->nullOnDelete();
             }
-            if (!Schema::hasColumn('shooting_activities', 'load_data_id')) {
+            if (! Schema::hasColumn('shooting_activities', 'load_data_id')) {
                 $table->foreignId('load_data_id')->nullable()->after('user_firearm_id')
                     ->constrained('load_data')->nullOnDelete();
             }

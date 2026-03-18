@@ -12,16 +12,16 @@ class UserSecurityQuestion extends Model
      * Pre-defined security questions users can choose from.
      */
     public const AVAILABLE_QUESTIONS = [
-        'pet_name' => "What was the name of your first pet?",
-        'school' => "What was the name of your primary school?",
-        'birth_city' => "In what city were you born?",
+        'pet_name' => 'What was the name of your first pet?',
+        'school' => 'What was the name of your primary school?',
+        'birth_city' => 'In what city were you born?',
         'mother_maiden' => "What is your mother's maiden name?",
-        'first_car' => "What was the make of your first car?",
-        'childhood_friend' => "What was the name of your childhood best friend?",
-        'favorite_teacher' => "What was the surname of your favorite teacher?",
-        'street_grew_up' => "What street did you grow up on?",
-        'first_job' => "What was your first job?",
-        'wedding_city' => "In what city did you get married?",
+        'first_car' => 'What was the make of your first car?',
+        'childhood_friend' => 'What was the name of your childhood best friend?',
+        'favorite_teacher' => 'What was the surname of your favorite teacher?',
+        'street_grew_up' => 'What street did you grow up on?',
+        'first_job' => 'What was your first job?',
+        'wedding_city' => 'In what city did you get married?',
     ];
 
     /**

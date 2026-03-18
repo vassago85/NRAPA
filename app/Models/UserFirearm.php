@@ -183,7 +183,7 @@ class UserFirearm extends Model
      */
     public function getFirearmTypeLabelAttribute(): ?string
     {
-        return match($this->firearm_type) {
+        return match ($this->firearm_type) {
             'rifle' => 'Rifle',
             'shotgun' => 'Shotgun',
             'handgun' => 'Handgun',
@@ -198,7 +198,7 @@ class UserFirearm extends Model
      */
     public function getActionLabelAttribute(): ?string
     {
-        return match($this->action) {
+        return match ($this->action) {
             'bolt_action' => 'Bolt Action',
             'semi_automatic' => 'Semi-Automatic',
             'lever_action' => 'Lever Action',
@@ -220,17 +220,17 @@ class UserFirearm extends Model
         if ($receiver && $receiver->serial) {
             return $receiver->serial;
         }
-        
+
         $frame = $this->frameComponent();
         if ($frame && $frame->serial) {
             return $frame->serial;
         }
-        
+
         $barrel = $this->barrelComponent();
         if ($barrel && $barrel->serial) {
             return $barrel->serial;
         }
-        
+
         // Fallback to legacy serial_number for backwards compatibility
         return $this->serial_number;
     }
@@ -240,7 +240,7 @@ class UserFirearm extends Model
      */
     public function hasSerialNumber(): bool
     {
-        return $this->components()->withSerial()->exists() || !empty($this->serial_number);
+        return $this->components()->withSerial()->exists() || ! empty($this->serial_number);
     }
 
     public function getDisplayNameAttribute(): string
@@ -279,6 +279,7 @@ class UserFirearm extends Model
         if ($this->firearmCalibre) {
             return $this->firearmCalibre->name;
         }
+
         // Fallback to override
         return $this->calibre_text_override;
     }
@@ -291,6 +292,7 @@ class UserFirearm extends Model
         if ($this->firearmMake) {
             return $this->firearmMake->name;
         }
+
         return $this->make_text_override ?? $this->make;
     }
 
@@ -302,6 +304,7 @@ class UserFirearm extends Model
         if ($this->firearmModel) {
             return $this->firearmModel->name;
         }
+
         return $this->model_text_override ?? $this->model;
     }
 
@@ -312,17 +315,17 @@ class UserFirearm extends Model
     public function getSaps271IdentityAttribute(): string
     {
         $parts = [];
-        
+
         // Type
         if ($this->firearm_type) {
             $parts[] = $this->firearm_type_label;
         }
-        
+
         // Action
         if ($this->action) {
             $parts[] = $this->action_label;
         }
-        
+
         // Calibre
         if ($this->calibre_display) {
             $parts[] = $this->calibre_display;
@@ -332,7 +335,7 @@ class UserFirearm extends Model
         } elseif ($this->calibre_code) {
             $parts[] = $this->calibre_code;
         }
-        
+
         // Make/Model
         $makeName = $this->make_display ?? $this->make;
         if ($makeName) {
@@ -342,26 +345,26 @@ class UserFirearm extends Model
         if ($modelName) {
             $parts[] = $modelName;
         }
-        
+
         // Serial numbers
         $serials = [];
         foreach (['receiver', 'frame', 'barrel'] as $type) {
             $component = $this->components()->where('type', $type)->first();
             if ($component && $component->serial) {
-                $serials[] = ucfirst($type) . ": {$component->serial}";
+                $serials[] = ucfirst($type).": {$component->serial}";
             }
         }
-        
-        if (!empty($serials)) {
+
+        if (! empty($serials)) {
             $parts[] = implode(', ', $serials);
         }
-        
+
         return implode(' - ', $parts);
     }
 
     public function getDaysUntilExpiryAttribute(): ?int
     {
-        if (!$this->license_expiry_date) {
+        if (! $this->license_expiry_date) {
             return null;
         }
 
@@ -370,7 +373,7 @@ class UserFirearm extends Model
 
     public function getMonthsUntilExpiryAttribute(): ?int
     {
-        if (!$this->license_expiry_date) {
+        if (! $this->license_expiry_date) {
             return null;
         }
 
@@ -382,7 +385,7 @@ class UserFirearm extends Model
      */
     public function shouldSendNotification(int $months): bool
     {
-        if (!$this->license_expiry_date) {
+        if (! $this->license_expiry_date) {
             return false;
         }
 
@@ -392,13 +395,13 @@ class UserFirearm extends Model
 
         // Check if expiry is within the notification window (same month or earlier)
         // and notification hasn't been sent yet
-        if (!isset($this->$fieldName)) {
+        if (! isset($this->$fieldName)) {
             return false;
         }
 
-        return $expiryDate->lte($notificationDate) && 
-               !$this->is_expired && 
-               !$this->$fieldName;
+        return $expiryDate->lte($notificationDate) &&
+               ! $this->is_expired &&
+               ! $this->$fieldName;
     }
 
     /**
@@ -414,7 +417,7 @@ class UserFirearm extends Model
 
     public function getIsExpiredAttribute(): bool
     {
-        if (!$this->license_expiry_date) {
+        if (! $this->license_expiry_date) {
             return false;
         }
 
@@ -424,7 +427,7 @@ class UserFirearm extends Model
     public function getIsExpiringSoonAttribute(): bool
     {
         $daysUntilExpiry = $this->days_until_expiry;
-        
+
         if ($daysUntilExpiry === null) {
             return false;
         }

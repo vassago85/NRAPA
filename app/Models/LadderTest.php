@@ -140,6 +140,7 @@ class LadderTest extends Model
             ];
             $stepNumber++;
         }
+
         return $steps;
     }
 }

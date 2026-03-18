@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Helpers\StorageHelper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -34,6 +33,6 @@ class LearningArticleImage extends Model
      */
     public function getUrlAttribute(): string
     {
-        return '/storage/' . ltrim($this->path, '/');
+        return '/storage/'.ltrim($this->path, '/');
     }
 }

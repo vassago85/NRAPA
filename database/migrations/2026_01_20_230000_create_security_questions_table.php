@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('question');
             $table->string('answer_hash'); // Hashed answer for security
             $table->timestamps();
-            
+
             $table->index('user_id');
         });
 
@@ -32,7 +32,7 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->string('ip_address')->nullable();
             $table->timestamps();
-            
+
             $table->index(['user_id', 'created_at']);
             $table->index(['reset_by', 'created_at']);
         });

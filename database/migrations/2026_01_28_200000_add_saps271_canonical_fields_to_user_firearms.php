@@ -8,13 +8,13 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Adds SAPS 271 canonical firearm identity fields to user_firearms:
      * - firearm_type enum (rifle|shotgun|handgun|hand_machine_carbine|combination)
      * - action enum (semi_automatic|automatic|manual|other)
      * - other_action_text (nullable, for action='other')
      * - calibre_code (nullable, SAPS code)
-     * 
+     *
      * Note: serial_number remains for backwards compatibility but will be migrated to components.
      */
     public function up(): void
@@ -24,37 +24,37 @@ return new class extends Migration
         $hasAction = Schema::hasColumn('user_firearms', 'action');
         $hasOtherActionText = Schema::hasColumn('user_firearms', 'other_action_text');
         $hasCalibreCode = Schema::hasColumn('user_firearms', 'calibre_code');
-        
-        if (!$hasFirearmType || !$hasAction || !$hasOtherActionText || !$hasCalibreCode) {
+
+        if (! $hasFirearmType || ! $hasAction || ! $hasOtherActionText || ! $hasCalibreCode) {
             Schema::table('user_firearms', function (Blueprint $table) use ($hasFirearmType, $hasAction, $hasOtherActionText, $hasCalibreCode) {
                 // SAPS 271 canonical firearm type (replaces/extends firearm_type_id FK)
-                if (!$hasFirearmType) {
+                if (! $hasFirearmType) {
                     $table->enum('firearm_type', [
                         'rifle',
-                        'shotgun', 
+                        'shotgun',
                         'handgun',
                         'hand_machine_carbine',
-                        'combination'
+                        'combination',
                     ])->nullable()->after('firearm_type_id');
                 }
-                
+
                 // SAPS 271 action type
-                if (!$hasAction) {
+                if (! $hasAction) {
                     $table->enum('action', [
                         'semi_automatic',
                         'automatic',
                         'manual',
-                        'other'
+                        'other',
                     ])->nullable()->after('firearm_type');
                 }
-                
+
                 // Other action specification (when action = 'other')
-                if (!$hasOtherActionText) {
+                if (! $hasOtherActionText) {
                     $table->string('other_action_text')->nullable()->after('action');
                 }
-                
+
                 // SAPS calibre code (in addition to calibre_id FK)
-                if (!$hasCalibreCode) {
+                if (! $hasCalibreCode) {
                     $table->string('calibre_code')->nullable()->after('calibre_id');
                 }
             });

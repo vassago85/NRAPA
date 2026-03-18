@@ -42,6 +42,6 @@ class InventoryPurchase extends Model
             ? (int) $this->quantity_purchased
             : $this->quantity_purchased;
 
-        return "{$qty}x {$this->purchase_unit_label} @ R" . number_format($this->price_paid, 2);
+        return "{$qty}x {$this->purchase_unit_label} @ R".number_format($this->price_paid, 2);
     }
 }

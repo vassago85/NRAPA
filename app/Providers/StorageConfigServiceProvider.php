@@ -31,7 +31,7 @@ class StorageConfigServiceProvider extends ServiceProvider
     {
         try {
             // Check if the table exists
-            if (!\Schema::hasTable('system_settings')) {
+            if (! \Schema::hasTable('system_settings')) {
                 return;
             }
 
@@ -40,7 +40,7 @@ class StorageConfigServiceProvider extends ServiceProvider
             // Only override if we have settings in database and R2 is selected
             if ($storageDriver === 'r2') {
                 $r2AccessKeyId = SystemSetting::get('r2_access_key_id');
-                
+
                 if ($r2AccessKeyId) {
                     // Private bucket (for sensitive documents)
                     config([

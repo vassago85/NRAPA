@@ -1,19 +1,17 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use App\Models\FirearmCalibre;
 use App\Models\FirearmCalibreAlias;
 use App\Models\FirearmMake;
 use App\Models\FirearmModel;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Backfills existing firearm data to use the new reference system.
      * Attempts to resolve calibre/make/model strings to IDs.
      */
@@ -28,7 +26,7 @@ return new class extends Migration
 
         // Backfill user_firearms
         $this->backfillUserFirearms();
-        
+
         // Backfill endorsement_firearms
         $this->backfillEndorsementFirearms();
     }
@@ -43,7 +41,7 @@ return new class extends Migration
         foreach ($firearms as $firearm) {
             // Try to resolve calibre
             $calibre = $this->resolveCalibre($firearm->calibre_id);
-            
+
             if ($calibre) {
                 DB::table('user_firearms')
                     ->where('id', $firearm->id)
@@ -59,14 +57,14 @@ return new class extends Migration
             }
 
             // Try to resolve make/model
-            if (!empty($firearm->make)) {
+            if (! empty($firearm->make)) {
                 $make = $this->resolveMake($firearm->make);
                 if ($make) {
                     DB::table('user_firearms')
                         ->where('id', $firearm->id)
                         ->update(['firearm_make_id' => $make->id]);
-                    
-                    if (!empty($firearm->model)) {
+
+                    if (! empty($firearm->model)) {
                         $model = $this->resolveModel($make->id, $firearm->model);
                         if ($model) {
                             DB::table('user_firearms')
@@ -96,7 +94,7 @@ return new class extends Migration
             ->whereNull('firearm_calibre_id')
             ->where(function ($q) {
                 $q->whereNotNull('calibre_id')
-                  ->orWhereNotNull('calibre_manual');
+                    ->orWhereNotNull('calibre_manual');
             })
             ->get();
 
@@ -110,8 +108,8 @@ return new class extends Migration
                         ->update(['firearm_calibre_id' => $calibre->id]);
                 }
             }
-            
-            if ($firearm->calibre_manual && !$firearm->firearm_calibre_id) {
+
+            if ($firearm->calibre_manual && ! $firearm->firearm_calibre_id) {
                 $calibre = $this->resolveCalibreByName($firearm->calibre_manual);
                 if ($calibre) {
                     DB::table('endorsement_firearms')
@@ -125,14 +123,14 @@ return new class extends Migration
             }
 
             // Try to resolve make/model
-            if (!empty($firearm->make)) {
+            if (! empty($firearm->make)) {
                 $make = $this->resolveMake($firearm->make);
                 if ($make) {
                     DB::table('endorsement_firearms')
                         ->where('id', $firearm->id)
                         ->update(['firearm_make_id' => $make->id]);
-                    
-                    if (!empty($firearm->model)) {
+
+                    if (! empty($firearm->model)) {
                         $model = $this->resolveModel($make->id, $firearm->model);
                         if ($model) {
                             DB::table('endorsement_firearms')
@@ -159,7 +157,7 @@ return new class extends Migration
     protected function resolveCalibre(int $legacyCalibreId): ?FirearmCalibre
     {
         $legacyCalibre = DB::table('calibres')->find($legacyCalibreId);
-        if (!$legacyCalibre) {
+        if (! $legacyCalibre) {
             return null;
         }
 
@@ -169,7 +167,7 @@ return new class extends Migration
     protected function resolveCalibreByName(string $name): ?FirearmCalibre
     {
         $normalized = FirearmCalibre::normalize($name);
-        
+
         // Try exact match
         $calibre = FirearmCalibre::where('normalized_name', $normalized)->first();
         if ($calibre) {
@@ -186,14 +184,14 @@ return new class extends Migration
         $calibre = FirearmCalibre::where('normalized_name', 'LIKE', "%{$normalized}%")
             ->orWhere('name', 'LIKE', "%{$name}%")
             ->first();
-        
+
         return $calibre;
     }
 
     protected function resolveMake(string $name): ?FirearmMake
     {
         $normalized = FirearmMake::normalize($name);
-        
+
         return FirearmMake::where('normalized_name', $normalized)
             ->orWhere('name', 'LIKE', "%{$name}%")
             ->first();
@@ -202,12 +200,12 @@ return new class extends Migration
     protected function resolveModel(int $makeId, string $name): ?FirearmModel
     {
         $normalized = FirearmModel::normalize($name);
-        
+
         return FirearmModel::where('firearm_make_id', $makeId)
             ->where('normalized_name', $normalized)
             ->orWhere(function ($q) use ($makeId, $name) {
                 $q->where('firearm_make_id', $makeId)
-                  ->where('name', 'LIKE', "%{$name}%");
+                    ->where('name', 'LIKE', "%{$name}%");
             })
             ->first();
     }

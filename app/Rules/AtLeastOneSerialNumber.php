@@ -16,16 +16,16 @@ class AtLeastOneSerialNumber implements Rule
     public function passes($attribute, $value)
     {
         $data = request()->all();
-        
+
         // Check if at least one serial number is provided
-        $hasSerial = !empty($data['barrel_serial'] ?? null)
-            || !empty($data['frame_serial'] ?? null)
-            || !empty($data['receiver_serial'] ?? null)
-            || !empty($data['barrel_serial_number'] ?? null)
-            || !empty($data['frame_serial_number'] ?? null)
-            || !empty($data['receiver_serial_number'] ?? null)
-            || !empty($data['serial_number'] ?? null);
-        
+        $hasSerial = ! empty($data['barrel_serial'] ?? null)
+            || ! empty($data['frame_serial'] ?? null)
+            || ! empty($data['receiver_serial'] ?? null)
+            || ! empty($data['barrel_serial_number'] ?? null)
+            || ! empty($data['frame_serial_number'] ?? null)
+            || ! empty($data['receiver_serial_number'] ?? null)
+            || ! empty($data['serial_number'] ?? null);
+
         return $hasSerial;
     }
 

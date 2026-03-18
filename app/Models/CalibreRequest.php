@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CalibreRequest extends Model
 {
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_APPROVED = 'approved';
+
     public const STATUS_REJECTED = 'rejected';
 
     protected $fillable = [
@@ -30,7 +32,6 @@ class CalibreRequest extends Model
         'reviewed_at' => 'datetime',
         'aliases' => 'array',
     ];
-
 
     /**
      * Get the user who submitted the request.
@@ -87,7 +88,7 @@ class CalibreRequest extends Model
 
     public function getCategoryLabelAttribute(): string
     {
-        return match($this->category) {
+        return match ($this->category) {
             'handgun' => 'Handgun',
             'rifle' => 'Rifle',
             'shotgun' => 'Shotgun',
@@ -100,7 +101,7 @@ class CalibreRequest extends Model
 
     public function getIgnitionTypeLabelAttribute(): string
     {
-        return match($this->ignition_type) {
+        return match ($this->ignition_type) {
             'rimfire' => 'Rimfire',
             'centerfire' => 'Centerfire',
             default => ucfirst($this->ignition_type ?? 'Unknown'),

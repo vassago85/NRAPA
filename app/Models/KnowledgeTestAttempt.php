@@ -194,7 +194,7 @@ class KnowledgeTestAttempt extends Model
         $autoScore = 0;
         foreach ($this->answers as $answer) {
             $question = $answer->question;
-            
+
             if ($question->isMultipleChoice()) {
                 // Single answer - existing logic
                 $isCorrect = $question->isCorrectAnswer($answer->answer_text ?? '');
@@ -210,17 +210,17 @@ class KnowledgeTestAttempt extends Model
                 // Multiple answers - check all selections
                 $answerText = $answer->answer_text ?? '';
                 $selectedAnswers = [];
-                
+
                 // Parse JSON array from answer
-                if (!empty($answerText) && str_starts_with($answerText, '[')) {
+                if (! empty($answerText) && str_starts_with($answerText, '[')) {
                     $selectedAnswers = json_decode($answerText, true) ?? [];
                 }
-                
+
                 $result = $question->checkMultiSelectAnswer($selectedAnswers);
-                
+
                 // Award points based on partial_score (0-1) * total points
                 $pointsAwarded = (int) round($result['partial_score'] * $question->points);
-                
+
                 $answer->update([
                     'is_correct' => $result['correct'],
                     'points_awarded' => $pointsAwarded,
@@ -231,17 +231,17 @@ class KnowledgeTestAttempt extends Model
                 // Priority order - check sequence
                 $answerText = $answer->answer_text ?? '';
                 $orderedAnswers = [];
-                
+
                 // Parse JSON array from answer
-                if (!empty($answerText) && str_starts_with($answerText, '[')) {
+                if (! empty($answerText) && str_starts_with($answerText, '[')) {
                     $orderedAnswers = json_decode($answerText, true) ?? [];
                 }
-                
+
                 $result = $question->checkPriorityOrderAnswer($orderedAnswers);
-                
+
                 // Award points based on partial_score (0-1) * total points
                 $pointsAwarded = (int) round($result['partial_score'] * $question->points);
-                
+
                 $answer->update([
                     'is_correct' => $result['correct'],
                     'points_awarded' => $pointsAwarded,
@@ -252,17 +252,17 @@ class KnowledgeTestAttempt extends Model
                 // Matching - check paired answers
                 $answerText = $answer->answer_text ?? '';
                 $memberMatches = [];
-                
+
                 // Parse JSON object from answer {"A": "Answer1", "B": "Answer2", ...}
-                if (!empty($answerText) && str_starts_with($answerText, '{')) {
+                if (! empty($answerText) && str_starts_with($answerText, '{')) {
                     $memberMatches = json_decode($answerText, true) ?? [];
                 }
-                
+
                 $result = $question->checkMatchingAnswer($memberMatches);
-                
+
                 // Award points based on partial_score (0-1) * total points
                 $pointsAwarded = (int) round($result['partial_score'] * $question->points);
-                
+
                 $answer->update([
                     'is_correct' => $result['correct'],
                     'points_awarded' => $pointsAwarded,

@@ -58,8 +58,9 @@ class SetFarNumbers extends Command
 
             return Command::SUCCESS;
         } catch (\Exception $e) {
-            $this->error('Failed to set FAR numbers: ' . $e->getMessage());
+            $this->error('Failed to set FAR numbers: '.$e->getMessage());
             $this->error('Make sure Laragon services are stopped and try again.');
+
             return Command::FAILURE;
         }
     }

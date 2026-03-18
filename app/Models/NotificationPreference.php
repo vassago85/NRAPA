@@ -66,7 +66,7 @@ class NotificationPreference extends Model
      */
     public function isWithinWorkingHours(): bool
     {
-        if (!$this->respect_working_hours) {
+        if (! $this->respect_working_hours) {
             return true;
         }
 
@@ -74,7 +74,7 @@ class NotificationPreference extends Model
         $currentDay = $now->dayOfWeekIso; // 1 = Monday, 7 = Sunday
 
         // Check if today is a working day
-        if (!in_array($currentDay, $this->working_days ?? [1, 2, 3, 4, 5])) {
+        if (! in_array($currentDay, $this->working_days ?? [1, 2, 3, 4, 5])) {
             return false;
         }
 
@@ -123,7 +123,8 @@ class NotificationPreference extends Model
      */
     public function wantsNotification(string $type): bool
     {
-        $attribute = 'notify_' . $type;
+        $attribute = 'notify_'.$type;
+
         return $this->{$attribute} ?? false;
     }
 

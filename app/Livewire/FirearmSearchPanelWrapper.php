@@ -7,6 +7,7 @@ use Livewire\Component;
 class FirearmSearchPanelWrapper extends Component
 {
     public ?array $initialData = null;
+
     public string $wireModelPrefix = 'firearmPanelData';
 
     public function mount(?array $initialData = null, string $wireModelPrefix = 'firearmPanelData'): void
@@ -21,10 +22,11 @@ class FirearmSearchPanelWrapper extends Component
     public function getFirearmData(): array
     {
         // This will be called by parent component
-        $panel = \Livewire\Livewire::find('firearm-search-panel-' . $this->wireModelPrefix);
+        $panel = \Livewire\Livewire::find('firearm-search-panel-'.$this->wireModelPrefix);
         if ($panel) {
             return $panel->getData();
         }
+
         return [];
     }
 

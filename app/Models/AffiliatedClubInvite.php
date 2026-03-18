@@ -80,7 +80,7 @@ class AffiliatedClubInvite extends Model
      */
     public function isValid(): bool
     {
-        return !$this->isExpired() && !$this->isAccepted();
+        return ! $this->isExpired() && ! $this->isAccepted();
     }
 
     /**

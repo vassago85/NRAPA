@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         // Check if table exists and column doesn't exist before altering
-        if (Schema::hasTable('audit_logs') && !Schema::hasColumn('audit_logs', 'updated_at')) {
+        if (Schema::hasTable('audit_logs') && ! Schema::hasColumn('audit_logs', 'updated_at')) {
             try {
                 Schema::table('audit_logs', function (Blueprint $table) {
                     $table->timestamp('updated_at')->nullable()->after('created_at');

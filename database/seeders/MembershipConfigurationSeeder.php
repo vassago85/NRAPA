@@ -73,12 +73,12 @@ class MembershipConfigurationSeeder extends Seeder
 
     /**
      * Seed document types.
-     * 
+     *
      * Simplified to only 3 core member documents:
      * - ID (Identity Document)
      * - Proof of Address
      * - Competency (Firearm Competency Certificate with issue date)
-     * 
+     *
      * Other document types are handled elsewhere:
      * - Firearm Licence → Virtual Safe
      * - Activity Evidence → Activities page

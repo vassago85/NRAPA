@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -18,7 +18,7 @@ return new class extends Migration
         }
 
         // Add correct_answers column for multi-select and priority questions
-        if (!Schema::hasColumn('knowledge_test_questions', 'correct_answers')) {
+        if (! Schema::hasColumn('knowledge_test_questions', 'correct_answers')) {
             Schema::table('knowledge_test_questions', function (Blueprint $table) {
                 $table->json('correct_answers')->nullable()->after('correct_answer')->comment('Array of correct answers for multi-select/priority questions');
             });

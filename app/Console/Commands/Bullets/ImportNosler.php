@@ -23,6 +23,7 @@ class ImportNosler extends ImportBulletsCommand
         }
 
         $this->printSummary();
+
         return self::SUCCESS;
     }
 }

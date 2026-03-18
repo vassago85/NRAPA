@@ -25,7 +25,9 @@ class FirearmComponent extends Model
      * These are NOT admin-configurable.
      */
     public const TYPE_BARREL = 'barrel';
+
     public const TYPE_FRAME = 'frame';
+
     public const TYPE_RECEIVER = 'receiver';
 
     public static function types(): array

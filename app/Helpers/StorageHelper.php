@@ -3,7 +3,6 @@
 namespace App\Helpers;
 
 use Illuminate\Support\Facades\Storage;
-use App\Models\SystemSetting;
 
 class StorageHelper
 {
@@ -17,15 +16,15 @@ class StorageHelper
         if (app()->environment(['local', 'development', 'testing'])) {
             return 'local';
         }
-        
+
         if (config('filesystems.disks.r2.key')) {
             return 'r2';
         }
-        
+
         if (config('filesystems.disks.s3.key')) {
             return 's3';
         }
-        
+
         return config('filesystems.default');
     }
 
@@ -51,13 +50,14 @@ class StorageHelper
     /**
      * Store a file to the public disk (for learning images, etc.).
      *
-     * @param \Illuminate\Http\UploadedFile|\Livewire\Features\SupportFileUploads\TemporaryUploadedFile $file
-     * @param string $path The directory path to store the file
+     * @param  \Illuminate\Http\UploadedFile|\Livewire\Features\SupportFileUploads\TemporaryUploadedFile  $file
+     * @param  string  $path  The directory path to store the file
      * @return string The stored file path
      */
     public static function storeFile($file, string $path): string
     {
         $disk = static::getPublicDisk();
+
         return $file->store($path, $disk);
     }
 
@@ -65,37 +65,38 @@ class StorageHelper
      * Store a file for learning center (always uses local storage).
      * Learning center images are always stored locally on the server.
      *
-     * @param \Illuminate\Http\UploadedFile|\Livewire\Features\SupportFileUploads\TemporaryUploadedFile $file
-     * @param string $path The directory path to store the file
+     * @param  \Illuminate\Http\UploadedFile|\Livewire\Features\SupportFileUploads\TemporaryUploadedFile  $file
+     * @param  string  $path  The directory path to store the file
      * @return string The stored file path
      */
     public static function storeLearningCenterFile($file, string $path): string
     {
         $disk = static::getLearningCenterDisk();
+
         return $file->store($path, $disk);
     }
 
     /**
      * Delete a file from the public disk.
      *
-     * @param string $path The file path to delete
-     * @return bool
+     * @param  string  $path  The file path to delete
      */
     public static function deleteFile(string $path): bool
     {
         $disk = static::getPublicDisk();
+
         return Storage::disk($disk)->delete($path);
     }
 
     /**
      * Delete a learning center file (always uses local storage).
      *
-     * @param string $path The file path to delete
-     * @return bool
+     * @param  string  $path  The file path to delete
      */
     public static function deleteLearningCenterFile(string $path): bool
     {
         $disk = static::getLearningCenterDisk();
+
         return Storage::disk($disk)->delete($path);
     }
 
@@ -103,8 +104,7 @@ class StorageHelper
      * Get a URL for a public file (non-sensitive content).
      * Uses local public disk.
      *
-     * @param string|null $path The file path
-     * @return string|null
+     * @param  string|null  $path  The file path
      */
     public static function getUrl(?string $path): ?string
     {
@@ -119,6 +119,7 @@ class StorageHelper
             return Storage::disk($disk)->url($path);
         } catch (\Exception $e) {
             \Log::error('StorageHelper::getUrl failed', ['path' => $path, 'disk' => $disk, 'error' => $e->getMessage()]);
+
             return null;
         }
     }
@@ -127,8 +128,7 @@ class StorageHelper
      * Get a URL for a learning center file (always uses local storage).
      * Learning center images are always served from local public disk.
      *
-     * @param string|null $path The file path
-     * @return string|null
+     * @param  string|null  $path  The file path
      */
     public static function getLearningCenterUrl(?string $path): ?string
     {
@@ -142,6 +142,7 @@ class StorageHelper
             return Storage::disk($disk)->url($path);
         } catch (\Exception $e) {
             \Log::error('StorageHelper::getLearningCenterUrl failed', ['path' => $path, 'disk' => $disk, 'error' => $e->getMessage()]);
+
             return null;
         }
     }
@@ -149,8 +150,7 @@ class StorageHelper
     /**
      * Check if a file exists on the public disk.
      *
-     * @param string|null $path The file path
-     * @return bool
+     * @param  string|null  $path  The file path
      */
     public static function fileExists(?string $path): bool
     {
@@ -159,6 +159,7 @@ class StorageHelper
         }
 
         $disk = static::getPublicDisk();
+
         return Storage::disk($disk)->exists($path);
     }
 }

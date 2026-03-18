@@ -14,16 +14,16 @@ return new class extends Migration
         // Check if table exists and columns don't exist before adding
         if (Schema::hasTable('certificates')) {
             Schema::table('certificates', function (Blueprint $table) {
-                if (!Schema::hasColumn('certificates', 'signatory_name')) {
+                if (! Schema::hasColumn('certificates', 'signatory_name')) {
                     $table->string('signatory_name')->nullable()->after('issued_by');
                 }
-                if (!Schema::hasColumn('certificates', 'signatory_title')) {
+                if (! Schema::hasColumn('certificates', 'signatory_title')) {
                     $table->string('signatory_title')->nullable()->after('signatory_name');
                 }
-                if (!Schema::hasColumn('certificates', 'signatory_signature_path')) {
+                if (! Schema::hasColumn('certificates', 'signatory_signature_path')) {
                     $table->string('signatory_signature_path')->nullable()->after('signatory_title');
                 }
-                if (!Schema::hasColumn('certificates', 'commissioner_oaths_scan_path')) {
+                if (! Schema::hasColumn('certificates', 'commissioner_oaths_scan_path')) {
                     $table->string('commissioner_oaths_scan_path')->nullable()->after('signatory_signature_path');
                 }
             });

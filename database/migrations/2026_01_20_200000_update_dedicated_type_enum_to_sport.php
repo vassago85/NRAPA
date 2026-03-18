@@ -1,15 +1,13 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Update dedicated_type enum from 'sport_shooter' to 'sport' for consistency
      * with MembershipType constants.
      */
@@ -18,7 +16,7 @@ return new class extends Migration
         $driver = DB::getDriverName();
 
         // SQLite: Has CHECK constraints that prevent value changes without table rebuild
-        // This migration is primarily for MySQL production. For SQLite (local dev), 
+        // This migration is primarily for MySQL production. For SQLite (local dev),
         // use fresh migration with correct seeders that already use 'sport'.
         if ($driver === 'sqlite') {
             return;

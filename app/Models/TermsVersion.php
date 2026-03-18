@@ -82,11 +82,11 @@ class TermsVersion extends Model
     {
         // Deactivate all other versions
         static::where('id', '!=', $this->id)->update(['is_active' => false]);
-        
+
         // Activate this one
         $this->update(['is_active' => true]);
-        
-        if (!$this->published_at) {
+
+        if (! $this->published_at) {
             $this->update(['published_at' => now()]);
         }
     }

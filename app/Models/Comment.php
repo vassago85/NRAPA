@@ -8,22 +8,20 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
-use App\Models\User;
-
 class Comment extends Model
 {
     use SoftDeletes;
 
     protected $fillable = [
-        "uuid", "commentable_type", "commentable_id", "author_id", "body",
-        "visibility", "notify_applicant", "notified_at",
+        'uuid', 'commentable_type', 'commentable_id', 'author_id', 'body',
+        'visibility', 'notify_applicant', 'notified_at',
     ];
 
     protected function casts(): array
     {
         return [
-            "notify_applicant" => "boolean",
-            "notified_at" => "datetime",
+            'notify_applicant' => 'boolean',
+            'notified_at' => 'datetime',
         ];
     }
 
@@ -37,8 +35,23 @@ class Comment extends Model
         });
     }
 
-    public function commentable(): MorphTo { return $this->morphTo(); }
-    public function author(): BelongsTo { return $this->belongsTo(User::class, "author_id"); }
-    public function isVisibleToApplicant(): bool { return $this->visibility === "applicant"; }
-    public function isInternal(): bool { return $this->visibility === "internal"; }
+    public function commentable(): MorphTo
+    {
+        return $this->morphTo();
+    }
+
+    public function author(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'author_id');
+    }
+
+    public function isVisibleToApplicant(): bool
+    {
+        return $this->visibility === 'applicant';
+    }
+
+    public function isInternal(): bool
+    {
+        return $this->visibility === 'internal';
+    }
 }
