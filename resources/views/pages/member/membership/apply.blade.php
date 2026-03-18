@@ -13,6 +13,7 @@ use Livewire\Component;
 new #[Title('Apply for Membership')] class extends Component {
     public ?int $selectedTypeId = null;
     public bool $agreedToTerms = false;
+    public bool $agreedToDeclaration = false;
 
     public function mount(?string $type = null): void
     {
@@ -135,6 +136,13 @@ new #[Title('Apply for Membership')] class extends Component {
     public function selectType(int $typeId): void
     {
         $this->selectedTypeId = $typeId;
+        $this->agreedToDeclaration = false;
+    }
+
+    #[Computed]
+    public function isDedicatedType(): bool
+    {
+        return $this->selectedType?->allows_dedicated_status ?? false;
     }
 
     public function submit(): void
@@ -144,13 +152,21 @@ new #[Title('Apply for Membership')] class extends Component {
             return;
         }
 
-        $this->validate([
+        $rules = [
             'selectedTypeId' => ['required', 'exists:membership_types,id'],
             'agreedToTerms' => ['accepted'],
-        ], [
+        ];
+        $messages = [
             'selectedTypeId.required' => 'Please select a membership type.',
             'agreedToTerms.accepted' => 'You must agree to the terms and conditions.',
-        ]);
+        ];
+
+        if ($this->isDedicatedType) {
+            $rules['agreedToDeclaration'] = ['accepted'];
+            $messages['agreedToDeclaration.accepted'] = 'You must accept the Dedicated Status Declaration.';
+        }
+
+        $this->validate($rules, $messages);
 
         $membership = Membership::create([
             'user_id' => $this->user->id,
@@ -158,6 +174,7 @@ new #[Title('Apply for Membership')] class extends Component {
             'status' => 'applied',
             'applied_at' => now(),
             'source' => 'web',
+            'dedicated_declaration_accepted_at' => $this->isDedicatedType ? now() : null,
         ]);
 
         // Send payment instructions email
@@ -369,6 +386,37 @@ new #[Title('Apply for Membership')] class extends Component {
         </div>
         @endif
 
+        {{-- Dedicated Status Declaration --}}
+        @if($this->isDedicatedType)
+        <div class="rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
+            <div class="border-b border-amber-200 p-6 dark:border-amber-800">
+                <h2 class="text-lg font-semibold text-amber-800 dark:text-amber-200">Dedicated Status Declaration</h2>
+                <p class="text-sm text-amber-700 dark:text-amber-300">Please read and accept the following declaration before submitting your application.</p>
+            </div>
+            <div class="p-6">
+                <div class="mb-4 max-h-64 overflow-y-auto rounded-lg border border-amber-200 bg-white p-4 text-sm leading-relaxed text-zinc-700 dark:border-amber-700 dark:bg-zinc-800 dark:text-zinc-300">
+                    <p class="mb-3">I realise I may not practise a trade related to hunting on the grounds that I possess Dedicated Hunter Status in terms of Section 16 of the Firearms Control Act, 60 of 2000.</p>
+
+                    <p class="mb-3">I undertake to submit proof of my hunting and/or sport shooting activities before the end of October annually.</p>
+
+                    <p class="mb-3">I realise it is my own responsibility to maintain the above and to continue to be involved in hunting or branch related activities. At the time of renewal of my annual membership, upon request I shall be able to present proof of my involvement in hunting and/or sport shooting activities during the previous 12 months, and that the NRAPA <strong>MUST</strong> and <strong>SHALL</strong> inform the SAPS should I not comply herewith.</p>
+
+                    <p class="mb-3">I acknowledge that in such event I will lose my Dedicated Status and I will have no claim whatsoever against the NRAPA or its management or any of its officials. The responsibility of meeting the conditions of maintaining my up-to-date Status and to stay active as prescribed in the Dedicated Status Manual, lies solely with me.</p>
+
+                    <p class="font-semibold">I have read the above and understand the contents and have made myself aware of the contents and requirements of the Dedicated Status Manual.</p>
+                </div>
+
+                <label class="flex items-start gap-3">
+                    <input type="checkbox" wire:model.live="agreedToDeclaration" class="mt-1 size-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500 dark:border-amber-600 dark:bg-zinc-700">
+                    <span class="text-sm font-medium text-amber-800 dark:text-amber-200">I accept the Dedicated Status Declaration above</span>
+                </label>
+                @error('agreedToDeclaration')
+                    <p class="mt-2 text-sm text-red-500">{{ $message }}</p>
+                @enderror
+            </div>
+        </div>
+        @endif
+
         {{-- Terms and Submit --}}
         <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
             <div class="p-6">
@@ -387,7 +435,7 @@ new #[Title('Apply for Membership')] class extends Component {
                 <a href="{{ route('membership.index') }}" wire:navigate class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
                     Cancel
                 </a>
-                <button type="submit" class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark disabled:cursor-not-allowed disabled:opacity-50 transition-colors" {{ !$this->agreedToTerms ? 'disabled' : '' }}>
+                <button type="submit" class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark disabled:cursor-not-allowed disabled:opacity-50 transition-colors" {{ (!$this->agreedToTerms || ($this->isDedicatedType && !$this->agreedToDeclaration)) ? 'disabled' : '' }}>
                     Submit Application
                 </button>
             </div>

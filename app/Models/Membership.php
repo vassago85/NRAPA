@@ -38,6 +38,7 @@ class Membership extends Model
         'revocation_reason',
         'previous_membership_id',
         'notes',
+        'dedicated_declaration_accepted_at',
         'source',
         'payment_email_sent_at',
         'welcome_email_sent_at',
@@ -60,6 +61,7 @@ class Membership extends Model
             'revoked_at' => 'datetime',
             'payment_email_sent_at' => 'datetime',
             'welcome_email_sent_at' => 'datetime',
+            'dedicated_declaration_accepted_at' => 'datetime',
         ];
     }
 

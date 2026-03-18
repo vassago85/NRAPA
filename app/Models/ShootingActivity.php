@@ -384,17 +384,14 @@ class ShootingActivity extends Model
 
     /**
      * Scope to activities within the current activity year.
-     * Activity period is fixed: 1 January to 30 September (deadline 1 October).
+     * Activity period is fixed: 1 January to 31 October (deadline 31 October).
      */
     public function scopeWithinActivityYear($query, User $user, ?int $year = null)
     {
         $year = $year ?? now()->year;
 
-        // Activity period runs 1 Jan - 30 Sep
-        // If we're in Oct-Dec, we're in the "submission grace period" for current year
-        // If we're in Jan-Sep, we're in the current activity period
         $startDate = Carbon::create($year, 1, 1)->startOfDay();
-        $endDate = Carbon::create($year, 9, 30)->endOfDay();
+        $endDate = Carbon::create($year, 10, 31)->endOfDay();
 
         return $query->whereBetween('activity_date', [$startDate, $endDate]);
     }
@@ -403,17 +400,15 @@ class ShootingActivity extends Model
 
     /**
      * Get the activity period boundaries.
-     * Fixed period: 1 January to 30 September (submissions due by 1 October).
+     * Fixed period: 1 January to 31 October (submissions due by 31 October).
      */
     public static function getActivityPeriod(User $user, ?int $year = null): array
     {
         $year = $year ?? now()->year;
 
-        // Activity period is 1 January to 30 September each year
-        // Deadline for submission is 1 October
         $startDate = Carbon::create($year, 1, 1)->startOfDay();
-        $endDate = Carbon::create($year, 9, 30)->endOfDay();
-        $deadline = Carbon::create($year, 10, 1);
+        $endDate = Carbon::create($year, 10, 31)->endOfDay();
+        $deadline = Carbon::create($year, 10, 31);
 
         return [
             'start' => $startDate,
