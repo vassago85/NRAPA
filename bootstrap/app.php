@@ -33,9 +33,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'terms.accepted' => \App\Http\Middleware\EnsureTermsAccepted::class,
         ]);
 
-        // Add 2FA enforcement to web middleware group
+        // Add 2FA enforcement and security headers to web middleware group
         $middleware->web(append: [
             \App\Http\Middleware\Enforce2FAForAdmins::class,
+            \App\Http\Middleware\SecurityHeaders::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
