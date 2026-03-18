@@ -14,6 +14,15 @@ Route::get('/privacy-policy', function () {
     return view('pages.privacy');
 })->name('privacy-policy');
 
+// Info / Resources pages (public)
+Route::prefix('info')->name('info.')->group(function () {
+    Route::get('/about', fn () => view('pages.info.about'))->name('about');
+    Route::get('/firearm-licence-process', fn () => view('pages.info.firearm-licence-process'))->name('firearm-licence-process');
+    Route::get('/minimum-requirements', fn () => view('pages.info.minimum-requirements'))->name('minimum-requirements');
+    Route::get('/dedicated-procedure', fn () => view('pages.info.dedicated-procedure'))->name('dedicated-procedure');
+    Route::get('/shooting-exercises', fn () => view('pages.info.shooting-exercises'))->name('shooting-exercises');
+});
+
 // Custom email verification route - works WITHOUT authentication
 // This allows users to verify their email from any device/browser (e.g. phone)
 // without needing to be logged in on that device.
