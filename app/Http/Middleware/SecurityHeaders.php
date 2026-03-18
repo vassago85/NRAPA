@@ -19,15 +19,20 @@ class SecurityHeaders
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
         $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
         $response->headers->remove('X-Powered-By');
+        $response->headers->remove('server');
 
         $csp = implode('; ', [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.google-analytics.com https://challenges.cloudflare.com",
+            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.google-analytics.com https://challenges.cloudflare.com",
             "style-src 'self' 'unsafe-inline' https://fonts.bunny.net",
-            "img-src 'self' data: https:",
+            "img-src 'self' data: https://www.google-analytics.com https://www.googletagmanager.com https://fonts.bunny.net",
             "font-src 'self' https://fonts.bunny.net",
             "connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://challenges.cloudflare.com",
-            "frame-src https://challenges.cloudflare.com",
+            "frame-src 'self' https://challenges.cloudflare.com",
+            "frame-ancestors 'self'",
+            "worker-src 'self' blob:",
+            "child-src 'self' blob:",
+            "media-src 'self'",
             "object-src 'none'",
             "base-uri 'self'",
             "form-action 'self'",
