@@ -90,10 +90,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
     #[Computed]
     public function activityYear()
     {
-        // Activity year runs Jan 1 - Sep 30, with Oct 1 deadline for NRAPA
-        // SAPS receives report in December
         $now = now();
-        return $now->month >= 10 ? $now->year : $now->year;
+        return $now->month >= 11 ? $now->year + 1 : $now->year;
     }
 
     #[Computed]
@@ -103,7 +101,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
         return [
             'start' => Carbon::create($year, 1, 1)->startOfDay(),
             'end' => Carbon::create($year, 9, 30)->endOfDay(),
-            'nrapa_deadline' => Carbon::create($year, 10, 1),
+            'nrapa_deadline' => Carbon::create($year, 10, 31),
             'saps_report' => Carbon::create($year, 12, 1),
             'label' => "1 Jan {$year} - 30 Sep {$year}",
         ];
