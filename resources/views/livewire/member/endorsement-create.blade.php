@@ -193,7 +193,7 @@
                 </div>
                 @endif
 
-                {{-- Barrel (component) --}}
+                {{-- Main Firearm Component (barrel) --}}
                 @if($endorsementEntryType === 'barrel')
                 <div class="space-y-6 max-w-xl">
                     <div>
@@ -386,7 +386,7 @@
                     {{-- Barrel component summary --}}
                     @if($endorsementEntryType === 'barrel')
                     <div class="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg">
-                        <h3 class="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-3">Barrel (component)</h3>
+                        <h3 class="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-3">Main Firearm Component</h3>
                         <dl class="grid grid-cols-2 gap-4 text-sm">
                             <div><dt class="text-zinc-500">Diameter</dt><dd class="font-medium text-zinc-900 dark:text-white">{{ $componentBarrelDiameter }}</dd></div>
                             <div><dt class="text-zinc-500">Make</dt><dd class="font-medium text-zinc-900 dark:text-white">{{ $componentBarrelMake }}</dd></div>

@@ -60,67 +60,61 @@
 
 @section('content')
     {{-- Info grid: Member + Compliance details --}}
-    <div class="info-grid">
-        <div class="card">
-            <div class="card-title">Member Details</div>
-            <div class="kv-row">
-                <span class="kv-label">Full Name</span>
-                <span class="kv-value">{{ $certificate->user->getIdName() }}</span>
-            </div>
-            <div class="kv-row">
-                <span class="kv-label">ID / Passport</span>
-                <span class="kv-value">{{ $certificate->user->getIdNumber() ?? 'N/A' }}</span>
-            </div>
-            <div class="kv-row">
-                <span class="kv-label">Member No.</span>
-                <span class="kv-value">{{ $membership->membership_number ?? 'N/A' }}</span>
-            </div>
-            <div class="kv-row">
-                <span class="kv-label">Membership Type</span>
-                <span class="kv-value">{{ $membership->type->name ?? 'N/A' }}</span>
-            </div>
-            <div class="kv-row">
-                <span class="kv-label">Valid Until</span>
-                <span class="kv-value">{{ $membership->expires_at ? $membership->expires_at->format('d F Y') : 'Lifetime' }}</span>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-title">Compliance Status</div>
-            <div class="kv-row">
-                <span class="kv-label">Documents</span>
-                <span class="kv-value">
-                    @if ($hasValidDocs)
-                        <span style="color:var(--status-green);">&#10003; Valid</span>
-                    @else
-                        <span style="color:#c0392b;">&#10007; Missing</span>
-                    @endif
-                </span>
-            </div>
-            <div class="kv-row">
-                <span class="kv-label">Activities</span>
-                <span class="kv-value">
-                    @if ($hasValidActivities)
-                        <span style="color:var(--status-green);">&#10003; Met ({{ $activityCheck['approved_count'] }}/{{ $activityCheck['required'] }})</span>
-                    @else
-                        <span style="color:#c0392b;">&#10007; {{ $activityCheck['approved_count'] }}/{{ $activityCheck['required'] }}</span>
-                    @endif
-                </span>
-            </div>
-            <div class="kv-row">
-                <span class="kv-label">{{ $isOccasional ? 'Occasional Status' : 'Dedicated Status' }}</span>
-                <span class="kv-value" style="color:var(--status-green);">&#10003; {{ $dedicatedTitle }}</span>
-            </div>
-            <div class="kv-row">
-                <span class="kv-label">Section</span>
-                <span class="kv-value">Section {{ $sectionNumber }} — Firearms Control Act</span>
-            </div>
-            <div class="kv-row">
-                <span class="kv-label">Effective Date</span>
-                <span class="kv-value">{{ $statusEffectiveDate }}</span>
-            </div>
-        </div>
-    </div>
+    <table class="layout-table">
+        <tr>
+            <td class="half">
+                <div class="card">
+                    <div class="card-title">Member Details</div>
+                    <table class="kv-table">
+                        <tr><td class="kv-label">Full Name</td><td class="kv-value">{{ $certificate->user->getIdName() }}</td></tr>
+                        <tr><td class="kv-label">ID / Passport</td><td class="kv-value">{{ $certificate->user->getIdNumber() ?? 'N/A' }}</td></tr>
+                        <tr><td class="kv-label">Member No.</td><td class="kv-value">{{ $membership->membership_number ?? 'N/A' }}</td></tr>
+                        <tr><td class="kv-label">Membership Type</td><td class="kv-value">{{ $membership->type->name ?? 'N/A' }}</td></tr>
+                        <tr><td class="kv-label">Valid Until</td><td class="kv-value">{{ $membership->expires_at ? $membership->expires_at->format('d F Y') : 'Lifetime' }}</td></tr>
+                    </table>
+                </div>
+            </td>
+            <td class="half">
+                <div class="card">
+                    <div class="card-title">Compliance Status</div>
+                    <table class="kv-table">
+                        <tr>
+                            <td class="kv-label">Documents</td>
+                            <td class="kv-value">
+                                @if ($hasValidDocs)
+                                    <span style="color:#1f6b3a;">&#10003; Valid</span>
+                                @else
+                                    <span style="color:#c0392b;">&#10007; Missing</span>
+                                @endif
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="kv-label">Activities</td>
+                            <td class="kv-value">
+                                @if ($hasValidActivities)
+                                    <span style="color:#1f6b3a;">&#10003; Met ({{ $activityCheck['approved_count'] }}/{{ $activityCheck['required'] }})</span>
+                                @else
+                                    <span style="color:#c0392b;">&#10007; {{ $activityCheck['approved_count'] }}/{{ $activityCheck['required'] }}</span>
+                                @endif
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="kv-label">{{ $isOccasional ? 'Occasional Status' : 'Dedicated Status' }}</td>
+                            <td class="kv-value" style="color:#1f6b3a;">&#10003; {{ $dedicatedTitle }}</td>
+                        </tr>
+                        <tr>
+                            <td class="kv-label">Section</td>
+                            <td class="kv-value">Section {{ $sectionNumber }} — Firearms Control Act</td>
+                        </tr>
+                        <tr>
+                            <td class="kv-label">Effective Date</td>
+                            <td class="kv-value">{{ $statusEffectiveDate }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </td>
+        </tr>
+    </table>
 
     {{-- Declaration --}}
     <div class="letter-body">
@@ -134,45 +128,54 @@
     </div>
 
     {{-- Commissioner + Signatory --}}
-    <div class="bottom-grid">
-        <div class="card commissioner-card">
-            <div class="card-title">Commissioner of Oaths</div>
-            <div class="commissioner-box">
-                @if($commissionerHtml && trim(strip_tags($commissionerHtml)))
-                    {!! $commissionerHtml !!}
-                @else
-                    Commissioner of Oaths scan
-                @endif
-            </div>
-            <div class="commissioner-sub">Upload commissioned scan in admin dashboard.</div>
-        </div>
-
-        <div class="card signatory-card">
-            <div class="card-title">Authorised Signatory</div>
-            <div class="sig-box">{!! $signatureHtml !!}</div>
-            <div class="sig-line"></div>
-            <div class="sig-name">{{ $signatory['name'] }}</div>
-            <div class="sig-title">{{ $signatory['title'] }}</div>
-            <div class="sig-date">Issued {{ $certificate->issued_at->format('d F Y') }}</div>
-        </div>
-    </div>
+    <table class="layout-table">
+        <tr>
+            <td class="half">
+                <div class="card commissioner-card">
+                    <div class="card-title">Commissioner of Oaths</div>
+                    <div class="commissioner-box">
+                        @if($commissionerHtml && trim(strip_tags($commissionerHtml)))
+                            {!! $commissionerHtml !!}
+                        @else
+                            Commissioner of Oaths scan
+                        @endif
+                    </div>
+                    <div class="commissioner-sub">Upload commissioned scan in admin dashboard.</div>
+                </div>
+            </td>
+            <td class="half">
+                <div class="card signatory-card">
+                    <div class="card-title">Authorised Signatory</div>
+                    <div class="sig-box">{!! $signatureHtml !!}</div>
+                    <div class="sig-line"></div>
+                    <div class="sig-name">{{ $signatory['name'] }}</div>
+                    <div class="sig-title">{{ $signatory['title'] }}</div>
+                    <div class="sig-date">Issued {{ $certificate->issued_at->format('d F Y') }}</div>
+                </div>
+            </td>
+        </tr>
+    </table>
 
     {{-- Verification row --}}
-    <div class="verify-row">
-        <div style="display:flex; gap:10px; align-items:flex-start;">
-            <div class="qr-box">
-                <img src="{{ $qrCodeUrl }}" alt="QR Code"/>
-            </div>
-            <div class="verify-text">
-                <strong>Verify this certificate</strong>
-                Scan the QR code or visit the link below.
-                <br/>
-                <a href="{{ $verifyUrl }}" style="word-break:break-all; font-size:8px;">{{ $verifyUrl }}</a>
-            </div>
-        </div>
+    <div class="verify-card">
+        <table style="width:100%; border-collapse:collapse;">
+            <tr>
+                <td style="width:85px; vertical-align:top; padding:0;">
+                    <div class="qr-box">
+                        <img src="{{ $qrCodeUrl }}" alt="QR Code"/>
+                    </div>
+                </td>
+                <td class="verify-text" style="vertical-align:top;">
+                    <strong>Verify this certificate</strong>
+                    Scan the QR code or visit the link below.
+                    <br/>
+                    <a href="{{ $verifyUrl }}" style="word-break:break-all; font-size:8px;">{{ $verifyUrl }}</a>
+                </td>
+            </tr>
+        </table>
     </div>
 
-    <div style="margin-top:8px; text-align:center; font-size:9px; color:var(--muted);">
+    <div style="margin-top:8px; text-align:center; font-size:9px; color:#6a6a6a;">
         This document is generated electronically and is valid without a physical signature when verified via QR code.
     </div>
 @endsection

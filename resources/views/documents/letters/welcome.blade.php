@@ -37,39 +37,34 @@
             Unable to load member details for this welcome letter.
         </div>
     @else
-        {{-- Member details card --}}
-        <div class="info-grid" style="grid-template-columns:1fr;">
-            <div class="card">
-                <div class="card-title">Member Details</div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0 24px;">
-                    <div class="kv-row">
-                        <span class="kv-label">Full Name</span>
-                        <span class="kv-value">{{ $user->name ?? 'Member' }}</span>
-                    </div>
+        {{-- Member details card (full width) --}}
+        <div class="card" style="margin-top:4px; width:95%; margin-left:auto; margin-right:auto;">
+            <div class="card-title">Member Details</div>
+            <table class="kv-table">
+                <tr>
+                    <td class="kv-label" style="width:25%;">Full Name</td>
+                    <td class="kv-value">{{ $user->name ?? 'Member' }}</td>
                     @if ($user->getIdNumber())
-                    <div class="kv-row">
-                        <span class="kv-label">ID / Passport</span>
-                        <span class="kv-value">{{ $user->getIdNumber() }}</span>
-                    </div>
+                    <td class="kv-label" style="width:25%;">ID / Passport</td>
+                    <td class="kv-value">{{ $user->getIdNumber() }}</td>
                     @endif
+                </tr>
+                <tr>
                     @if (!empty($user->email))
-                    <div class="kv-row">
-                        <span class="kv-label">Email</span>
-                        <span class="kv-value">{{ $user->email }}</span>
-                    </div>
+                    <td class="kv-label">Email</td>
+                    <td class="kv-value">{{ $user->email }}</td>
                     @endif
-                    <div class="kv-row">
-                        <span class="kv-label">Date</span>
-                        <span class="kv-value">{{ now()->format('d F Y') }}</span>
-                    </div>
-                    @if (isset($certificate) && $certificate->certificate_number)
-                    <div class="kv-row">
-                        <span class="kv-label">Reference</span>
-                        <span class="kv-value">{{ $certificate->certificate_number }}</span>
-                    </div>
-                    @endif
-                </div>
-            </div>
+                    <td class="kv-label">Date</td>
+                    <td class="kv-value">{{ now()->format('d F Y') }}</td>
+                </tr>
+                @if (isset($certificate) && $certificate->certificate_number)
+                <tr>
+                    <td class="kv-label">Reference</td>
+                    <td class="kv-value">{{ $certificate->certificate_number }}</td>
+                    <td></td><td></td>
+                </tr>
+                @endif
+            </table>
         </div>
 
         {{-- Letter body --}}
@@ -81,28 +76,25 @@
             @if ($membership)
                 Your membership details are as follows:
 
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0 24px; margin:8px 0; padding:8px 12px; background:#f2f2f2; border-radius:4px;">
-                    <div class="kv-row" style="border-bottom-color:#ddd;">
-                        <span class="kv-label">Membership No.</span>
-                        <span class="kv-value">{{ $membership->membership_number ?? 'N/A' }}</span>
-                    </div>
-                    <div class="kv-row" style="border-bottom-color:#ddd;">
-                        <span class="kv-label">Type</span>
-                        <span class="kv-value">{{ $membership->type?->name ?? 'N/A' }}</span>
-                    </div>
-                    <div class="kv-row" style="border-bottom-color:#ddd;">
-                        <span class="kv-label">Status</span>
-                        <span class="kv-value" style="color:var(--status-green);">Member in Good Standing</span>
-                    </div>
-                    <div class="kv-row" style="border-bottom-color:#ddd;">
-                        <span class="kv-label">Start Date</span>
-                        <span class="kv-value">{{ $membership->activated_at?->format('d F Y') ?? $membership->applied_at?->format('d F Y') ?? 'N/A' }}</span>
-                    </div>
-                    <div class="kv-row">
-                        <span class="kv-label">Valid Until</span>
-                        <span class="kv-value">{{ $membership->expires_at ? $membership->expires_at->format('d F Y') : 'Lifetime' }}</span>
-                    </div>
-                </div>
+                <table class="kv-table" style="margin:8px 0; padding:8px 12px; background:#f2f2f2; border-radius:4px;">
+                    <tr>
+                        <td class="kv-label">Membership No.</td>
+                        <td class="kv-value">{{ $membership->membership_number ?? 'N/A' }}</td>
+                        <td class="kv-label">Type</td>
+                        <td class="kv-value">{{ $membership->type?->name ?? 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="kv-label">Status</td>
+                        <td class="kv-value" style="color:#1f6b3a;">Member in Good Standing</td>
+                        <td class="kv-label">Start Date</td>
+                        <td class="kv-value">{{ $membership->activated_at?->format('d F Y') ?? $membership->applied_at?->format('d F Y') ?? 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="kv-label">Valid Until</td>
+                        <td class="kv-value">{{ $membership->expires_at ? $membership->expires_at->format('d F Y') : 'Lifetime' }}</td>
+                        <td></td><td></td>
+                    </tr>
+                </table>
             @endif
 
             <br/>
@@ -126,28 +118,32 @@
 
             <br/><br/>
             Kind regards,<br/><br/>
-            <span style="font-weight:700; font-size:13px; color:var(--blue);">{{ $signatory['name'] }}</span><br/>
-            <span style="font-size:10px; color:var(--muted);">{{ $signatory['title'] }}</span>
+            <span style="font-weight:700; font-size:13px; color:#1f4e8c;">{{ $signatory['name'] }}</span><br/>
+            <span style="font-size:10px; color:#6a6a6a;">{{ $signatory['title'] }}</span>
         </div>
 
         @if ($qrCodeUrl)
         {{-- Verification row --}}
-        <div class="verify-row">
-            <div style="display:flex; gap:10px; align-items:flex-start;">
-                <div class="qr-box">
-                    <img src="{{ $qrCodeUrl }}" alt="QR Code"/>
-                </div>
-                <div class="verify-text">
-                    <strong>Verify your membership</strong>
-                    Scan the QR code or visit the link below.
-                    <br/>
-                    <a href="{{ $verifyUrl }}" style="word-break:break-all; font-size:8px;">{{ $verifyUrl }}</a>
-                </div>
-            </div>
+        <div class="verify-card">
+            <table style="width:100%; border-collapse:collapse;">
+                <tr>
+                    <td style="width:85px; vertical-align:top; padding:0;">
+                        <div class="qr-box">
+                            <img src="{{ $qrCodeUrl }}" alt="QR Code"/>
+                        </div>
+                    </td>
+                    <td class="verify-text" style="vertical-align:top;">
+                        <strong>Verify your membership</strong>
+                        Scan the QR code or visit the link below.
+                        <br/>
+                        <a href="{{ $verifyUrl }}" style="word-break:break-all; font-size:8px;">{{ $verifyUrl }}</a>
+                    </td>
+                </tr>
+            </table>
         </div>
         @endif
 
-        <div style="margin-top:8px; text-align:center; font-size:9px; color:var(--muted);">
+        <div style="margin-top:8px; text-align:center; font-size:9px; color:#6a6a6a;">
             This letter is generated electronically. For official verification, refer to NRAPA channels.
         </div>
     @endif

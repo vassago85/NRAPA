@@ -22,41 +22,25 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            page-break-inside: avoid !important;
-        }
-
-        :root {
-            --blue: #1f4e8c;
-            --orange: #f58220;
-            --panel: rgba(255, 255, 255, 0.60);
-            --border: rgba(0, 0, 0, 0.10);
-            --text: #222222;
-            --muted: #6a6a6a;
-            --status-green: #1f6b3a;
-            --font: "Inter", "Helvetica Neue", Arial, sans-serif;
         }
 
         html, body {
             width: 210mm;
-            height: 297mm;
-            font-family: var(--font);
+            font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
             font-size: 12px;
             line-height: 1.45;
-            color: var(--text);
+            color: #222222;
             background: #fff;
-            font-feature-settings: "tnum";
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
 
         .page {
             width: 210mm;
-            height: 297mm;
+            min-height: 297mm;
             padding: 4mm 5mm 3mm 5mm;
             position: relative;
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
             background: #fff;
         }
 
@@ -64,7 +48,7 @@
             position: absolute;
             top: 4mm;
             right: 5mm;
-            width: 66%;
+            width: 60%;
             opacity: 1;
             pointer-events: none;
             z-index: 0;
@@ -78,9 +62,6 @@
         .content {
             position: relative;
             z-index: 1;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
         }
 
         /* Header */
@@ -90,29 +71,27 @@
         /* FAR info banner */
         .far-banner {
             width: 66%;
-            background: linear-gradient(90deg, rgba(31,78,140,0.07) 0%, rgba(245,130,32,0.07) 100%);
-            border: 1px solid var(--border);
+            background: #f0f3f8;
+            border: 1px solid #e5e5e5;
             padding: 6px 14px;
             border-radius: 6px;
             margin-top: 4px;
             margin-left: 2.5%;
         }
         .far-badge {
-            display: inline-block;
             font-size: 11px;
-            color: var(--muted);
+            color: #6a6a6a;
             font-weight: 500;
         }
-        .far-badge b { color: var(--blue); font-weight: 600; }
-
-        .far-row { display: flex; gap: 20px; margin-top: 3px; font-size: 11px; color: var(--muted); }
-        .far-row b { color: var(--blue); font-weight: 600; }
+        .far-badge b { color: #1f4e8c; font-weight: 600; }
+        .far-nums { margin-top: 3px; font-size: 11px; color: #6a6a6a; }
+        .far-nums b { color: #1f4e8c; font-weight: 600; }
 
         /* Document title banner */
         .doc-banner {
             width: 66%;
-            background: linear-gradient(90deg, rgba(31,78,140,0.07) 0%, rgba(245,130,32,0.07) 100%);
-            border: 1px solid var(--border);
+            background: #f0f3f8;
+            border: 1px solid #e5e5e5;
             padding: 6px 14px;
             border-radius: 6px;
             margin: 2px 0 2px 2.5%;
@@ -120,27 +99,36 @@
         .doc-banner-title {
             font-size: 17px;
             font-weight: 700;
-            color: var(--blue);
+            color: #1f4e8c;
             text-transform: uppercase;
             letter-spacing: 0.3px;
             margin: 0;
         }
         .doc-banner-subtitle {
             font-size: 11px;
-            color: var(--muted);
+            color: #6a6a6a;
             margin-top: 3px;
             font-style: italic;
         }
 
-        /* Info grid */
-        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px; width: 95%; margin-left: auto; margin-right: auto; }
-        .info-grid .card {
-            background: var(--panel);
+        /* ---- Table-based layouts (DomPDF compatible) ---- */
+        .layout-table {
+            width: 95%;
+            margin: 4px auto 0 auto;
+            border-collapse: separate;
+            border-spacing: 6px 0;
         }
+        .layout-table td {
+            vertical-align: top;
+            padding: 0;
+        }
+        .layout-table td.half { width: 50%; }
+        .layout-table td.third { width: 33.33%; }
 
+        /* Cards */
         .card {
-            background: var(--panel);
-            border: 1px solid var(--border);
+            background: #f9f9f9;
+            border: 1px solid #e5e5e5;
             border-radius: 6px;
             padding: 8px 12px;
         }
@@ -149,53 +137,40 @@
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: var(--blue);
-            border-bottom: 1px solid var(--border);
+            color: #1f4e8c;
+            border-bottom: 1px solid #e5e5e5;
             padding-bottom: 3px;
             margin-bottom: 4px;
         }
 
-        .kv-row {
-            display: flex;
-            justify-content: flex-start;
-            align-items: baseline;
-            padding: 2px 0;
-            font-size: 11px;
-            border-bottom: 1px solid #ececec;
-        }
-        .kv-row:last-child { border-bottom: none; }
-        .kv-label { width: 45%; flex-shrink: 0; font-size: 11px; font-weight: 500; color: var(--muted); }
-        .kv-value { font-weight: 600; font-size: 12px; color: var(--text); text-align: left; word-break: break-word; }
-        .kv-value a { color: var(--blue); font-weight: 500; text-decoration: none; word-break: break-all; font-size: 9px; }
+        /* Key-Value rows (table-based) */
+        .kv-table { width: 100%; border-collapse: collapse; }
+        .kv-table td { padding: 2px 0; font-size: 11px; border-bottom: 1px solid #ececec; }
+        .kv-table tr:last-child td { border-bottom: none; }
+        .kv-label { width: 45%; font-size: 11px; font-weight: 500; color: #6a6a6a; }
+        .kv-value { font-weight: 600; font-size: 12px; color: #222222; word-break: break-word; }
+        .kv-value a { color: #1f4e8c; font-weight: 500; text-decoration: none; word-break: break-all; font-size: 9px; }
 
-        /* Component card */
+        /* Components card */
         .components-card { margin-top: 4px; padding: 8px 12px; width: 95%; margin-left: auto; margin-right: auto; }
-        .firearm-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 2px 10px;
-            padding: 4px 0;
-            border-bottom: 1px solid #ececec;
-        }
-        .fg-cell { padding: 2px 0; }
-        .fg-label { display: block; font-size: 9px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; }
-        .fg-value { display: block; font-size: 12px; font-weight: 700; color: var(--text); }
-        .component-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            padding: 3px 0;
-            font-size: 11px;
-            border-bottom: 1px solid #ececec;
-        }
-        .component-item:last-child { border-bottom: none; }
-        .component-type { font-weight: 600; color: var(--blue); }
-        .component-detail { color: var(--muted); font-size: 10px; }
+
+        /* Firearm grid (table-based) */
+        .fg-table { width: 100%; border-collapse: collapse; border-bottom: 1px solid #ececec; }
+        .fg-table td { padding: 2px 4px 4px 0; vertical-align: top; }
+        .fg-label { display: block; font-size: 9px; font-weight: 500; color: #6a6a6a; text-transform: uppercase; letter-spacing: 0.3px; }
+        .fg-value { display: block; font-size: 12px; font-weight: 700; color: #222222; }
+
+        /* Component items */
+        .component-table { width: 100%; border-collapse: collapse; }
+        .component-table td { padding: 3px 0; font-size: 11px; border-bottom: 1px solid #ececec; }
+        .component-table tr:last-child td { border-bottom: none; }
+        .component-type { font-weight: 600; color: #1f4e8c; }
+        .component-detail { color: #6a6a6a; font-size: 10px; text-align: right; }
 
         /* Letter body */
         .letter-body {
-            background: var(--panel);
-            border: 1px solid var(--border);
+            background: #f9f9f9;
+            border: 1px solid #e5e5e5;
             border-radius: 6px;
             padding: 8px 12px;
             margin-top: 4px;
@@ -206,13 +181,13 @@
             margin-left: auto;
             margin-right: auto;
         }
-        .letter-body b { color: var(--text); }
+        .letter-body b { color: #222222; }
         .letter-body .purpose-line {
             display: block;
             margin: 4px 0;
             padding: 4px 10px;
             background: #f2f2f2;
-            border-left: 4px solid var(--blue);
+            border-left: 4px solid #1f4e8c;
             border-radius: 0 4px 4px 0;
             font-weight: 600;
             font-size: 12px;
@@ -220,66 +195,10 @@
         .letter-body ul { margin: 6px 0 8px 18px; }
         .letter-body li { margin: 2px 0; font-size: 11px; }
 
-        /* Bottom grid */
-        .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px; width: 95%; margin-left: auto; margin-right: auto; }
-
-        .verify-card { display: block; }
-        .qr-box {
-            width: 77px;
-            height: 77px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            overflow: hidden;
-            flex-shrink: 0;
-            background: #fff;
-            padding: 2px;
-        }
-        .qr-box img { width: 100%; height: 100%; object-fit: contain; }
-        .verify-text { font-size: 10px; color: var(--muted); line-height: 1.4; }
-        .verify-text strong { display: block; font-size: 11px; color: var(--text); margin-bottom: 2px; }
-        .verify-text a { color: var(--blue); font-weight: 500; text-decoration: none; }
-
-        .signatory-card { text-align: left; }
-        .sig-box {
-            height: 36px;
-            background: #fff !important;
-            border: 1px dashed var(--border);
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            margin: 4px 0 6px 0;
-        }
-        .sig-box img { max-height: 32px; max-width: 100%; object-fit: contain; }
-        .sig-line { height: 1px; background: var(--border); margin: 4px 0; }
-        .sig-name { font-weight: 600; font-size: 12px; color: var(--blue); }
-        .sig-title { font-size: 10px; color: var(--muted); }
-        .sig-date { font-size: 9px; color: var(--muted); margin-top: 2px; }
-
-        /* Commissioner card */
-        .commissioner-card { text-align: left; }
-        .commissioner-box {
-            flex: 1;
-            min-height: 36px;
-            border: 2px dashed #d7d7d7;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #888;
-            font-size: 10px;
-            background: #fff;
-            overflow: hidden;
-            margin-top: 4px;
-        }
-        .commissioner-box img { max-height: 100%; max-width: 100%; object-fit: contain; }
-        .commissioner-sub { font-size: 8px; color: var(--muted); margin-top: 2px; }
-
-        /* Verification row */
-        .verify-row {
-            background: var(--panel);
-            border: 1px solid var(--border);
+        /* QR / verify */
+        .verify-card {
+            background: #f9f9f9;
+            border: 1px solid #e5e5e5;
             border-radius: 6px;
             padding: 8px 12px;
             margin-top: 4px;
@@ -287,15 +206,62 @@
             margin-left: auto;
             margin-right: auto;
         }
+        .qr-box {
+            width: 77px;
+            height: 77px;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #fff;
+            padding: 2px;
+        }
+        .qr-box img { width: 100%; height: auto; }
+        .verify-text { font-size: 10px; color: #6a6a6a; line-height: 1.4; padding-left: 10px; }
+        .verify-text strong { display: block; font-size: 11px; color: #222222; margin-bottom: 2px; }
+        .verify-text a { color: #1f4e8c; font-weight: 500; text-decoration: none; }
+
+        /* Signatory card */
+        .signatory-card { text-align: left; }
+        .sig-box {
+            height: 36px;
+            background: #fff;
+            border: 1px dashed #d7d7d7;
+            border-radius: 6px;
+            overflow: hidden;
+            margin: 4px 0 6px 0;
+            text-align: center;
+        }
+        .sig-box img { max-height: 32px; max-width: 100%; }
+        .sig-line { height: 1px; background: #e5e5e5; margin: 4px 0; }
+        .sig-name { font-weight: 600; font-size: 12px; color: #1f4e8c; }
+        .sig-title { font-size: 10px; color: #6a6a6a; }
+        .sig-date { font-size: 9px; color: #6a6a6a; margin-top: 2px; }
+
+        /* Commissioner card */
+        .commissioner-card { text-align: left; }
+        .commissioner-box {
+            min-height: 36px;
+            border: 2px dashed #d7d7d7;
+            border-radius: 6px;
+            text-align: center;
+            color: #888;
+            font-size: 10px;
+            background: #fff;
+            overflow: hidden;
+            margin-top: 4px;
+            padding: 4px;
+        }
+        .commissioner-box img { max-height: 60px; max-width: 100%; }
+        .commissioner-sub { font-size: 8px; color: #6a6a6a; margin-top: 2px; }
 
         /* Orange footer bar */
         .footer-bar {
-            background: var(--orange);
+            background: #f58220;
             color: #000;
             font-size: 8px;
             text-align: center;
             padding: 4px 14px;
-            margin-top: auto;
+            margin-top: 8px;
             width: 98%;
             margin-left: auto;
             margin-right: auto;
@@ -331,9 +297,10 @@
             @endif
             <div class="far-banner">
                 <div class="far-badge"><b>FAR Accredited</b> &nbsp;|&nbsp; SAPS Recognised</div>
-                <div class="far-row">
-                    <span><b>FAR Sport Shooting:</b> {{ $farNumbers['sport'] }}</span>
-                    <span><b>FAR Hunting:</b> {{ $farNumbers['hunting'] }}</span>
+                <div class="far-nums">
+                    <b>FAR Sport Shooting:</b> {{ $farNumbers['sport'] }}
+                    &nbsp;&nbsp;&nbsp;
+                    <b>FAR Hunting:</b> {{ $farNumbers['hunting'] }}
                 </div>
             </div>
         </div>

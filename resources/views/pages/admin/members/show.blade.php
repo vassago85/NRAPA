@@ -744,7 +744,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                                 {{ $this->activeMembership->expires_at->format('d M Y') }}
                                 @if($this->activeMembership->expires_at->isPast())
                                     <span class="ml-2 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">Expired</span>
-                                @elseif($this->activeMembership->expires_at->diffInDays(now()) < 30)
+                                @elseif($this->activeMembership->expires_at->lte(now()->addDays(30)))
                                     <span class="ml-2 inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900 dark:text-orange-200">Expiring Soon</span>
                                 @endif
                             @else

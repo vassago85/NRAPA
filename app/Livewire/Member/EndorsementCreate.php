@@ -1206,7 +1206,7 @@ class EndorsementCreate extends Component
                 'rifle' => 'Rifle',
                 'shotgun' => 'Shotgun',
                 'handgun' => 'Handgun',
-                'barrel' => 'Barrel (component)',
+                'barrel' => 'Main Firearm Component',
                 'action' => 'Action (component)',
             ],
             'componentActionTypeOptions' => EndorsementComponent::getActionTypeOptions(),

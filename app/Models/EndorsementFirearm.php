@@ -180,7 +180,7 @@ class EndorsementFirearm extends Model
             self::CATEGORY_RIFLE => 'Rifle',
             self::CATEGORY_SHOTGUN => 'Shotgun',
             self::CATEGORY_HANDGUN => 'Handgun',
-            self::CATEGORY_BARREL => 'Barrel (component)',
+            self::CATEGORY_BARREL => 'Main Firearm Component',
             self::CATEGORY_ACTION => 'Action (component)',
         ];
     }

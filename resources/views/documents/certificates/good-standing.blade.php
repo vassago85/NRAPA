@@ -18,43 +18,31 @@
 
 @section('content')
     {{-- Info grid: Member + Certificate details --}}
-    <div class="info-grid">
-        <div class="card">
-            <div class="card-title">Member Details</div>
-            <div class="kv-row">
-                <span class="kv-label">Full Name</span>
-                <span class="kv-value">{{ $certificate->user->getIdName() }}</span>
-            </div>
-            <div class="kv-row">
-                <span class="kv-label">ID / Passport</span>
-                <span class="kv-value">{{ $certificate->user->getIdNumber() ?? 'N/A' }}</span>
-            </div>
-            <div class="kv-row">
-                <span class="kv-label">Membership No.</span>
-                <span class="kv-value">{{ $certificate->membership->membership_number ?? 'N/A' }}</span>
-            </div>
-            <div class="kv-row">
-                <span class="kv-label">Membership Type</span>
-                <span class="kv-value">{{ $certificate->membership->type->name ?? 'N/A' }}</span>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-title">Certificate Details</div>
-            <div class="kv-row">
-                <span class="kv-label">Certificate No.</span>
-                <span class="kv-value">{{ $certificate->certificate_number }}</span>
-            </div>
-            <div class="kv-row">
-                <span class="kv-label">Date Issued</span>
-                <span class="kv-value">{{ $certificate->issued_at->format('d F Y') }}</span>
-            </div>
-            <div class="kv-row">
-                <span class="kv-label">Valid Until</span>
-                <span class="kv-value">{{ $certificate->valid_until ? $certificate->valid_until->format('d F Y') : 'Lifetime' }}</span>
-            </div>
-        </div>
-    </div>
+    <table class="layout-table">
+        <tr>
+            <td class="half">
+                <div class="card">
+                    <div class="card-title">Member Details</div>
+                    <table class="kv-table">
+                        <tr><td class="kv-label">Full Name</td><td class="kv-value">{{ $certificate->user->getIdName() }}</td></tr>
+                        <tr><td class="kv-label">ID / Passport</td><td class="kv-value">{{ $certificate->user->getIdNumber() ?? 'N/A' }}</td></tr>
+                        <tr><td class="kv-label">Membership No.</td><td class="kv-value">{{ $certificate->membership->membership_number ?? 'N/A' }}</td></tr>
+                        <tr><td class="kv-label">Membership Type</td><td class="kv-value">{{ $certificate->membership->type->name ?? 'N/A' }}</td></tr>
+                    </table>
+                </div>
+            </td>
+            <td class="half">
+                <div class="card">
+                    <div class="card-title">Certificate Details</div>
+                    <table class="kv-table">
+                        <tr><td class="kv-label">Certificate No.</td><td class="kv-value">{{ $certificate->certificate_number }}</td></tr>
+                        <tr><td class="kv-label">Date Issued</td><td class="kv-value">{{ $certificate->issued_at->format('d F Y') }}</td></tr>
+                        <tr><td class="kv-label">Valid Until</td><td class="kv-value">{{ $certificate->valid_until ? $certificate->valid_until->format('d F Y') : 'Lifetime' }}</td></tr>
+                    </table>
+                </div>
+            </td>
+        </tr>
+    </table>
 
     {{-- Certification statement --}}
     <div class="letter-body">
@@ -65,33 +53,42 @@
     </div>
 
     {{-- Signatory + Verification --}}
-    <div class="bottom-grid">
-        <div class="card signatory-card">
-            <div class="card-title">Authorised Signatory</div>
-            <div class="sig-box">{!! $signatureHtml !!}</div>
-            <div class="sig-line"></div>
-            <div class="sig-name">{{ $signatory['name'] }}</div>
-            <div class="sig-title">{{ $signatory['title'] }}</div>
-            <div class="sig-date">Issued {{ $certificate->issued_at->format('d F Y') }}</div>
-        </div>
-
-        <div class="card">
-            <div class="card-title">Verify Certificate</div>
-            <div style="display:flex; gap:10px; align-items:flex-start; margin-top:4px;">
-                <div class="qr-box">
-                    <img src="{{ $qrCodeUrl }}" alt="QR Code"/>
+    <table class="layout-table">
+        <tr>
+            <td class="half">
+                <div class="card signatory-card">
+                    <div class="card-title">Authorised Signatory</div>
+                    <div class="sig-box">{!! $signatureHtml !!}</div>
+                    <div class="sig-line"></div>
+                    <div class="sig-name">{{ $signatory['name'] }}</div>
+                    <div class="sig-title">{{ $signatory['title'] }}</div>
+                    <div class="sig-date">Issued {{ $certificate->issued_at->format('d F Y') }}</div>
                 </div>
-                <div class="verify-text">
-                    <strong>Scan to verify</strong>
-                    Scan the QR code or visit the link below to confirm this certificate.
-                    <br/>
-                    <a href="{{ $verifyUrl }}" style="word-break:break-all; font-size:8px;">{{ $verifyUrl }}</a>
+            </td>
+            <td class="half">
+                <div class="card">
+                    <div class="card-title">Verify Certificate</div>
+                    <table style="width:100%; border-collapse:collapse; margin-top:4px;">
+                        <tr>
+                            <td style="width:85px; vertical-align:top; padding:0;">
+                                <div class="qr-box">
+                                    <img src="{{ $qrCodeUrl }}" alt="QR Code"/>
+                                </div>
+                            </td>
+                            <td class="verify-text" style="vertical-align:top;">
+                                <strong>Scan to verify</strong>
+                                Scan the QR code or visit the link below to confirm this certificate.
+                                <br/>
+                                <a href="{{ $verifyUrl }}" style="word-break:break-all; font-size:8px;">{{ $verifyUrl }}</a>
+                            </td>
+                        </tr>
+                    </table>
                 </div>
-            </div>
-        </div>
-    </div>
+            </td>
+        </tr>
+    </table>
 
-    <div style="margin-top:8px; text-align:center; font-size:9px; color:var(--muted);">
+    <div style="margin-top:8px; text-align:center; font-size:9px; color:#6a6a6a;">
         This document is generated electronically and is valid without a physical signature when verified via QR code.
     </div>
 @endsection

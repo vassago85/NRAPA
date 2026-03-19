@@ -33,48 +33,57 @@
 @endsection
 
 @section('content')
-    {{-- Info grid: Member + Letter details --}}
-    <div class="info-grid">
-        <div class="card">
-            <div class="card-title">Applicant / Member</div>
-            <div class="kv-row">
-                <span class="kv-label">Full Name</span>
-                <span class="kv-value">{{ $user->getIdName() }}</span>
-            </div>
-            <div class="kv-row">
-                <span class="kv-label">ID / Passport</span>
-                <span class="kv-value">{{ $user->getIdNumber() ?? 'N/A' }}</span>
-            </div>
-            <div class="kv-row">
-                <span class="kv-label">Membership Number</span>
-                <span class="kv-value">{{ $membership->membership_number ?? 'N/A' }}</span>
-            </div>
-            <div class="kv-row">
-                <span class="kv-label">Membership Status</span>
-                <span class="kv-value" style="color:#1f6b3a; font-weight:600;">Member in Good Standing</span>
-            </div>
-            <div class="kv-row">
-                <span class="kv-label">Dedicated Status</span>
-                <span class="kv-value">{{ $request->dedicated_status_label }}</span>
-            </div>
-            <div class="kv-row">
-                <span class="kv-label">Dedicated Category</span>
-                <span class="kv-value">{{ $request->dedicated_category_label }}</span>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-title">Letter Details</div>
-            <div class="kv-row">
-                <span class="kv-label">Endorsement Ref</span>
-                <span class="kv-value">{{ $request->letter_reference ?? 'N/A' }}</span>
-            </div>
-            <div class="kv-row">
-                <span class="kv-label">Issued Date</span>
-                <span class="kv-value">{{ $request->issued_at?->format('d F Y') ?? now()->format('d F Y') }}</span>
-            </div>
-        </div>
-    </div>
+    {{-- Info grid: Member + Letter details (table layout) --}}
+    <table class="layout-table">
+        <tr>
+            <td class="half">
+                <div class="card">
+                    <div class="card-title">Applicant / Member</div>
+                    <table class="kv-table">
+                        <tr>
+                            <td class="kv-label">Full Name</td>
+                            <td class="kv-value">{{ $user->getIdName() }}</td>
+                        </tr>
+                        <tr>
+                            <td class="kv-label">ID / Passport</td>
+                            <td class="kv-value">{{ $user->getIdNumber() ?? 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <td class="kv-label">Membership Number</td>
+                            <td class="kv-value">{{ $membership->membership_number ?? 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <td class="kv-label">Membership Status</td>
+                            <td class="kv-value" style="color:#1f6b3a; font-weight:600;">Member in Good Standing</td>
+                        </tr>
+                        <tr>
+                            <td class="kv-label">Dedicated Status</td>
+                            <td class="kv-value">{{ $request->dedicated_status_label }}</td>
+                        </tr>
+                        <tr>
+                            <td class="kv-label">Dedicated Category</td>
+                            <td class="kv-value">{{ $request->dedicated_category_label }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </td>
+            <td class="half">
+                <div class="card">
+                    <div class="card-title">Letter Details</div>
+                    <table class="kv-table">
+                        <tr>
+                            <td class="kv-label">Endorsement Ref</td>
+                            <td class="kv-value">{{ $request->letter_reference ?? 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <td class="kv-label">Issued Date</td>
+                            <td class="kv-value">{{ $request->issued_at?->format('d F Y') ?? now()->format('d F Y') }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </td>
+        </tr>
+    </table>
 
     {{-- Endorsed items --}}
     @php
@@ -92,59 +101,74 @@
             $modelName = $firearm->model_display ?? '';
             $calibreName = $firearm->calibre_display ?? '';
             $actionLabel = $firearm->action_type ? ucfirst(str_replace('_', ' ', $firearm->action_type)) : null;
+            $serialNumbers = $firearm->serial_numbers;
         @endphp
-        <div class="firearm-grid">
-            <div class="fg-cell">
-                <span class="fg-label">Type</span>
-                <span class="fg-value">{{ $firearm->category_label ?? 'Firearm' }}</span>
-            </div>
-            @if(trim($makeName . ' ' . $modelName))
-            <div class="fg-cell">
-                <span class="fg-label">Make / Model</span>
-                <span class="fg-value">{{ trim($makeName . ' ' . $modelName) }}</span>
-            </div>
+        <table class="fg-table">
+            <tr>
+                <td>
+                    <span class="fg-label">Type</span>
+                    <span class="fg-value">{{ $firearm->category_label ?? 'Firearm' }}</span>
+                </td>
+                @if(trim($makeName . ' ' . $modelName))
+                <td>
+                    <span class="fg-label">Make / Model</span>
+                    <span class="fg-value">{{ trim($makeName . ' ' . $modelName) }}</span>
+                </td>
+                @endif
+                @if($calibreName)
+                <td>
+                    <span class="fg-label">Calibre</span>
+                    <span class="fg-value">{{ $calibreName }}</span>
+                </td>
+                @endif
+            </tr>
+            @if($firearm->component_diameter || $actionLabel || !empty($serialNumbers))
+            <tr>
+                @if($firearm->component_diameter)
+                <td>
+                    <span class="fg-label">Diameter</span>
+                    <span class="fg-value">{{ $firearm->component_diameter }}</span>
+                </td>
+                @endif
+                @if($actionLabel)
+                <td>
+                    <span class="fg-label">Action</span>
+                    <span class="fg-value">{{ $actionLabel }}</span>
+                </td>
+                @endif
+                @foreach($serialNumbers as $type => $info)
+                <td>
+                    <span class="fg-label">{{ ucfirst($type) }} Serial</span>
+                    <span class="fg-value">{{ $info['serial'] }}@if($info['make']) <span style="font-weight:400; font-size:10px; color:#6a6a6a;">({{ $info['make'] }})</span>@endif</span>
+                </td>
+                @endforeach
+            </tr>
             @endif
-            @if($calibreName)
-            <div class="fg-cell">
-                <span class="fg-label">Calibre</span>
-                <span class="fg-value">{{ $calibreName }}</span>
-            </div>
-            @endif
-            @if($actionLabel)
-            <div class="fg-cell">
-                <span class="fg-label">Action</span>
-                <span class="fg-value">{{ $actionLabel }}</span>
-            </div>
-            @endif
-            @foreach($firearm->serial_numbers as $type => $info)
-            <div class="fg-cell">
-                <span class="fg-label">{{ ucfirst($type) }} Serial</span>
-                <span class="fg-value">{{ $info['serial'] }}@if($info['make']) <span style="font-weight:400; font-size:10px; color:var(--muted);">({{ $info['make'] }})</span>@endif</span>
-            </div>
-            @endforeach
-        </div>
+        </table>
         @endif
         @if($hasComponents)
-        @foreach ($request->components as $component)
-        <div class="component-item">
-            <div>
-                <span class="component-type">{{ $component->component_type_label }}</span>
-                @if ($component->component_make || $component->component_model)
-                    &mdash; {{ trim(($component->component_make ?? '') . ' ' . ($component->component_model ?? '')) }}
-                @endif
-            </div>
-            <div class="component-detail">
-                @if ($component->component_type === 'barrel' && $component->diameter)
-                    Diameter: {{ $component->diameter }}
-                @elseif ($component->calibre_display)
-                    Calibre: {{ $component->calibre_display }}
-                @endif
-                @if ($component->component_serial)
-                    &nbsp;| Serial: {{ $component->component_serial }}
-                @endif
-            </div>
-        </div>
-        @endforeach
+        <table class="component-table">
+            @foreach ($request->components as $component)
+            <tr>
+                <td>
+                    <span class="component-type">{{ $component->component_type_label }}</span>
+                    @if ($component->component_make || $component->component_model)
+                        &mdash; {{ trim(($component->component_make ?? '') . ' ' . ($component->component_model ?? '')) }}
+                    @endif
+                </td>
+                <td class="component-detail">
+                    @if ($component->component_type === 'barrel' && $component->diameter)
+                        Diameter: {{ $component->diameter }}
+                    @elseif ($component->calibre_display)
+                        Calibre: {{ $component->calibre_display }}
+                    @endif
+                    @if ($component->component_serial)
+                        &nbsp;| Serial: {{ $component->component_serial }}
+                    @endif
+                </td>
+            </tr>
+            @endforeach
+        </table>
         @endif
     </div>
     @endif
@@ -163,43 +187,52 @@
         The Association confirms that the firearm or component(s) described above is suitable for the stated purpose in accordance with the Firearms Control Act (Act 60 of 2000, as amended) and relevant Regulations.
     </div>
 
-    {{-- Bottom: Signatory + Commissioner --}}
-    <div class="bottom-grid">
-        <div class="card signatory-card">
-            <div class="card-title">Authorised NRAPA Signatory</div>
-            <div class="sig-box">{!! $signatureHtml !!}</div>
-            <div style="font-size:8px; color:var(--muted); margin-top:2px;">Placeholder must remain white.</div>
-            <div class="sig-line"></div>
-            <div class="sig-name">{{ $signatory['name'] }}</div>
-            <div class="sig-title">{{ $signatory['title'] }}</div>
-            <div class="sig-date">Issued at {{ $request->issued_at?->format('d F Y') ?? now()->format('d F Y') }}</div>
-        </div>
+    {{-- Bottom: Signatory + Commissioner (table layout) --}}
+    <table class="layout-table">
+        <tr>
+            <td class="half">
+                <div class="card signatory-card">
+                    <div class="card-title">Authorised NRAPA Signatory</div>
+                    <div class="sig-box">{!! $signatureHtml !!}</div>
+                    <div style="font-size:8px; color:#6a6a6a; margin-top:2px;">Placeholder must remain white.</div>
+                    <div class="sig-line"></div>
+                    <div class="sig-name">{{ $signatory['name'] }}</div>
+                    <div class="sig-title">{{ $signatory['title'] }}</div>
+                    <div class="sig-date">Issued at {{ $request->issued_at?->format('d F Y') ?? now()->format('d F Y') }}</div>
+                </div>
+            </td>
+            <td class="half">
+                <div class="card commissioner-card">
+                    <div class="card-title">Commissioner of Oaths</div>
+                    <div class="commissioner-box">
+                        @if($commissionerHtml && trim(strip_tags($commissionerHtml)))
+                            {!! $commissionerHtml !!}
+                        @else
+                            Commissioner of Oaths scan
+                        @endif
+                    </div>
+                    <div class="commissioner-sub">Upload commissioned scan in admin dashboard. Placeholder must remain white.</div>
+                </div>
+            </td>
+        </tr>
+    </table>
 
-        <div class="card commissioner-card">
-            <div class="card-title">Commissioner of Oaths</div>
-            <div class="commissioner-box">
-                @if($commissionerHtml && trim(strip_tags($commissionerHtml)))
-                    {!! $commissionerHtml !!}
-                @else
-                    Commissioner of Oaths scan
-                @endif
-            </div>
-            <div class="commissioner-sub">Upload commissioned scan in admin dashboard. Placeholder must remain white.</div>
-        </div>
-    </div>
-
-    {{-- Verification row --}}
-    <div class="verify-row">
-        <div style="display:flex; gap:10px; align-items:flex-start;">
-            <div class="qr-box">
-                <img src="{{ $qrCodeUrl }}" alt="QR Code"/>
-            </div>
-            <div class="verify-text">
-                <strong>Verify this endorsement</strong>
-                Scan the QR code or visit the link below.
-                <br/>
-                <a href="{{ $verifyUrl }}" style="color:var(--blue); word-break:break-all; font-size:8px;">{{ $verifyUrl }}</a>
-            </div>
-        </div>
+    {{-- Verification row (table layout) --}}
+    <div class="verify-card">
+        <table style="width:100%; border-collapse:collapse;">
+            <tr>
+                <td style="width:85px; vertical-align:top; padding:0;">
+                    <div class="qr-box">
+                        <img src="{{ $qrCodeUrl }}" alt="QR Code"/>
+                    </div>
+                </td>
+                <td class="verify-text" style="vertical-align:top;">
+                    <strong>Verify this endorsement</strong>
+                    Scan the QR code or visit the link below.
+                    <br/>
+                    <a href="{{ $verifyUrl }}" style="color:#1f4e8c; word-break:break-all; font-size:8px;">{{ $verifyUrl }}</a>
+                </td>
+            </tr>
+        </table>
     </div>
 @endsection

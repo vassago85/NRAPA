@@ -592,6 +592,33 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
         </div>
     @endif
 
+    {{-- Ranyati Motivations Recommendation --}}
+    @if($this->stats['approved'] + $this->stats['issued'] > 0)
+    <div class="mb-6 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden shadow-sm">
+        <div class="flex flex-col sm:flex-row items-stretch">
+            <a href="https://motivations.ranyati.co.za" target="_blank"
+                class="flex-shrink-0 flex items-center justify-center px-6 py-4 bg-[#1b2a4a]">
+                <img src="{{ asset('ranyati-motivations-logo.png') }}" alt="Ranyati Firearm Motivations" class="h-12 w-auto" />
+            </a>
+            <div class="flex flex-col sm:flex-row flex-1 items-center gap-4 p-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 dark:from-zinc-800 dark:via-zinc-800 dark:to-zinc-800">
+                <div class="flex-1 text-center sm:text-left">
+                    <h3 class="text-base font-bold text-zinc-900 dark:text-white">Need a Professional Firearm Motivation?</h3>
+                    <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                        Your endorsement is ready &mdash; now let Ranyati Firearm Motivations draft your Section 16 motivation letter for SAPS. Professional, compliant, and tailored to your application.
+                    </p>
+                </div>
+                <a href="https://motivations.ranyati.co.za" target="_blank"
+                    class="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-[#F58220] to-[#d46f16] hover:from-[#d46f16] hover:to-[#c06010] shadow-sm transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                    </svg>
+                    Get a Motivation
+                </a>
+            </div>
+        </div>
+    </div>
+    @endif
+
     {{-- Filter --}}
     @if($this->stats['total'] > 0)
         <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-4 mb-6">
@@ -787,9 +814,14 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
             <div class="text-sm text-zinc-700 dark:text-zinc-300">
                 <h4 class="font-semibold mb-1 text-zinc-900 dark:text-white">About Endorsement Letters</h4>
                 <p>
-                    Endorsement letters confirm your dedicated status and are required when applying for Section 16 firearm licences. 
-                    You can request a <strong>New Endorsement</strong> for first-time applications or a <strong>Renewal Endorsement</strong> 
-                    for existing firearms (which can also include component requests like barrels or actions).
+                    An endorsement letter is supporting documentation from NRAPA confirming that a specific firearm or component is fit for purpose
+                    for dedicated sport shooting or dedicated hunting. It serves as motivation when applying for a Section 16 licence &mdash;
+                    for example, a 9mm pistol would be endorsed for sport shooting but not for hunting, while a bolt-action rifle in a hunting calibre
+                    would be endorsed for hunting purposes.
+                </p>
+                <p class="mt-2">
+                    You can request a <strong>New Endorsement</strong> for first-time licence applications or a <strong>Renewal Endorsement</strong>
+                    for existing firearms (which can also include component requests such as main firearm components or actions).
                 </p>
             </div>
         </div>

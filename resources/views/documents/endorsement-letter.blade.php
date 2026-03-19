@@ -81,6 +81,12 @@
             <span class="doc-label">Calibre:</span>
             <span class="doc-value">{{ $request->firearm->calibre_display ?? 'N/A' }}</span>
         </div>
+        @if($request->firearm->component_diameter)
+        <div class="doc-row" style="margin-top:6px;">
+            <span class="doc-label">Diameter:</span>
+            <span class="doc-value">{{ $request->firearm->component_diameter }}</span>
+        </div>
+        @endif
         @if($request->firearm->action_type)
         <div class="doc-row" style="margin-top:6px;">
             <span class="doc-label">Action:</span>

@@ -189,7 +189,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                             {{ $document->expires_at->format('d M Y') }}
                             @if($document->expires_at->isPast())
                                 <span class="text-red-500 text-sm ml-2">(Expired)</span>
-                            @elseif($document->expires_at->diffInDays(now()) < 30)
+                            @elseif($document->expires_at->lte(now()->addDays(30)))
                                 <span class="text-amber-500 text-sm ml-2">(Expiring soon)</span>
                             @endif
                         </dd>
