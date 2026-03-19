@@ -111,18 +111,19 @@
             font-style: italic;
         }
 
-        /* ---- Table-based layouts (DomPDF compatible) ---- */
+        /* ---- Table-based layouts ---- */
         .layout-table {
             width: 95%;
             margin: 4px auto 0 auto;
-            border-collapse: separate;
-            border-spacing: 6px 0;
+            border-collapse: collapse;
         }
         .layout-table td {
             vertical-align: top;
             padding: 0;
         }
         .layout-table td.half { width: 50%; }
+        .layout-table td.half:first-child { padding-right: 3px; }
+        .layout-table td.half:last-child { padding-left: 3px; }
         .layout-table td.third { width: 33.33%; }
 
         /* Cards */
