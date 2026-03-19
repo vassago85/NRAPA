@@ -9,12 +9,14 @@ use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Spatie\LaravelPdf\Facades\Pdf;
+use Symfony\Component\Process\Process;
 
 /**
- * PDF Document Renderer using Spatie Laravel PDF.
+ * PDF Document Renderer.
  *
- * Tries Browsershot (Chrome) first for best rendering quality,
- * then falls back to DomPDF if Chrome/Browsershot is unavailable.
+ * Strategy order:
+ * 1. Chrome CLI (--print-to-pdf) — bypasses Puppeteer/WebSocket entirely
+ * 2. DomPDF fallback — pure PHP, no external dependencies
  */
 class PdfDocumentRenderer implements DocumentRenderer
 {
@@ -24,61 +26,136 @@ class PdfDocumentRenderer implements DocumentRenderer
 
     public function __construct()
     {
-        // Use local storage for local/development/testing environments
         $this->disk = app()->environment(['local', 'development', 'testing'])
             ? 'local'
             : (config('filesystems.disks.r2.key') ? 'r2' : (config('filesystems.disks.s3.key') ? 's3' : 'local'));
     }
 
+    protected function getChromePath(): ?string
+    {
+        $candidates = [
+            env('LARAVEL_PDF_CHROME_PATH'),
+            '/usr/bin/chromium-browser',
+            '/usr/bin/chromium',
+            '/usr/bin/google-chrome',
+            '/usr/bin/google-chrome-stable',
+        ];
+
+        foreach (array_filter($candidates) as $path) {
+            if (is_executable($path)) {
+                return $path;
+            }
+        }
+
+        return null;
+    }
+
     /**
-     * Generate and save a PDF, trying Browsershot first then DomPDF fallback.
-     *
+     * Generate PDF via Chrome's native --print-to-pdf (no Puppeteer/WebSocket).
+     */
+    protected function generateWithChromeCli(string $html, string $outputPath): bool
+    {
+        $chrome = $this->getChromePath();
+        if (! $chrome) {
+            Log::info('Chrome binary not found, skipping Chrome CLI');
+            return false;
+        }
+
+        $tmpDir = sys_get_temp_dir();
+        $htmlFile = tempnam($tmpDir, 'pdf_html_') . '.html';
+        $pdfFile = tempnam($tmpDir, 'pdf_out_') . '.pdf';
+
+        try {
+            file_put_contents($htmlFile, $html);
+
+            $userDataDir = $tmpDir . DIRECTORY_SEPARATOR . 'chrome_' . uniqid();
+            @mkdir($userDataDir, 0755, true);
+
+            $process = new Process([
+                $chrome,
+                '--headless',
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--disable-software-rasterizer',
+                '--disable-extensions',
+                '--single-process',
+                '--no-zygote',
+                '--no-first-run',
+                '--no-default-browser-check',
+                '--hide-scrollbars',
+                '--mute-audio',
+                '--user-data-dir=' . $userDataDir,
+                '--print-to-pdf=' . $pdfFile,
+                '--print-to-pdf-no-header',
+                '--run-all-compositor-stages-before-draw',
+                'file://' . $htmlFile,
+            ]);
+
+            $process->setTimeout(30);
+            $process->run();
+
+            if (! $process->isSuccessful() || ! file_exists($pdfFile) || filesize($pdfFile) < 100) {
+                Log::warning('Chrome CLI PDF generation failed', [
+                    'exit_code' => $process->getExitCode(),
+                    'stderr' => substr($process->getErrorOutput(), 0, 500),
+                    'file_exists' => file_exists($pdfFile),
+                ]);
+                return false;
+            }
+
+            Storage::disk($this->disk)->put($outputPath, file_get_contents($pdfFile));
+
+            return true;
+        } finally {
+            @unlink($htmlFile);
+            @unlink($pdfFile);
+            if (isset($userDataDir) && is_dir($userDataDir)) {
+                $this->removeDirectory($userDataDir);
+            }
+        }
+    }
+
+    protected function removeDirectory(string $dir): void
+    {
+        if (! is_dir($dir)) {
+            return;
+        }
+        $items = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($items as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($dir);
+    }
+
+    /**
      * @param  array{width: float, height: float}|null  $customSize  Custom paper size in mm (overrides A4)
      */
     protected function generatePdf(string $template, array $data, string $filePath, ?array $customSize = null): void
     {
-        // Try Browsershot (Chrome) first — best rendering quality
+        // Strategy 1: Chrome CLI (direct --print-to-pdf, no Puppeteer)
         try {
-            $pdf = Pdf::view($template, $data)
-                ->withBrowsershot(function (\Spatie\Browsershot\Browsershot $browsershot) {
-                    $browsershot
-                        ->noSandbox()
-                        ->setOption('args', [
-                            '--disable-setuid-sandbox',
-                            '--disable-dev-shm-usage',
-                            '--disable-gpu',
-                            '--single-process',
-                            '--no-zygote',
-                            '--disable-software-rasterizer',
-                            '--disable-extensions',
-                        ]);
-                });
+            $html = view($template, $data)->render();
 
-            if ($customSize) {
-                $pdf->paperSize($customSize['width'], $customSize['height'], 'mm');
-            } else {
-                $pdf->format('a4');
+            if ($this->generateWithChromeCli($html, $filePath)) {
+                Log::info('PDF generated via Chrome CLI (direct)', [
+                    'template' => $template,
+                    'file' => $filePath,
+                ]);
+                return;
             }
-
-            $pdf->margins(0, 0, 0, 0)
-                ->disk($this->disk)
-                ->save($filePath);
-
-            Log::info('PDF generated via Browsershot (Chrome)', [
-                'template' => $template,
-                'file' => $filePath,
-            ]);
-
-            return;
         } catch (\Throwable $e) {
-            Log::warning('Browsershot PDF generation failed, trying DomPDF fallback', [
+            Log::warning('Chrome CLI render/save failed', [
                 'template' => $template,
-                'file' => $filePath,
                 'error' => $e->getMessage(),
             ]);
         }
 
-        // Fallback to DomPDF — pure PHP, no external dependencies
+        // Strategy 2: DomPDF fallback
         try {
             $pdf = Pdf::view($template, $data)->driver('dompdf');
 
@@ -95,7 +172,7 @@ class PdfDocumentRenderer implements DocumentRenderer
                 'file' => $filePath,
             ]);
         } catch (\Throwable $e) {
-            Log::error('Both Browsershot and DomPDF PDF generation failed', [
+            Log::error('All PDF generation methods failed', [
                 'template' => $template,
                 'file' => $filePath,
                 'error' => $e->getMessage(),
