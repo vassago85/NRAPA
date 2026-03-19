@@ -80,8 +80,6 @@ class PdfDocumentRenderer implements DocumentRenderer
                 '--disable-gpu',
                 '--disable-software-rasterizer',
                 '--disable-extensions',
-                '--single-process',
-                '--no-zygote',
                 '--no-first-run',
                 '--no-default-browser-check',
                 '--hide-scrollbars',
