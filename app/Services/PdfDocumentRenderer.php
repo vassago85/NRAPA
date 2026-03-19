@@ -43,8 +43,7 @@ class PdfDocumentRenderer implements DocumentRenderer
                 ->withBrowsershot(function (\Spatie\Browsershot\Browsershot $browsershot) {
                     $browsershot
                         ->noSandbox()
-                        ->setOption('args', ['--disable-setuid-sandbox', '--disable-dev-shm-usage'])
-                        ->waitUntilNetworkIdle();
+                        ->setOption('args', ['--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']);
                 });
 
             if ($customSize) {
