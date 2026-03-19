@@ -364,9 +364,16 @@ class EndorsementFirearm extends Model
     {
         $label = self::getCategoryOptions()[$this->firearm_category] ?? ucfirst($this->firearm_category);
 
-        // Add specification for "other" type
         if ($this->firearm_category === self::CATEGORY_OTHER && $this->firearm_type_other) {
             return "{$label} ({$this->firearm_type_other})";
+        }
+
+        if ($this->firearm_category === self::CATEGORY_BARREL) {
+            return "{$label} (Barrel)";
+        }
+
+        if ($this->firearm_category === self::CATEGORY_ACTION) {
+            return "{$label} (Receiver)";
         }
 
         return $label;
