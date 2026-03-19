@@ -41,29 +41,25 @@ class PdfDocumentRenderer implements DocumentRenderer
     protected function generateWithGotenberg(string $html, string $outputPath, ?array $customSize = null): bool
     {
         try {
-            $request = Http::timeout(25)
-                ->attach('files', $html, 'index.html');
-
-            $formParams = [
-                'printBackground' => 'true',
-                'marginTop' => '0',
-                'marginBottom' => '0',
-                'marginLeft' => '0',
-                'marginRight' => '0',
-                'preferCssPageSize' => 'true',
+            $multipart = [
+                ['name' => 'files', 'contents' => $html, 'filename' => 'index.html'],
+                ['name' => 'printBackground', 'contents' => 'true'],
+                ['name' => 'marginTop', 'contents' => '0'],
+                ['name' => 'marginBottom', 'contents' => '0'],
+                ['name' => 'marginLeft', 'contents' => '0'],
+                ['name' => 'marginRight', 'contents' => '0'],
+                ['name' => 'preferCssPageSize', 'contents' => 'true'],
             ];
 
             if ($customSize) {
-                $formParams['paperWidth'] = round($customSize['width'] / 25.4, 2);
-                $formParams['paperHeight'] = round($customSize['height'] / 25.4, 2);
-                $formParams['preferCssPageSize'] = 'false';
+                $multipart[] = ['name' => 'paperWidth', 'contents' => (string) round($customSize['width'] / 25.4, 2)];
+                $multipart[] = ['name' => 'paperHeight', 'contents' => (string) round($customSize['height'] / 25.4, 2)];
+                $multipart[6] = ['name' => 'preferCssPageSize', 'contents' => 'false'];
             }
 
-            foreach ($formParams as $key => $value) {
-                $request = $request->attach($key, $value);
-            }
-
-            $response = $request->post($this->gotenbergUrl . '/forms/chromium/convert/html');
+            $response = Http::timeout(25)
+                ->asMultipart()
+                ->post($this->gotenbergUrl . '/forms/chromium/convert/html', $multipart);
 
             if (! $response->successful() || strlen($response->body()) < 100) {
                 Log::warning('Gotenberg PDF generation failed', [
