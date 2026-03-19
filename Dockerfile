@@ -1,6 +1,6 @@
 FROM php:8.3-fpm-alpine
 
-# Install system dependencies (including Chromium for PDF generation via Browsershot)
+# Install system dependencies (wkhtmltopdf for PDF generation, Chromium kept as optional)
 RUN apk add --no-cache \
     nginx \
     supervisor \
@@ -18,19 +18,14 @@ RUN apk add --no-cache \
     sqlite-dev \
     nodejs \
     npm \
-    chromium \
-    nss \
-    freetype \
-    harfbuzz \
-    ca-certificates \
-    ttf-freefont
+    wkhtmltopdf \
+    xvfb \
+    ttf-freefont \
+    font-noto \
+    ca-certificates
 
-# Set Puppeteer/Browsershot environment variables for headless Chromium
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_SKIP_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
-    LARAVEL_PDF_CHROME_PATH=/usr/bin/chromium-browser \
-    LARAVEL_PDF_NO_SANDBOX=true
+# wkhtmltopdf needs a virtual framebuffer on Alpine (headless X server)
+ENV QT_QPA_PLATFORM=offscreen
 
 # Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
@@ -62,12 +57,6 @@ COPY . .
 
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction
-
-# Install Puppeteer globally for Browsershot PDF generation
-# Browsershot's browser.cjs requires 'puppeteer' (not 'puppeteer-core')
-# PUPPETEER_SKIP_DOWNLOAD prevents Chromium download since we install it via apk
-# Browsershot auto-detects global node_modules via `npm root -g` at runtime
-RUN npm install -g puppeteer
 
 # Install Node dependencies and build frontend assets
 RUN npm ci && npm run build && rm -rf node_modules

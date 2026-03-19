@@ -15,7 +15,7 @@ use Symfony\Component\Process\Process;
  * PDF Document Renderer.
  *
  * Strategy order:
- * 1. Chrome CLI (--print-to-pdf) — bypasses Puppeteer/WebSocket entirely
+ * 1. wkhtmltopdf — lightweight Qt WebKit engine, reliable on any server
  * 2. DomPDF fallback — pure PHP, no external dependencies
  */
 class PdfDocumentRenderer implements DocumentRenderer
@@ -31,17 +31,14 @@ class PdfDocumentRenderer implements DocumentRenderer
             : (config('filesystems.disks.r2.key') ? 'r2' : (config('filesystems.disks.s3.key') ? 's3' : 'local'));
     }
 
-    protected function getChromePath(): ?string
+    protected function getWkhtmltopdfPath(): ?string
     {
         $candidates = [
-            env('LARAVEL_PDF_CHROME_PATH'),
-            '/usr/bin/chromium-browser',
-            '/usr/bin/chromium',
-            '/usr/bin/google-chrome',
-            '/usr/bin/google-chrome-stable',
+            '/usr/bin/wkhtmltopdf',
+            '/usr/local/bin/wkhtmltopdf',
         ];
 
-        foreach (array_filter($candidates) as $path) {
+        foreach ($candidates as $path) {
             if (is_executable($path)) {
                 return $path;
             }
@@ -51,54 +48,57 @@ class PdfDocumentRenderer implements DocumentRenderer
     }
 
     /**
-     * Generate PDF via Chrome's native --print-to-pdf (no Puppeteer/WebSocket).
+     * Generate PDF via wkhtmltopdf (Qt WebKit engine — no Chrome/Puppeteer needed).
      */
-    protected function generateWithChromeCli(string $html, string $outputPath): bool
+    protected function generateWithWkhtmltopdf(string $html, string $outputPath, ?array $customSize = null): bool
     {
-        $chrome = $this->getChromePath();
-        if (! $chrome) {
-            Log::info('Chrome binary not found, skipping Chrome CLI');
+        $binary = $this->getWkhtmltopdfPath();
+        if (! $binary) {
+            Log::info('wkhtmltopdf binary not found, skipping');
             return false;
         }
 
         $tmpDir = sys_get_temp_dir();
-        $htmlFile = tempnam($tmpDir, 'pdf_html_') . '.html';
-        $pdfFile = tempnam($tmpDir, 'pdf_out_') . '.pdf';
+        $htmlFile = $tmpDir . DIRECTORY_SEPARATOR . 'pdf_' . uniqid() . '.html';
+        $pdfFile = $tmpDir . DIRECTORY_SEPARATOR . 'pdf_' . uniqid() . '.pdf';
 
         try {
             file_put_contents($htmlFile, $html);
 
-            $userDataDir = $tmpDir . DIRECTORY_SEPARATOR . 'chrome_' . uniqid();
-            @mkdir($userDataDir, 0755, true);
+            $args = [
+                $binary,
+                '--quiet',
+                '--no-outline',
+                '--print-media-type',
+                '--enable-local-file-access',
+                '--margin-top', '0',
+                '--margin-bottom', '0',
+                '--margin-left', '0',
+                '--margin-right', '0',
+                '--dpi', '150',
+            ];
 
-            $process = new Process([
-                $chrome,
-                '--headless',
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                '--disable-software-rasterizer',
-                '--disable-extensions',
-                '--no-first-run',
-                '--no-default-browser-check',
-                '--hide-scrollbars',
-                '--mute-audio',
-                '--user-data-dir=' . $userDataDir,
-                '--print-to-pdf=' . $pdfFile,
-                '--print-to-pdf-no-header',
-                '--run-all-compositor-stages-before-draw',
-                'file://' . $htmlFile,
-            ]);
+            if ($customSize) {
+                $args[] = '--page-width';
+                $args[] = $customSize['width'] . 'mm';
+                $args[] = '--page-height';
+                $args[] = $customSize['height'] . 'mm';
+            } else {
+                $args[] = '--page-size';
+                $args[] = 'A4';
+            }
 
+            $args[] = $htmlFile;
+            $args[] = $pdfFile;
+
+            $process = new Process($args);
             $process->setTimeout(30);
             $process->run();
 
-            if (! $process->isSuccessful() || ! file_exists($pdfFile) || filesize($pdfFile) < 100) {
-                Log::warning('Chrome CLI PDF generation failed', [
+            if (! file_exists($pdfFile) || filesize($pdfFile) < 100) {
+                Log::warning('wkhtmltopdf PDF generation failed', [
                     'exit_code' => $process->getExitCode(),
                     'stderr' => substr($process->getErrorOutput(), 0, 500),
-                    'file_exists' => file_exists($pdfFile),
                 ]);
                 return false;
             }
@@ -109,25 +109,7 @@ class PdfDocumentRenderer implements DocumentRenderer
         } finally {
             @unlink($htmlFile);
             @unlink($pdfFile);
-            if (isset($userDataDir) && is_dir($userDataDir)) {
-                $this->removeDirectory($userDataDir);
-            }
         }
-    }
-
-    protected function removeDirectory(string $dir): void
-    {
-        if (! is_dir($dir)) {
-            return;
-        }
-        $items = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::CHILD_FIRST
-        );
-        foreach ($items as $item) {
-            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
-        }
-        @rmdir($dir);
     }
 
     /**
@@ -135,19 +117,19 @@ class PdfDocumentRenderer implements DocumentRenderer
      */
     protected function generatePdf(string $template, array $data, string $filePath, ?array $customSize = null): void
     {
-        // Strategy 1: Chrome CLI (direct --print-to-pdf, no Puppeteer)
+        // Strategy 1: wkhtmltopdf (Qt WebKit — lightweight and reliable)
         try {
             $html = view($template, $data)->render();
 
-            if ($this->generateWithChromeCli($html, $filePath)) {
-                Log::info('PDF generated via Chrome CLI (direct)', [
+            if ($this->generateWithWkhtmltopdf($html, $filePath, $customSize)) {
+                Log::info('PDF generated via wkhtmltopdf', [
                     'template' => $template,
                     'file' => $filePath,
                 ]);
                 return;
             }
         } catch (\Throwable $e) {
-            Log::warning('Chrome CLI render/save failed', [
+            Log::warning('wkhtmltopdf render failed', [
                 'template' => $template,
                 'error' => $e->getMessage(),
             ]);
