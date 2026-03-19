@@ -142,7 +142,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
         };
 
         // Days until NRAPA deadline (October 1)
-        $daysUntilDeadline = now()->diffInDays($period['nrapa_deadline'], false);
+        $daysUntilDeadline = (int) now()->diffInDays($period['nrapa_deadline'], false);
         $isPastDeadline = $daysUntilDeadline < 0;
 
         return [
