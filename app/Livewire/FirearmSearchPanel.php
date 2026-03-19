@@ -378,16 +378,32 @@ class FirearmSearchPanel extends Component
 
     /**
      * Get all data as array for saving.
+     * Auto-commits typed text as override when no dropdown selection was made.
      */
     public function getData(): array
     {
+        $makeOverride = $this->makeTextOverride;
+        if (! $this->firearmMakeId && ! $makeOverride && trim($this->makeSearch) !== '') {
+            $makeOverride = trim($this->makeSearch);
+        }
+
+        $modelOverride = $this->modelTextOverride;
+        if (! $this->firearmModelId && ! $modelOverride && trim($this->modelSearch) !== '') {
+            $modelOverride = trim($this->modelSearch);
+        }
+
+        $calibreOverride = $this->calibreTextOverride;
+        if (! $this->firearmCalibreId && ! $calibreOverride && trim($this->calibreSearch) !== '') {
+            $calibreOverride = trim($this->calibreSearch);
+        }
+
         return [
             'firearm_calibre_id' => $this->firearmCalibreId,
-            'calibre_text_override' => $this->calibreTextOverride,
+            'calibre_text_override' => $calibreOverride,
             'firearm_make_id' => $this->firearmMakeId,
-            'make_text_override' => $this->makeTextOverride,
+            'make_text_override' => $makeOverride,
             'firearm_model_id' => $this->firearmModelId,
-            'model_text_override' => $this->modelTextOverride,
+            'model_text_override' => $modelOverride,
             'firearm_type' => $this->firearmType,
             'firearm_type_other' => $this->firearmTypeOther,
             'action_type' => $this->actionType,

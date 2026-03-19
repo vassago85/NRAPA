@@ -8,11 +8,14 @@ use App\Models\EndorsementDocument;
 use App\Models\EndorsementFirearm;
 use App\Models\EndorsementRequest;
 use App\Models\FirearmCalibre;
+use App\Models\FirearmMake;
+use App\Models\FirearmModel;
 use App\Models\ShootingActivity;
 use App\Models\User;
 use App\Models\UserFirearm;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -315,8 +318,11 @@ class EndorsementCreate extends Component
     /**
      * Sync FirearmSearchPanel data back to component properties.
      */
+    #[On('firearm-data-updated')]
     public function syncFirearmPanelData(array $data): void
     {
+        $this->firearmPanelData = $data;
+
         $this->firearmCalibreId = $data['firearm_calibre_id'] ?? null;
         $this->calibreTextOverride = $data['calibre_text_override'] ?? null;
         $this->firearmMakeId = $data['firearm_make_id'] ?? null;
@@ -331,7 +337,7 @@ class EndorsementCreate extends Component
             'handgun' => 'handgun',
             'combination' => 'combination',
             'other' => 'other',
-            default => '',
+            default => $this->firearmCategory ?: '',
         };
 
         // Set firearm_type_other if provided
@@ -340,13 +346,15 @@ class EndorsementCreate extends Component
         }
 
         // Map action type back
-        $this->actionType = match ($data['action_type'] ?? '') {
-            'semi_automatic' => 'semi_auto',
-            'automatic' => 'automatic',
-            'manual' => 'bolt_action', // Default
-            'other' => 'other',
-            default => '',
-        };
+        if (! empty($data['action_type'])) {
+            $this->actionType = match ($data['action_type']) {
+                'semi_automatic' => 'semi_auto',
+                'automatic' => 'automatic',
+                'manual' => 'bolt_action',
+                'other' => 'other',
+                default => $data['action_type'],
+            };
+        }
 
         $this->actionOtherSpecify = $data['action_type_other'] ?? '';
         $this->metalEngraving = $data['engraved_text'] ?? '';
@@ -358,13 +366,26 @@ class EndorsementCreate extends Component
         $this->receiverSerialNumber = $data['receiver_serial_number'] ?? '';
         $this->receiverMake = $data['receiver_make_text'] ?? '';
 
-        // Set legacy fields for backward compatibility
+        // Resolve make name from ID or override
         if ($this->makeTextOverride) {
             $this->make = $this->makeTextOverride;
+        } elseif ($this->firearmMakeId) {
+            $makeName = FirearmMake::find($this->firearmMakeId)?->name;
+            if ($makeName) {
+                $this->make = $makeName;
+            }
         }
+
+        // Resolve model name from ID or override
         if ($this->modelTextOverride) {
             $this->model = $this->modelTextOverride;
+        } elseif ($this->firearmModelId) {
+            $modelName = FirearmModel::find($this->firearmModelId)?->name;
+            if ($modelName) {
+                $this->model = $modelName;
+            }
         }
+
         $this->calibreId = $this->firearmCalibreId;
         $this->calibreManual = $this->calibreTextOverride ?? '';
     }
