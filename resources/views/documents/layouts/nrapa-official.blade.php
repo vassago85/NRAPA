@@ -70,28 +70,31 @@
 
         /* FAR info banner */
         .far-banner {
-            width: 95%;
-            margin: 4px auto 0 auto;
-            background: linear-gradient(90deg, #1f4e8c, #3a7bd5);
+            width: 66%;
+            background: linear-gradient(90deg, #1f4e8c 0%, #f58220 100%);
+            border: 1px solid #e5e5e5;
             padding: 6px 14px;
             border-radius: 6px;
+            margin-top: 4px;
+            margin-left: 2.5%;
         }
         .far-badge {
             font-size: 11px;
-            color: rgba(255, 255, 255, 0.85);
+            color: rgba(255, 255, 255, 0.9);
             font-weight: 500;
         }
         .far-badge b { color: #ffffff; font-weight: 600; }
-        .far-nums { margin-top: 3px; font-size: 11px; color: rgba(255, 255, 255, 0.85); }
+        .far-nums { margin-top: 3px; font-size: 11px; color: rgba(255, 255, 255, 0.9); }
         .far-nums b { color: #ffffff; font-weight: 600; }
 
         /* Document title banner */
         .doc-banner {
-            width: 95%;
-            margin: 2px auto;
-            background: linear-gradient(90deg, #1f4e8c, #3a7bd5);
+            width: 66%;
+            background: linear-gradient(90deg, #1f4e8c 0%, #f58220 100%);
+            border: 1px solid #e5e5e5;
             padding: 6px 14px;
             border-radius: 6px;
+            margin: 2px 0 2px 2.5%;
         }
         .doc-banner-title {
             font-size: 17px;
@@ -103,7 +106,7 @@
         }
         .doc-banner-subtitle {
             font-size: 11px;
-            color: rgba(255, 255, 255, 0.85);
+            color: rgba(255, 255, 255, 0.9);
             margin-top: 3px;
             font-style: italic;
         }
