@@ -56,6 +56,7 @@ services:
       - NTFY_DEVELOPER_TOPIC=${NTFY_DEVELOPER_TOPIC:-}
       # Livewire temp uploads go to public disk (avoids CORS issues with S3/R2)
       - LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK=public
+    shm_size: '1gb'
     volumes:
       - app-logs:/var/www/html/storage/logs
     ports:
