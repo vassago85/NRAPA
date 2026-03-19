@@ -470,40 +470,42 @@ Route::middleware(['auth', 'verified', 'membership.required', 'terms.accepted'])
         ]);
     })->name('member.endorsements.preview');
 
-    // Member endorsement letter view/download
+    // Member endorsement letter view/download (always regenerates from current template)
     Route::get('endorsements/{request}/letter', function (\App\Models\EndorsementRequest $request) {
-        // Ensure user owns this request
         if ($request->user_id !== auth()->id()) {
             abort(403);
         }
 
-        if (! $request->isIssued() || ! $request->letter_file_path) {
+        if (! $request->isIssued()) {
             abort(404, 'Endorsement letter not found.');
         }
 
-        // Use local storage for local/development/testing environments
+        $renderer = app(\App\Contracts\DocumentRenderer::class);
+        $filePath = $renderer->renderEndorsementLetter($request, 'documents.letters.endorsement');
+
         $disk = app()->environment(['local', 'development', 'testing'])
             ? 'local'
             : (config('filesystems.disks.r2.key') ? 'r2' : (config('filesystems.disks.s3.key') ? 's3' : 'local'));
         $storage = \Illuminate\Support\Facades\Storage::disk($disk);
 
-        if (! $storage->exists($request->letter_file_path)) {
+        if (! $storage->exists($filePath)) {
             abort(404, 'Letter file not found.');
         }
 
-        // Determine MIME type - PDFs should be application/pdf
-        $extension = strtolower(pathinfo($request->letter_file_path, PATHINFO_EXTENSION));
-        $mimeType = $extension === 'pdf' ? 'application/pdf' : $storage->mimeType($request->letter_file_path);
-        $filename = 'endorsement-letter-'.$request->letter_reference.'.'.$extension;
+        if ($request->letter_file_path !== $filePath) {
+            $request->update(['letter_file_path' => $filePath]);
+        }
 
-        return response()->stream(function () use ($storage, $request) {
-            $stream = $storage->readStream($request->letter_file_path);
+        $filename = 'endorsement-letter-'.($request->letter_reference ?? $request->uuid).'.pdf';
+
+        return response()->stream(function () use ($storage, $filePath) {
+            $stream = $storage->readStream($filePath);
             fpassthru($stream);
             if (is_resource($stream)) {
                 fclose($stream);
             }
         }, 200, [
-            'Content-Type' => $mimeType,
+            'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="'.$filename.'"',
         ]);
     })->name('member.endorsements.letter');
@@ -1029,35 +1031,38 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         ]);
     })->name('endorsements.preview'); // Note: This becomes 'admin.endorsements.preview' due to group prefix
 
-    // Admin endorsement letter download
+    // Admin endorsement letter download (always regenerates from current template)
     Route::get('endorsements/{request}/download', function (\App\Models\EndorsementRequest $request) {
-        if (! $request->isIssued() || ! $request->letter_file_path) {
+        if (! $request->isIssued()) {
             abort(404, 'Endorsement letter not found.');
         }
 
-        // Use local storage for local/development/testing environments
+        $renderer = app(\App\Contracts\DocumentRenderer::class);
+        $filePath = $renderer->renderEndorsementLetter($request, 'documents.letters.endorsement');
+
         $disk = app()->environment(['local', 'development', 'testing'])
             ? 'local'
             : (config('filesystems.disks.r2.key') ? 'r2' : (config('filesystems.disks.s3.key') ? 's3' : 'local'));
         $storage = \Illuminate\Support\Facades\Storage::disk($disk);
 
-        if (! $storage->exists($request->letter_file_path)) {
+        if (! $storage->exists($filePath)) {
             abort(404, 'Letter file not found.');
         }
 
-        // Determine MIME type - PDFs should be application/pdf
-        $extension = strtolower(pathinfo($request->letter_file_path, PATHINFO_EXTENSION));
-        $mimeType = $extension === 'pdf' ? 'application/pdf' : $storage->mimeType($request->letter_file_path);
-        $filename = 'endorsement-letter-'.$request->letter_reference.'.'.$extension;
+        if ($request->letter_file_path !== $filePath) {
+            $request->update(['letter_file_path' => $filePath]);
+        }
 
-        return response()->stream(function () use ($storage, $request) {
-            $stream = $storage->readStream($request->letter_file_path);
+        $filename = 'endorsement-letter-'.($request->letter_reference ?? $request->uuid).'.pdf';
+
+        return response()->stream(function () use ($storage, $filePath) {
+            $stream = $storage->readStream($filePath);
             fpassthru($stream);
             if (is_resource($stream)) {
                 fclose($stream);
             }
         }, 200, [
-            'Content-Type' => $mimeType,
+            'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="'.$filename.'"',
         ]);
     })->name('endorsements.download');

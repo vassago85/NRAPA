@@ -596,13 +596,13 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
         <div class="flex flex-col sm:flex-row items-stretch">
             <a href="https://motivations.ranyati.co.za" target="_blank"
                 class="flex-shrink-0 flex items-center justify-center px-6 py-4 bg-[#1b2a4a]">
-                <img src="{{ asset('ranyati-motivations-logo.png') }}" alt="Ranyati Firearm Motivations" class="h-12 w-auto" />
+                <img src="{{ asset('logo-ranyati_motivations-white-text.png') }}" alt="Ranyati Motivations" class="h-12 w-auto" />
             </a>
             <div class="flex flex-col sm:flex-row flex-1 items-center gap-4 p-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 dark:from-zinc-800 dark:via-zinc-800 dark:to-zinc-800">
                 <div class="flex-1 text-center sm:text-left">
                     <h3 class="text-base font-bold text-zinc-900 dark:text-white">Need a Professional Firearm Motivation?</h3>
                     <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                        Your endorsement is ready &mdash; now let Ranyati Firearm Motivations draft your Section 16 motivation letter for SAPS. Professional, compliant, and tailored to your application.
+                        Your endorsement is ready &mdash; now let Ranyati Motivations draft your Section 16 motivation letter for SAPS. Professional, compliant, and tailored to your application.
                     </p>
                 </div>
                 <a href="https://motivations.ranyati.co.za" target="_blank"

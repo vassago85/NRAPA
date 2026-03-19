@@ -39,7 +39,13 @@ class PdfDocumentRenderer implements DocumentRenderer
     {
         // Try Browsershot (Chrome) first — best rendering quality
         try {
-            $pdf = Pdf::view($template, $data);
+            $pdf = Pdf::view($template, $data)
+                ->withBrowsershot(function (\Spatie\Browsershot\Browsershot $browsershot) {
+                    $browsershot
+                        ->noSandbox()
+                        ->setOption('args', ['--disable-setuid-sandbox', '--disable-dev-shm-usage'])
+                        ->waitUntilNetworkIdle();
+                });
 
             if ($customSize) {
                 $pdf->paperSize($customSize['width'], $customSize['height'], 'mm');
@@ -47,7 +53,14 @@ class PdfDocumentRenderer implements DocumentRenderer
                 $pdf->format('a4');
             }
 
-            $pdf->disk($this->disk)->save($filePath);
+            $pdf->margins(0, 0, 0, 0)
+                ->disk($this->disk)
+                ->save($filePath);
+
+            Log::info('PDF generated via Browsershot (Chrome)', [
+                'template' => $template,
+                'file' => $filePath,
+            ]);
 
             return;
         } catch (\Throwable $e) {
@@ -70,7 +83,7 @@ class PdfDocumentRenderer implements DocumentRenderer
 
             $pdf->disk($this->disk)->save($filePath);
 
-            Log::info('PDF generated successfully via DomPDF fallback', [
+            Log::info('PDF generated via DomPDF fallback', [
                 'template' => $template,
                 'file' => $filePath,
             ]);
