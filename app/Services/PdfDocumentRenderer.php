@@ -6,17 +6,17 @@ use App\Contracts\DocumentRenderer;
 use App\Models\Certificate;
 use App\Models\EndorsementRequest;
 use App\Models\User;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Spatie\LaravelPdf\Facades\Pdf;
-use Symfony\Component\Process\Process;
 
 /**
  * PDF Document Renderer.
  *
  * Strategy order:
- * 1. wkhtmltopdf — lightweight Qt WebKit engine, reliable on any server
- * 2. DomPDF fallback — pure PHP, no external dependencies
+ * 1. Gotenberg (Chrome in a separate container via HTTP API)
+ * 2. DomPDF fallback (pure PHP)
  */
 class PdfDocumentRenderer implements DocumentRenderer
 {
@@ -24,91 +24,63 @@ class PdfDocumentRenderer implements DocumentRenderer
 
     protected string $pathPrefix = 'documents';
 
+    protected string $gotenbergUrl;
+
     public function __construct()
     {
         $this->disk = app()->environment(['local', 'development', 'testing'])
             ? 'local'
             : (config('filesystems.disks.r2.key') ? 'r2' : (config('filesystems.disks.s3.key') ? 's3' : 'local'));
-    }
 
-    protected function getWkhtmltopdfPath(): ?string
-    {
-        $candidates = [
-            '/usr/bin/wkhtmltopdf',
-            '/usr/local/bin/wkhtmltopdf',
-        ];
-
-        foreach ($candidates as $path) {
-            if (is_executable($path)) {
-                return $path;
-            }
-        }
-
-        return null;
+        $this->gotenbergUrl = env('GOTENBERG_URL', 'http://gotenberg:3000');
     }
 
     /**
-     * Generate PDF via wkhtmltopdf (Qt WebKit engine — no Chrome/Puppeteer needed).
+     * Generate PDF via Gotenberg (Chrome running in a separate Docker container).
      */
-    protected function generateWithWkhtmltopdf(string $html, string $outputPath, ?array $customSize = null): bool
+    protected function generateWithGotenberg(string $html, string $outputPath, ?array $customSize = null): bool
     {
-        $binary = $this->getWkhtmltopdfPath();
-        if (! $binary) {
-            Log::info('wkhtmltopdf binary not found, skipping');
-            return false;
-        }
-
-        $tmpDir = sys_get_temp_dir();
-        $htmlFile = $tmpDir . DIRECTORY_SEPARATOR . 'pdf_' . uniqid() . '.html';
-        $pdfFile = $tmpDir . DIRECTORY_SEPARATOR . 'pdf_' . uniqid() . '.pdf';
-
         try {
-            file_put_contents($htmlFile, $html);
+            $request = Http::timeout(25)
+                ->attach('files', $html, 'index.html');
 
-            $args = [
-                $binary,
-                '--quiet',
-                '--no-outline',
-                '--print-media-type',
-                '--enable-local-file-access',
-                '--margin-top', '0',
-                '--margin-bottom', '0',
-                '--margin-left', '0',
-                '--margin-right', '0',
-                '--dpi', '150',
+            $formParams = [
+                'printBackground' => 'true',
+                'marginTop' => '0',
+                'marginBottom' => '0',
+                'marginLeft' => '0',
+                'marginRight' => '0',
+                'preferCssPageSize' => 'true',
             ];
 
             if ($customSize) {
-                $args[] = '--page-width';
-                $args[] = $customSize['width'] . 'mm';
-                $args[] = '--page-height';
-                $args[] = $customSize['height'] . 'mm';
-            } else {
-                $args[] = '--page-size';
-                $args[] = 'A4';
+                $formParams['paperWidth'] = round($customSize['width'] / 25.4, 2);
+                $formParams['paperHeight'] = round($customSize['height'] / 25.4, 2);
+                $formParams['preferCssPageSize'] = 'false';
             }
 
-            $args[] = $htmlFile;
-            $args[] = $pdfFile;
+            foreach ($formParams as $key => $value) {
+                $request = $request->attach($key, $value);
+            }
 
-            $process = new Process($args);
-            $process->setTimeout(30);
-            $process->run();
+            $response = $request->post($this->gotenbergUrl . '/forms/chromium/convert/html');
 
-            if (! file_exists($pdfFile) || filesize($pdfFile) < 100) {
-                Log::warning('wkhtmltopdf PDF generation failed', [
-                    'exit_code' => $process->getExitCode(),
-                    'stderr' => substr($process->getErrorOutput(), 0, 500),
+            if (! $response->successful() || strlen($response->body()) < 100) {
+                Log::warning('Gotenberg PDF generation failed', [
+                    'status' => $response->status(),
+                    'body' => substr($response->body(), 0, 200),
                 ]);
                 return false;
             }
 
-            Storage::disk($this->disk)->put($outputPath, file_get_contents($pdfFile));
+            Storage::disk($this->disk)->put($outputPath, $response->body());
 
             return true;
-        } finally {
-            @unlink($htmlFile);
-            @unlink($pdfFile);
+        } catch (\Throwable $e) {
+            Log::warning('Gotenberg connection failed', [
+                'error' => $e->getMessage(),
+            ]);
+            return false;
         }
     }
 
@@ -117,19 +89,19 @@ class PdfDocumentRenderer implements DocumentRenderer
      */
     protected function generatePdf(string $template, array $data, string $filePath, ?array $customSize = null): void
     {
-        // Strategy 1: wkhtmltopdf (Qt WebKit — lightweight and reliable)
+        // Strategy 1: Gotenberg (Chrome in separate container)
         try {
             $html = view($template, $data)->render();
 
-            if ($this->generateWithWkhtmltopdf($html, $filePath, $customSize)) {
-                Log::info('PDF generated via wkhtmltopdf', [
+            if ($this->generateWithGotenberg($html, $filePath, $customSize)) {
+                Log::info('PDF generated via Gotenberg', [
                     'template' => $template,
                     'file' => $filePath,
                 ]);
                 return;
             }
         } catch (\Throwable $e) {
-            Log::warning('wkhtmltopdf render failed', [
+            Log::warning('Gotenberg render failed', [
                 'template' => $template,
                 'error' => $e->getMessage(),
             ]);

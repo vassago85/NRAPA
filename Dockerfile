@@ -1,6 +1,6 @@
 FROM php:8.3-fpm-alpine
 
-# Install system dependencies (wkhtmltopdf for PDF generation, Chromium kept as optional)
+# Install system dependencies
 RUN apk add --no-cache \
     nginx \
     supervisor \
@@ -18,14 +18,9 @@ RUN apk add --no-cache \
     sqlite-dev \
     nodejs \
     npm \
-    wkhtmltopdf \
-    xvfb \
     ttf-freefont \
     font-noto \
     ca-certificates
-
-# wkhtmltopdf needs a virtual framebuffer on Alpine (headless X server)
-ENV QT_QPA_PLATFORM=offscreen
 
 # Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \

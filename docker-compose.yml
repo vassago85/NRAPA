@@ -241,6 +241,17 @@ services:
       - db
       - redis
 
+  # Gotenberg: HTML-to-PDF conversion service (Chrome in a Debian container — no CPU issues)
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    container_name: nrapa-gotenberg
+    restart: unless-stopped
+    networks:
+      - nrapa-network
+    command:
+      - "gotenberg"
+      - "--api-timeout=30s"
+
 networks:
   nrapa-network:
     driver: bridge
