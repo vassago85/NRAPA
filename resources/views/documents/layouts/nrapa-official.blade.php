@@ -127,7 +127,7 @@
 
         /* Cards */
         .card {
-            background: rgba(255, 255, 255, 0.6);
+            background: #ffffff;
             border: 1px solid #e5e5e5;
             border-radius: 6px;
             padding: 8px 12px;
@@ -153,7 +153,7 @@
         .kv-value a { color: #1f4e8c; font-weight: 500; text-decoration: none; word-break: break-all; font-size: 9px; }
 
         /* Components card */
-        .components-card { margin-top: 4px; padding: 8px 12px; width: 95%; margin-left: auto; margin-right: auto; background: rgba(255, 255, 255, 0.6); }
+        .components-card { margin-top: 4px; padding: 8px 12px; width: 95%; margin-left: auto; margin-right: auto; background: #ffffff; }
 
         /* Firearm grid (table-based) */
         .fg-table { width: 100%; border-collapse: collapse; border-bottom: 1px solid #ececec; }
@@ -170,7 +170,7 @@
 
         /* Letter body */
         .letter-body {
-            background: rgba(255, 255, 255, 0.6);
+            background: #ffffff;
             border: 1px solid #e5e5e5;
             border-radius: 6px;
             padding: 8px 12px;
@@ -198,7 +198,7 @@
 
         /* QR / verify */
         .verify-card {
-            background: rgba(255, 255, 255, 0.6);
+            background: #ffffff;
             border: 1px solid #e5e5e5;
             border-radius: 6px;
             padding: 8px 12px;
