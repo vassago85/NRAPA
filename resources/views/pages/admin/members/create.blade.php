@@ -223,7 +223,14 @@ new #[Title('Add Member - Admin')] class extends Component {
                                 @if($memberMode === 'import')
                                 <option value="{{ $type->slug }}">{{ $type->name }} — R{{ number_format($type->renewal_price ?? $type->initial_price, 2) }}/yr</option>
                                 @else
-                                <option value="{{ $type->slug }}">{{ $type->name }} — R{{ number_format($type->initial_price, 2) }}</option>
+                                @php
+                                    $signupPrice = $type->initial_price;
+                                    if ($type->hasUpgradeFee()) {
+                                        $basicType = $this->membershipTypes->first(fn($t) => $t->isBasic());
+                                        $signupPrice = ($basicType ? $basicType->initial_price : 0) + $type->upgrade_price;
+                                    }
+                                @endphp
+                                <option value="{{ $type->slug }}">{{ $type->name }} — R{{ number_format($signupPrice, 2) }}</option>
                                 @endif
                             @endforeach
                         </select>
