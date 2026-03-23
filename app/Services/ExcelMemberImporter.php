@@ -132,7 +132,7 @@ class ExcelMemberImporter
                     $membership = null;
 
                     if ($membershipType) {
-                        $membership = $this->createMembership($user, $memberData, $membershipType, $autoApprove, $autoActivate);
+                        $membership = $this->createMembership($user, $memberData, $membershipType, $autoApprove, $autoActivate, 'import');
                     }
 
                     if ($sendWelcomeEmail && $membership) {
@@ -232,6 +232,7 @@ class ExcelMemberImporter
         $autoApprove = $options['auto_approve'] ?? true;
         $autoActivate = $options['auto_activate'] ?? true;
         $sendWelcomeEmail = $options['send_welcome_email'] ?? true;
+        $source = $options['source'] ?? 'import';
 
         try {
             // Rebuild into the array format parseRow expects (column-indexed)
@@ -274,7 +275,7 @@ class ExcelMemberImporter
             $membershipType = $this->resolveMembershipType($memberData['membership_type_raw'], $defaultMembershipType);
             $membership = null;
             if ($membershipType) {
-                $membership = $this->createMembership($user, $memberData, $membershipType, $autoApprove, $autoActivate);
+                $membership = $this->createMembership($user, $memberData, $membershipType, $autoApprove, $autoActivate, $source);
             }
 
             DB::commit();
@@ -509,7 +510,7 @@ class ExcelMemberImporter
     /**
      * Create a membership for the user.
      */
-    protected function createMembership(User $user, array $memberData, MembershipType $membershipType, bool $autoApprove, bool $autoActivate): Membership
+    protected function createMembership(User $user, array $memberData, MembershipType $membershipType, bool $autoApprove, bool $autoActivate, string $source = 'import'): Membership
     {
         // Generate membership number
         $membershipNumber = ! empty($memberData['membership_number'])
@@ -557,7 +558,7 @@ class ExcelMemberImporter
             'approved_by' => ($autoApprove || $approvedAt) ? auth()->id() : null,
             'activated_at' => $autoActivate || $activatedAt ? ($activatedAt ?? now()) : null,
             'expires_at' => $expiresAt,
-            'source' => 'import', // Mark as imported - NOT billable
+            'source' => $source,
         ]);
     }
 
