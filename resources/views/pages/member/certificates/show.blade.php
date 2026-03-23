@@ -244,14 +244,30 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
 
                 {{-- Preview iframe --}}
                 @php $isCard = ($certificate->certificateType->slug ?? '') === 'membership-card'; @endphp
-                <div class="bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center" style="min-height: {{ $isCard ? '320px' : '600px' }};">
+                @if($isCard)
+                <div class="bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center" style="min-height: 320px;">
                     <iframe 
                         src="{{ $this->previewUrl }}?print=0"
-                        class="border-0 {{ $isCard ? '' : 'w-full h-full' }}"
-                        style="{{ $isCard ? 'width: 380px; height: 280px;' : 'min-height: 600px; width: 100%;' }}"
+                        class="border-0"
+                        style="width: 380px; height: 280px;"
                         title="Certificate Preview">
                     </iframe>
                 </div>
+                @else
+                <div class="bg-zinc-50 dark:bg-zinc-900 overflow-hidden"
+                     x-data="{ scale: 1 }"
+                     x-init="$nextTick(() => { scale = Math.min(1, $el.offsetWidth / 794); })"
+                     x-on:resize.window.debounce.150ms="scale = Math.min(1, $el.offsetWidth / 794)"
+                     :style="'height: ' + Math.ceil(1123 * scale) + 'px'">
+                    <iframe 
+                        src="{{ $this->previewUrl }}?print=0"
+                        class="border-0"
+                        style="width: 794px; height: 1123px;"
+                        :style="'width: 794px; height: 1123px; transform: scale(' + scale + '); transform-origin: top left;'"
+                        title="Certificate Preview">
+                    </iframe>
+                </div>
+                @endif
 
                 {{-- Action buttons --}}
                 <div class="px-5 py-3.5 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50">
