@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Mail\ImportWelcome;
 use App\Models\ImportFailure;
+use App\Models\KnowledgeTestAttempt;
 use App\Models\Membership;
 use App\Models\MembershipType;
 use App\Models\User;
@@ -133,6 +134,7 @@ class ExcelMemberImporter
 
                     if ($membershipType) {
                         $membership = $this->createMembership($user, $memberData, $membershipType, $autoApprove, $autoActivate, 'import');
+                        $this->autoPassKnowledgeTests($user, $membershipType);
                     }
 
                     if ($sendWelcomeEmail && $membership) {
@@ -276,6 +278,10 @@ class ExcelMemberImporter
             $membership = null;
             if ($membershipType) {
                 $membership = $this->createMembership($user, $memberData, $membershipType, $autoApprove, $autoActivate, $source);
+
+                if ($source === 'import') {
+                    $this->autoPassKnowledgeTests($user, $membershipType);
+                }
             }
 
             DB::commit();
@@ -585,6 +591,45 @@ class ExcelMemberImporter
         }
 
         return sprintf('%s-%s-%04d', $prefix, $year, $nextNumber);
+    }
+
+    /**
+     * Auto-pass all required knowledge tests for an imported member's membership type.
+     * Imported members from another system have already proven competency.
+     */
+    protected function autoPassKnowledgeTests(User $user, MembershipType $membershipType): void
+    {
+        if ($membershipType->isBasic()) {
+            return;
+        }
+
+        $requiredTests = $membershipType->requiredKnowledgeTests()->get();
+
+        foreach ($requiredTests as $test) {
+            $alreadyPassed = KnowledgeTestAttempt::where('user_id', $user->id)
+                ->where('knowledge_test_id', $test->id)
+                ->where('passed', true)
+                ->exists();
+
+            if ($alreadyPassed) {
+                continue;
+            }
+
+            $totalPoints = $test->total_points ?: 100;
+
+            KnowledgeTestAttempt::create([
+                'user_id' => $user->id,
+                'knowledge_test_id' => $test->id,
+                'started_at' => now(),
+                'submitted_at' => now(),
+                'auto_score' => $totalPoints,
+                'total_score' => $totalPoints,
+                'passed' => true,
+                'marked_at' => now(),
+                'marked_by' => auth()->id(),
+                'marker_notes' => 'Auto-passed: imported existing member',
+            ]);
+        }
     }
 
     /**
