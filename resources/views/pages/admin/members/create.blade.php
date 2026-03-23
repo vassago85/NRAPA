@@ -85,7 +85,7 @@ new #[Title('Add Member - Admin')] class extends Component {
                 ? "Member {$this->initials} {$this->surname} imported successfully."
                 : "Member {$this->initials} {$this->surname} created. They will be prompted to pay on first login.";
             session()->flash('success', $msg);
-            $this->redirectRoute('admin.members.show', ['user' => $result['user']->id], navigate: true);
+            $this->redirectRoute('admin.members.show', ['user' => $result['user']->uuid], navigate: true);
         } else {
             $this->error = $result['error'];
         }
