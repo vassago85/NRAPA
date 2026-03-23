@@ -59,7 +59,6 @@
                 <div class="card signatory-card">
                     <div class="card-title">Authorised Signatory</div>
                     <div class="sig-box">{!! $signatureHtml !!}</div>
-                    <div class="sig-line"></div>
                     <div class="sig-name">{{ $signatory['name'] }}</div>
                     <div class="sig-title">{{ $signatory['title'] }}</div>
                     <div class="sig-date">Issued {{ $certificate->issued_at->format('d F Y') }}</div>
@@ -89,6 +88,6 @@
     </table>
 
     <div style="margin-top:8px; text-align:center; font-size:9px; color:#6a6a6a;">
-        This document is generated electronically and is valid without a physical signature when verified via QR code.
+        This is an electronically generated document. It can be verified by scanning the QR code above.
     </div>
 @endsection

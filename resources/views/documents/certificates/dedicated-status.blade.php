@@ -5,7 +5,6 @@
     $verifyUrl = $certificate->getVerificationUrl();
     $signatory = \App\Helpers\DocumentDataHelper::getSignatoryInfo($certificate);
     $signatureHtml = \App\Helpers\DocumentDataHelper::getSignatureImageHtml($certificate->signatory_signature_path);
-    $commissionerHtml = \App\Helpers\DocumentDataHelper::getCommissionerScanHtml($certificate->commissioner_oaths_scan_path);
 
     $certTypeSlug = $certificate->certificateType->slug ?? '';
     $isOccasional = str_contains($certTypeSlug, 'occasional');
@@ -127,55 +126,42 @@
         @endif
     </div>
 
-    {{-- Commissioner + Signatory --}}
+    {{-- Signatory + Verification --}}
     <table class="layout-table">
         <tr>
-            <td class="half">
-                <div class="card commissioner-card">
-                    <div class="card-title">Commissioner of Oaths</div>
-                    <div class="commissioner-box">
-                        @if($commissionerHtml && trim(strip_tags($commissionerHtml)))
-                            {!! $commissionerHtml !!}
-                        @else
-                            Commissioner of Oaths scan
-                        @endif
-                    </div>
-                    <div class="commissioner-sub">Upload commissioned scan in admin dashboard.</div>
-                </div>
-            </td>
             <td class="half">
                 <div class="card signatory-card">
                     <div class="card-title">Authorised Signatory</div>
                     <div class="sig-box">{!! $signatureHtml !!}</div>
-                    <div class="sig-line"></div>
                     <div class="sig-name">{{ $signatory['name'] }}</div>
                     <div class="sig-title">{{ $signatory['title'] }}</div>
                     <div class="sig-date">Issued {{ $certificate->issued_at->format('d F Y') }}</div>
                 </div>
             </td>
+            <td class="half">
+                <div class="card">
+                    <div class="card-title">Verify Certificate</div>
+                    <table style="width:100%; border-collapse:collapse; margin-top:4px;">
+                        <tr>
+                            <td style="width:85px; vertical-align:top; padding:0;">
+                                <div class="qr-box">
+                                    <img src="{{ $qrCodeUrl }}" alt="QR Code"/>
+                                </div>
+                            </td>
+                            <td class="verify-text" style="vertical-align:top;">
+                                <strong>Scan to verify</strong>
+                                Scan the QR code or visit the link below to confirm this certificate.
+                                <br/>
+                                <a href="{{ $verifyUrl }}" style="word-break:break-all; font-size:8px;">{{ $verifyUrl }}</a>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </td>
         </tr>
     </table>
 
-    {{-- Verification row --}}
-    <div class="verify-card">
-        <table style="width:100%; border-collapse:collapse;">
-            <tr>
-                <td style="width:85px; vertical-align:top; padding:0;">
-                    <div class="qr-box">
-                        <img src="{{ $qrCodeUrl }}" alt="QR Code"/>
-                    </div>
-                </td>
-                <td class="verify-text" style="vertical-align:top;">
-                    <strong>Verify this certificate</strong>
-                    Scan the QR code or visit the link below.
-                    <br/>
-                    <a href="{{ $verifyUrl }}" style="word-break:break-all; font-size:8px;">{{ $verifyUrl }}</a>
-                </td>
-            </tr>
-        </table>
-    </div>
-
     <div style="margin-top:8px; text-align:center; font-size:9px; color:#6a6a6a;">
-        This document is generated electronically and is valid without a physical signature when verified via QR code.
+        This is an electronically generated document. It can be verified by scanning the QR code above.
     </div>
 @endsection

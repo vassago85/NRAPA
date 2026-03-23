@@ -226,20 +226,17 @@
         .signatory-card { text-align: left; }
         .sig-box {
             height: 36px;
-            background: #fff;
-            border: 1px dashed #d7d7d7;
-            border-radius: 6px;
             overflow: hidden;
-            margin: 4px 0 6px 0;
+            margin: 4px 0 2px 0;
             text-align: center;
         }
-        .sig-box img { max-height: 32px; max-width: 100%; }
+        .sig-box img { max-height: 36px; max-width: 100%; }
         .sig-line { height: 1px; background: #e5e5e5; margin: 4px 0; }
         .sig-name { font-weight: 600; font-size: 12px; color: #1f4e8c; }
         .sig-title { font-size: 10px; color: #6a6a6a; }
         .sig-date { font-size: 9px; color: #6a6a6a; margin-top: 2px; }
 
-        /* Commissioner card */
+        /* Commissioner card (used by endorsement letters) */
         .commissioner-card { text-align: left; }
         .commissioner-box {
             min-height: 36px;
