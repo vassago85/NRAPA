@@ -39,8 +39,9 @@ new #[Title('All Approvals - Admin')] class extends Component {
                 ];
             });
 
-        // Pending Memberships
+        // Pending Memberships (exclude orphaned records)
         $pendingMemberships = Membership::where('status', 'applied')
+            ->whereHas('user')
             ->with(['user', 'type'])
             ->orderBy('applied_at', 'asc')
             ->get()
@@ -126,7 +127,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
             ->whereDoesntHave('shootingActivityAsEvidence')
             ->whereDoesntHave('shootingActivityAsAdditional')
             ->count();
-        $memberships = Membership::where('status', 'applied')->count();
+        $memberships = Membership::where('status', 'applied')->whereHas('user')->count();
         $activities = ShootingActivity::where('status', 'pending')->count();
         $calibres = CalibreRequest::where('status', 'pending')->count();
         $endorsements = EndorsementRequest::whereIn('status', [
@@ -190,8 +191,12 @@ new #[Title('All Approvals - Admin')] class extends Component {
             $cleared++;
         }
 
-        // Approve all pending memberships
-        $pendingMemberships = Membership::where('status', 'applied')->with(['user', 'type'])->get();
+        // Approve all pending memberships (skip orphaned records where user or type was deleted)
+        $pendingMemberships = Membership::where('status', 'applied')
+            ->whereHas('user')
+            ->whereHas('type')
+            ->with(['user', 'type'])
+            ->get();
         foreach ($pendingMemberships as $membership) {
             $expiresAt = $membership->type->calculateExpiryDate(now());
             $membership->update([
@@ -224,6 +229,11 @@ new #[Title('All Approvals - Admin')] class extends Component {
 
             $cleared++;
         }
+
+        // Clean up orphaned pending memberships (user deleted)
+        Membership::where('status', 'applied')
+            ->whereDoesntHave('user')
+            ->delete();
 
         // Approve all pending calibre requests
         $pendingCalibres = CalibreRequest::where('status', 'pending')->get();

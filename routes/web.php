@@ -811,6 +811,7 @@ Route::middleware(['auth', 'verified', 'developer'])->prefix('developer')->name(
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::livewire('dashboard', 'pages::admin.dashboard')->name('dashboard');
     Route::livewire('members', 'pages::admin.members.index')->name('members.index');
+    Route::livewire('members/create', 'pages::admin.members.create')->name('members.create');
     Route::livewire('members/import-failures', 'pages::admin.members.import-failures')->name('members.import-failures');
     Route::livewire('members/{user}', 'pages::admin.members.show')->name('members.show');
 

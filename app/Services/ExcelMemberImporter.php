@@ -290,12 +290,12 @@ class ExcelMemberImporter
                 }
             }
 
-            return ['success' => true, 'error' => null];
+            return ['success' => true, 'error' => null, 'user' => $user];
 
         } catch (Exception $e) {
             DB::rollBack();
 
-            return ['success' => false, 'error' => $e->getMessage()];
+            return ['success' => false, 'error' => $e->getMessage(), 'user' => null];
         }
     }
 
