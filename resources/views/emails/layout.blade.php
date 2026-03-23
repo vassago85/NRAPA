@@ -123,8 +123,11 @@
                                     @yield('footer')
                                 </p>
                             @endif
-                            <p class="ft" style="color: #9ca3af; font-size: 12px; line-height: 1.5; margin: 0;">
+                            <p class="ft" style="color: #9ca3af; font-size: 12px; line-height: 1.5; margin: 0 0 6px 0;">
                                 &copy; {{ date('Y') }} National Rifle &amp; Pistol Association of South Africa. All rights reserved.
+                            </p>
+                            <p class="ft" style="color: #b0b5bd; font-size: 11px; line-height: 1.5; margin: 0;">
+                                A division of <a href="https://ranyati.co.za" target="_blank" style="color: #b0b5bd; text-decoration: underline;">Ranyati Group</a>
                             </p>
                         </td>
                     </tr>
