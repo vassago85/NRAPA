@@ -280,18 +280,21 @@ class ExcelMemberImporter
 
             DB::commit();
 
+            $emailSent = false;
             if ($sendWelcomeEmail && $membership) {
                 try {
-                    Mail::to($user->email)->queue(new ImportWelcome($user, $membership, $defaultPassword));
+                    Mail::to($user->email)->send(new ImportWelcome($user, $membership, $defaultPassword));
+                    $emailSent = true;
                 } catch (Exception $e) {
-                    Log::warning('Failed to queue import welcome email', [
+                    Log::warning('Failed to send import welcome email', [
                         'user_id' => $user->id,
+                        'email' => $user->email,
                         'error' => $e->getMessage(),
                     ]);
                 }
             }
 
-            return ['success' => true, 'error' => null, 'user' => $user];
+            return ['success' => true, 'error' => null, 'user' => $user, 'email_sent' => $emailSent];
 
         } catch (Exception $e) {
             DB::rollBack();

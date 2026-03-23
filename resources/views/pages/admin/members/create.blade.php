@@ -81,9 +81,12 @@ new #[Title('Add Member - Admin')] class extends Component {
         $result = $importer->importSingleMember($rowData, $options);
 
         if ($result['success']) {
+            $emailNote = ($this->sendWelcomeEmail && !($result['email_sent'] ?? false))
+                ? ' (Welcome email could not be sent — check mail configuration.)'
+                : '';
             $msg = $isImport
-                ? "Member {$this->initials} {$this->surname} imported successfully."
-                : "Member {$this->initials} {$this->surname} created. They will be prompted to pay on first login.";
+                ? "Member {$this->initials} {$this->surname} imported successfully.{$emailNote}"
+                : "Member {$this->initials} {$this->surname} created. They will be prompted to pay on first login.{$emailNote}";
             session()->flash('success', $msg);
             $this->redirectRoute('admin.members.show', ['user' => $result['user']->uuid], navigate: true);
         } else {
