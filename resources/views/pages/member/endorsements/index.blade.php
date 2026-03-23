@@ -504,7 +504,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                     </div>
                     <p class="text-sm text-zinc-600 dark:text-zinc-400">
                         {{ $this->eligibility['activity_details']['approved_count'] }} / {{ $this->eligibility['activity_details']['required'] }} required
-                        <span class="text-xs">(last {{ $this->eligibility['activity_details']['period_months'] }} months)</span>
+                        <span class="text-xs">({{ $this->eligibility['activity_details']['period'] ?? now()->year }} activity year)</span>
                     </p>
                     @if(!$this->eligibility['activities_met'])
                         <a href="{{ route('activities.index') }}" wire:navigate
@@ -592,9 +592,16 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
 
     {{-- Ranyati Motivations Recommendation --}}
     @if($this->stats['approved'] + $this->stats['issued'] > 0)
+    @php
+        $motivationsUrl = 'https://motivations.ranyati.co.za/enquire?' . http_build_query([
+            'name' => auth()->user()->getIdName(),
+            'email' => auth()->user()->email,
+            'membership' => $this->membership?->membership_number,
+        ]);
+    @endphp
     <div class="mb-6 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden shadow-sm">
         <div class="flex flex-col sm:flex-row items-stretch">
-            <a href="https://motivations.ranyati.co.za" target="_blank"
+            <a href="{{ $motivationsUrl }}" target="_blank"
                 class="flex-shrink-0 flex items-center justify-center px-6 py-4 bg-[#1b2a4a]">
                 <img src="{{ asset('logo-ranyati_motivations-white-text.png') }}" alt="Ranyati Motivations" class="h-12 w-auto" />
             </a>
@@ -605,7 +612,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                         Your endorsement is ready &mdash; now let Ranyati Motivations draft your Section 16 motivation letter for SAPS. Professional, compliant, and tailored to your application.
                     </p>
                 </div>
-                <a href="https://motivations.ranyati.co.za" target="_blank"
+                <a href="{{ $motivationsUrl }}" target="_blank"
                     class="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-[#F58220] to-[#d46f16] hover:from-[#d46f16] hover:to-[#c06010] shadow-sm transition-all">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>

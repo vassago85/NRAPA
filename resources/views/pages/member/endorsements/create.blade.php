@@ -116,7 +116,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                 'knowledge_test_passed' => false,
                 'documents_complete' => false,
                 'activities_met' => false,
-                'activity_details' => ['met' => false, 'approved_count' => 0, 'required' => 2, 'period_months' => 12, 'message' => 'Unable to load eligibility.'],
+                'activity_details' => ['met' => false, 'approved_count' => 0, 'required' => 2, 'period' => (string) now()->year, 'message' => 'Unable to load eligibility.'],
                 'missing_documents' => [],
                 'errors' => [['type' => 'system', 'message' => 'Eligibility could not be loaded. Please try again or contact support.']],
             ];
@@ -298,10 +298,13 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     #[Computed]
     public function userActivities()
     {
-        $periodMonths = $this->eligibility['activity_details']['period_months'] ?? 12;
+        $year = now()->year;
         return ShootingActivity::where('user_id', auth()->id())
             ->where('status', 'approved')
-            ->where('activity_date', '>=', now()->subMonths($periodMonths))
+            ->whereBetween('activity_date', [
+                \Carbon\Carbon::create($year, 1, 1)->startOfDay(),
+                \Carbon\Carbon::create($year, 10, 31)->endOfDay(),
+            ])
             ->with(['activityType', 'eventCategory'])
             ->orderBy('activity_date', 'desc')
             ->get();

@@ -359,50 +359,68 @@ class EndorsementRequest extends Model
 
     /**
      * Check if user meets activity requirements.
+     *
+     * Uses the activity year (Jan 1 - Oct 31). If a member completed their
+     * activities in the previous year, those carry over until Oct 31 of the
+     * current year. New members must have current-year activities.
      */
     public static function checkActivityRequirements(User $user): array
     {
-        // Get minimum requirements from settings or use defaults
         $minActivitiesSport = SystemSetting::get('endorsement_min_activities_sport', self::DEFAULT_MIN_ACTIVITIES_SPORT);
         $minActivitiesHunter = SystemSetting::get('endorsement_min_activities_hunter', self::DEFAULT_MIN_ACTIVITIES_HUNTER);
-        $activityPeriodMonths = SystemSetting::get('endorsement_activity_period_months', 12);
 
-        // Count approved activities in the period
-        $periodStart = now()->subMonths($activityPeriodMonths);
-        $approvedCount = ShootingActivity::where('user_id', $user->id)
+        $membership = $user->activeMembership;
+        $dedicatedType = $membership?->type?->dedicated_type;
+        $required = ($dedicatedType === 'hunter') ? $minActivitiesHunter : $minActivitiesSport;
+
+        $currentYear = now()->year;
+        $currentYearStart = \Carbon\Carbon::create($currentYear, 1, 1)->startOfDay();
+        $currentYearEnd = \Carbon\Carbon::create($currentYear, 10, 31)->endOfDay();
+
+        $currentYearCount = ShootingActivity::where('user_id', $user->id)
             ->where('status', 'approved')
-            ->where('activity_date', '>=', $periodStart)
+            ->whereBetween('activity_date', [$currentYearStart, $currentYearEnd])
             ->count();
 
-        // For now, use sport shooter requirement (can be made dynamic based on membership type)
-        $required = $minActivitiesSport;
+        if ($currentYearCount >= $required) {
+            return [
+                'met' => true,
+                'approved_count' => $currentYearCount,
+                'required' => $required,
+                'period' => "{$currentYear}",
+                'message' => "You have {$currentYearCount} approved activities for {$currentYear} (minimum {$required} required).",
+            ];
+        }
 
-        // Check if user's membership type indicates hunter
-        $membership = $user->activeMembership;
-        $membershipType = $membership?->type;
-        if ($membership && $membershipType) {
-            $dedicatedType = $membershipType->dedicated_type ?? null;
-            if ($dedicatedType === 'hunter') {
-                $required = $minActivitiesHunter;
-                $activityPeriodMonths = SystemSetting::get('endorsement_hunter_activity_period_months', 24);
-                $periodStart = now()->subMonths($activityPeriodMonths);
-                $approvedCount = ShootingActivity::where('user_id', $user->id)
-                    ->where('status', 'approved')
-                    ->where('activity_date', '>=', $periodStart)
-                    ->count();
+        // Before Oct 31, previous year's activities carry over
+        $beforeDeadline = now()->lte($currentYearEnd);
+        if ($beforeDeadline) {
+            $prevYear = $currentYear - 1;
+            $prevYearStart = \Carbon\Carbon::create($prevYear, 1, 1)->startOfDay();
+            $prevYearEnd = \Carbon\Carbon::create($prevYear, 10, 31)->endOfDay();
+
+            $prevYearCount = ShootingActivity::where('user_id', $user->id)
+                ->where('status', 'approved')
+                ->whereBetween('activity_date', [$prevYearStart, $prevYearEnd])
+                ->count();
+
+            if ($prevYearCount >= $required) {
+                return [
+                    'met' => true,
+                    'approved_count' => $prevYearCount,
+                    'required' => $required,
+                    'period' => "{$prevYear} (carried over)",
+                    'message' => "Activities from {$prevYear} are valid until 31 October {$currentYear}. You have {$prevYearCount} approved (minimum {$required} required).",
+                ];
             }
         }
 
-        $met = $approvedCount >= $required;
-
         return [
-            'met' => $met,
-            'approved_count' => $approvedCount,
+            'met' => false,
+            'approved_count' => $currentYearCount,
             'required' => $required,
-            'period_months' => $activityPeriodMonths,
-            'message' => $met
-                ? "You have {$approvedCount} approved activities (minimum {$required} required)."
-                : "You need at least {$required} approved activities in the last {$activityPeriodMonths} months. You currently have {$approvedCount}.",
+            'period' => "{$currentYear}",
+            'message' => "You need at least {$required} approved activities for the {$currentYear} activity year (Jan\u{2013}Oct). You currently have {$currentYearCount}.",
         ];
     }
 
