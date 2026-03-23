@@ -539,16 +539,14 @@ class ExcelMemberImporter
         $approvedAt = ($status === 'approved' || $status === 'active') ? $appliedAt : null;
         $activatedAt = ($status === 'active') ? $appliedAt : null;
 
-        // Determine expiry date
+        // Determine expiry date — 12 months from activation/join date unless specified
         $expiresAt = null;
         if (! empty($memberData['renewal_date'])) {
-            // Use the explicit renewal date from the spreadsheet
             $expiresAt = \Carbon\Carbon::parse($memberData['renewal_date']);
         } elseif ($membershipType->requires_renewal && $membershipType->duration_months) {
-            // Calculate from membership type duration
-            $expiresAt = now()->addMonths($membershipType->duration_months);
+            $baseDate = $activatedAt ?? $appliedAt;
+            $expiresAt = $baseDate->copy()->addMonths($membershipType->duration_months);
         }
-        // Lifetime memberships: no expiry (expiresAt stays null)
 
         return Membership::create([
             'uuid' => Str::uuid(),
