@@ -37,8 +37,8 @@
 
         .page {
             width: 210mm;
-            min-height: 297mm;
-            padding: 4mm 5mm 3mm 5mm;
+            height: 297mm;
+            padding: 4mm 5mm 14mm 5mm;
             position: relative;
             overflow: hidden;
             background: #fff;
@@ -253,20 +253,20 @@
         .commissioner-box img { max-height: 60px; max-width: 100%; }
         .commissioner-sub { font-size: 8px; color: #6a6a6a; margin-top: 2px; }
 
-        /* Orange footer bar */
+        /* Orange footer bar — pinned to bottom of A4 page */
         .footer-bar {
             background: #f58220;
             color: #000;
             font-size: 8px;
             text-align: center;
             padding: 4px 14px;
-            margin-top: 8px;
             width: 98%;
-            margin-left: auto;
-            margin-right: auto;
+            left: 1%;
             border-radius: 6px;
             line-height: 1.3;
             letter-spacing: 0.3px;
+            position: absolute;
+            bottom: 4mm;
         }
         .footer-bar .contacts { font-weight: 600; }
 
