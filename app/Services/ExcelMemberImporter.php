@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Mail\ImportWelcome;
 use App\Models\ImportFailure;
 use App\Models\Membership;
 use App\Models\MembershipType;
@@ -9,6 +10,8 @@ use App\Models\User;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -66,12 +69,15 @@ class ExcelMemberImporter
         $skipDuplicates = $options['skip_duplicates'] ?? true;
         $autoApprove = $options['auto_approve'] ?? false;
         $autoActivate = $options['auto_activate'] ?? false;
+        $sendWelcomeEmail = $options['send_welcome_email'] ?? true;
 
         $batchId = (string) Str::uuid();
         $imported = 0;
         $skipped = 0;
         $failed = 0;
+        $emailsSent = 0;
         $errors = [];
+        $importedMembers = [];
 
         try {
             // Load Excel file
@@ -123,9 +129,14 @@ class ExcelMemberImporter
 
                     // Create membership
                     $membershipType = $this->resolveMembershipType($memberData['membership_type_raw'], $defaultMembershipType);
+                    $membership = null;
 
                     if ($membershipType) {
-                        $this->createMembership($user, $memberData, $membershipType, $autoApprove, $autoActivate);
+                        $membership = $this->createMembership($user, $memberData, $membershipType, $autoApprove, $autoActivate);
+                    }
+
+                    if ($sendWelcomeEmail && $membership) {
+                        $importedMembers[] = ['user' => $user, 'membership' => $membership];
                     }
 
                     $imported++;
@@ -141,11 +152,29 @@ class ExcelMemberImporter
 
             DB::commit();
 
+            // Queue welcome emails after successful commit
+            foreach ($importedMembers as $member) {
+                try {
+                    Mail::to($member['user']->email)->queue(new ImportWelcome(
+                        $member['user'],
+                        $member['membership'],
+                        $defaultPassword,
+                    ));
+                    $emailsSent++;
+                } catch (Exception $e) {
+                    Log::warning('Failed to queue import welcome email', [
+                        'user_id' => $member['user']->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
             return [
                 'success' => true,
                 'imported' => $imported,
                 'skipped' => $skipped,
                 'failed' => $failed,
+                'emails_sent' => $emailsSent,
                 'errors' => $errors,
                 'batch_id' => $batchId,
             ];
@@ -158,6 +187,7 @@ class ExcelMemberImporter
                 'imported' => $imported,
                 'skipped' => $skipped,
                 'failed' => $failed,
+                'emails_sent' => 0,
                 'errors' => array_merge($errors, ['General error: '.$e->getMessage()]),
                 'batch_id' => $batchId,
             ];
@@ -201,6 +231,7 @@ class ExcelMemberImporter
         $defaultMembershipTypeSlug = $options['default_membership_type'] ?? null;
         $autoApprove = $options['auto_approve'] ?? true;
         $autoActivate = $options['auto_activate'] ?? true;
+        $sendWelcomeEmail = $options['send_welcome_email'] ?? true;
 
         try {
             // Rebuild into the array format parseRow expects (column-indexed)
@@ -241,11 +272,23 @@ class ExcelMemberImporter
             $user = $this->createUser($memberData, $defaultPassword);
 
             $membershipType = $this->resolveMembershipType($memberData['membership_type_raw'], $defaultMembershipType);
+            $membership = null;
             if ($membershipType) {
-                $this->createMembership($user, $memberData, $membershipType, $autoApprove, $autoActivate);
+                $membership = $this->createMembership($user, $memberData, $membershipType, $autoApprove, $autoActivate);
             }
 
             DB::commit();
+
+            if ($sendWelcomeEmail && $membership) {
+                try {
+                    Mail::to($user->email)->queue(new ImportWelcome($user, $membership, $defaultPassword));
+                } catch (Exception $e) {
+                    Log::warning('Failed to queue import welcome email', [
+                        'user_id' => $user->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
 
             return ['success' => true, 'error' => null];
 
@@ -466,7 +509,7 @@ class ExcelMemberImporter
     /**
      * Create a membership for the user.
      */
-    protected function createMembership(User $user, array $memberData, MembershipType $membershipType, bool $autoApprove, bool $autoActivate): void
+    protected function createMembership(User $user, array $memberData, MembershipType $membershipType, bool $autoApprove, bool $autoActivate): Membership
     {
         // Generate membership number
         $membershipNumber = ! empty($memberData['membership_number'])
@@ -503,7 +546,7 @@ class ExcelMemberImporter
         }
         // Lifetime memberships: no expiry (expiresAt stays null)
 
-        Membership::create([
+        return Membership::create([
             'uuid' => Str::uuid(),
             'user_id' => $user->id,
             'membership_type_id' => $membershipType->id,

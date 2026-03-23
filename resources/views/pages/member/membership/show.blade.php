@@ -3,16 +3,20 @@
 use App\Models\Membership;
 use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 new #[Title('Membership Details')] class extends Component {
+    use WithFileUploads;
+
     public Membership $membership;
+    public $proofOfPayment = null;
 
     public function mount(Membership $membership): void
     {
-        // Ensure user can only view their own memberships
         if ($membership->user_id !== Auth::id()) {
             abort(403);
         }
@@ -24,6 +28,32 @@ new #[Title('Membership Details')] class extends Component {
     public function bankAccount(): array
     {
         return SystemSetting::getBankAccount();
+    }
+
+    public function uploadProofOfPayment(): void
+    {
+        $this->validate([
+            'proofOfPayment' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
+        ]);
+
+        $path = $this->proofOfPayment->store(
+            "proof-of-payment/{$this->membership->user_id}",
+            'r2',
+        );
+
+        $this->membership->update(['proof_of_payment_path' => $path]);
+        $this->proofOfPayment = null;
+
+        session()->flash('success', 'Proof of payment uploaded successfully. It will be reviewed by an administrator.');
+    }
+
+    public function removeProofOfPayment(): void
+    {
+        if ($this->membership->proof_of_payment_path) {
+            Storage::disk('r2')->delete($this->membership->proof_of_payment_path);
+            $this->membership->update(['proof_of_payment_path' => null]);
+            session()->flash('success', 'Proof of payment removed.');
+        }
     }
 
     public function getStatusClasses(): string
@@ -148,6 +178,50 @@ new #[Title('Membership Details')] class extends Component {
             Please use the exact reference above when making your EFT payment. 
             Your membership will be activated once payment is confirmed (1-3 business days).
         </p>
+
+        {{-- Proof of Payment Upload --}}
+        <div class="mt-4 border-t border-amber-300 dark:border-amber-600 pt-4">
+            <h4 class="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-3">Upload Proof of Payment</h4>
+
+            @if($this->membership->proof_of_payment_path)
+                <div class="flex items-center justify-between gap-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                    <div class="flex items-center gap-2">
+                        <svg class="size-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="text-sm font-medium text-emerald-700 dark:text-emerald-300">Proof of payment uploaded — pending admin review</span>
+                    </div>
+                    <button wire:click="removeProofOfPayment" wire:confirm="Remove the uploaded proof of payment?"
+                        class="text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 font-medium">
+                        Remove
+                    </button>
+                </div>
+            @else
+                <form wire:submit="uploadProofOfPayment" class="space-y-3">
+                    <div class="flex items-center gap-3">
+                        <label class="flex-1 relative cursor-pointer">
+                            <div class="flex items-center justify-center gap-2 p-3 bg-white dark:bg-zinc-800 rounded-lg border-2 border-dashed border-amber-300 dark:border-amber-600 hover:border-amber-400 dark:hover:border-amber-500 transition-colors">
+                                <svg class="size-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                </svg>
+                                @if($proofOfPayment)
+                                    <span class="text-sm text-emerald-600 dark:text-emerald-400 font-medium">{{ $proofOfPayment->getClientOriginalName() }}</span>
+                                @else
+                                    <span class="text-sm text-amber-700 dark:text-amber-300">Choose file (JPG, PNG, or PDF, max 5MB)</span>
+                                @endif
+                            </div>
+                            <input wire:model="proofOfPayment" type="file" accept=".jpg,.jpeg,.png,.pdf" class="sr-only">
+                        </label>
+                    </div>
+                    @error('proofOfPayment') <p class="text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    @if($proofOfPayment)
+                    <button type="submit" class="w-full px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">
+                        Upload Proof of Payment
+                    </button>
+                    @endif
+                </form>
+            @endif
+        </div>
     </div>
     @endif
 

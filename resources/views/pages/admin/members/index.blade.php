@@ -1,9 +1,12 @@
 <?php
 
+use App\Mail\ImportWelcome;
 use App\Models\ImportFailure;
 use App\Models\User;
 use App\Models\MembershipType;
 use App\Services\ExcelMemberImporter;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -29,6 +32,7 @@ new #[Title('Members - Admin')] class extends Component {
     public bool $skipDuplicates = true;
     public bool $autoApprove = false;
     public bool $autoActivate = false;
+    public bool $sendWelcomeEmail = true;
     public ?array $importResults = null;
 
     public function updatedSearch(): void
@@ -113,7 +117,7 @@ new #[Title('Members - Admin')] class extends Component {
     public function closeImportModal(): void
     {
         $this->showImportModal = false;
-        $this->reset(['excelFile', 'importResults', 'defaultPassword', 'defaultMembershipType', 'skipDuplicates', 'autoApprove', 'autoActivate']);
+        $this->reset(['excelFile', 'importResults', 'defaultPassword', 'defaultMembershipType', 'skipDuplicates', 'autoApprove', 'autoActivate', 'sendWelcomeEmail']);
     }
     
     public function downloadTemplate(): \Symfony\Component\HttpFoundation\StreamedResponse
@@ -148,6 +152,7 @@ new #[Title('Members - Admin')] class extends Component {
                 'skip_duplicates' => $this->skipDuplicates,
                 'auto_approve' => $this->autoApprove,
                 'auto_activate' => $this->autoActivate,
+                'send_welcome_email' => $this->sendWelcomeEmail,
             ];
             
             $this->importResults = $importer->importFromExcel($fullPath, $options);
@@ -158,7 +163,11 @@ new #[Title('Members - Admin')] class extends Component {
             $failedCount = ($this->importResults['skipped'] ?? 0) + ($this->importResults['failed'] ?? 0);
             
             if ($this->importResults['success']) {
+                $emailsSent = $this->importResults['emails_sent'] ?? 0;
                 $msg = "Import completed: {$this->importResults['imported']} members imported.";
+                if ($emailsSent > 0) {
+                    $msg .= " {$emailsSent} welcome emails queued.";
+                }
                 if ($failedCount > 0) {
                     $msg .= " {$failedCount} rows need attention — review them on the Import Failures page.";
                 }
@@ -180,6 +189,36 @@ new #[Title('Members - Admin')] class extends Component {
         }
     }
     
+    public function sendWelcomeEmailsToImported(): void
+    {
+        $importedMembers = User::whereHas('memberships', fn ($q) => $q->where('source', 'import'))
+            ->with(['memberships' => fn ($q) => $q->where('source', 'import')->latest()])
+            ->get();
+
+        $sent = 0;
+        foreach ($importedMembers as $user) {
+            $membership = $user->memberships->first();
+            if (! $membership) {
+                continue;
+            }
+            try {
+                Mail::to($user->email)->queue(new ImportWelcome(
+                    $user,
+                    $membership,
+                    'Use the password provided during import',
+                ));
+                $sent++;
+            } catch (\Exception $e) {
+                Log::warning('Failed to queue import welcome email (bulk resend)', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        session()->flash('success', "{$sent} welcome email(s) queued for imported members.");
+    }
+
     #[Computed]
     public function membershipTypes()
     {
@@ -217,6 +256,11 @@ new #[Title('Members - Admin')] class extends Component {
             <button wire:click="openImportModal" class="px-4 py-2 text-sm font-medium text-white bg-nrapa-blue rounded-lg hover:bg-nrapa-blue-dark transition-colors">
                 <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                 Import Members
+            </button>
+            <button wire:click="sendWelcomeEmailsToImported" wire:confirm="This will send a welcome email to all imported members. Continue?"
+                class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-200 dark:border-zinc-600 dark:hover:bg-zinc-700 transition-colors">
+                <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                Resend Welcome Emails
             </button>
         </div>
     </div>
@@ -447,6 +491,10 @@ new #[Title('Members - Admin')] class extends Component {
                                     <input type="checkbox" wire:model="autoActivate" class="rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500">
                                     <span class="text-sm text-zinc-700 dark:text-zinc-300">Auto-activate memberships</span>
                                 </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" wire:model="sendWelcomeEmail" class="rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500">
+                                    <span class="text-sm text-zinc-700 dark:text-zinc-300">Send welcome email to imported members</span>
+                                </label>
                             </div>
                         </div>
                         
@@ -468,6 +516,9 @@ new #[Title('Members - Admin')] class extends Component {
                                             Imported: {{ $importResults['imported'] }},
                                             Skipped: {{ $importResults['skipped'] ?? 0 }},
                                             Failed: {{ $importResults['failed'] ?? 0 }}
+                                            @if(($importResults['emails_sent'] ?? 0) > 0)
+                                            , Emails queued: {{ $importResults['emails_sent'] }}
+                                            @endif
                                         </p>
                                         @php $totalFailed = ($importResults['skipped'] ?? 0) + ($importResults['failed'] ?? 0); @endphp
                                         @if($totalFailed > 0)

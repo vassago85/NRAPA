@@ -24,6 +24,7 @@ class Membership extends Model
         'membership_type_id',
         'membership_number',
         'payment_reference',
+        'proof_of_payment_path',
         'status',
         'applied_at',
         'approved_at',
@@ -262,7 +263,15 @@ class Membership extends Model
             return (float) $this->type->renewal_price;
         }
 
-        // New application (initial sign-up)
+        // Dedicated types: basic initial_price + upgrade_price
+        if ($this->type->hasUpgradeFee()) {
+            $basicType = MembershipType::where('slug', 'basic')->first();
+            $basicInitial = $basicType ? (float) $basicType->initial_price : 0;
+
+            return $basicInitial + (float) $this->type->upgrade_price;
+        }
+
+        // Basic membership: initial sign-up
         return (float) $this->type->initial_price;
     }
 
@@ -532,6 +541,11 @@ class Membership extends Model
             'activated_at' => now(),
             'expires_at' => $this->type->calculateExpiryDate(now()),
         ]);
+
+        if ($this->proof_of_payment_path) {
+            \Illuminate\Support\Facades\Storage::disk('r2')->delete($this->proof_of_payment_path);
+            $this->update(['proof_of_payment_path' => null]);
+        }
     }
 
     /**
