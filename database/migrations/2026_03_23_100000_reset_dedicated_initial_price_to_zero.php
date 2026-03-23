@@ -4,11 +4,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Reset initial_price to 0 for all dedicated membership types.
+ * Remove stale R150 admin fee from dedicated membership types.
  *
- * Dedicated types should always have initial_price = 0 because members
- * upgrade from basic; their sign-up cost is basic.initial_price + upgrade_price.
- * A stale admin fee (R150) was left in initial_price on some dedicated rows.
+ * Dedicated types should have initial_price = 0 (sign-up is basic + upgrade).
+ * A stale admin fee (R150) was left on the dedicated-both type's upgrade_price.
  */
 return new class extends Migration
 {
@@ -18,10 +17,16 @@ return new class extends Migration
             ->whereNotNull('upgrade_price')
             ->where('initial_price', '>', 0)
             ->update(['initial_price' => 0]);
+
+        DB::table('membership_types')
+            ->where('slug', 'dedicated-both')
+            ->update(['upgrade_price' => DB::raw('upgrade_price - 150')]);
     }
 
     public function down(): void
     {
-        // Cannot reliably restore the old values
+        DB::table('membership_types')
+            ->where('slug', 'dedicated-both')
+            ->update(['upgrade_price' => DB::raw('upgrade_price + 150')]);
     }
 };
