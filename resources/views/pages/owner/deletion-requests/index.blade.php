@@ -63,7 +63,20 @@ new #[Title('User Deletion Requests - Owner')] class extends Component {
             return;
         }
 
-        $userName = $this->selectedRequest->user->name;
+        $userName = $this->selectedRequest->user?->name ?? 'Unknown';
+
+        if (!$this->selectedRequest->user || $this->selectedRequest->user->trashed()) {
+            $this->selectedRequest->update([
+                'status' => UserDeletionRequest::STATUS_APPROVED,
+                'actioned_by' => auth()->id(),
+                'actioned_at' => now(),
+            ]);
+            $this->showApproveModal = false;
+            $this->selectedRequest = null;
+            session()->flash('success', "Deletion request approved. User {$userName} was already deleted.");
+            return;
+        }
+
         $this->selectedRequest->approve(auth()->user());
 
         $this->showApproveModal = false;
@@ -180,8 +193,12 @@ new #[Title('User Deletion Requests - Owner')] class extends Component {
                             @endif
                         </td>
                         <td class="whitespace-nowrap px-6 py-4">
+                            @if($request->requestedBy)
                             <p class="text-zinc-900 dark:text-white">{{ $request->requestedBy->name }}</p>
-                            <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ $request->requestedBy->role_display_name }}</p>
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ $request->requestedBy->role_display_name ?? '' }}</p>
+                            @else
+                            <span class="text-zinc-400 dark:text-zinc-500 italic">User removed</span>
+                            @endif
                         </td>
                         <td class="max-w-xs px-6 py-4">
                             <p class="truncate text-sm text-zinc-600 dark:text-zinc-300" title="{{ $request->reason }}">{{ $request->reason }}</p>
@@ -272,16 +289,22 @@ new #[Title('User Deletion Requests - Owner')] class extends Component {
                         <strong>User:</strong> {{ $selectedRequest->user?->name ?? 'Unknown' }}
                     </p>
                     <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
-                        <strong>Requested by:</strong> {{ $selectedRequest->requestedBy->name }}
+                        <strong>Requested by:</strong> {{ $selectedRequest->requestedBy?->name ?? 'Unknown' }}
                     </p>
                     <p class="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
                         <strong>Reason:</strong> {{ $selectedRequest->reason }}
                     </p>
                 </div>
 
+                @if($selectedRequest->user?->trashed() || !$selectedRequest->user)
+                <p class="mb-4 text-emerald-600 dark:text-emerald-400 text-sm">
+                    This user has already been deleted. Approving will close this request.
+                </p>
+                @else
                 <p class="mb-4 text-amber-600 dark:text-amber-400 text-sm">
                     Approving this request will permanently delete the user and all their data.
                 </p>
+                @endif
 
                 <div class="flex justify-end gap-3">
                     <button wire:click="$set('showApproveModal', false)" 
@@ -321,7 +344,7 @@ new #[Title('User Deletion Requests - Owner')] class extends Component {
                         <strong>User:</strong> {{ $selectedRequest->user?->name ?? 'Unknown' }}
                     </p>
                     <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
-                        <strong>Requested by:</strong> {{ $selectedRequest->requestedBy->name }}
+                        <strong>Requested by:</strong> {{ $selectedRequest->requestedBy?->name ?? 'Unknown' }}
                     </p>
                     <p class="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
                         <strong>Reason:</strong> {{ $selectedRequest->reason }}

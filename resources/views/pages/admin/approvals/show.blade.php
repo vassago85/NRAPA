@@ -8,6 +8,7 @@ use App\Mail\MembershipRejected;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -16,6 +17,19 @@ new #[Title('Review Application - Admin')] class extends Component {
     public Membership $membership;
     public string $rejectionReason = '';
     public bool $showRejectModal = false;
+
+    #[Computed]
+    public function proofOfPaymentUrl(): ?string
+    {
+        if (! $this->membership->proof_of_payment_path) {
+            return null;
+        }
+
+        return Storage::disk('r2')->temporaryUrl(
+            $this->membership->proof_of_payment_path,
+            now()->addMinutes(30)
+        );
+    }
 
     public function mount(Membership $membership): void
     {
@@ -561,6 +575,57 @@ new #[Title('Review Application - Admin')] class extends Component {
                 </div>
                 @endif
             </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Proof of Payment --}}
+    @if($this->membership->proof_of_payment_path)
+    <div class="rounded-xl border border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20">
+        <div class="p-6">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="flex size-10 items-center justify-center rounded-lg bg-emerald-200 dark:bg-emerald-800">
+                    <svg class="size-5 text-emerald-700 dark:text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-lg font-semibold text-emerald-800 dark:text-emerald-200">Proof of Payment</h2>
+                    <p class="text-sm text-emerald-600 dark:text-emerald-400">Uploaded by member — review before approving</p>
+                </div>
+            </div>
+
+            @php
+                $popPath = $this->membership->proof_of_payment_path;
+                $ext = strtolower(pathinfo($popPath, PATHINFO_EXTENSION));
+                $isImage = in_array($ext, ['jpg', 'jpeg', 'png']);
+            @endphp
+
+            @if($isImage)
+                <div class="rounded-lg overflow-hidden border border-emerald-200 dark:border-emerald-700 bg-white dark:bg-zinc-800">
+                    <img src="{{ $this->proofOfPaymentUrl }}" alt="Proof of Payment" class="max-w-full max-h-[500px] mx-auto">
+                </div>
+            @else
+                <div class="flex items-center justify-between gap-4 p-4 bg-white dark:bg-zinc-800 rounded-lg border border-emerald-200 dark:border-emerald-700">
+                    <div class="flex items-center gap-3">
+                        <svg class="size-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+                        </svg>
+                        <div>
+                            <p class="text-sm font-medium text-zinc-900 dark:text-white">{{ basename($popPath) }}</p>
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400">PDF document</p>
+                        </div>
+                    </div>
+                    <a href="{{ $this->proofOfPaymentUrl }}" target="_blank"
+                        class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-sm font-medium text-white transition-colors">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        View PDF
+                    </a>
+                </div>
+            @endif
         </div>
     </div>
     @endif

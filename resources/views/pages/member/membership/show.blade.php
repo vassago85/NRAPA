@@ -197,22 +197,26 @@ new #[Title('Membership Details')] class extends Component {
                     </button>
                 </div>
             @else
-                <form wire:submit="uploadProofOfPayment" class="space-y-3">
-                    <div class="flex items-center gap-3">
-                        <label class="flex-1 relative cursor-pointer">
-                            <div class="flex items-center justify-center gap-2 p-3 bg-white dark:bg-zinc-800 rounded-lg border-2 border-dashed border-amber-300 dark:border-amber-600 hover:border-amber-400 dark:hover:border-amber-500 transition-colors">
-                                <svg class="size-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                                </svg>
-                                @if($proofOfPayment)
-                                    <span class="text-sm text-emerald-600 dark:text-emerald-400 font-medium">{{ $proofOfPayment->getClientOriginalName() }}</span>
-                                @else
-                                    <span class="text-sm text-amber-700 dark:text-amber-300">Choose file (JPG, PNG, or PDF, max 5MB)</span>
-                                @endif
-                            </div>
-                            <input wire:model="proofOfPayment" type="file" accept=".jpg,.jpeg,.png,.pdf" class="sr-only">
-                        </label>
-                    </div>
+                <form wire:submit="uploadProofOfPayment" class="space-y-3"
+                    x-data="{ dragging: false }"
+                    x-on:dragover.prevent="dragging = true"
+                    x-on:dragleave.prevent="dragging = false"
+                    x-on:drop.prevent="dragging = false; $refs.popInput.files = $event.dataTransfer.files; $refs.popInput.dispatchEvent(new Event('change', { bubbles: true }))">
+                    <label class="block cursor-pointer">
+                        <div class="flex flex-col items-center justify-center gap-2 p-6 bg-white dark:bg-zinc-800 rounded-lg border-2 border-dashed transition-colors"
+                            :class="dragging ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-amber-300 dark:border-amber-600 hover:border-amber-400 dark:hover:border-amber-500'">
+                            <svg class="size-8 text-amber-400" :class="dragging && 'text-emerald-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                            </svg>
+                            @if($proofOfPayment)
+                                <span class="text-sm text-emerald-600 dark:text-emerald-400 font-medium">{{ $proofOfPayment->getClientOriginalName() }}</span>
+                            @else
+                                <span class="text-sm font-medium text-amber-700 dark:text-amber-300">Drop file here or click to browse</span>
+                                <span class="text-xs text-amber-600 dark:text-amber-400">JPG, PNG, or PDF — max 5MB</span>
+                            @endif
+                        </div>
+                        <input x-ref="popInput" wire:model="proofOfPayment" type="file" accept=".jpg,.jpeg,.png,.pdf" class="sr-only">
+                    </label>
                     @error('proofOfPayment') <p class="text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                     @if($proofOfPayment)
                     <button type="submit" class="w-full px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">

@@ -67,7 +67,7 @@ class UserDeletionRequest extends Model
      */
     public function requestedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'requested_by');
+        return $this->belongsTo(User::class, 'requested_by')->withTrashed();
     }
 
     /**
@@ -75,7 +75,7 @@ class UserDeletionRequest extends Model
      */
     public function actionedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'actioned_by');
+        return $this->belongsTo(User::class, 'actioned_by')->withTrashed();
     }
 
     /**

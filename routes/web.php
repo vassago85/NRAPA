@@ -256,14 +256,15 @@ Route::middleware(['auth', 'verified', 'membership.required', 'terms.accepted'])
             abort(403);
         }
 
-        if (! $certificate->file_path) {
-            abort(404, 'Certificate file not found. Please contact support.');
-        }
-
         $disk = app()->environment(['local', 'development', 'testing']) ? 'local' : 'r2';
 
-        if (! \Illuminate\Support\Facades\Storage::disk($disk)->exists($certificate->file_path)) {
-            abort(404, 'Certificate file not found. Please contact support.');
+        if (! $certificate->file_path || ! \Illuminate\Support\Facades\Storage::disk($disk)->exists($certificate->file_path)) {
+            $issueService = app(\App\Services\CertificateIssueService::class);
+            $filePath = $issueService->regenerateDocument($certificate);
+            if (! $filePath) {
+                abort(404, 'Certificate file could not be generated. Please contact support.');
+            }
+            $certificate->refresh();
         }
 
         $filename = 'nrapa-'.str_replace(' ', '-', strtolower($certificate->certificateType->name)).'-'.$certificate->certificate_number.'.pdf';
@@ -742,14 +743,15 @@ Route::middleware(['auth', 'verified', 'developer'])->prefix('developer')->name(
 
     // Certificate PDF download (developer)
     Route::get('certificates/{certificate}/download', function (\App\Models\Certificate $certificate) {
-        if (! $certificate->file_path) {
-            abort(404, 'Certificate file not found.');
-        }
-
         $disk = app()->environment(['local', 'development', 'testing']) ? 'local' : 'r2';
 
-        if (! \Illuminate\Support\Facades\Storage::disk($disk)->exists($certificate->file_path)) {
-            abort(404, 'Certificate file not found.');
+        if (! $certificate->file_path || ! \Illuminate\Support\Facades\Storage::disk($disk)->exists($certificate->file_path)) {
+            $issueService = app(\App\Services\CertificateIssueService::class);
+            $filePath = $issueService->regenerateDocument($certificate);
+            if (! $filePath) {
+                abort(404, 'Certificate file could not be generated.');
+            }
+            $certificate->refresh();
         }
 
         $filename = 'nrapa-'.str_replace(' ', '-', strtolower($certificate->certificateType->name)).'-'.$certificate->certificate_number.'.pdf';
@@ -858,14 +860,15 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 
     // Certificate PDF download (admin)
     Route::get('certificates/{certificate}/download', function (\App\Models\Certificate $certificate) {
-        if (! $certificate->file_path) {
-            abort(404, 'Certificate file not found.');
-        }
-
         $disk = app()->environment(['local', 'development', 'testing']) ? 'local' : 'r2';
 
-        if (! \Illuminate\Support\Facades\Storage::disk($disk)->exists($certificate->file_path)) {
-            abort(404, 'Certificate file not found.');
+        if (! $certificate->file_path || ! \Illuminate\Support\Facades\Storage::disk($disk)->exists($certificate->file_path)) {
+            $issueService = app(\App\Services\CertificateIssueService::class);
+            $filePath = $issueService->regenerateDocument($certificate);
+            if (! $filePath) {
+                abort(404, 'Certificate file could not be generated.');
+            }
+            $certificate->refresh();
         }
 
         $filename = 'nrapa-'.str_replace(' ', '-', strtolower($certificate->certificateType->name)).'-'.$certificate->certificate_number.'.pdf';

@@ -711,9 +711,9 @@ class User extends Authenticatable implements MustVerifyEmail
             return ! $targetUser->isDeveloper();
         }
 
-        // Owners can delete members only (NOT admins)
+        // Owners can delete anyone except developers
         if ($this->isOwner()) {
-            return $targetUser->isMember();
+            return ! $targetUser->isDeveloper() && ! $targetUser->isOwner();
         }
 
         // Admins cannot delete anyone (must request deletion)

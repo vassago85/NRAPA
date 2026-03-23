@@ -724,4 +724,62 @@ class CertificateIssueService
             return null;
         }
     }
+
+    /**
+     * Regenerate a certificate's PDF file if it's missing or the file doesn't exist on disk.
+     * Returns the storage path on success, null on failure.
+     */
+    public function regenerateDocument(Certificate $certificate): ?string
+    {
+        $certificate->loadMissing(['user', 'membership.type', 'certificateType']);
+        $slug = $certificate->certificateType->slug ?? '';
+        $template = $certificate->certificateType->template ?? '';
+
+        try {
+            if ($slug === 'welcome-letter') {
+                $filePath = $this->renderer->renderWelcomeLetter($certificate->user, $template);
+            } elseif (str_contains($slug, 'endorsement')) {
+                $endorsement = \App\Models\EndorsementRequest::where('user_id', $certificate->user_id)
+                    ->latest()
+                    ->first();
+                if (! $endorsement) {
+                    return null;
+                }
+                $filePath = $this->renderer->renderEndorsementLetter($endorsement, $template);
+            } else {
+                $filePath = $this->renderer->renderCertificate($certificate, $template);
+            }
+
+            $checksum = null;
+            $disk = app()->environment(['local', 'development', 'testing']) ? 'local' : 'r2';
+            try {
+                if ($disk === 'local') {
+                    $fullPath = Storage::disk('local')->path($filePath);
+                    if (file_exists($fullPath)) {
+                        $checksum = hash_file('sha256', $fullPath);
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning('Failed to calculate regenerated document checksum', [
+                    'file_path' => $filePath,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            $certificate->update([
+                'file_path' => $filePath,
+                'checksum' => $checksum,
+            ]);
+
+            return $filePath;
+        } catch (\Exception $e) {
+            Log::error('Failed to regenerate certificate document', [
+                'certificate_id' => $certificate->id,
+                'slug' => $slug,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
 }

@@ -42,7 +42,6 @@
             background: #f1f5f9;
         }
 
-        /* ── Card Container ── */
         .card {
             width: 86mm;
             border-radius: 16px;
@@ -54,23 +53,21 @@
         /* ── Header: NRAPA Blue ── */
         .card-header {
             background: linear-gradient(135deg, #0B4EA2 0%, #0a3d80 100%);
-            padding: 5mm 5mm 4mm 5mm;
+            padding: 4mm 5mm;
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
-
         .header-left {
             display: flex;
             align-items: center;
             gap: 3mm;
         }
-
         .logo-box {
-            width: 11mm;
-            height: 11mm;
-            background: #fff;
-            border-radius: 3mm;
+            width: 9mm;
+            height: 9mm;
+            background: rgba(255,255,255,0.9);
+            border-radius: 2.5mm;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -78,33 +75,31 @@
             flex-shrink: 0;
         }
         .logo-box img {
-            width: 9mm;
-            height: 9mm;
+            width: 7mm;
+            height: 7mm;
             object-fit: contain;
         }
         .logo-box .logo-fallback {
             font-weight: 800;
-            font-size: 7pt;
+            font-size: 5.5pt;
             color: #0B4EA2;
         }
-
         .org-name {
             font-weight: 800;
-            font-size: 13pt;
+            font-size: 11pt;
             color: #fff;
             letter-spacing: 0.5px;
             line-height: 1.1;
         }
         .card-label {
-            font-size: 7.5pt;
-            color: rgba(255,255,255,0.85);
+            font-size: 6.5pt;
+            color: rgba(255,255,255,0.8);
             font-weight: 600;
         }
-
         .status-badge {
-            padding: 1.5mm 3mm;
+            padding: 1mm 2.5mm;
             border-radius: 10px;
-            font-size: 6.5pt;
+            font-size: 6pt;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.3px;
@@ -121,18 +116,17 @@
 
         /* ── Orange Accent Stripe ── */
         .accent-stripe {
-            height: 1.2mm;
+            height: 1mm;
             background: linear-gradient(90deg, #F58220, #f9a825, #F58220);
         }
 
         /* ── Card Body: White ── */
         .card-body {
-            padding: 5mm 5mm 4mm 5mm;
+            padding: 4mm 5mm;
             background: #fff;
         }
-
         .field {
-            margin-bottom: 3.5mm;
+            margin-bottom: 3mm;
         }
         .field:last-child {
             margin-bottom: 0;
@@ -146,18 +140,19 @@
             margin-bottom: 0.5mm;
         }
         .field-value {
-            font-size: 9pt;
-            color: #1e293b;
+            font-size: 8.5pt;
+            color: #27272a;
             font-weight: 600;
             line-height: 1.3;
         }
         .field-value.name {
-            font-size: 12pt;
+            font-size: 11pt;
             font-weight: 700;
+            color: #18181b;
         }
         .field-value.mono {
             font-family: 'Courier New', Courier, monospace;
-            font-size: 8pt;
+            font-size: 7.5pt;
         }
         .field-value.expired-text {
             color: #ef4444;
@@ -166,11 +161,10 @@
             color: #0B4EA2;
             font-weight: 700;
         }
-
         .field-row {
             display: flex;
             gap: 4mm;
-            margin-bottom: 3.5mm;
+            margin-bottom: 3mm;
         }
         .field-row .field {
             flex: 1;
@@ -182,50 +176,37 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-top: 4mm;
-            padding-top: 3mm;
+            margin-top: 2mm;
+            padding-top: 2mm;
         }
         .qr-box {
-            padding: 2mm;
-            border-radius: 3mm;
+            padding: 1.5mm;
+            border-radius: 2.5mm;
             background: #f8fafc;
-            border: 0.5px solid rgba(11,78,162,0.15);
+            border: 0.5px solid #e4e4e7;
         }
         .qr-box img {
-            width: 28mm;
-            height: 28mm;
+            width: 24mm;
+            height: 24mm;
             display: block;
         }
         .qr-text {
             font-size: 5.5pt;
             color: #6b7280;
-            margin-top: 2mm;
+            margin-top: 1.5mm;
             text-align: center;
         }
 
         /* ── Footer: NRAPA Blue ── */
         .card-footer {
             background: #0B4EA2;
-            padding: 2.5mm 5mm;
+            padding: 2mm 5mm;
             text-align: center;
         }
         .card-footer-text {
-            font-size: 6pt;
+            font-size: 5.5pt;
             color: rgba(255,255,255,0.9);
             font-weight: 600;
-        }
-        .card-footer-far {
-            font-size: 5pt;
-            color: rgba(255,255,255,0.6);
-            margin-top: 0.8mm;
-        }
-        .card-footer-far .far-sport {
-            color: #F58220;
-            font-weight: 700;
-        }
-        .card-footer-far .far-hunting {
-            color: #fbbf24;
-            font-weight: 700;
         }
     </style>
 </head>
@@ -235,7 +216,6 @@
             ? route('certificates.verify', ['qr_code' => $certificate->qr_code])
             : '#';
         $qrCodeUrl = \App\Helpers\QrCodeHelper::generateUrl($verificationUrl, 250);
-        $farNumbers = \App\Helpers\DocumentDataHelper::getFarNumbers();
         $logoUrl = $logo_url ?? \App\Helpers\DocumentDataHelper::getLogoUrl();
 
         $membership = $certificate->membership;
@@ -249,7 +229,7 @@
     </div>
 
     <div class="card">
-        {{-- Header: NRAPA Blue with logo and status badge --}}
+        {{-- Header: NRAPA Blue --}}
         <div class="card-header">
             <div class="header-left">
                 <div class="logo-box">
@@ -274,15 +254,13 @@
         {{-- Orange Accent Stripe --}}
         <div class="accent-stripe"></div>
 
-        {{-- Body: White background with member info --}}
+        {{-- Body: White background --}}
         <div class="card-body">
-            {{-- Member Name --}}
             <div class="field">
                 <div class="field-label">Member Name</div>
                 <div class="field-value name">{{ $certificate->user->getIdName() }}</div>
             </div>
 
-            {{-- Membership No. + Type --}}
             <div class="field-row">
                 <div class="field">
                     <div class="field-label">Membership No.</div>
@@ -294,7 +272,6 @@
                 </div>
             </div>
 
-            {{-- Valid Until --}}
             <div class="field">
                 <div class="field-label">Valid Until</div>
                 @if($isLifetime)
@@ -304,7 +281,6 @@
                 @endif
             </div>
 
-            {{-- QR Code --}}
             @if($certificate->qr_code)
             <div class="qr-section">
                 <div class="qr-box">
@@ -317,11 +293,7 @@
 
         {{-- Footer: NRAPA Blue --}}
         <div class="card-footer">
-            <div class="card-footer-text">Certificate: {{ $certificate->certificate_number ?? '—' }}</div>
-            <div class="card-footer-far">
-                FAR Sport: <span class="far-sport">{{ $farNumbers['sport'] }}</span>
-                &nbsp;|&nbsp; Hunting: <span class="far-hunting">{{ $farNumbers['hunting'] }}</span>
-            </div>
+            <div class="card-footer-text">{{ $membership->membership_number ?? '—' }}</div>
         </div>
     </div>
 </body>
