@@ -92,17 +92,18 @@ new class extends Component {
 
             session()->flash('success', "{$count} item(s) removed from billing (marked as import).");
         } elseif ($this->bulkAction === 'delete') {
-            // Permanently delete memberships (for test data cleanup)
             $deleted = 0;
             $errors = 0;
-            $memberships = Membership::whereIn('id', $ids)->get();
+            $memberships = Membership::withTrashed()->whereIn('id', $ids)->get();
             foreach ($memberships as $m) {
                 try {
-                    // Clean up related records to avoid FK constraint failures
-                    try { $m->certificates()->delete(); } catch (\Exception $e) {}
-                    try { $m->dedicatedStatusApplications()->delete(); } catch (\Exception $e) {}
-                    // Unlink any renewal that references this membership
+                    try { \App\Models\Certificate::where('membership_id', $m->id)->delete(); } catch (\Exception $e) {}
+                    try { \App\Models\DedicatedStatusApplication::where('membership_id', $m->id)->delete(); } catch (\Exception $e) {}
                     try { Membership::where('previous_membership_id', $m->id)->update(['previous_membership_id' => null]); } catch (\Exception $e) {}
+                    if ($m->proof_of_payment_path) {
+                        $disk = config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
+                        try { \Illuminate\Support\Facades\Storage::disk($disk)->delete($m->proof_of_payment_path); } catch (\Exception $e) {}
+                    }
                     $m->forceDelete();
                     $deleted++;
                 } catch (\Exception $e) {
