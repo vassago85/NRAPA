@@ -11,31 +11,13 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Title('Settings - Admin')] class extends Component {
-    public string $activeTab = 'membership-types';
+    public string $activeTab = 'renewal-policy';
 
     // Renewal Policy
     public int $renewalWindowDays = 30;
     public int $renewalGracePeriodDays = 90;
-
-    // Landing Page
-    public string $whatsappMotivations = '';
-    public string $whatsappStorage = '';
-
-    // Membership Type Form
-    public ?int $editingMembershipTypeId = null;
-    public string $membershipTypeName = '';
-    public string $membershipTypeDescription = '';
-    public string $membershipTypeSlug = '';
-    public float $membershipTypePrice = 0;
-    public string $membershipTypeDurationType = 'annual';
-    public int $membershipTypeDurationMonths = 12;
-    public bool $membershipTypeRequiresRenewal = true;
-    public string $membershipTypeExpiryRule = 'rolling';
-    public string $membershipTypePricingModel = 'annual';
-    public bool $membershipTypeAllowsDedicatedStatus = false;
-    public bool $membershipTypeRequiresKnowledgeTest = false;
-    public bool $membershipTypeIsActive = true;
-    public string $membershipTypeChangeReason = '';
+    public int $lateRenewalThresholdDays = 90;
+    public float $lateRenewalFeeMultiplier = 2;
 
     // Document Type Form
     public ?int $editingDocumentTypeId = null;
@@ -89,8 +71,8 @@ new #[Title('Settings - Admin')] class extends Component {
     {
         $this->renewalWindowDays = (int) SystemSetting::get('renewal_window_days', 30);
         $this->renewalGracePeriodDays = (int) SystemSetting::get('renewal_grace_period_days', 90);
-        $this->whatsappMotivations = SystemSetting::get('whatsapp_motivations', '') ?? '';
-        $this->whatsappStorage = SystemSetting::get('whatsapp_storage', '') ?? '';
+        $this->lateRenewalThresholdDays = (int) SystemSetting::get('late_renewal_threshold_days', 90);
+        $this->lateRenewalFeeMultiplier = (float) SystemSetting::get('late_renewal_fee_multiplier', 2);
     }
 
     // Check if user is owner or developer (can directly edit without approval)
@@ -106,151 +88,21 @@ new #[Title('Settings - Admin')] class extends Component {
         $this->validate([
             'renewalWindowDays' => ['required', 'integer', 'min:1', 'max:365'],
             'renewalGracePeriodDays' => ['required', 'integer', 'min:0', 'max:730'],
+            'lateRenewalThresholdDays' => ['required', 'integer', 'min:1', 'max:730'],
+            'lateRenewalFeeMultiplier' => ['required', 'numeric', 'min:1', 'max:10'],
         ], [
             'renewalWindowDays.min' => 'Renewal window must be at least 1 day.',
             'renewalGracePeriodDays.min' => 'Grace period cannot be negative.',
+            'lateRenewalThresholdDays.min' => 'Late renewal threshold must be at least 1 day.',
+            'lateRenewalFeeMultiplier.min' => 'Multiplier must be at least 1x.',
         ]);
 
         SystemSetting::set('renewal_window_days', $this->renewalWindowDays, 'integer', 'renewal', 'Days before expiry when renewal becomes available');
         SystemSetting::set('renewal_grace_period_days', $this->renewalGracePeriodDays, 'integer', 'renewal', 'Days after expiry a member can still renew (0 = no grace period)');
+        SystemSetting::set('late_renewal_threshold_days', $this->lateRenewalThresholdDays, 'integer', 'renewal', 'Days after expiry when late renewal penalty kicks in');
+        SystemSetting::set('late_renewal_fee_multiplier', $this->lateRenewalFeeMultiplier, 'string', 'renewal', 'Multiplier applied to renewal fee for late renewals');
 
         session()->flash('success', 'Renewal policy updated successfully.');
-    }
-
-    // ==================== LANDING PAGE METHODS ====================
-
-    public function saveLandingPageSettings(): void
-    {
-        $this->validate([
-            'whatsappMotivations' => ['nullable', 'string', 'regex:/^[0-9]{10,15}$/'],
-            'whatsappStorage' => ['nullable', 'string', 'regex:/^[0-9]{10,15}$/'],
-        ], [
-            'whatsappMotivations.regex' => 'Enter digits only (e.g. 27821234567), 10-15 digits.',
-            'whatsappStorage.regex' => 'Enter digits only (e.g. 27821234567), 10-15 digits.',
-        ]);
-
-        SystemSetting::set('whatsapp_motivations', $this->whatsappMotivations, 'string', 'landing', 'WhatsApp number for Firearm Motivations enquiries');
-        SystemSetting::set('whatsapp_storage', $this->whatsappStorage, 'string', 'landing', 'WhatsApp number for Firearm Storage enquiries');
-
-        session()->flash('success', 'Landing page settings updated successfully.');
-    }
-
-    // ==================== MEMBERSHIP TYPE METHODS ====================
-
-    public function editMembershipType(int $id): void
-    {
-        $type = MembershipType::findOrFail($id);
-        $this->editingMembershipTypeId = $id;
-        $this->membershipTypeName = $type->name;
-        $this->membershipTypeDescription = $type->description ?? '';
-        $this->membershipTypeSlug = $type->slug;
-        $this->membershipTypePrice = $type->initial_price;
-        $this->membershipTypeDurationType = $type->duration_type;
-        $this->membershipTypeDurationMonths = $type->duration_months ?? 12;
-        $this->membershipTypeRequiresRenewal = $type->requires_renewal;
-        $this->membershipTypeExpiryRule = $type->expiry_rule;
-        $this->membershipTypePricingModel = $type->pricing_model;
-        $this->membershipTypeAllowsDedicatedStatus = $type->allows_dedicated_status;
-        $this->membershipTypeRequiresKnowledgeTest = $type->requires_knowledge_test;
-        $this->membershipTypeIsActive = $type->is_active;
-        $this->membershipTypeChangeReason = '';
-    }
-
-    public function cancelEditMembershipType(): void
-    {
-        $this->editingMembershipTypeId = null;
-        $this->resetMembershipTypeForm();
-    }
-
-    public function saveMembershipType(): void
-    {
-        $this->validate([
-            'membershipTypeName' => ['required', 'string', 'max:255'],
-            'membershipTypeSlug' => ['required', 'string', 'max:255'],
-            'membershipTypePrice' => ['required', 'numeric', 'min:0'],
-            'membershipTypeDurationType' => ['required', 'in:annual,lifetime,custom'],
-            'membershipTypePricingModel' => ['required', 'in:annual,once_off,none'],
-            'membershipTypeExpiryRule' => ['required', 'in:fixed_date,rolling,none'],
-            'membershipTypeChangeReason' => $this->canEditDirectly() ? [] : ['required', 'string', 'min:10'],
-        ], [
-            'membershipTypeChangeReason.required' => 'Please provide a reason for this change (required for owner approval).',
-        ]);
-
-        $newData = [
-            'name' => $this->membershipTypeName,
-            'description' => $this->membershipTypeDescription,
-            'slug' => $this->membershipTypeSlug,
-            'initial_price' => $this->membershipTypePrice,
-            'duration_type' => $this->membershipTypeDurationType,
-            'duration_months' => $this->membershipTypeDurationType === 'lifetime' ? null : $this->membershipTypeDurationMonths,
-            'requires_renewal' => $this->membershipTypeDurationType !== 'lifetime' && $this->membershipTypeRequiresRenewal,
-            'expiry_rule' => $this->membershipTypeExpiryRule,
-            'pricing_model' => $this->membershipTypePricingModel,
-            'allows_dedicated_status' => $this->membershipTypeAllowsDedicatedStatus,
-            'requires_knowledge_test' => $this->membershipTypeRequiresKnowledgeTest,
-            'is_active' => $this->membershipTypeIsActive,
-        ];
-
-        // If owner/developer, apply directly
-        if ($this->canEditDirectly()) {
-            if ($this->editingMembershipTypeId) {
-                MembershipType::findOrFail($this->editingMembershipTypeId)->update($newData);
-                session()->flash('success', 'Membership type updated successfully.');
-            } else {
-                $newData['sort_order'] = MembershipType::max('sort_order') + 1;
-                MembershipType::create($newData);
-                session()->flash('success', 'Membership type created successfully.');
-            }
-        } else {
-            // Admin - create change request for owner approval
-            $oldData = null;
-            if ($this->editingMembershipTypeId) {
-                $oldData = MembershipType::findOrFail($this->editingMembershipTypeId)->toArray();
-            } else {
-                $newData['sort_order'] = MembershipType::max('sort_order') + 1;
-            }
-
-            ConfigurationChangeRequest::create([
-                'requested_by' => auth()->id(),
-                'configuration_type' => ConfigurationChangeRequest::TYPE_MEMBERSHIP_TYPE,
-                'target_id' => $this->editingMembershipTypeId,
-                'action' => $this->editingMembershipTypeId ? ConfigurationChangeRequest::ACTION_UPDATE : ConfigurationChangeRequest::ACTION_CREATE,
-                'old_values' => $oldData,
-                'new_values' => $newData,
-                'reason' => $this->membershipTypeChangeReason,
-            ]);
-
-            session()->flash('success', 'Change request submitted for owner approval.');
-        }
-
-        $this->cancelEditMembershipType();
-    }
-
-    public function toggleMembershipTypeActive(int $id): void
-    {
-        if ($this->canEditDirectly()) {
-            $type = MembershipType::findOrFail($id);
-            $type->update(['is_active' => !$type->is_active]);
-        } else {
-            session()->flash('error', 'Status changes require owner approval. Please edit the membership type to request a change.');
-        }
-    }
-
-    protected function resetMembershipTypeForm(): void
-    {
-        $this->membershipTypeName = '';
-        $this->membershipTypeDescription = '';
-        $this->membershipTypeSlug = '';
-        $this->membershipTypePrice = 0;
-        $this->membershipTypeDurationType = 'annual';
-        $this->membershipTypeDurationMonths = 12;
-        $this->membershipTypeRequiresRenewal = true;
-        $this->membershipTypeExpiryRule = 'rolling';
-        $this->membershipTypePricingModel = 'annual';
-        $this->membershipTypeAllowsDedicatedStatus = false;
-        $this->membershipTypeRequiresKnowledgeTest = false;
-        $this->membershipTypeIsActive = true;
-        $this->membershipTypeChangeReason = '';
     }
 
     // ==================== DOCUMENT TYPE METHODS ====================
@@ -548,12 +400,6 @@ new #[Title('Settings - Admin')] class extends Component {
     <div class="border-b border-zinc-200 dark:border-zinc-700">
         <nav class="-mb-px flex gap-6 overflow-x-auto">
             <button
-                wire:click="$set('activeTab', 'membership-types')"
-                class="border-b-2 px-1 py-3 text-sm font-medium transition-colors whitespace-nowrap {{ $activeTab === 'membership-types' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300' }}"
-            >
-                Membership Types
-            </button>
-            <button
                 wire:click="$set('activeTab', 'renewal-policy')"
                 class="border-b-2 px-1 py-3 text-sm font-medium transition-colors whitespace-nowrap {{ $activeTab === 'renewal-policy' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300' }}"
             >
@@ -577,195 +423,8 @@ new #[Title('Settings - Admin')] class extends Component {
             >
                 Certificate Types
             </button>
-            <button
-                wire:click="$set('activeTab', 'landing-page')"
-                class="border-b-2 px-1 py-3 text-sm font-medium transition-colors whitespace-nowrap {{ $activeTab === 'landing-page' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300' }}"
-            >
-                Landing Page
-            </button>
         </nav>
     </div>
-
-    {{-- Membership Types Tab --}}
-    @if($activeTab === 'membership-types')
-    <div class="space-y-6">
-        {{-- Edit/Create Form --}}
-        @if($editingMembershipTypeId !== null)
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
-            <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">
-                {{ $editingMembershipTypeId ? 'Edit Membership Type' : 'Create Membership Type' }}
-            </h3>
-
-            <form wire:submit="saveMembershipType" class="space-y-4">
-                <div class="grid gap-4 md:grid-cols-2">
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Name</label>
-                        <input type="text" wire:model="membershipTypeName" class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
-                        @error('membershipTypeName') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Slug</label>
-                        <input type="text" wire:model="membershipTypeSlug" class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
-                        @error('membershipTypeSlug') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Description</label>
-                    <textarea wire:model="membershipTypeDescription" rows="2" class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"></textarea>
-                </div>
-
-                <div class="grid gap-4 md:grid-cols-3">
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Price (R)</label>
-                        <input type="number" step="0.01" wire:model="membershipTypePrice" class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Duration Type</label>
-                        <select wire:model.live="membershipTypeDurationType" class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
-                            <option value="annual">Annual</option>
-                            <option value="lifetime">Lifetime</option>
-                            <option value="custom">Custom</option>
-                        </select>
-                    </div>
-                    @if($membershipTypeDurationType !== 'lifetime')
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Duration (Months)</label>
-                        <input type="number" wire:model="membershipTypeDurationMonths" class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
-                    </div>
-                    @endif
-                </div>
-
-                <div class="grid gap-4 md:grid-cols-2">
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Pricing Model</label>
-                        <select wire:model="membershipTypePricingModel" class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
-                            <option value="annual">Annual</option>
-                            <option value="once_off">Once-Off</option>
-                            <option value="none">None</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Expiry Rule</label>
-                        <select wire:model="membershipTypeExpiryRule" class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
-                            <option value="rolling">Rolling</option>
-                            <option value="fixed_date">Fixed Date</option>
-                            <option value="none">None</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="flex flex-wrap gap-6">
-                    <label class="flex items-center gap-2">
-                        <input type="checkbox" wire:model="membershipTypeRequiresRenewal" class="size-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700" {{ $membershipTypeDurationType === 'lifetime' ? 'disabled' : '' }}>
-                        <span class="text-sm text-zinc-700 dark:text-zinc-300">Requires Renewal</span>
-                    </label>
-                    <label class="flex items-center gap-2">
-                        <input type="checkbox" wire:model="membershipTypeAllowsDedicatedStatus" class="size-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700">
-                        <span class="text-sm text-zinc-700 dark:text-zinc-300">Allows Dedicated Status</span>
-                    </label>
-                    <label class="flex items-center gap-2">
-                        <input type="checkbox" wire:model="membershipTypeRequiresKnowledgeTest" class="size-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700">
-                        <span class="text-sm text-zinc-700 dark:text-zinc-300">Requires Knowledge Test</span>
-                    </label>
-                    <label class="flex items-center gap-2">
-                        <input type="checkbox" wire:model="membershipTypeIsActive" class="size-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700">
-                        <span class="text-sm text-zinc-700 dark:text-zinc-300">Active</span>
-                    </label>
-                </div>
-
-                @if(!$this->canEditDirectly())
-                <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Reason for Change *</label>
-                    <textarea wire:model="membershipTypeChangeReason" rows="2" placeholder="Explain why this change is needed..." class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"></textarea>
-                    @error('membershipTypeChangeReason') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
-                </div>
-                @endif
-
-                <div class="flex gap-3">
-                    <button type="submit" class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
-                        {{ $this->canEditDirectly() ? ($editingMembershipTypeId ? 'Update' : 'Create') : 'Submit for Approval' }}
-                    </button>
-                    <button type="button" wire:click="cancelEditMembershipType" class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
-                        Cancel
-                    </button>
-                </div>
-            </form>
-        </div>
-        @else
-        <div class="flex justify-end">
-            <button wire:click="$set('editingMembershipTypeId', 0)" class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
-                <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
-                Add Membership Type
-            </button>
-        </div>
-        @endif
-
-        {{-- Membership Types List --}}
-        <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Name</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Price</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Duration</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Features</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Status</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400"></th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
-                        @foreach($this->membershipTypes as $type)
-                        <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
-                            <td class="whitespace-nowrap px-6 py-4">
-                                <p class="font-medium text-zinc-900 dark:text-white">{{ $type->name }}</p>
-                                <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ $type->slug }}</p>
-                            </td>
-                            <td class="whitespace-nowrap px-6 py-4 text-zinc-900 dark:text-white">
-                                R{{ number_format($type->initial_price, 2) }}
-                            </td>
-                            <td class="whitespace-nowrap px-6 py-4 text-zinc-500 dark:text-zinc-400">
-                                @if($type->isLifetime())
-                                    <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Lifetime</span>
-                                @else
-                                    {{ $type->duration_months }} months
-                                @endif
-                            </td>
-                            <td class="whitespace-nowrap px-6 py-4">
-                                <div class="flex gap-1">
-                                    @if($type->allows_dedicated_status)
-                                    <span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">Dedicated</span>
-                                    @endif
-                                    @if($type->requires_knowledge_test)
-                                    <span class="inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800 dark:bg-purple-900 dark:text-purple-200">Test</span>
-                                    @endif
-                                </div>
-                            </td>
-                            <td class="whitespace-nowrap px-6 py-4">
-                                <button wire:click="toggleMembershipTypeActive({{ $type->id }})" @if(!$this->canEditDirectly()) title="Status changes require owner approval" @endif>
-                                    @if($type->is_active)
-                                    <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Active</span>
-                                    @else
-                                    <span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200">Inactive</span>
-                                    @endif
-                                </button>
-                            </td>
-                            <td class="whitespace-nowrap px-6 py-4 text-right text-sm">
-                                <button wire:click="editMembershipType({{ $type->id }})" class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
-                                    Edit
-                                </button>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    @endif
 
     {{-- Renewal Policy Tab --}}
     @if($activeTab === 'renewal-policy')
@@ -827,6 +486,41 @@ new #[Title('Settings - Admin')] class extends Component {
                     </div>
                 </div>
 
+                {{-- Late Renewal Penalty --}}
+                <div class="rounded-lg border border-red-200 dark:border-red-800 p-5">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="flex size-10 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30">
+                            <svg class="size-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-zinc-900 dark:text-white">Late Renewal Penalty</h4>
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400">Fee multiplier for members who have lapsed beyond the threshold</p>
+                        </div>
+                    </div>
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Lapse threshold (days after expiry)</label>
+                            <input type="number" wire:model="lateRenewalThresholdDays" min="1" max="730"
+                                class="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
+                            @error('lateRenewalThresholdDays') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
+                            <p class="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                                If a member renews more than {{ $lateRenewalThresholdDays }} days after expiry, the penalty applies.
+                            </p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Fee multiplier</label>
+                            <input type="number" step="0.5" wire:model="lateRenewalFeeMultiplier" min="1" max="10"
+                                class="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
+                            @error('lateRenewalFeeMultiplier') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
+                            <p class="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                                Renewal fee is multiplied by {{ $lateRenewalFeeMultiplier }}x (e.g. R700 becomes R{{ number_format(700 * $lateRenewalFeeMultiplier, 0) }}).
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
                 {{-- Visual Timeline --}}
                 <div class="rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 p-5">
                     <h4 class="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">How it works</h4>
@@ -848,7 +542,12 @@ new #[Title('Settings - Admin')] class extends Component {
                         <svg class="size-4 text-zinc-300 dark:text-zinc-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                         <div class="flex items-center gap-1.5 shrink-0">
                             <span class="size-2 rounded-full bg-red-500"></span>
-                            <span class="text-zinc-600 dark:text-zinc-400">Must rejoin as new (full fee)</span>
+                            <span class="text-zinc-600 dark:text-zinc-400">{{ $lateRenewalThresholdDays }}d+ lapsed ({{ $lateRenewalFeeMultiplier }}x fee)</span>
+                        </div>
+                        <svg class="size-4 text-zinc-300 dark:text-zinc-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <span class="size-2 rounded-full bg-zinc-800 dark:bg-zinc-200"></span>
+                            <span class="text-zinc-600 dark:text-zinc-400">Beyond grace (must rejoin as new)</span>
                         </div>
                     </div>
                 </div>
@@ -1129,64 +828,6 @@ new #[Title('Settings - Admin')] class extends Component {
                 <span class="ml-3 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Required *</span>
                 <span class="ml-2 inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200">Optional</span>
             </p>
-        </div>
-    </div>
-    @endif
-
-    {{-- Landing Page Tab --}}
-    @if($activeTab === 'landing-page')
-    <div class="space-y-6">
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
-            <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-1">Landing Page Settings</h3>
-            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
-                Configure contact details shown on the public landing page.
-            </p>
-
-            <form wire:submit="saveLandingPageSettings" class="space-y-6">
-                <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 p-5">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="flex size-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-                            <svg class="size-5 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-                                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.03L.789 23.396a.75.75 0 00.917.918l4.367-1.494A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.94 9.94 0 01-5.39-1.584.75.75 0 00-.637-.088l-2.866.981.981-2.866a.75.75 0 00-.088-.638A9.94 9.94 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <h4 class="font-medium text-zinc-900 dark:text-white">WhatsApp Contact Numbers</h4>
-                            <p class="text-xs text-zinc-500 dark:text-zinc-400">Shown on the "About Ranyati" service cards</p>
-                        </div>
-                    </div>
-
-                    <div class="grid gap-4 md:grid-cols-2">
-                        <div>
-                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Firearm Motivations</label>
-                            <div class="flex items-center gap-2">
-                                <span class="text-sm text-zinc-400">+</span>
-                                <input type="text" wire:model="whatsappMotivations" placeholder="27821234567"
-                                    class="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
-                            </div>
-                            @error('whatsappMotivations') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
-                            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Digits only, including country code (e.g. 27821234567)</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Firearm Storage</label>
-                            <div class="flex items-center gap-2">
-                                <span class="text-sm text-zinc-400">+</span>
-                                <input type="text" wire:model="whatsappStorage" placeholder="27821234567"
-                                    class="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
-                            </div>
-                            @error('whatsappStorage') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
-                            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Digits only, including country code (e.g. 27821234567)</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex justify-end">
-                    <button type="submit" class="rounded-lg bg-nrapa-blue px-6 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
-                        Save Landing Page Settings
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
     @endif

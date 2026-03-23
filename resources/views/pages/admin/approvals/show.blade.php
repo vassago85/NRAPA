@@ -17,6 +17,7 @@ new #[Title('Review Application - Admin')] class extends Component {
     public Membership $membership;
     public string $rejectionReason = '';
     public bool $showRejectModal = false;
+    public ?float $changeAmount = null;
 
     #[Computed]
     public function proofOfPaymentUrl(): ?string
@@ -28,11 +29,27 @@ new #[Title('Review Application - Admin')] class extends Component {
         return route('admin.approvals.proof-of-payment', $this->membership);
     }
 
+    #[Computed]
+    public function isChangeRequest(): bool
+    {
+        return in_array($this->membership->status, ['pending_change', 'pending_payment']);
+    }
+
+    #[Computed]
+    public function previousMembership()
+    {
+        return $this->membership->previousMembership?->load('type');
+    }
+
     public function mount(Membership $membership): void
     {
-        $this->membership = $membership->load(['user', 'type', 'affiliatedClub']);
+        $this->membership = $membership->load(['user', 'type', 'affiliatedClub', 'previousMembership.type']);
 
-        // If the user has been deleted, show error and allow dismissal
+        // Pre-fill change amount with upgrade price
+        if ($this->membership->status === 'pending_change') {
+            $this->changeAmount = (float) ($this->membership->type->upgrade_price ?? $this->membership->type->initial_price ?? 0);
+        }
+
         if (!$this->membership->user) {
             session()->flash('error', 'The member associated with this application has been deleted.');
         }
@@ -148,6 +165,174 @@ new #[Title('Review Application - Admin')] class extends Component {
 
         session()->flash('success', 'Membership application rejected and member notified.');
 
+        $this->redirect(route('admin.approvals.index'), navigate: true);
+    }
+
+    public function setChangeAmount(): void
+    {
+        if ($this->membership->status !== 'pending_change') {
+            session()->flash('error', 'This request is not awaiting an amount.');
+            return;
+        }
+
+        $this->validate([
+            'changeAmount' => ['required', 'numeric', 'min:0'],
+        ], [
+            'changeAmount.required' => 'Please enter the amount the member must pay.',
+            'changeAmount.min' => 'Amount cannot be negative.',
+        ]);
+
+        $this->membership->update([
+            'change_amount' => $this->changeAmount,
+            'status' => 'pending_payment',
+        ]);
+
+        // Generate payment reference if not set
+        if (!$this->membership->payment_reference) {
+            $this->membership->update([
+                'payment_reference' => Membership::generatePaymentReference($this->membership),
+            ]);
+        }
+
+        $admin = Auth::user();
+
+        AuditLog::log(
+            'change_request_amount_set',
+            $this->membership,
+            ['status' => 'pending_change'],
+            ['status' => 'pending_payment', 'change_amount' => $this->changeAmount],
+            $admin
+        );
+
+        // Send payment instructions email
+        try {
+            if ($this->membership->user?->email) {
+                $bankAccount = \App\Models\SystemSetting::getBankAccount();
+                Mail::to($this->membership->user->email)->queue(
+                    new \App\Mail\PaymentInstructions(
+                        membership: $this->membership,
+                        bankAccount: $bankAccount,
+                        reference: $this->membership->payment_reference,
+                    )
+                );
+            }
+        } catch (\Exception $e) {
+            Log::warning('Failed to send change request payment email', ['error' => $e->getMessage()]);
+        }
+
+        session()->flash('success', 'Amount set to R' . number_format($this->changeAmount, 2) . '. Member has been notified to make payment.');
+    }
+
+    public function approveChange(): void
+    {
+        if ($this->membership->status !== 'pending_payment') {
+            session()->flash('error', 'This change request is not ready for approval.');
+            return;
+        }
+
+        $admin = Auth::user();
+        $previousMembership = $this->membership->previousMembership;
+
+        // Expire the old membership
+        if ($previousMembership && $previousMembership->status === 'active') {
+            $previousMembership->update([
+                'status' => 'expired',
+                'expires_at' => now(),
+            ]);
+        }
+
+        // Calculate expiry date based on new membership type
+        $expiresAt = $this->membership->type->calculateExpiryDate(now());
+
+        // Activate the new membership
+        $this->membership->update([
+            'status' => 'active',
+            'approved_at' => now(),
+            'approved_by' => $admin->id,
+            'activated_at' => now(),
+            'expires_at' => $expiresAt,
+        ]);
+
+        // Generate membership number if not set (reuse old one if available)
+        if (!$this->membership->membership_number && $previousMembership?->membership_number) {
+            $this->membership->update([
+                'membership_number' => $previousMembership->membership_number,
+            ]);
+        } elseif (!$this->membership->membership_number) {
+            $this->membership->update([
+                'membership_number' => 'NRAPA-' . date('Y') . '-' . str_pad($this->membership->id, 5, '0', STR_PAD_LEFT),
+            ]);
+        }
+
+        // Issue certificates for the new type
+        $this->issueCertificates();
+        $this->issueWelcomeLetterAndCard($admin);
+
+        // Clean up proof of payment
+        if ($this->membership->proof_of_payment_path) {
+            try {
+                Storage::disk('r2')->delete($this->membership->proof_of_payment_path);
+            } catch (\Exception $e) {}
+            $this->membership->update(['proof_of_payment_path' => null]);
+        }
+
+        // Send approval email
+        $this->sendApprovalEmail();
+
+        AuditLog::log(
+            'change_request_approved',
+            $this->membership,
+            ['status' => 'pending_payment', 'previous_type' => $previousMembership?->type?->name],
+            ['status' => 'active', 'new_type' => $this->membership->type?->name],
+            $admin
+        );
+
+        session()->flash('success', 'Membership type change approved and member notified!');
+        $this->redirect(route('admin.approvals.index'), navigate: true);
+    }
+
+    public function rejectChange(): void
+    {
+        if (!in_array($this->membership->status, ['pending_change', 'pending_payment'])) {
+            session()->flash('error', 'This request has already been processed.');
+            return;
+        }
+
+        $this->validate([
+            'rejectionReason' => ['required', 'string', 'min:10'],
+        ], [
+            'rejectionReason.required' => 'Please provide a reason for rejection.',
+        ]);
+
+        $admin = Auth::user();
+        $oldStatus = $this->membership->status;
+
+        $this->membership->update([
+            'status' => 'revoked',
+            'approved_at' => now(),
+            'approved_by' => $admin->id,
+            'suspension_reason' => $this->rejectionReason,
+        ]);
+
+        // Clean up proof of payment if any
+        if ($this->membership->proof_of_payment_path) {
+            try {
+                Storage::disk('r2')->delete($this->membership->proof_of_payment_path);
+            } catch (\Exception $e) {}
+            $this->membership->update(['proof_of_payment_path' => null]);
+        }
+
+        $this->sendRejectionEmail();
+
+        AuditLog::log(
+            'change_request_rejected',
+            $this->membership,
+            ['status' => $oldStatus],
+            ['status' => 'revoked', 'reason' => $this->rejectionReason],
+            $admin
+        );
+
+        session()->flash('success', 'Type change request rejected and member notified.');
         $this->redirect(route('admin.approvals.index'), navigate: true);
     }
 
@@ -304,8 +489,17 @@ new #[Title('Review Application - Admin')] class extends Component {
                 <p class="text-zinc-500 dark:text-zinc-400">{{ $this->membership->membership_number ?? 'Pending' }}</p>
             </div>
         </div>
-        <span class="inline-flex items-center rounded-full bg-yellow-100 px-3 py-1 text-sm font-medium text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-            Pending Review
+        <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium
+            {{ match($this->membership->status) {
+                'pending_change' => 'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200',
+                'pending_payment' => 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
+                default => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+            } }}">
+            {{ match($this->membership->status) {
+                'pending_change' => 'Type Change Request',
+                'pending_payment' => 'Awaiting Payment',
+                default => 'Pending Review',
+            } }}
         </span>
     </div>
 
@@ -685,6 +879,159 @@ new #[Title('Review Application - Admin')] class extends Component {
                 >
                     Cancel
                 </button>
+            </div>
+        </div>
+        @endif
+    </div>
+    @endif
+
+    {{-- Change Request Actions --}}
+    @if($this->membership->status === 'pending_change')
+    <div class="rounded-xl border border-violet-200 bg-white p-6 dark:border-violet-700 dark:bg-zinc-800">
+        <h3 class="mb-2 text-lg font-semibold text-zinc-900 dark:text-white">Type Change Request</h3>
+        <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4">This member has requested to change their membership type. Set the amount they must pay to proceed.</p>
+
+        @if($this->previousMembership)
+        <div class="flex items-center gap-3 mb-4 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900/50">
+            <div class="text-sm">
+                <span class="text-zinc-500">From:</span>
+                <span class="font-semibold text-zinc-900 dark:text-white">{{ $this->previousMembership->type?->name ?? 'Unknown' }}</span>
+            </div>
+            <svg class="size-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+            <div class="text-sm">
+                <span class="text-zinc-500">To:</span>
+                <span class="font-semibold text-emerald-700 dark:text-emerald-400">{{ $this->membership->type?->name ?? 'Unknown' }}</span>
+            </div>
+        </div>
+        @endif
+
+        @if($this->membership->notes)
+        <div class="mb-4 p-3 rounded-lg border border-zinc-200 dark:border-zinc-700">
+            <p class="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Member's Reason</p>
+            <p class="text-sm text-zinc-900 dark:text-white whitespace-pre-line">{{ $this->membership->notes }}</p>
+        </div>
+        @endif
+
+        @if(!$showRejectModal)
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Amount to Pay (R)</label>
+                <input type="number" step="0.01" min="0" wire:model="changeAmount"
+                    class="w-full max-w-xs rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
+                @error('changeAmount') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
+                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Pre-filled with the upgrade price. Adjust if needed (set to 0 for no charge).</p>
+            </div>
+            <div class="flex gap-3">
+                <button
+                    wire:click="setChangeAmount"
+                    wire:loading.attr="disabled"
+                    wire:confirm="Set payment amount to R{{ number_format($changeAmount ?? 0, 2) }}? The member will be notified to make payment."
+                    class="inline-flex items-center justify-center gap-2 rounded-lg bg-nrapa-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors"
+                >
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Set Amount & Notify Member
+                </button>
+                <button
+                    wire:click="$set('showRejectModal', true)"
+                    class="inline-flex items-center justify-center gap-2 rounded-lg border border-red-300 bg-white px-6 py-2.5 text-sm font-medium text-red-700 hover:bg-red-50 dark:border-red-700 dark:bg-zinc-800 dark:text-red-400 transition-colors"
+                >
+                    Reject Request
+                </button>
+            </div>
+        </div>
+        @else
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Reason for Rejection</label>
+                <textarea wire:model="rejectionReason" rows="3" placeholder="Please provide a reason..."
+                    class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"></textarea>
+                @error('rejectionReason') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
+            </div>
+            <div class="flex gap-3">
+                <button wire:click="rejectChange" class="rounded-lg bg-red-600 px-6 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors">Confirm Rejection</button>
+                <button wire:click="$set('showRejectModal', false)" class="rounded-lg border border-zinc-300 bg-white px-6 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 transition-colors">Cancel</button>
+            </div>
+        </div>
+        @endif
+    </div>
+    @endif
+
+    {{-- Pending Payment: Approve after POP --}}
+    @if($this->membership->status === 'pending_payment')
+    <div class="rounded-xl border border-indigo-200 bg-white p-6 dark:border-indigo-700 dark:bg-zinc-800">
+        <h3 class="mb-2 text-lg font-semibold text-zinc-900 dark:text-white">Type Change - Awaiting Payment</h3>
+        <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+            Amount set to <strong class="text-zinc-900 dark:text-white">R{{ number_format($this->membership->change_amount ?? 0, 2) }}</strong>.
+            Payment ref: <strong class="text-zinc-900 dark:text-white">{{ $this->membership->payment_reference }}</strong>.
+        </p>
+
+        @if($this->previousMembership)
+        <div class="flex items-center gap-3 mb-4 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900/50">
+            <div class="text-sm">
+                <span class="text-zinc-500">From:</span>
+                <span class="font-semibold text-zinc-900 dark:text-white">{{ $this->previousMembership->type?->name ?? 'Unknown' }}</span>
+            </div>
+            <svg class="size-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+            <div class="text-sm">
+                <span class="text-zinc-500">To:</span>
+                <span class="font-semibold text-emerald-700 dark:text-emerald-400">{{ $this->membership->type?->name ?? 'Unknown' }}</span>
+            </div>
+        </div>
+        @endif
+
+        {{-- POP Preview --}}
+        @if($this->proofOfPaymentUrl)
+        <div class="mb-4 rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+            <div class="bg-zinc-50 dark:bg-zinc-900/50 px-4 py-2 border-b border-zinc-200 dark:border-zinc-700">
+                <p class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Proof of Payment</p>
+            </div>
+            <div class="p-4">
+                @php $popExt = pathinfo($this->membership->proof_of_payment_path, PATHINFO_EXTENSION); @endphp
+                @if(in_array(strtolower($popExt), ['jpg', 'jpeg', 'png', 'gif', 'webp']))
+                    <img src="{{ $this->proofOfPaymentUrl }}" alt="Proof of Payment" class="max-w-full rounded-lg max-h-96">
+                @else
+                    <a href="{{ $this->proofOfPaymentUrl }}" target="_blank" class="inline-flex items-center gap-2 text-sm text-nrapa-blue hover:underline">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        View PDF Document
+                    </a>
+                @endif
+            </div>
+        </div>
+        @else
+        <div class="mb-4 p-4 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
+            <p class="text-sm text-amber-700 dark:text-amber-300">No proof of payment uploaded yet. The member has been notified to make payment.</p>
+        </div>
+        @endif
+
+        @if(!$showRejectModal)
+        <div class="flex gap-3">
+            <button
+                wire:click="approveChange"
+                wire:loading.attr="disabled"
+                wire:confirm="Approve this type change? The member's old membership will be expired and the new type activated."
+                class="inline-flex items-center justify-center gap-2 rounded-lg bg-nrapa-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors"
+            >
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                Approve Type Change
+            </button>
+            <button
+                wire:click="$set('showRejectModal', true)"
+                class="inline-flex items-center justify-center gap-2 rounded-lg border border-red-300 bg-white px-6 py-2.5 text-sm font-medium text-red-700 hover:bg-red-50 dark:border-red-700 dark:bg-zinc-800 dark:text-red-400 transition-colors"
+            >
+                Reject Request
+            </button>
+        </div>
+        @else
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Reason for Rejection</label>
+                <textarea wire:model="rejectionReason" rows="3" placeholder="Please provide a reason..."
+                    class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"></textarea>
+                @error('rejectionReason') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
+            </div>
+            <div class="flex gap-3">
+                <button wire:click="rejectChange" class="rounded-lg bg-red-600 px-6 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors">Confirm Rejection</button>
+                <button wire:click="$set('showRejectModal', false)" class="rounded-lg border border-zinc-300 bg-white px-6 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 transition-colors">Cancel</button>
             </div>
         </div>
         @endif

@@ -88,6 +88,43 @@ new #[Title('All Approvals - Admin')] class extends Component {
                 ];
             });
 
+        // Membership type change requests (awaiting admin to set amount)
+        $pendingChangeRequests = Membership::where('status', 'pending_change')
+            ->whereHas('user')
+            ->with(['user', 'type', 'previousMembership.type'])
+            ->orderBy('applied_at', 'asc')
+            ->get()
+            ->map(function ($membership) {
+                $fromType = $membership->previousMembership?->type?->name ?? 'Unknown';
+                $toType = $membership->type?->name ?? 'Unknown';
+                return [
+                    'type' => 'change_request',
+                    'id' => $membership->id,
+                    'title' => "Type Change: {$fromType} → {$toType}",
+                    'user' => $membership->user,
+                    'date' => $membership->applied_at,
+                    'route' => route('admin.approvals.show', $membership),
+                ];
+            });
+
+        // Change requests awaiting final approval (member uploaded POP)
+        $pendingChangePayments = Membership::where('status', 'pending_payment')
+            ->whereHas('user')
+            ->with(['user', 'type', 'previousMembership.type'])
+            ->orderBy('applied_at', 'asc')
+            ->get()
+            ->map(function ($membership) {
+                $toType = $membership->type?->name ?? 'Unknown';
+                return [
+                    'type' => 'change_payment',
+                    'id' => $membership->id,
+                    'title' => "Change Payment: {$toType}" . ($membership->proof_of_payment_path ? ' (POP uploaded)' : ''),
+                    'user' => $membership->user,
+                    'date' => $membership->applied_at,
+                    'route' => route('admin.approvals.show', $membership),
+                ];
+            });
+
         // Pending Endorsements (exclude approved – approved items are no longer "pending approval")
         $pendingEndorsements = EndorsementRequest::whereIn('status', [
             EndorsementRequest::STATUS_SUBMITTED,
@@ -112,6 +149,8 @@ new #[Title('All Approvals - Admin')] class extends Component {
         return $approvals
             ->merge($pendingDocuments)
             ->merge($pendingMemberships)
+            ->merge($pendingChangeRequests)
+            ->merge($pendingChangePayments)
             ->merge($pendingActivities)
             ->merge($pendingCalibres)
             ->merge($pendingEndorsements)
@@ -128,6 +167,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
             ->whereDoesntHave('shootingActivityAsAdditional')
             ->count();
         $memberships = Membership::where('status', 'applied')->whereHas('user')->count();
+        $changeRequests = Membership::whereIn('status', ['pending_change', 'pending_payment'])->whereHas('user')->count();
         $activities = ShootingActivity::where('status', 'pending')->count();
         $calibres = CalibreRequest::where('status', 'pending')->count();
         $endorsements = EndorsementRequest::whereIn('status', [
@@ -138,10 +178,11 @@ new #[Title('All Approvals - Admin')] class extends Component {
         return [
             'documents' => $docs,
             'memberships' => $memberships,
+            'change_requests' => $changeRequests,
             'activities' => $activities,
             'calibres' => $calibres,
             'endorsements' => $endorsements,
-            'total' => $docs + $memberships + $activities + $calibres + $endorsements,
+            'total' => $docs + $memberships + $changeRequests + $activities + $calibres + $endorsements,
         ];
     }
 
@@ -150,6 +191,8 @@ new #[Title('All Approvals - Admin')] class extends Component {
         return match($type) {
             'document' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
             'membership' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
+            'change_request' => 'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200',
+            'change_payment' => 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
             'activity' => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
             'calibre' => 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
             'endorsement' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
@@ -162,6 +205,8 @@ new #[Title('All Approvals - Admin')] class extends Component {
         return match($type) {
             'document' => 'Document',
             'membership' => 'Membership',
+            'change_request' => 'Type Change',
+            'change_payment' => 'Change Payment',
             'activity' => 'Activity',
             'calibre' => 'Calibre',
             'endorsement' => 'Endorsement',

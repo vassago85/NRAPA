@@ -223,7 +223,7 @@
         .verify-text a { color: #1f4e8c; font-weight: 500; text-decoration: none; }
 
         /* Signatory card */
-        .signatory-card { text-align: left; }
+        .signatory-card { text-align: center; }
         .sig-box {
             height: 36px;
             overflow: hidden;

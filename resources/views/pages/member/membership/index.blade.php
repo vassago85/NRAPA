@@ -64,13 +64,32 @@ new #[Title('My Membership')] class extends Component {
     #[Computed]
     public function availableMembershipTypes()
     {
-        $currentTypeId = $this->activeMembership?->membership_type_id;
-        
+        $membership = $this->activeMembership;
+        if (!$membership) {
+            return collect();
+        }
+
+        $currentType = $membership->type;
+        $currentSlug = $currentType->slug ?? '';
+
         return MembershipType::active()
-            ->displayOnSignup()
-            ->when($currentTypeId, fn($q) => $q->where('id', '!=', $currentTypeId))
+            ->where('id', '!=', $currentType->id)
             ->ordered()
-            ->get();
+            ->get()
+            ->filter(function ($type) use ($currentSlug) {
+                // Only show upgrade paths, not downgrades
+                $upgradeMap = [
+                    'basic' => ['dedicated-sport', 'dedicated-hunter', 'dedicated-both', 'lifetime'],
+                    'dedicated-sport' => ['dedicated-both', 'lifetime'],
+                    'dedicated-hunter' => ['dedicated-both', 'lifetime'],
+                    'dedicated-both' => ['lifetime'],
+                ];
+
+                $allowed = $upgradeMap[$currentSlug] ?? [];
+
+                return in_array($type->slug, $allowed);
+            })
+            ->values();
     }
 
     #[Computed]
@@ -97,7 +116,7 @@ new #[Title('My Membership')] class extends Component {
     public function hasPendingChangeRequest()
     {
         return $this->user->memberships()
-            ->where('status', 'pending_change')
+            ->whereIn('status', ['pending_change', 'pending_payment'])
             ->exists();
     }
 
@@ -122,6 +141,9 @@ new #[Title('My Membership')] class extends Component {
     #[Computed]
     public function canChangeMembership(): bool
     {
+        $membership = $this->activeMembership;
+        if (!$membership || !$membership->isActive()) return false;
+
         return $this->availableMembershipTypes->count() > 0 && !$this->hasPendingChangeRequest;
     }
 
@@ -241,10 +263,11 @@ new #[Title('My Membership')] class extends Component {
         Membership::create([
             'user_id' => $this->user->id,
             'membership_type_id' => $newType->id,
+            'previous_membership_id' => $this->activeMembership->id,
             'status' => 'pending_change',
             'applied_at' => now(),
-            'notes' => "Change request from {$this->activeMembership->type->name} to {$newType->name}.\n\nReason: {$this->changeReason}",
-            'source' => 'web', // Billable - member requested via website
+            'notes' => "Type change request from {$this->activeMembership->type->name} to {$newType->name}.\n\nReason: {$this->changeReason}",
+            'source' => 'web',
         ]);
 
         $this->showChangeModal = false;

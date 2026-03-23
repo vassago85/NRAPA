@@ -62,6 +62,8 @@ new #[Title('Membership Details')] class extends Component {
             'active' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
             'applied' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
             'approved' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+            'pending_change' => 'bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300',
+            'pending_payment' => 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300',
             'suspended', 'revoked' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
             'expired' => 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
             default => 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200',
@@ -84,7 +86,11 @@ new #[Title('Membership Details')] class extends Component {
                 </div>
             </div>
             <span class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium {{ $this->getStatusClasses() }}">
-                {{ ucfirst($this->membership->status) }}
+                {{ match($this->membership->status) {
+                    'pending_change' => 'Awaiting Review',
+                    'pending_payment' => 'Payment Required',
+                    default => ucfirst($this->membership->status),
+                } }}
             </span>
         </div>
     </x-slot>
@@ -222,6 +228,131 @@ new #[Title('Membership Details')] class extends Component {
                     <button type="submit" class="w-full px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">
                         Upload Proof of Payment
                     </button>
+                    @endif
+                </form>
+            @endif
+        </div>
+    </div>
+    @endif
+
+    {{-- Pending Change Request Banner --}}
+    @if($this->membership->status === 'pending_change')
+    <div class="rounded-xl border-2 border-violet-300 bg-violet-50 p-6 dark:border-violet-600 dark:bg-violet-900/20">
+        <div class="flex items-start gap-3">
+            <div class="flex size-10 items-center justify-center rounded-lg bg-violet-200 dark:bg-violet-800">
+                <svg class="size-5 text-violet-700 dark:text-violet-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                </svg>
+            </div>
+            <div>
+                <h3 class="font-semibold text-violet-800 dark:text-violet-200">Type Change Request — Awaiting Admin Review</h3>
+                <p class="mt-1 text-sm text-violet-700 dark:text-violet-300">
+                    Your request to change to <strong>{{ $this->membership->type?->name }}</strong> is being reviewed. 
+                    An administrator will set a payment amount shortly and you will be notified.
+                </p>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Pending Payment for Change Request --}}
+    @if($this->membership->status === 'pending_payment')
+    <div class="rounded-xl border-2 border-indigo-300 bg-indigo-50 p-6 dark:border-indigo-600 dark:bg-indigo-900/20">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="flex size-10 items-center justify-center rounded-lg bg-indigo-200 dark:bg-indigo-800">
+                <svg class="size-5 text-indigo-700 dark:text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+            </div>
+            <div>
+                <h3 class="font-semibold text-indigo-800 dark:text-indigo-200">Payment Required for Type Change</h3>
+                <p class="text-sm text-indigo-600 dark:text-indigo-400">Change to <strong>{{ $this->membership->type?->name }}</strong> — pay via EFT and upload proof</p>
+            </div>
+        </div>
+
+        {{-- Payment Reference --}}
+        @if($this->membership->payment_reference)
+        <div class="mb-4">
+            <p class="text-xs font-medium text-indigo-700 dark:text-indigo-300 mb-2">YOUR PAYMENT REFERENCE (click to copy)</p>
+            <div x-data="{ copied: false }" x-on:click="navigator.clipboard.writeText('{{ $this->membership->payment_reference }}'); copied = true; setTimeout(() => copied = false, 2000)" class="cursor-pointer group">
+                <div class="flex items-center justify-between gap-4 p-4 bg-white dark:bg-zinc-800 rounded-lg border-2 border-dashed border-indigo-400 dark:border-indigo-600 hover:border-indigo-500 transition-colors">
+                    <span class="text-2xl font-mono font-bold text-zinc-900 dark:text-white tracking-wider">{{ $this->membership->payment_reference }}</span>
+                    <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                        <svg x-show="!copied" class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                        <svg x-show="copied" x-cloak class="size-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        <span x-text="copied ? 'Copied!' : 'Copy'" class="text-sm font-medium"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+
+        {{-- Amount Due --}}
+        <div class="flex items-center justify-between p-3 bg-white/50 dark:bg-zinc-800/50 rounded-lg mb-4">
+            <span class="text-indigo-700 dark:text-indigo-300 font-medium">Amount to Pay:</span>
+            <span class="text-xl font-bold text-indigo-800 dark:text-indigo-200">R{{ number_format($this->membership->change_amount ?? 0, 2) }}</span>
+        </div>
+
+        {{-- Bank Account --}}
+        <div class="bg-white/50 dark:bg-zinc-800/50 rounded-lg p-4 mb-4">
+            <h4 class="text-sm font-semibold text-indigo-800 dark:text-indigo-200 mb-3">Bank Account Details</h4>
+            <dl class="grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
+                <div class="flex items-baseline gap-2">
+                    <dt class="text-indigo-600 dark:text-indigo-400 whitespace-nowrap">Bank:</dt>
+                    <dd class="font-medium text-indigo-800 dark:text-indigo-200">{{ $this->bankAccount['bank_name'] ?: 'To be confirmed' }}</dd>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <dt class="text-indigo-600 dark:text-indigo-400 whitespace-nowrap">Account Name:</dt>
+                    <dd class="font-medium text-indigo-800 dark:text-indigo-200">{{ $this->bankAccount['account_name'] ?: 'To be confirmed' }}</dd>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <dt class="text-indigo-600 dark:text-indigo-400 whitespace-nowrap">Account Number:</dt>
+                    <dd class="font-mono font-medium text-indigo-800 dark:text-indigo-200">{{ $this->bankAccount['account_number'] ?: 'To be confirmed' }}</dd>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <dt class="text-indigo-600 dark:text-indigo-400 whitespace-nowrap">Branch Code:</dt>
+                    <dd class="font-mono font-medium text-indigo-800 dark:text-indigo-200">{{ $this->bankAccount['branch_code'] ?: 'To be confirmed' }}</dd>
+                </div>
+            </dl>
+        </div>
+
+        {{-- POP Upload --}}
+        <div class="border-t border-indigo-300 dark:border-indigo-600 pt-4">
+            <h4 class="text-sm font-semibold text-indigo-800 dark:text-indigo-200 mb-3">Upload Proof of Payment</h4>
+
+            @if($this->membership->proof_of_payment_path)
+                <div class="flex items-center justify-between gap-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                    <div class="flex items-center gap-2">
+                        <svg class="size-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span class="text-sm font-medium text-emerald-700 dark:text-emerald-300">Proof of payment uploaded — pending admin review</span>
+                    </div>
+                    <button wire:click="removeProofOfPayment" wire:confirm="Remove the uploaded proof of payment?"
+                        class="text-xs text-red-600 hover:text-red-800 dark:text-red-400 font-medium">Remove</button>
+                </div>
+            @else
+                <form wire:submit="uploadProofOfPayment" class="space-y-3"
+                    x-data="{ dragging: false }"
+                    x-on:dragover.prevent="dragging = true"
+                    x-on:dragleave.prevent="dragging = false"
+                    x-on:drop.prevent="dragging = false; $refs.popInput2.files = $event.dataTransfer.files; $refs.popInput2.dispatchEvent(new Event('change', { bubbles: true }))">
+                    <label class="block cursor-pointer">
+                        <div class="flex flex-col items-center justify-center gap-2 p-6 bg-white dark:bg-zinc-800 rounded-lg border-2 border-dashed transition-colors"
+                            :class="dragging ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-indigo-300 dark:border-indigo-600 hover:border-indigo-400'">
+                            <svg class="size-8 text-indigo-400" :class="dragging && 'text-emerald-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                            </svg>
+                            @if($proofOfPayment)
+                                <span class="text-sm text-emerald-600 dark:text-emerald-400 font-medium">{{ $proofOfPayment->getClientOriginalName() }}</span>
+                            @else
+                                <span class="text-sm font-medium text-indigo-700 dark:text-indigo-300">Drop file here or click to browse</span>
+                                <span class="text-xs text-indigo-600 dark:text-indigo-400">JPG, PNG, or PDF — max 5MB</span>
+                            @endif
+                        </div>
+                        <input x-ref="popInput2" wire:model="proofOfPayment" type="file" accept=".jpg,.jpeg,.png,.pdf" class="sr-only">
+                    </label>
+                    @error('proofOfPayment') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
+                    @if($proofOfPayment)
+                    <button type="submit" class="w-full px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">Upload Proof of Payment</button>
                     @endif
                 </form>
             @endif

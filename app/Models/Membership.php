@@ -44,6 +44,7 @@ class Membership extends Model
         'payment_email_sent_at',
         'welcome_email_sent_at',
         'affiliated_club_id',
+        'change_amount',
     ];
 
     /**
@@ -63,6 +64,7 @@ class Membership extends Model
             'payment_email_sent_at' => 'datetime',
             'welcome_email_sent_at' => 'datetime',
             'dedicated_declaration_accepted_at' => 'datetime',
+            'change_amount' => 'decimal:2',
         ];
     }
 
@@ -260,7 +262,14 @@ class Membership extends Model
 
         // Standard membership: use type fees
         if ($this->isRenewal()) {
-            return (float) $this->type->renewal_price;
+            $renewalPrice = (float) $this->type->renewal_price;
+
+            if ($this->isLateRenewal()) {
+                $multiplier = (float) SystemSetting::get('late_renewal_fee_multiplier', 2);
+                $renewalPrice *= $multiplier;
+            }
+
+            return $renewalPrice;
         }
 
         // Dedicated types: basic initial_price + upgrade_price
@@ -455,6 +464,30 @@ class Membership extends Model
 
         // If grace period is 0, any expiry means they must rejoin
         return now()->diffInDays($this->expires_at, false) < -$graceDays;
+    }
+
+    /**
+     * Check if this is a late renewal (previous membership lapsed beyond the threshold).
+     * Late renewals attract a penalty multiplier on the renewal fee.
+     */
+    public function isLateRenewal(): bool
+    {
+        if (! $this->isRenewal() || ! $this->previous_membership_id) {
+            return false;
+        }
+
+        $previous = $this->previousMembership;
+        if (! $previous || ! $previous->expires_at) {
+            return false;
+        }
+
+        if (! $previous->expires_at->isPast()) {
+            return false;
+        }
+
+        $thresholdDays = (int) SystemSetting::get('late_renewal_threshold_days', 90);
+
+        return now()->diffInDays($previous->expires_at, false) < -$thresholdDays;
     }
 
     /**
