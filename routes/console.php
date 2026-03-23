@@ -39,3 +39,10 @@ Schedule::command('nrapa:renew-lifetime-certificates')
     ->timezone('Africa/Johannesburg')
     ->withoutOverlapping()
     ->runInBackground();
+
+// Purge verified document files from storage after 7 days (POPIA compliance)
+Schedule::command('nrapa:purge-verified-document-files')
+    ->dailyAt('03:00')
+    ->timezone('Africa/Johannesburg')
+    ->withoutOverlapping()
+    ->runInBackground();

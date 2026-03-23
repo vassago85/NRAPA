@@ -49,8 +49,16 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
 
     public function getPreviewUrl(): ?string
     {
-        // Use Laravel proxy route to stream file (bypasses R2 signed URL issues)
+        if ($this->document->file_purged_at) {
+            return null;
+        }
+
         return route('documents.preview', $this->document);
+    }
+
+    public function isFilePurged(): bool
+    {
+        return $this->document->file_purged_at !== null;
     }
 }; ?>
 
@@ -68,19 +76,54 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                     <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{{ $document->original_filename }}</p>
                 </div>
             </div>
+            @if(!$this->isFilePurged())
             <button wire:click="download"
                 class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                 Download
             </button>
+            @endif
         </div>
     </x-slot>
+
+    @if($this->isFilePurged())
+    <div class="rounded-xl border border-zinc-200 bg-zinc-50 p-6 dark:border-zinc-700 dark:bg-zinc-800/50">
+        <div class="flex items-start gap-4">
+            <div class="flex size-12 flex-shrink-0 items-center justify-center rounded-xl bg-zinc-200 dark:bg-zinc-700">
+                <svg class="size-6 text-zinc-500 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+                </svg>
+            </div>
+            <div>
+                <h3 class="font-semibold text-zinc-900 dark:text-white">File Removed from Server</h3>
+                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                    This document file was automatically deleted from our servers on
+                    <strong>{{ $document->file_purged_at->format('d M Y') }}</strong>
+                    (7 days after approval) in compliance with POPIA data protection regulations.
+                </p>
+                <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-500">
+                    The document metadata and verification status are retained for your records.
+                    If you need to re-upload this document, please use the upload function on the Documents page.
+                </p>
+            </div>
+        </div>
+    </div>
+    @endif
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         {{-- Document Preview --}}
         <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6 flex flex-col h-full">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Preview</h2>
             <div class="bg-zinc-100 dark:bg-zinc-900 rounded-lg overflow-hidden flex-1 flex items-center justify-center" style="min-height: 500px;">
+                @if($this->isFilePurged())
+                    <div class="flex flex-col items-center justify-center p-8 text-center">
+                        <svg class="w-24 h-24 text-zinc-300 dark:text-zinc-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+                        </svg>
+                        <p class="text-zinc-500 dark:text-zinc-400 font-medium">File no longer available</p>
+                        <p class="text-sm text-zinc-400 dark:text-zinc-500 mt-1">Removed {{ $document->file_purged_at->diffForHumans() }}</p>
+                    </div>
+                @else
                 @php $previewUrl = $this->getPreviewUrl(); @endphp
                 @if($previewUrl && str_contains($document->mime_type, 'image'))
                     <img src="{{ $previewUrl }}" alt="Document preview" class="w-full h-full object-contain p-4">
@@ -112,6 +155,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                             </a>
                         @endif
                     </div>
+                @endif
                 @endif
             </div>
         </div>

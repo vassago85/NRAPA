@@ -36,6 +36,7 @@ class MemberDocument extends Model
         'expires_at',
         'archived_at',
         'archive_until',
+        'file_purged_at',
         'rejection_reason',
     ];
 
@@ -54,6 +55,7 @@ class MemberDocument extends Model
             'expires_at' => 'datetime',
             'archived_at' => 'datetime',
             'archive_until' => 'datetime',
+            'file_purged_at' => 'datetime',
         ];
     }
 
