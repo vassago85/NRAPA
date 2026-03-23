@@ -255,7 +255,7 @@ new class extends Component {
                             </td>
                             <td class="px-6 py-4">
                                 @if(auth()->user()->canAssignRoles() && auth()->user()->canManageUser($admin))
-                                <select wire:change="updateAdminType($wire.{{ $admin->id }}, $event.target.value)" 
+                                <select wire:change="updateAdminType({{ $admin->id }}, $event.target.value)" 
                                     class="text-sm rounded-lg border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
                                     <option value="{{ User::ADMIN_TYPE_STANDARD }}" {{ $admin->admin_type === User::ADMIN_TYPE_STANDARD ? 'selected' : '' }}>Standard Admin</option>
                                     <option value="{{ User::ADMIN_TYPE_SUPER }}" {{ $admin->admin_type === User::ADMIN_TYPE_SUPER ? 'selected' : '' }}>Super Admin</option>

@@ -60,12 +60,20 @@ echo "✅ Database is ready"
 echo "📦 Running migrations..."
 php artisan migrate --force || echo "⚠️ Migration had issues, continuing..."
 
+# Seed permissions (idempotent — only inserts missing records)
+echo "📦 Seeding permissions..."
+php artisan db:seed --class=PermissionsSeeder --force 2>/dev/null || echo "⚠️ Permissions seeder skipped"
+
 # Clear caches - env vars come from docker at runtime, so don't cache config
 echo "⚡ Preparing for production..."
 php artisan config:clear
 php artisan route:clear
 php artisan view:clear
 php artisan cache:clear || echo "⚠️ Cache clear had issues, continuing..."
+
+# Clear Volt compiled components (prevents stale 404s)
+rm -rf /var/www/html/storage/framework/views/livewire/classes/*
+rm -rf /var/www/html/storage/framework/views/livewire/views/*
 
 # Publish Livewire assets (required for Livewire to work)
 echo "📦 Publishing Livewire assets..."
