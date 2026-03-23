@@ -32,7 +32,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Requests - Admin')] cl
     #[Computed]
     public function requests()
     {
-        $query = EndorsementRequest::with(['user', 'firearm', 'firearm.firearmCalibre', 'firearm.firearmMake', 'firearm.firearmModel'])
+        $query = EndorsementRequest::whereHas('user')
+            ->with(['user', 'firearm', 'firearm.firearmCalibre', 'firearm.firearmMake', 'firearm.firearmModel'])
             ->orderBy('created_at', 'desc');
 
         if ($this->status) {
@@ -57,10 +58,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Requests - Admin')] cl
     public function stats()
     {
         return [
-            'pending' => EndorsementRequest::whereIn('status', ['submitted', 'under_review', 'pending_documents'])->count(),
-            'approved' => EndorsementRequest::where('status', 'approved')->count(),
-            'issued' => EndorsementRequest::where('status', 'issued')->count(),
-            'this_month' => EndorsementRequest::where('status', 'issued')
+            'pending' => EndorsementRequest::whereHas('user')->whereIn('status', ['submitted', 'under_review', 'pending_documents'])->count(),
+            'approved' => EndorsementRequest::whereHas('user')->where('status', 'approved')->count(),
+            'issued' => EndorsementRequest::whereHas('user')->where('status', 'issued')->count(),
+            'this_month' => EndorsementRequest::whereHas('user')->where('status', 'issued')
                 ->whereMonth('issued_at', now()->month)
                 ->whereYear('issued_at', now()->year)
                 ->count(),
