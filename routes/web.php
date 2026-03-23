@@ -931,6 +931,31 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::livewire('approvals', 'pages::admin.approvals.index')->name('approvals.index');
     Route::livewire('approvals/{membership}', 'pages::admin.approvals.show')->name('approvals.show');
 
+    // Proof of payment proxy (streams from R2 through the app to avoid signed-URL issues)
+    Route::get('approvals/{membership}/proof-of-payment', function (\App\Models\Membership $membership) {
+        if (! $membership->proof_of_payment_path) {
+            abort(404, 'No proof of payment uploaded.');
+        }
+
+        $disk = app()->environment(['local', 'development', 'testing']) ? 'local' : 'r2';
+
+        if (! \Illuminate\Support\Facades\Storage::disk($disk)->exists($membership->proof_of_payment_path)) {
+            abort(404, 'Proof of payment file not found.');
+        }
+
+        $ext = strtolower(pathinfo($membership->proof_of_payment_path, PATHINFO_EXTENSION));
+        $contentType = match ($ext) {
+            'pdf' => 'application/pdf',
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            default => 'application/octet-stream',
+        };
+
+        return response(\Illuminate\Support\Facades\Storage::disk($disk)->get($membership->proof_of_payment_path))
+            ->header('Content-Type', $contentType)
+            ->header('Cache-Control', 'private, max-age=300');
+    })->name('approvals.proof-of-payment');
+
     Route::livewire('settings', 'pages::admin.settings.index')->name('settings.index');
 
     // Knowledge Tests

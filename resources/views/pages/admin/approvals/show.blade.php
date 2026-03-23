@@ -25,10 +25,7 @@ new #[Title('Review Application - Admin')] class extends Component {
             return null;
         }
 
-        return Storage::disk('r2')->temporaryUrl(
-            $this->membership->proof_of_payment_path,
-            now()->addMinutes(30)
-        );
+        return route('admin.approvals.proof-of-payment', $this->membership);
     }
 
     public function mount(Membership $membership): void
