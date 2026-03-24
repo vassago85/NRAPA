@@ -3,6 +3,7 @@
 use App\Models\EndorsementRequest;
 use App\Models\AuditLog;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -118,8 +119,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
 
     public function approveEndorsement(): void
     {
-        // Approve the request (allows letter generation)
-        $this->request->approve(auth()->user(), $this->adminNotes);
+        // Approve the request — suppress email since auto-issue will send the "issued" variant
+        $this->request->approve(auth()->user(), $this->adminNotes, sendNotification: false);
         
         // Add note if non-compliant
         if (!$this->isFullyCompliant) {
@@ -215,6 +216,20 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
+            // Auto-issue failed — send the "approved" email so the member still knows
+            $this->request->refresh();
+            try {
+                Mail::to($this->request->user->email)->queue(new \App\Mail\EndorsementApproved(
+                    endorsement: $this->request->load('firearm', 'user'),
+                ));
+            } catch (\Exception $mailEx) {
+                Log::error('Failed to send endorsement approval fallback email', [
+                    'endorsement_id' => $this->request->id,
+                    'error' => $mailEx->getMessage(),
+                ]);
+            }
+
             session()->flash('warning', 'Endorsement approved but letter could not be generated automatically: ' . $e->getMessage() . '. You can manually issue it using the button below.');
         }
     }

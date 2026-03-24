@@ -251,9 +251,9 @@ new #[Title('All Approvals - Admin')] class extends Component {
                 'activated_at' => now(),
                 'expires_at' => $expiresAt,
             ]);
-            if (!$membership->membership_number) {
+            if (!$membership->membership_number && $membership->user) {
                 $membership->update([
-                    'membership_number' => 'NRAPA-' . date('Y') . '-' . str_pad($membership->id, 5, '0', STR_PAD_LEFT),
+                    'membership_number' => $membership->user->formatted_member_number,
                 ]);
             }
 

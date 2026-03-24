@@ -98,10 +98,11 @@ new #[Title('Review Application - Admin')] class extends Component {
             'expires_at' => $expiresAt,
         ]);
 
-        // Generate membership number if not set
+        // Generate membership number from user's permanent member number
         if (!$this->membership->membership_number) {
+            $user = $this->membership->user;
             $this->membership->update([
-                'membership_number' => 'NRAPA-' . date('Y') . '-' . str_pad($this->membership->id, 5, '0', STR_PAD_LEFT),
+                'membership_number' => $user->formatted_member_number,
             ]);
         }
 
@@ -253,14 +254,11 @@ new #[Title('Review Application - Admin')] class extends Component {
             'expires_at' => $expiresAt,
         ]);
 
-        // Generate membership number if not set (reuse old one if available)
-        if (!$this->membership->membership_number && $previousMembership?->membership_number) {
+        // Always use the user's permanent member number
+        if (!$this->membership->membership_number) {
+            $user = $this->membership->user;
             $this->membership->update([
-                'membership_number' => $previousMembership->membership_number,
-            ]);
-        } elseif (!$this->membership->membership_number) {
-            $this->membership->update([
-                'membership_number' => 'NRAPA-' . date('Y') . '-' . str_pad($this->membership->id, 5, '0', STR_PAD_LEFT),
+                'membership_number' => $user->formatted_member_number,
             ]);
         }
 

@@ -129,7 +129,7 @@ test('excel importer creates membership for user', function () {
     $method->setAccessible(true);
 
     $memberData = [
-        'membership_number' => 'STA-2026-0001',
+        'membership_number' => '',
         'status' => 'active',
         'date_joined' => '2025-11-24',
         'renewal_date' => '2026-11-24',
@@ -141,7 +141,7 @@ test('excel importer creates membership for user', function () {
     $membership = Membership::where('user_id', $user->id)->first();
 
     expect($membership)->not->toBeNull();
-    expect($membership->membership_number)->toBe('STA-2026-0001');
+    expect($membership->membership_number)->toBe($user->formatted_member_number);
     expect($membership->membership_type_id)->toBe($this->standardType->id);
     expect($membership->status)->toBe('active');
     expect($membership->source)->toBe('import');
@@ -169,7 +169,7 @@ test('excel importer generates membership number if not provided', function () {
 
     expect($membership)->not->toBeNull();
     expect($membership->membership_number)->not->toBeEmpty();
-    expect($membership->membership_number)->toMatch('/STA-\d{4}-\d{4}/');
+    expect($membership->membership_number)->toBe($user->formatted_member_number);
 });
 
 test('excel importer handles missing file gracefully', function () {

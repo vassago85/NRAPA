@@ -2,11 +2,15 @@
 
 namespace App\Models;
 
+use App\Mail\EndorsementApproved;
+use App\Mail\EndorsementRejected;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class EndorsementRequest extends Model
@@ -834,7 +838,7 @@ class EndorsementRequest extends Model
     /**
      * Approve the endorsement request (allows letter generation).
      */
-    public function approve(User $admin, ?string $notes = null): void
+    public function approve(User $admin, ?string $notes = null, bool $sendNotification = true): void
     {
         $this->update([
             'status' => self::STATUS_APPROVED,
@@ -844,6 +848,10 @@ class EndorsementRequest extends Model
 
         if ($notes) {
             $this->update(['admin_notes' => $notes]);
+        }
+
+        if ($sendNotification) {
+            $this->notifyApproval();
         }
     }
 
@@ -891,7 +899,7 @@ class EndorsementRequest extends Model
         $this->update([
             'status' => self::STATUS_ISSUED,
             'issued_at' => $issuedAt,
-            'expires_at' => $issuedAt->copy()->addYear(), // Endorsement letters expire 1 year after issue
+            'expires_at' => $issuedAt->copy()->addYear(),
             'issued_by' => $admin->id,
             'letter_reference' => $letterReference,
             'letter_file_path' => $letterPath,
@@ -899,6 +907,8 @@ class EndorsementRequest extends Model
             'dedicated_category' => $dedicatedCategory,
             'dedicated_status_snapshot_at' => now(),
         ]);
+
+        $this->notifyApproval();
     }
 
     /**
@@ -912,6 +922,53 @@ class EndorsementRequest extends Model
             'reviewer_id' => $admin->id,
             'rejection_reason' => $reason,
         ]);
+
+        $this->notifyRejection($reason);
+    }
+
+    /**
+     * Send approval/issued notification to the member.
+     */
+    protected function notifyApproval(): void
+    {
+        $user = $this->user;
+        if (! $user?->email) {
+            return;
+        }
+
+        try {
+            Mail::to($user->email)->queue(new EndorsementApproved(
+                endorsement: $this->load('firearm', 'user'),
+            ));
+        } catch (\Exception $e) {
+            Log::error('Failed to send endorsement approval email', [
+                'endorsement_id' => $this->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Send rejection notification to the member.
+     */
+    protected function notifyRejection(string $reason): void
+    {
+        $user = $this->user;
+        if (! $user?->email) {
+            return;
+        }
+
+        try {
+            Mail::to($user->email)->queue(new EndorsementRejected(
+                endorsement: $this->load('firearm', 'user'),
+                reason: $reason,
+            ));
+        } catch (\Exception $e) {
+            Log::error('Failed to send endorsement rejection email', [
+                'endorsement_id' => $this->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

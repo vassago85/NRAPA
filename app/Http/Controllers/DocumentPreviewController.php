@@ -88,7 +88,7 @@ class DocumentPreviewController extends Controller
         ]);
 
         $membership = new Membership([
-            'membership_number' => 'NRAPA-2026-00001',
+            'membership_number' => 'NRAPA-00001',
             'status' => 'active',
             'activated_at' => Carbon::parse('2024-03-15'),
             'applied_at' => Carbon::parse('2024-03-10'),

@@ -1,47 +1,84 @@
 @extends('emails.layout')
 
-@section('title', 'NRAPA Document Requires Attention')
+@section('title', 'Document Requires Attention — NRAPA')
 @section('heading', 'Document Requires Attention')
 @section('subtitle', 'Your document could not be verified')
 
 @section('content')
-    <p class="tx" style="color: #374151; margin: 0 0 16px 0;">Dear {{ $document->user->name }},</p>
+    <p class="tx" style="color: #374151; margin: 0 0 16px 0; font-size: 15px;">Dear {{ $document->user->name }},</p>
 
-    <p class="tx" style="color: #374151; margin: 0 0 20px 0;">Unfortunately, your <strong>{{ $document->documentType?->name ?? 'document' }}</strong> could not be verified. Please see the reason below and upload a corrected document.</p>
+    <p class="tx" style="color: #374151; margin: 0 0 24px 0; font-size: 15px;">
+        Unfortunately, your <strong>{{ $document->documentType?->name ?? 'document' }}</strong> could not be verified.
+        Please review the reason below and upload a corrected document.
+    </p>
 
     {{-- Rejection reason --}}
-    <div class="bx-danger" style="background-color: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 20px; margin: 0 0 20px 0;">
-        <h3 class="hd" style="color: #991b1b; margin: 0 0 8px 0; font-size: 16px;">Reason for Rejection</h3>
-        <p style="color: #991b1b; margin: 0;">{{ $reason }}</p>
-    </div>
-
-    {{-- Next steps --}}
-    <div class="bx-info" style="background-color: #eff6ff; border: 1px solid #93c5fd; border-radius: 8px; padding: 20px; margin: 0 0 20px 0;">
-        <h3 class="hd" style="color: #1e40af; margin: 0 0 8px 0; font-size: 16px;">What To Do Next</h3>
-        <ol style="color: #1e40af; margin: 0; padding-left: 20px;">
-            <li style="margin-bottom: 6px;">Review the reason above</li>
-            <li style="margin-bottom: 6px;">Prepare a corrected document that addresses the issue</li>
-            <li>Log in to your NRAPA account and upload the new document</li>
-        </ol>
-    </div>
-
-    {{-- CTA button --}}
-    <div style="text-align: center; margin: 0 0 20px 0;">
-        <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto;" class="btn-primary">
+    <div class="bx-danger" style="background-color: #fef2f2; border: 1px solid #fca5a5; border-radius: 10px; padding: 24px; margin: 0 0 24px 0;">
+        <table role="presentation" style="width: 100%; border-collapse: collapse;">
             <tr>
-                <td bgcolor="#0B4EA2" style="border-radius: 8px; text-align: center;">
-                    <a href="{{ config('app.url') }}/member/documents" target="_blank"
-                       style="display: inline-block; padding: 12px 30px; border-radius: 8px; background-color: #0B4EA2; color: #ffffff !important; text-decoration: none; font-weight: bold; font-family: Arial, sans-serif; font-size: 15px;">
-                        Upload New Document
-                    </a>
+                <td style="padding: 0 0 10px 0;">
+                    <span class="tx" style="font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; color: #991b1b;">Reason for Rejection</span>
                 </td>
             </tr>
         </table>
+        <p class="tx" style="color: #991b1b; margin: 0; font-size: 14px; line-height: 1.6;">{{ $reason }}</p>
     </div>
 
-    <p class="tx" style="color: #374151; margin: 0 0 16px 0;">If you have any questions, please don't hesitate to contact us.</p>
+    {{-- What to do --}}
+    <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 0 0 16px 0;">
+        <tr>
+            <td style="border-bottom: 2px solid #e5e7eb; padding-bottom: 6px;">
+                <span class="hd" style="font-size: 17px; font-weight: 700; color: #111827;">What To Do Next</span>
+            </td>
+        </tr>
+    </table>
 
-    <p class="tx" style="color: #374151; margin: 0;">Kind regards,<br><strong>NRAPA Team</strong></p>
+    <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 0 0 28px 0;">
+        <tr>
+            <td style="width: 32px; vertical-align: top; padding: 0 12px 14px 0;">
+                <div style="width: 28px; height: 28px; background-color: #0B4EA2; color: #ffffff; border-radius: 50%; text-align: center; line-height: 28px; font-size: 13px; font-weight: 700;">1</div>
+            </td>
+            <td class="tx" style="vertical-align: top; padding: 0 0 14px 0; color: #374151; font-size: 14px;">
+                <strong>Review the reason</strong> above to understand what needs to be corrected.
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 32px; vertical-align: top; padding: 0 12px 14px 0;">
+                <div style="width: 28px; height: 28px; background-color: #0B4EA2; color: #ffffff; border-radius: 50%; text-align: center; line-height: 28px; font-size: 13px; font-weight: 700;">2</div>
+            </td>
+            <td class="tx" style="vertical-align: top; padding: 0 0 14px 0; color: #374151; font-size: 14px;">
+                <strong>Prepare a corrected document</strong> that addresses the issue mentioned.
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 32px; vertical-align: top; padding: 0 12px 0 0;">
+                <div style="width: 28px; height: 28px; background-color: #0B4EA2; color: #ffffff; border-radius: 50%; text-align: center; line-height: 28px; font-size: 13px; font-weight: 700;">3</div>
+            </td>
+            <td class="tx" style="vertical-align: top; padding: 0; color: #374151; font-size: 14px;">
+                <strong>Upload the new document</strong> via your NRAPA account.
+            </td>
+        </tr>
+    </table>
+
+    {{-- CTA --}}
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto 28px auto;" class="btn-primary">
+        <tr>
+            <td style="border-radius: 8px; text-align: center; background-color: #0B4EA2;">
+                <a href="{{ config('app.url') }}/member/documents" target="_blank"
+                   style="display: inline-block; padding: 14px 36px; border-radius: 8px; background-color: #0B4EA2; color: #ffffff; text-decoration: none; font-weight: 700; font-family: Arial, sans-serif; font-size: 15px;">
+                    <span style="color: #ffffff;">Upload New Document</span>
+                </a>
+            </td>
+        </tr>
+    </table>
+
+    <p class="tx" style="color: #6b7280; margin: 0 0 6px 0; font-size: 13px; text-align: center;">
+        Need help? Contact us at <a href="mailto:info@nrapa.co.za" style="color: #0B4EA2; text-decoration: underline;">info@nrapa.co.za</a>
+    </p>
+
+    <p class="tx" style="color: #374151; margin: 24px 0 0 0; text-align: center; font-size: 15px;">
+        Kind regards,<br><strong class="hd" style="color: #0B4EA2;">The NRAPA Team</strong>
+    </p>
 @endsection
 
 @section('footer')

@@ -80,7 +80,7 @@ class Membership extends Model
                 $membership->uuid = (string) Str::uuid();
             }
             if (empty($membership->membership_number)) {
-                $membership->membership_number = static::generateMembershipNumber();
+                $membership->membership_number = static::generateMembershipNumber($membership);
             }
             if (empty($membership->payment_reference)) {
                 $membership->payment_reference = static::generatePaymentReference($membership);
@@ -111,18 +111,20 @@ class Membership extends Model
     }
 
     /**
-     * Generate a unique membership number.
+     * Generate a membership number from the user's permanent member number.
      */
-    public static function generateMembershipNumber(): string
+    public static function generateMembershipNumber(?Membership $membership = null): string
     {
-        $year = now()->format('Y');
-        $prefix = 'NRAPA';
+        $user = $membership?->user ?? ($membership?->user_id ? User::find($membership->user_id) : null);
 
-        do {
-            $number = $prefix.'-'.$year.'-'.str_pad((string) random_int(1, 99999), 5, '0', STR_PAD_LEFT);
-        } while (static::where('membership_number', $number)->exists());
+        if ($user?->member_number) {
+            return $user->formatted_member_number;
+        }
 
-        return $number;
+        // Fallback: next sequential number (should rarely happen)
+        $nextNumber = User::nextMemberNumber();
+
+        return 'NRAPA-' . str_pad((string) $nextNumber, 5, '0', STR_PAD_LEFT);
     }
 
     /**

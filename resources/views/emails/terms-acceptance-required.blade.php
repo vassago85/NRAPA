@@ -1,62 +1,84 @@
 @extends('emails.layout')
 
-@section('title', 'Action Required: Accept Terms & Conditions')
+@section('title', 'Action Required — NRAPA')
 @section('heading', 'Action Required')
 @section('subtitle', 'Please accept NRAPA Terms & Conditions')
 
 @section('content')
-    <h2 class="hd" style="color: #111827; margin: 0 0 16px 0; font-size: 18px; font-weight: 600;">Hello {{ $user->name }},</h2>
+    <p class="tx" style="color: #374151; margin: 0 0 16px 0; font-size: 15px;">Dear {{ $user->name }},</p>
 
-    <p class="tx" style="color: #374151; margin: 0 0 20px 0;">
+    <p class="tx" style="color: #374151; margin: 0 0 24px 0; font-size: 15px;">
         You must accept the <strong>NRAPA Membership Terms &amp; Conditions</strong> before your membership can be activated and before any certificates or letters can be issued.
     </p>
 
-    {{-- Warning --}}
-    <div class="bx-warning" style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; margin: 0 0 24px 0; border-radius: 0 8px 8px 0;">
-        <p style="margin: 0; color: #92400e; font-size: 14px; font-weight: 600;">
-            &#9888;&#65039; Your membership status cannot become "Member in Good Standing" until you accept the Terms &amp; Conditions.
-        </p>
+    {{-- Warning banner --}}
+    <div class="bx-warning" style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px 20px; margin: 0 0 28px 0; border-radius: 0 10px 10px 0;">
+        <span style="font-size: 20px; vertical-align: middle; margin-right: 8px;">&#9888;&#65039;</span>
+        <span class="tx" style="color: #92400e; font-size: 14px; font-weight: 700; vertical-align: middle;">Your membership cannot become &ldquo;Member in Good Standing&rdquo; until you accept the Terms &amp; Conditions.</span>
     </div>
 
-    {{-- CTA button --}}
-    <div style="text-align: center; margin: 0 0 24px 0;">
-        <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto;" class="btn-primary">
-            <tr>
-                <td bgcolor="#0B4EA2" style="border-radius: 8px; text-align: center;">
-                    <a href="{{ $acceptUrl }}" target="_blank"
-                       style="display: inline-block; padding: 14px 28px; border-radius: 8px; background-color: #0B4EA2; color: #ffffff !important; text-decoration: none; font-weight: 600; font-family: Arial, sans-serif; font-size: 16px;">
-                        Accept Terms &amp; Conditions
-                    </a>
-                </td>
-            </tr>
-        </table>
-    </div>
+    {{-- CTA --}}
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto 28px auto;" class="btn-primary">
+        <tr>
+            <td style="border-radius: 8px; text-align: center; background-color: #0B4EA2;">
+                <a href="{{ $acceptUrl }}" target="_blank"
+                   style="display: inline-block; padding: 16px 48px; border-radius: 8px; background-color: #0B4EA2; color: #ffffff; text-decoration: none; font-weight: 700; font-family: Arial, sans-serif; font-size: 16px;">
+                    <span style="color: #ffffff;">Accept Terms &amp; Conditions</span>
+                </a>
+            </td>
+        </tr>
+    </table>
 
-    <p class="tx-muted" style="color: #6b7280; font-size: 14px; margin: 0 0 20px 0;">
-        If the button above doesn't work, copy and paste this link into your browser:<br>
-        <a href="{{ $acceptUrl }}" style="color: #0B4EA2; text-decoration: underline;">{{ $acceptUrl }}</a>
+    <p class="tx" style="color: #6b7280; font-size: 13px; margin: 0 0 28px 0; text-align: center;">
+        If the button doesn&rsquo;t work, copy and paste this link into your browser:<br>
+        <a href="{{ $acceptUrl }}" style="color: #0B4EA2; text-decoration: underline; font-size: 12px; word-break: break-all;">{{ $acceptUrl }}</a>
     </p>
 
-    <hr class="divider" style="border: 0; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+    {{-- What happens after --}}
+    <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 0 0 16px 0;">
+        <tr>
+            <td style="border-bottom: 2px solid #e5e7eb; padding-bottom: 6px;">
+                <span class="hd" style="font-size: 17px; font-weight: 700; color: #111827;">What Happens After Acceptance?</span>
+            </td>
+        </tr>
+    </table>
 
-    <p class="tx" style="color: #374151; margin: 0 0 8px 0; font-size: 14px;">
-        <strong>What happens after acceptance?</strong>
+    <table role="presentation" style="width: 100%; border-collapse: separate; border-spacing: 8px; margin: 0 0 24px 0;">
+        <tr>
+            <td class="bx-nrapa" style="width: 50%; background-color: #E8F1FB; border: 1px solid #c7d9f0; border-radius: 8px; padding: 14px; vertical-align: top;">
+                <span style="font-size: 20px; display: block; margin-bottom: 4px;">&#9989;</span>
+                <span class="tx" style="font-weight: 700; font-size: 13px; color: #0B4EA2; display: block;">Membership Activated</span>
+                <span class="tx" style="font-size: 12px; color: #4a6fa5;">Subject to payment/approval</span>
+            </td>
+            <td class="bx-nrapa" style="width: 50%; background-color: #E8F1FB; border: 1px solid #c7d9f0; border-radius: 8px; padding: 14px; vertical-align: top;">
+                <span style="font-size: 20px; display: block; margin-bottom: 4px;">&#128220;</span>
+                <span class="tx" style="font-weight: 700; font-size: 13px; color: #0B4EA2; display: block;">Certificates Issued</span>
+                <span class="tx" style="font-size: 12px; color: #4a6fa5;">Download anytime</span>
+            </td>
+        </tr>
+        <tr>
+            <td class="bx-nrapa" style="width: 50%; background-color: #E8F1FB; border: 1px solid #c7d9f0; border-radius: 8px; padding: 14px; vertical-align: top;">
+                <span style="font-size: 20px; display: block; margin-bottom: 4px;">&#128221;</span>
+                <span class="tx" style="font-weight: 700; font-size: 13px; color: #0B4EA2; display: block;">Endorsement Requests</span>
+                <span class="tx" style="font-size: 12px; color: #4a6fa5;">Submit online</span>
+            </td>
+            <td class="bx-nrapa" style="width: 50%; background-color: #E8F1FB; border: 1px solid #c7d9f0; border-radius: 8px; padding: 14px; vertical-align: top;">
+                <span style="font-size: 20px; display: block; margin-bottom: 4px;">&#127380;</span>
+                <span class="tx" style="font-weight: 700; font-size: 13px; color: #0B4EA2; display: block;">Full Portal Access</span>
+                <span class="tx" style="font-size: 12px; color: #4a6fa5;">All member features unlocked</span>
+            </td>
+        </tr>
+    </table>
+
+    <p class="tx" style="color: #6b7280; margin: 0 0 6px 0; font-size: 13px; text-align: center;">
+        Need help? Contact us at <a href="mailto:info@nrapa.co.za" style="color: #0B4EA2; text-decoration: underline;">info@nrapa.co.za</a>
     </p>
-    <ul style="margin: 0 0 20px 0; padding-left: 20px; color: #6b7280; font-size: 14px; line-height: 1.8;">
-        <li class="tx-muted" style="color: #6b7280;">Your membership can be activated (subject to payment/approval)</li>
-        <li class="tx-muted" style="color: #6b7280;">You can request endorsement letters</li>
-        <li class="tx-muted" style="color: #6b7280;">Certificates can be issued to you</li>
-        <li class="tx-muted" style="color: #6b7280;">You'll have full access to the member portal</li>
-    </ul>
 
-    <p class="tx-muted" style="color: #6b7280; font-size: 14px; margin: 0 0 20px 0;">
-        If you have any questions, please contact us at <a href="mailto:info@nrapa.co.za" style="color: #0B4EA2;">info@nrapa.co.za</a>
+    <p class="tx" style="color: #374151; margin: 24px 0 0 0; text-align: center; font-size: 15px;">
+        Best regards,<br><strong class="hd" style="color: #0B4EA2;">The NRAPA Team</strong>
     </p>
-
-    <p class="tx" style="color: #374151; margin: 0;">Best regards,<br><strong>NRAPA Administration</strong></p>
 @endsection
 
 @section('footer')
-    National Rifle &amp; Pistol Association of South Africa (NRAPA)<br>
-    nrapa.ranyati.co.za
+    This email was sent to {{ $user->email }} regarding your NRAPA membership. &middot; nrapa.ranyati.co.za
 @endsection

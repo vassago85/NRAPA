@@ -63,6 +63,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     protected $fillable = [
         'uuid',
+        'member_number',
         'name',
         'email',
         'id_number',
@@ -112,6 +113,26 @@ class User extends Authenticatable implements MustVerifyEmail
             'welcome_letter_seen_at' => 'datetime',
         ];
     }
+
+    // ===== Member Number =====
+
+    /**
+     * Formatted member number: NRAPA-00001
+     */
+    public function getFormattedMemberNumberAttribute(): string
+    {
+        return 'NRAPA-' . str_pad((string) ($this->member_number ?? 0), 5, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Get the next sequential member number.
+     */
+    public static function nextMemberNumber(): int
+    {
+        return ((int) static::withTrashed()->max('member_number')) + 1;
+    }
+
+    // ===== Relationships =====
 
     /**
      * Get the user who nominated this user.
@@ -229,6 +250,9 @@ class User extends Authenticatable implements MustVerifyEmail
         static::creating(function (User $user) {
             if (empty($user->uuid)) {
                 $user->uuid = (string) Str::uuid();
+            }
+            if (empty($user->member_number)) {
+                $user->member_number = static::nextMemberNumber();
             }
         });
 

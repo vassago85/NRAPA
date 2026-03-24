@@ -38,6 +38,7 @@ Extended Laravel user model for members.
 | Column | Type | Description |
 |--------|------|-------------|
 | id | bigint | Primary key |
+| member_number | unsignedInt | Sequential member number (unique, auto-assigned) |
 | uuid | uuid | Public identifier |
 | name | string | Full name |
 | email | string | Unique email |
@@ -87,7 +88,7 @@ Member's actual membership records with state machine.
 | uuid | uuid | Public identifier |
 | user_id | bigint | FK to users |
 | membership_type_id | bigint | FK to membership_types |
-| membership_number | string | Unique member number |
+| membership_number | string | Member number (format: NRAPA-XXXXX, from users.member_number) |
 | status | enum | applied, approved, active, suspended, revoked, expired |
 | applied_at | timestamp | Application date |
 | approved_at | timestamp | Approval date |
@@ -424,8 +425,8 @@ User role assignments.
 
 ## Indexes
 
-- `users`: email (unique), uuid (unique), id_number (unique)
-- `memberships`: user_id, membership_type_id, status, membership_number (unique), uuid (unique)
+- `users`: email (unique), uuid (unique), id_number (unique), member_number (unique)
+- `memberships`: user_id, membership_type_id, status, membership_number (indexed), uuid (unique)
 - `member_documents`: user_id, document_type_id, status
 - `certificates`: uuid (unique), certificate_number (unique), user_id
 - `audit_logs`: auditable_type + auditable_id, user_id, created_at

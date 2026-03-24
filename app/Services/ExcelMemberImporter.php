@@ -10,7 +10,6 @@ use App\Models\MembershipType;
 use App\Models\User;
 use Exception;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -508,7 +507,7 @@ class ExcelMemberImporter
             'date_of_birth' => $memberData['date_of_birth'],
             'physical_address' => $memberData['physical_address'] ?? null,
             'postal_address' => $memberData['postal_address'] ?? null,
-            'password' => Hash::make($defaultPassword),
+            'password' => $defaultPassword,
             'role' => User::ROLE_MEMBER,
             'email_verified_at' => now(), // Auto-verify imported users
         ]);
@@ -521,15 +520,8 @@ class ExcelMemberImporter
      */
     protected function createMembership(User $user, array $memberData, MembershipType $membershipType, bool $autoApprove, bool $autoActivate, string $source = 'import'): Membership
     {
-        // Generate membership number
-        $membershipNumber = ! empty($memberData['membership_number'])
-            ? $memberData['membership_number']
-            : $this->generateMembershipNumber($membershipType);
-
-        // Check if membership number already exists
-        if (Membership::where('membership_number', $membershipNumber)->exists()) {
-            throw new Exception("Membership number '{$membershipNumber}' already exists");
-        }
+        // Use the user's permanent member number
+        $membershipNumber = $user->formatted_member_number;
 
         // Determine status
         $status = $memberData['status'] ?? 'applied';
@@ -567,30 +559,6 @@ class ExcelMemberImporter
             'expires_at' => $expiresAt,
             'source' => $source,
         ]);
-    }
-
-    /**
-     * Generate a unique membership number.
-     */
-    protected function generateMembershipNumber(MembershipType $type): string
-    {
-        $prefix = strtoupper(substr($type->slug, 0, 3));
-        $year = now()->format('Y');
-
-        // Find the highest number for this prefix/year
-        $lastMembership = Membership::where('membership_number', 'like', "{$prefix}-{$year}-%")
-            ->orderBy('membership_number', 'desc')
-            ->first();
-
-        if ($lastMembership) {
-            $parts = explode('-', $lastMembership->membership_number);
-            $lastNumber = (int) end($parts);
-            $nextNumber = $lastNumber + 1;
-        } else {
-            $nextNumber = 1;
-        }
-
-        return sprintf('%s-%s-%04d', $prefix, $year, $nextNumber);
     }
 
     /**
