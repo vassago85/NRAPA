@@ -19,6 +19,8 @@ new #[Title('Add Member - Admin')] class extends Component {
     public string $status = 'active';
     public string $defaultPassword = 'Nrapa2026!';
     public bool $sendWelcomeEmail = true;
+    public bool $knowledgeTestCompleted = true;
+    public bool $activitiesUpToDate = false;
 
     public ?string $error = null;
 
@@ -75,6 +77,8 @@ new #[Title('Add Member - Admin')] class extends Component {
             'auto_activate' => $isImport,
             'send_welcome_email' => $this->sendWelcomeEmail,
             'source' => $isImport ? 'import' : 'admin',
+            'auto_pass_knowledge_tests' => $isImport && $this->knowledgeTestCompleted,
+            'auto_create_activities' => $isImport && $this->activitiesUpToDate,
         ];
 
         $importer = new ExcelMemberImporter();
@@ -283,6 +287,32 @@ new #[Title('Add Member - Admin')] class extends Component {
                     </label>
                 </div>
             </div>
+
+            {{-- Import Compliance Options --}}
+            @if($memberMode === 'import')
+            <div class="rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
+                <div class="border-b border-amber-200 px-6 py-4 dark:border-amber-700">
+                    <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Compliance Carry-Over</h2>
+                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Tick the items this member has already completed in their previous system</p>
+                </div>
+                <div class="p-6 space-y-3">
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" wire:model="knowledgeTestCompleted" class="rounded border-zinc-300 text-amber-600 focus:ring-amber-500">
+                        <div>
+                            <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Knowledge test completed</span>
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400">Auto-pass all required knowledge tests for their membership type</p>
+                        </div>
+                    </label>
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" wire:model="activitiesUpToDate" class="rounded border-zinc-300 text-amber-600 focus:ring-amber-500">
+                        <div>
+                            <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Activities up to date</span>
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400">Create approved activity records to meet current-year endorsement requirements</p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            @endif
 
             {{-- Info Banner --}}
             @if($memberMode === 'new')

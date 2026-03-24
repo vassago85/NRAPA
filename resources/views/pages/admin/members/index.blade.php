@@ -33,6 +33,8 @@ new #[Title('Members - Admin')] class extends Component {
     public bool $autoApprove = false;
     public bool $autoActivate = false;
     public bool $sendWelcomeEmail = true;
+    public bool $knowledgeTestCompleted = true;
+    public bool $activitiesUpToDate = false;
     public ?array $importResults = null;
 
     public function updatedSearch(): void
@@ -117,7 +119,7 @@ new #[Title('Members - Admin')] class extends Component {
     public function closeImportModal(): void
     {
         $this->showImportModal = false;
-        $this->reset(['excelFile', 'importResults', 'defaultPassword', 'defaultMembershipType', 'skipDuplicates', 'autoApprove', 'autoActivate', 'sendWelcomeEmail']);
+        $this->reset(['excelFile', 'importResults', 'defaultPassword', 'defaultMembershipType', 'skipDuplicates', 'autoApprove', 'autoActivate', 'sendWelcomeEmail', 'knowledgeTestCompleted', 'activitiesUpToDate']);
     }
     
     public function downloadTemplate(): \Symfony\Component\HttpFoundation\StreamedResponse
@@ -153,6 +155,8 @@ new #[Title('Members - Admin')] class extends Component {
                 'auto_approve' => $this->autoApprove,
                 'auto_activate' => $this->autoActivate,
                 'send_welcome_email' => $this->sendWelcomeEmail,
+                'auto_pass_knowledge_tests' => $this->knowledgeTestCompleted,
+                'auto_create_activities' => $this->activitiesUpToDate,
             ];
             
             $this->importResults = $importer->importFromExcel($fullPath, $options);
@@ -500,6 +504,20 @@ new #[Title('Members - Admin')] class extends Component {
                                     <input type="checkbox" wire:model="sendWelcomeEmail" class="rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500">
                                     <span class="text-sm text-zinc-700 dark:text-zinc-300">Send welcome email to imported members</span>
                                 </label>
+                            </div>
+
+                            <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20">
+                                <p class="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-2">Compliance Carry-Over</p>
+                                <div class="space-y-2">
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" wire:model="knowledgeTestCompleted" class="rounded border-zinc-300 text-amber-600 focus:ring-amber-500">
+                                        <span class="text-sm text-zinc-700 dark:text-zinc-300">Knowledge test completed</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" wire:model="activitiesUpToDate" class="rounded border-zinc-300 text-amber-600 focus:ring-amber-500">
+                                        <span class="text-sm text-zinc-700 dark:text-zinc-300">Activities up to date</span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
                         

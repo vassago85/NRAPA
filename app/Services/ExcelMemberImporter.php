@@ -3,10 +3,14 @@
 namespace App\Services;
 
 use App\Mail\ImportWelcome;
+use App\Models\ActivityType;
+use App\Models\EndorsementRequest;
 use App\Models\ImportFailure;
 use App\Models\KnowledgeTestAttempt;
 use App\Models\Membership;
 use App\Models\MembershipType;
+use App\Models\ShootingActivity;
+use App\Models\SystemSetting;
 use App\Models\User;
 use Exception;
 use Illuminate\Support\Facades\DB;
@@ -70,6 +74,8 @@ class ExcelMemberImporter
         $autoApprove = $options['auto_approve'] ?? false;
         $autoActivate = $options['auto_activate'] ?? false;
         $sendWelcomeEmail = $options['send_welcome_email'] ?? true;
+        $autoPassTests = $options['auto_pass_knowledge_tests'] ?? true;
+        $autoActivities = $options['auto_create_activities'] ?? false;
 
         $batchId = (string) Str::uuid();
         $imported = 0;
@@ -133,7 +139,12 @@ class ExcelMemberImporter
 
                     if ($membershipType) {
                         $membership = $this->createMembership($user, $memberData, $membershipType, $autoApprove, $autoActivate, 'import');
-                        $this->autoPassKnowledgeTests($user, $membershipType);
+                        if ($autoPassTests) {
+                            $this->autoPassKnowledgeTests($user, $membershipType);
+                        }
+                        if ($autoActivities) {
+                            $this->autoCreateActivities($user, $membershipType);
+                        }
                     }
 
                     if ($sendWelcomeEmail && $membership) {
@@ -234,6 +245,8 @@ class ExcelMemberImporter
         $autoActivate = $options['auto_activate'] ?? true;
         $sendWelcomeEmail = $options['send_welcome_email'] ?? true;
         $source = $options['source'] ?? 'import';
+        $autoPassTests = $options['auto_pass_knowledge_tests'] ?? ($source === 'import');
+        $autoActivities = $options['auto_create_activities'] ?? false;
 
         try {
             // Rebuild into the array format parseRow expects (column-indexed)
@@ -278,8 +291,11 @@ class ExcelMemberImporter
             if ($membershipType) {
                 $membership = $this->createMembership($user, $memberData, $membershipType, $autoApprove, $autoActivate, $source);
 
-                if ($source === 'import') {
+                if ($autoPassTests) {
                     $this->autoPassKnowledgeTests($user, $membershipType);
+                }
+                if ($autoActivities) {
+                    $this->autoCreateActivities($user, $membershipType);
                 }
             }
 
@@ -596,6 +612,54 @@ class ExcelMemberImporter
                 'marked_at' => now(),
                 'marked_by' => auth()->id(),
                 'marker_notes' => 'Auto-passed: imported existing member',
+            ]);
+        }
+    }
+
+    /**
+     * Auto-create approved activities for an imported member so they meet endorsement requirements.
+     * Creates the minimum required number of activities for the current activity year.
+     */
+    protected function autoCreateActivities(User $user, MembershipType $membershipType): void
+    {
+        if ($membershipType->isBasic()) {
+            return;
+        }
+
+        $dedicatedType = $membershipType->dedicated_type;
+        $required = ($dedicatedType === 'hunter')
+            ? SystemSetting::get('endorsement_min_activities_hunter', EndorsementRequest::DEFAULT_MIN_ACTIVITIES_HUNTER)
+            : SystemSetting::get('endorsement_min_activities_sport', EndorsementRequest::DEFAULT_MIN_ACTIVITIES_SPORT);
+
+        $currentYear = now()->year;
+        $existingCount = ShootingActivity::where('user_id', $user->id)
+            ->where('status', 'approved')
+            ->whereBetween('activity_date', [
+                \Carbon\Carbon::create($currentYear, 1, 1)->startOfDay(),
+                \Carbon\Carbon::create($currentYear, 10, 31)->endOfDay(),
+            ])
+            ->count();
+
+        $needed = max(0, $required - $existingCount);
+        if ($needed === 0) {
+            return;
+        }
+
+        $activityType = ActivityType::active()
+            ->forTrack($dedicatedType === 'hunter' ? 'hunting' : 'sport')
+            ->first() ?? ActivityType::active()->first();
+
+        for ($i = 0; $i < $needed; $i++) {
+            ShootingActivity::create([
+                'uuid' => Str::uuid(),
+                'user_id' => $user->id,
+                'activity_type_id' => $activityType?->id,
+                'track' => $dedicatedType === 'hunter' ? 'hunting' : 'sport',
+                'activity_date' => now()->subDays($i + 1)->toDateString(),
+                'description' => 'Imported — prior activities from previous system',
+                'status' => 'approved',
+                'verified_at' => now(),
+                'verified_by' => auth()->id(),
             ]);
         }
     }
