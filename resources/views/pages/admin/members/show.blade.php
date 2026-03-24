@@ -1300,7 +1300,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                 </div>
                 
                 <p class="mb-4 text-zinc-600 dark:text-zinc-300">
-                    Are you sure you want to delete <strong>{{ $this->user->name }}</strong>? All their data will be archived.
+                    Are you sure you want to permanently delete <strong>{{ $this->user->name }}</strong>? All their data, documents, and files will be removed. This cannot be undone.
                 </p>
 
                 <div class="mb-4">
