@@ -148,7 +148,7 @@ new #[Title('Members - Admin')] class extends Component {
         try {
             $importer = new ExcelMemberImporter();
             $filePath = $this->excelFile->storeAs('temp', 'import_' . time() . '.' . $this->excelFile->getClientOriginalExtension());
-            $fullPath = storage_path('app/' . $filePath);
+            $fullPath = \Illuminate\Support\Facades\Storage::path($filePath);
             
             $options = [
                 'default_password' => $this->defaultPassword,
