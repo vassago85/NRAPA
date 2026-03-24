@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
@@ -16,7 +15,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, SoftDeletes, TwoFactorAuthenticatable;
+    use HasFactory, Notifiable, TwoFactorAuthenticatable;
 
     /**
      * The attributes that are mass assignable.
@@ -256,112 +255,78 @@ class User extends Authenticatable implements MustVerifyEmail
             }
         });
 
-        // When soft-deleting, modify email/id_number to free them up and
-        // hard-delete all related records so nothing orphaned remains.
+        // Hard-delete all related records so nothing orphaned remains.
         static::deleting(function (User $user) {
-            if (! $user->isForceDeleting()) {
-                $timestamp = now()->timestamp;
-                $user->email = "deleted_{$timestamp}_{$user->email}";
-                if ($user->id_number) {
-                    $user->id_number = "deleted_{$timestamp}_{$user->id_number}";
-                }
-                $user->saveQuietly();
+            $disk = config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
 
-                $disk = config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
-
-                // Clean up endorsement requests and their children (hard delete)
-                try {
-                    $endorsementIds = \App\Models\EndorsementRequest::withTrashed()
-                        ->where('user_id', $user->id)->pluck('id');
-                    if ($endorsementIds->isNotEmpty()) {
-                        \App\Models\EndorsementDocument::withTrashed()
-                            ->whereIn('endorsement_request_id', $endorsementIds)->forceDelete();
-                        \App\Models\EndorsementFirearm::whereIn('endorsement_request_id', $endorsementIds)->delete();
-                        \App\Models\EndorsementComponent::whereIn('endorsement_request_id', $endorsementIds)->delete();
-                        \App\Models\EndorsementRequest::withTrashed()
-                            ->where('user_id', $user->id)->forceDelete();
-                    }
-                } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::warning('Failed to clean up endorsement data on user delete', [
-                        'user_id' => $user->id, 'error' => $e->getMessage(),
-                    ]);
-                }
-
-                // Clean up certificates and their files
-                try {
-                    $certificates = \App\Models\Certificate::where('user_id', $user->id)->get();
-                    foreach ($certificates as $cert) {
-                        if ($cert->file_path) {
-                            try {
-                                \Illuminate\Support\Facades\Storage::disk($disk)->delete($cert->file_path);
-                            } catch (\Exception $e) {
-                                // file may already be gone
-                            }
-                        }
-                    }
-                    \App\Models\Certificate::where('user_id', $user->id)->delete();
-                } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::warning('Failed to clean up certificates on user delete', [
-                        'user_id' => $user->id, 'error' => $e->getMessage(),
-                    ]);
-                }
-
-                // Clean up member documents and their files
-                try {
-                    $documents = \App\Models\MemberDocument::withTrashed()
-                        ->where('user_id', $user->id)->get();
-                    foreach ($documents as $doc) {
-                        if ($doc->file_path && ! $doc->file_purged_at) {
-                            try {
-                                \Illuminate\Support\Facades\Storage::disk($disk)->delete($doc->file_path);
-                            } catch (\Exception $e) {
-                                // file may already be gone
-                            }
-                        }
-                    }
-                    \App\Models\MemberDocument::withTrashed()
+            try {
+                $endorsementIds = \App\Models\EndorsementRequest::withTrashed()
+                    ->where('user_id', $user->id)->pluck('id');
+                if ($endorsementIds->isNotEmpty()) {
+                    \App\Models\EndorsementDocument::withTrashed()
+                        ->whereIn('endorsement_request_id', $endorsementIds)->forceDelete();
+                    \App\Models\EndorsementFirearm::whereIn('endorsement_request_id', $endorsementIds)->delete();
+                    \App\Models\EndorsementComponent::whereIn('endorsement_request_id', $endorsementIds)->delete();
+                    \App\Models\EndorsementRequest::withTrashed()
                         ->where('user_id', $user->id)->forceDelete();
-                } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::warning('Failed to clean up member documents on user delete', [
-                        'user_id' => $user->id, 'error' => $e->getMessage(),
-                    ]);
                 }
-
-                // Clean up shooting activities
-                try {
-                    \App\Models\ShootingActivity::where('user_id', $user->id)->delete();
-                } catch (\Exception $e) {
-                    // table may not exist yet
-                }
-
-                // Clean up memberships (hard delete)
-                try {
-                    $memberships = \App\Models\Membership::withTrashed()
-                        ->where('user_id', $user->id)->get();
-                    foreach ($memberships as $membership) {
-                        if ($membership->proof_of_payment_path) {
-                            try {
-                                \Illuminate\Support\Facades\Storage::disk($disk)->delete($membership->proof_of_payment_path);
-                            } catch (\Exception $e) {
-                                // file may already be gone
-                            }
-                        }
-                    }
-                    \App\Models\Membership::withTrashed()
-                        ->where('user_id', $user->id)->forceDelete();
-                } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::warning('Failed to clean up memberships on user delete', [
-                        'user_id' => $user->id, 'error' => $e->getMessage(),
-                    ]);
-                }
-
-                // Clean up calibre requests
-                try {
-                    \App\Models\CalibreRequest::where('user_id', $user->id)->delete();
-                } catch (\Exception $e) {
-                    // table may not exist
-                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning('Failed to clean up endorsement data on user delete', [
+                    'user_id' => $user->id, 'error' => $e->getMessage(),
+                ]);
             }
+
+            try {
+                $certificates = \App\Models\Certificate::where('user_id', $user->id)->get();
+                foreach ($certificates as $cert) {
+                    if ($cert->file_path) {
+                        try { \Illuminate\Support\Facades\Storage::disk($disk)->delete($cert->file_path); } catch (\Exception $e) {}
+                    }
+                }
+                \App\Models\Certificate::where('user_id', $user->id)->delete();
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning('Failed to clean up certificates on user delete', [
+                    'user_id' => $user->id, 'error' => $e->getMessage(),
+                ]);
+            }
+
+            try {
+                $documents = \App\Models\MemberDocument::withTrashed()
+                    ->where('user_id', $user->id)->get();
+                foreach ($documents as $doc) {
+                    if ($doc->file_path && ! $doc->file_purged_at) {
+                        try { \Illuminate\Support\Facades\Storage::disk($disk)->delete($doc->file_path); } catch (\Exception $e) {}
+                    }
+                }
+                \App\Models\MemberDocument::withTrashed()
+                    ->where('user_id', $user->id)->forceDelete();
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning('Failed to clean up member documents on user delete', [
+                    'user_id' => $user->id, 'error' => $e->getMessage(),
+                ]);
+            }
+
+            try { \App\Models\ShootingActivity::where('user_id', $user->id)->delete(); } catch (\Exception $e) {}
+
+            try {
+                $memberships = \App\Models\Membership::withTrashed()
+                    ->where('user_id', $user->id)->get();
+                foreach ($memberships as $membership) {
+                    if ($membership->proof_of_payment_path) {
+                        try { \Illuminate\Support\Facades\Storage::disk($disk)->delete($membership->proof_of_payment_path); } catch (\Exception $e) {}
+                    }
+                }
+                \App\Models\Membership::withTrashed()
+                    ->where('user_id', $user->id)->forceDelete();
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning('Failed to clean up memberships on user delete', [
+                    'user_id' => $user->id, 'error' => $e->getMessage(),
+                ]);
+            }
+
+            try { \App\Models\CalibreRequest::where('user_id', $user->id)->delete(); } catch (\Exception $e) {}
+            try { \App\Models\LoginLog::where('user_id', $user->id)->delete(); } catch (\Exception $e) {}
+            try { \App\Models\UserDeletionRequest::where('user_id', $user->id)->delete(); } catch (\Exception $e) {}
         });
     }
 

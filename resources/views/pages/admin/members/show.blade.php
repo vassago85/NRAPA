@@ -266,8 +266,7 @@ new #[Title('Member Details - Admin')] class extends Component {
             'actioned_at' => now(),
         ]);
 
-        // Soft delete the user
-        $this->user->delete();
+        $this->user->forceDelete();
 
         session()->flash('success', "User {$userName} has been deleted.");
         $this->redirect(route('admin.members.index'), navigate: true);
@@ -728,9 +727,15 @@ new #[Title('Member Details - Admin')] class extends Component {
                     <div>
                         <dt class="text-sm text-zinc-500 dark:text-zinc-400">Status</dt>
                         <dd class="mt-1">
-                            <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-sm font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
-                                Active
-                            </span>
+                            @if($this->activeMembership->expires_at?->isPast())
+                                <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-sm font-medium text-red-800 dark:bg-red-900/40 dark:text-red-300">
+                                    Expired
+                                </span>
+                            @else
+                                <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-sm font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                    Active
+                                </span>
+                            @endif
                         </dd>
                     </div>
                     <div>
@@ -795,8 +800,9 @@ new #[Title('Member Details - Admin')] class extends Component {
                         <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-900 dark:text-white">{{ $membership->type->name }}</td>
                         <td class="whitespace-nowrap px-6 py-4 font-mono text-sm text-zinc-900 dark:text-white">{{ $membership->membership_number }}</td>
                         <td class="whitespace-nowrap px-6 py-4">
-                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $this->getStatusClasses($membership->status) }}">
-                                {{ ucfirst($membership->status) }}
+                            @php $displayStatus = ($membership->status === 'active' && $membership->expires_at?->isPast()) ? 'expired' : $membership->status; @endphp
+                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $this->getStatusClasses($displayStatus) }}">
+                                {{ ucfirst(str_replace('_', ' ', $displayStatus)) }}
                             </span>
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">{{ $membership->applied_at->format('d M Y') }}</td>

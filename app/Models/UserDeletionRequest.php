@@ -59,7 +59,7 @@ class UserDeletionRequest extends Model
      */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class)->withTrashed();
+        return $this->belongsTo(User::class);
     }
 
     /**
@@ -67,7 +67,7 @@ class UserDeletionRequest extends Model
      */
     public function requestedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'requested_by')->withTrashed();
+        return $this->belongsTo(User::class, 'requested_by');
     }
 
     /**
@@ -75,7 +75,7 @@ class UserDeletionRequest extends Model
      */
     public function actionedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'actioned_by')->withTrashed();
+        return $this->belongsTo(User::class, 'actioned_by');
     }
 
     /**
@@ -111,7 +111,7 @@ class UserDeletionRequest extends Model
     }
 
     /**
-     * Approve the deletion request and soft delete the user.
+     * Approve the deletion request and permanently delete the user.
      */
     public function approve(User $actionedBy): void
     {
@@ -121,8 +121,7 @@ class UserDeletionRequest extends Model
             'actioned_at' => now(),
         ]);
 
-        // Soft delete the user
-        $this->user->delete();
+        $this->user->forceDelete();
     }
 
     /**

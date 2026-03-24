@@ -65,7 +65,7 @@ new #[Title('User Deletion Requests - Owner')] class extends Component {
 
         $userName = $this->selectedRequest->user?->name ?? 'Unknown';
 
-        if (!$this->selectedRequest->user || $this->selectedRequest->user->trashed()) {
+        if (!$this->selectedRequest->user) {
             $this->selectedRequest->update([
                 'status' => UserDeletionRequest::STATUS_APPROVED,
                 'actioned_by' => auth()->id(),
@@ -296,7 +296,7 @@ new #[Title('User Deletion Requests - Owner')] class extends Component {
                     </p>
                 </div>
 
-                @if($selectedRequest->user?->trashed() || !$selectedRequest->user)
+                @if(!$selectedRequest->user)
                 <p class="mb-4 text-emerald-600 dark:text-emerald-400 text-sm">
                     This user has already been deleted. Approving will close this request.
                 </p>

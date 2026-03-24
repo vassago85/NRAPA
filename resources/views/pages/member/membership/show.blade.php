@@ -56,9 +56,17 @@ new #[Title('Membership Details')] class extends Component {
         }
     }
 
+    public function getDisplayStatus(): string
+    {
+        if ($this->membership->status === 'active' && $this->membership->expires_at?->isPast()) {
+            return 'expired';
+        }
+        return $this->membership->status;
+    }
+
     public function getStatusClasses(): string
     {
-        return match($this->membership->status) {
+        return match($this->getDisplayStatus()) {
             'active' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
             'applied' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
             'approved' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
@@ -86,10 +94,10 @@ new #[Title('Membership Details')] class extends Component {
                 </div>
             </div>
             <span class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium {{ $this->getStatusClasses() }}">
-                {{ match($this->membership->status) {
+                {{ match($this->getDisplayStatus()) {
                     'pending_change' => 'Awaiting Review',
                     'pending_payment' => 'Payment Required',
-                    default => ucfirst($this->membership->status),
+                    default => ucfirst($this->getDisplayStatus()),
                 } }}
             </span>
         </div>
