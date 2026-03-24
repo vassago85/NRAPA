@@ -22,6 +22,7 @@ new class extends Component {
     public bool $notify_membership_expiring = true;
     public bool $notify_activity_submitted = true;
     public bool $notify_knowledge_test_completed = true;
+    public bool $notify_endorsement_request = true;
     public bool $notify_system_errors = false;
 
     // License Expiry Notifications (All Members)
@@ -48,6 +49,7 @@ new class extends Component {
             $this->notify_membership_expiring = $prefs->notify_membership_expiring;
             $this->notify_activity_submitted = $prefs->notify_activity_submitted;
             $this->notify_knowledge_test_completed = $prefs->notify_knowledge_test_completed;
+            $this->notify_endorsement_request = $prefs->notify_endorsement_request ?? true;
             $this->notify_system_errors = $prefs->notify_system_errors;
             $this->notify_license_expiry = $prefs->notify_license_expiry ?? true;
             
@@ -56,6 +58,31 @@ new class extends Component {
             $this->license_expiry_18m = in_array(18, $intervals);
             $this->license_expiry_12m = in_array(12, $intervals);
             $this->license_expiry_6m = in_array(6, $intervals);
+        }
+    }
+
+    public function sendTestNotification(): void
+    {
+        $prefs = auth()->user()->notificationPreference;
+
+        if (! $prefs || ! $prefs->ntfy_enabled || ! $prefs->ntfy_topic) {
+            session()->flash('error', 'Please save your NTFY settings first (enable NTFY and set a topic).');
+            return;
+        }
+
+        $ntfy = app(\App\Services\NtfyService::class);
+        $success = $ntfy->send(
+            $prefs->ntfy_topic,
+            'NRAPA Test Notification',
+            'If you see this, ntfy is working correctly! ' . now()->format('H:i:s'),
+            'default',
+            ['white_check_mark', 'test_tube']
+        );
+
+        if ($success) {
+            session()->flash('success', 'Test notification sent! Check your ntfy app.');
+        } else {
+            session()->flash('error', 'Failed to send test notification. Check the topic name and try again.');
         }
     }
 
@@ -97,6 +124,7 @@ new class extends Component {
                 'notify_membership_expiring' => $this->notify_membership_expiring,
                 'notify_activity_submitted' => $this->notify_activity_submitted,
                 'notify_knowledge_test_completed' => $this->notify_knowledge_test_completed,
+                'notify_endorsement_request' => $this->notify_endorsement_request,
                 'notify_system_errors' => $this->notify_system_errors,
             ]);
         }
@@ -188,7 +216,6 @@ new class extends Component {
             </div>
 
         @if(auth()->user()->hasRoleLevel(\App\Models\User::ROLE_ADMIN))
-            <form wire:submit="save" class="space-y-6">
                 <!-- NTFY Configuration -->
                 <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-4">
                     <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">NTFY Configuration</h3>
@@ -214,6 +241,14 @@ new class extends Component {
                             </p>
                             @error('ntfy_topic') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                         </div>
+
+                        <button type="button" wire:click="sendTestNotification"
+                            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-amber-700 bg-amber-100 border border-amber-300 rounded-lg hover:bg-amber-200 dark:text-amber-300 dark:bg-amber-900/30 dark:border-amber-700 dark:hover:bg-amber-900/50 transition-colors">
+                            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                            </svg>
+                            Send Test Notification
+                        </button>
                     </div>
                 </div>
 
@@ -274,6 +309,7 @@ new class extends Component {
                             'notify_membership_expiring' => ['Membership Expiring', 'Get notified about expiring memberships'],
                             'notify_activity_submitted' => ['Activity Submitted', 'Get notified when an activity is submitted for review'],
                             'notify_knowledge_test_completed' => ['Knowledge Test Completed', 'Get notified when a member completes their test'],
+                            'notify_endorsement_request' => ['Endorsement Request', 'Get notified when a member submits an endorsement request'],
                         ] as $key => [$label, $description])
                             <div class="flex items-center justify-between py-2 border-b border-zinc-100 dark:border-zinc-700 last:border-0">
                                 <div>

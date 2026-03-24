@@ -181,6 +181,16 @@ class ExcelMemberImporter
                 }
             }
 
+            if ($imported > 0) {
+                try {
+                    app(NtfyService::class)->notifyAdmins(
+                        'new_member',
+                        "Bulk Import: {$imported} Members",
+                        "{$imported} members imported. {$emailsSent} welcome emails queued. {$failed} failed.",
+                    );
+                } catch (Exception $e) {}
+            }
+
             return [
                 'success' => true,
                 'imported' => $imported,

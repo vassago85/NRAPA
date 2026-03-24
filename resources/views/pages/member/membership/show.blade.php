@@ -44,6 +44,15 @@ new #[Title('Membership Details')] class extends Component {
         $this->membership->update(['proof_of_payment_path' => $path]);
         $this->proofOfPayment = null;
 
+        try {
+            $user = auth()->user();
+            app(\App\Services\NtfyService::class)->notifyAdmins(
+                'payment_received',
+                'Proof of Payment Uploaded',
+                "{$user->name} ({$this->membership->membership_number}) uploaded proof of payment. Pending review.",
+            );
+        } catch (\Exception $e) {}
+
         session()->flash('success', 'Proof of payment uploaded successfully. It will be reviewed by an administrator.');
     }
 

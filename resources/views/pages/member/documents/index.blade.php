@@ -231,6 +231,14 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             'competencyIssueDate',
         ]);
 
+        try {
+            app(\App\Services\NtfyService::class)->notifyAdmins(
+                'document_uploaded',
+                'Document Uploaded',
+                "{$user->name} uploaded: {$documentType->name}. Pending review.",
+            );
+        } catch (\Exception $e) {}
+
         if (isset($certificate) && $certificate) {
             session()->flash('success', 'Document uploaded successfully. Your Membership Certificate has been automatically issued!');
         } else {

@@ -347,6 +347,14 @@ new class extends Component {
             ]);
         }
 
+        try {
+            app(\App\Services\NtfyService::class)->notifyAdmins(
+                'activity_submitted',
+                'Activity Submitted',
+                auth()->user()->name . " submitted an activity ({$this->track}) for {$this->activity_date}. Pending review.",
+            );
+        } catch (\Exception $e) {}
+
         session()->flash('success', 'Activity submitted successfully and is pending review.');
         $this->redirect(route('activities.index'));
     }

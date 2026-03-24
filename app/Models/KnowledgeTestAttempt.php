@@ -279,6 +279,17 @@ class KnowledgeTestAttempt extends Model
 
         // If no written questions, finalize immediately
         $this->finalizeIfComplete();
+
+        try {
+            $user = $this->user ?? User::find($this->user_id);
+            $testName = $this->knowledgeTest?->title ?? 'Knowledge Test';
+            $status = $this->passed ? 'PASSED' : ($this->isFullyMarked() ? 'FAILED' : 'submitted (pending marking)');
+            app(\App\Services\NtfyService::class)->notifyAdmins(
+                'knowledge_test_completed',
+                'Knowledge Test Completed',
+                "{$user->name} {$status}: {$testName}.",
+            );
+        } catch (\Exception $e) {}
     }
 
     /**
