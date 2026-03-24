@@ -31,6 +31,7 @@ new class extends Component {
 
         $this->reset('current_password', 'password', 'password_confirmation');
         $this->dispatch('password-updated');
+        session()->flash('password-success', 'Your password has been updated successfully.');
     }
 }; ?>
 
@@ -40,6 +41,17 @@ new class extends Component {
     </x-slot>
 
     <x-settings-layout :heading="__('Update password')" :subheading="__('Ensure your account is using a long, random password to stay secure')">
+        @if(session('password-success'))
+            <div class="mt-4 rounded-xl border border-emerald-300 bg-emerald-50 p-4 dark:border-emerald-700 dark:bg-emerald-900/30">
+                <div class="flex items-center gap-3">
+                    <svg class="size-5 flex-shrink-0 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p class="text-sm font-medium text-emerald-800 dark:text-emerald-200">{{ session('password-success') }}</p>
+                </div>
+            </div>
+        @endif
+
         <form wire:submit="updatePassword" class="mt-6 space-y-6">
             <div>
                 <label for="current_password" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Current password') }}</label>
