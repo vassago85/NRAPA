@@ -326,7 +326,11 @@ class User extends Authenticatable implements MustVerifyEmail
 
             try { \App\Models\CalibreRequest::where('user_id', $user->id)->delete(); } catch (\Exception $e) {}
             try { \App\Models\LoginLog::where('user_id', $user->id)->delete(); } catch (\Exception $e) {}
-            try { \App\Models\UserDeletionRequest::where('user_id', $user->id)->delete(); } catch (\Exception $e) {}
+            try {
+                \App\Models\UserDeletionRequest::where('user_id', $user->id)
+                    ->where('status', 'pending')
+                    ->update(['status' => 'approved', 'actioned_at' => now()]);
+            } catch (\Exception $e) {}
         });
     }
 

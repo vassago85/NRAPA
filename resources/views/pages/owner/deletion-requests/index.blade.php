@@ -2,6 +2,7 @@
 
 use App\Models\UserDeletionRequest;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -15,6 +16,11 @@ new #[Title('User Deletion Requests - Owner')] class extends Component {
     public bool $showRejectModal = false;
     public ?UserDeletionRequest $selectedRequest = null;
     public string $rejectionReason = '';
+
+    public function mount(): void
+    {
+        $this->resolveStaleRequests();
+    }
 
     public function updatedFilter(): void
     {
@@ -53,6 +59,31 @@ new #[Title('User Deletion Requests - Owner')] class extends Component {
         $this->selectedRequest = $request;
         $this->showRejectModal = true;
         $this->rejectionReason = '';
+    }
+
+    /**
+     * Auto-resolve pending requests where the user no longer exists
+     * or was previously soft-deleted (legacy deleted_at rows).
+     */
+    protected function resolveStaleRequests(): void
+    {
+        $stale = UserDeletionRequest::where('status', 'pending')->get();
+
+        foreach ($stale as $request) {
+            $userRow = DB::table('users')->where('id', $request->user_id)->first();
+
+            if (!$userRow || $userRow->deleted_at !== null) {
+                if ($userRow && $userRow->deleted_at !== null) {
+                    DB::table('users')->where('id', $userRow->id)->delete();
+                }
+
+                $request->update([
+                    'status' => UserDeletionRequest::STATUS_APPROVED,
+                    'actioned_by' => auth()->id(),
+                    'actioned_at' => now(),
+                ]);
+            }
+        }
     }
 
     public function approveRequest(): void
