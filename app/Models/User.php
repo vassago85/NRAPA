@@ -311,6 +311,12 @@ class User extends Authenticatable implements MustVerifyEmail
             try {
                 $memberships = \App\Models\Membership::withTrashed()
                     ->where('user_id', $user->id)->get();
+                $membershipIds = $memberships->pluck('id');
+                if ($membershipIds->isNotEmpty()) {
+                    \App\Models\Membership::withTrashed()
+                        ->whereIn('previous_membership_id', $membershipIds)
+                        ->update(['previous_membership_id' => null]);
+                }
                 foreach ($memberships as $membership) {
                     if ($membership->proof_of_payment_path) {
                         try { \Illuminate\Support\Facades\Storage::disk($disk)->delete($membership->proof_of_payment_path); } catch (\Exception $e) {}
@@ -326,10 +332,30 @@ class User extends Authenticatable implements MustVerifyEmail
 
             try { \App\Models\CalibreRequest::where('user_id', $user->id)->delete(); } catch (\Exception $e) {}
             try { \App\Models\LoginLog::where('user_id', $user->id)->delete(); } catch (\Exception $e) {}
+            try { \App\Models\KnowledgeTestAttempt::where('user_id', $user->id)->delete(); } catch (\Exception $e) {}
+            try { \Illuminate\Support\Facades\DB::table('dedicated_status_applications')->where('user_id', $user->id)->delete(); } catch (\Exception $e) {}
+            try { \Illuminate\Support\Facades\DB::table('comments')->where('author_id', $user->id)->delete(); } catch (\Exception $e) {}
+            try { \Illuminate\Support\Facades\DB::table('member_status_history')->where('user_id', $user->id)->delete(); } catch (\Exception $e) {}
+            try { \Illuminate\Support\Facades\DB::table('user_security_questions')->where('user_id', $user->id)->delete(); } catch (\Exception $e) {}
             try {
                 \App\Models\UserDeletionRequest::where('user_id', $user->id)
                     ->where('status', 'pending')
                     ->update(['status' => 'approved', 'actioned_at' => now()]);
+                \App\Models\UserDeletionRequest::where('user_id', $user->id)->delete();
+            } catch (\Exception $e) {}
+
+            // Null out admin-reference FKs so deleting an admin doesn't break other users' records
+            try {
+                \Illuminate\Support\Facades\DB::table('memberships')->where('approved_by', $user->id)->update(['approved_by' => null]);
+                \Illuminate\Support\Facades\DB::table('memberships')->where('suspended_by', $user->id)->update(['suspended_by' => null]);
+                \Illuminate\Support\Facades\DB::table('memberships')->where('revoked_by', $user->id)->update(['revoked_by' => null]);
+                \Illuminate\Support\Facades\DB::table('certificates')->where('issued_by', $user->id)->update(['issued_by' => null]);
+                \Illuminate\Support\Facades\DB::table('certificates')->where('revoked_by', $user->id)->update(['revoked_by' => null]);
+                \Illuminate\Support\Facades\DB::table('member_documents')->where('verified_by', $user->id)->update(['verified_by' => null]);
+                \Illuminate\Support\Facades\DB::table('knowledge_test_attempts')->where('marked_by', $user->id)->update(['marked_by' => null]);
+                \Illuminate\Support\Facades\DB::table('member_status_history')->where('changed_by', $user->id)->update(['changed_by' => null]);
+                \Illuminate\Support\Facades\DB::table('dedicated_status_applications')->where('reviewed_by', $user->id)->update(['reviewed_by' => null]);
+                \Illuminate\Support\Facades\DB::table('dedicated_status_applications')->where('approved_by', $user->id)->update(['approved_by' => null]);
             } catch (\Exception $e) {}
         });
     }
