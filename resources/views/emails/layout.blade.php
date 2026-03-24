@@ -86,14 +86,8 @@
                     {{-- ===== HEADER ===== --}}
                     <tr>
                         <td style="padding: 30px 30px 20px 30px; text-align: center;">
-                            @php
-                                $emailLogoPath = public_path('logo-nrapa-blue-text.png');
-                                $emailLogoData = file_exists($emailLogoPath)
-                                    ? 'data:image/png;base64,' . base64_encode(file_get_contents($emailLogoPath))
-                                    : config('app.url') . '/logo-nrapa-blue-text.png';
-                            @endphp
                             <div class="logo-wrap" style="display: inline-block; padding: 10px 16px; border-radius: 12px;">
-                                <img src="{{ $emailLogoData }}" alt="NRAPA" width="200" style="width: 200px; height: auto; display: block;" />
+                                <img src="{{ config('app.url') }}/logo-nrapa-blue-text.png" alt="NRAPA" width="200" style="width: 200px; height: auto; display: block;" />
                             </div>
                             @hasSection('heading')
                                 <h1 class="hd" style="color: #111827; margin: 16px 0 4px 0; font-size: 24px; font-weight: 700; line-height: 1.3;">
