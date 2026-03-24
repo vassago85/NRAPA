@@ -272,34 +272,6 @@ class EndorsementRequest extends Model
             $missing[] = ['slug' => 'identity-document', 'name' => 'ID', 'document_type_id' => null];
         }
 
-        // Proof of Address: single slug, with 3-month age check
-        $poaSlug = 'proof-of-address';
-        $poaType = DocumentType::where('slug', $poaSlug)->first();
-        if ($poaType) {
-            $validPoa = MemberDocument::where('user_id', $user->id)
-                ->where('document_type_id', $poaType->id)
-                ->where('status', 'verified')
-                ->where(function ($q) {
-                    $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
-                })
-                ->orderBy('verified_at', 'desc')
-                ->first();
-            $hasValidPoa = $validPoa !== null;
-            if ($hasValidPoa) {
-                $threeMonthsAgo = now()->subMonths(3);
-                if ($validPoa->verified_at && $validPoa->verified_at->lt($threeMonthsAgo)) {
-                    $hasValidPoa = false;
-                }
-            }
-            if (! $hasValidPoa) {
-                $missing[] = [
-                    'slug' => $poaSlug,
-                    'name' => 'Proof of Address',
-                    'document_type_id' => $poaType->id,
-                ];
-            }
-        }
-
         return $missing;
     }
 
