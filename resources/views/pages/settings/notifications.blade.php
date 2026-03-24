@@ -90,7 +90,7 @@ new class extends Component {
     {
         if (auth()->user()->hasRoleLevel(\App\Models\User::ROLE_ADMIN)) {
             $this->validate([
-                'ntfy_topic' => 'nullable|string|max:255|regex:/^[a-zA-Z0-9_-]+$/',
+                'ntfy_topic' => ['nullable', 'string', 'max:255', 'regex:/^[a-zA-Z0-9_-]*$/'],
                 'working_hours_start' => 'required|date_format:H:i',
                 'working_hours_end' => 'required|date_format:H:i|after:working_hours_start',
                 'working_days' => 'required|array|min:1',
@@ -158,6 +158,22 @@ new class extends Component {
         @if(session('success'))
             <div class="mb-6 p-4 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-xl">
                 <p class="text-emerald-700 dark:text-emerald-300">{{ session('success') }}</p>
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl">
+                <p class="text-red-700 dark:text-red-300">{{ session('error') }}</p>
+            </div>
+        @endif
+
+        @if($errors->any())
+            <div class="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl">
+                <ul class="list-disc list-inside text-sm text-red-700 dark:text-red-300">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
             </div>
         @endif
 
