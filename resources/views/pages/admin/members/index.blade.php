@@ -62,13 +62,16 @@ new #[Title('Members - Admin')] class extends Component {
                 });
             })
             ->when($this->status === 'active', function ($query) {
-                $query->whereHas('memberships', fn ($q) => $q->where('status', 'active'));
+                $query->whereHas('memberships', fn ($q) => $q->where('status', 'active')->where(fn ($sq) => $sq->whereNull('expires_at')->orWhere('expires_at', '>', now())));
             })
             ->when($this->status === 'pending', function ($query) {
                 $query->whereHas('memberships', fn ($q) => $q->where('status', 'applied'));
             })
             ->when($this->status === 'expired', function ($query) {
-                $query->whereHas('memberships', fn ($q) => $q->where('status', 'expired'));
+                $query->where(function ($q) {
+                    $q->whereHas('memberships', fn ($mq) => $mq->where('status', 'expired'))
+                      ->orWhereHas('memberships', fn ($mq) => $mq->where('status', 'active')->whereNotNull('expires_at')->where('expires_at', '<=', now()));
+                });
             })
             ->when($this->status === 'none', function ($query) {
                 $query->whereDoesntHave('memberships');
@@ -82,9 +85,12 @@ new #[Title('Members - Admin')] class extends Component {
     {
         return [
             'total' => User::where('is_admin', false)->count(),
-            'active' => User::whereHas('memberships', fn ($q) => $q->where('status', 'active'))->count(),
+            'active' => User::whereHas('memberships', fn ($q) => $q->where('status', 'active')->where(fn ($sq) => $sq->whereNull('expires_at')->orWhere('expires_at', '>', now())))->count(),
             'pending' => User::whereHas('memberships', fn ($q) => $q->where('status', 'applied'))->count(),
-            'expired' => User::whereHas('memberships', fn ($q) => $q->where('status', 'expired'))->count(),
+            'expired' => User::where(function ($q) {
+                $q->whereHas('memberships', fn ($mq) => $mq->where('status', 'expired'))
+                  ->orWhereHas('memberships', fn ($mq) => $mq->where('status', 'active')->whereNotNull('expires_at')->where('expires_at', '<=', now()));
+            })->count(),
         ];
     }
 
@@ -92,6 +98,9 @@ new #[Title('Members - Admin')] class extends Component {
     {
         $activeMembership = $user->activeMembership;
         if ($activeMembership) {
+            if ($activeMembership->expires_at && $activeMembership->expires_at->isPast()) {
+                return ['status' => 'Expired', 'class' => 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'];
+            }
             return ['status' => 'Active', 'class' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'];
         }
 
@@ -100,7 +109,12 @@ new #[Title('Members - Admin')] class extends Component {
             return ['status' => 'No Membership', 'class' => 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200'];
         }
 
-        return match($latestMembership->status) {
+        $displayStatus = $latestMembership->status;
+        if ($displayStatus === 'active' && $latestMembership->expires_at && $latestMembership->expires_at->isPast()) {
+            $displayStatus = 'expired';
+        }
+
+        return match($displayStatus) {
             'applied' => ['status' => 'Pending', 'class' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'],
             'approved' => ['status' => 'Approved', 'class' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'],
             'suspended' => ['status' => 'Suspended', 'class' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'],
