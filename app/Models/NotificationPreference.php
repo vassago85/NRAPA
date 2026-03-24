@@ -8,6 +8,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class NotificationPreference extends Model
 {
+    protected $attributes = [
+        'working_days' => '[1,2,3,4,5]',
+    ];
+
     protected $fillable = [
         'user_id',
         'ntfy_topic',
@@ -46,14 +50,6 @@ class NotificationPreference extends Model
             'notify_license_expiry' => 'boolean',
             'license_expiry_intervals' => 'array',
         ];
-    }
-
-    /**
-     * Get working_days with default value if null.
-     */
-    public function getWorkingDaysAttribute($value): array
-    {
-        return $value ?? [1, 2, 3, 4, 5]; // Mon-Fri default
     }
 
     public function user(): BelongsTo
