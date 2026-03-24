@@ -106,6 +106,17 @@ new #[Title('Dashboard')] class extends Component {
     }
 
     #[Computed]
+    public function expiredMembership(): ?Membership
+    {
+        $m = $this->activeMembership;
+        if (! $m || ! $m->expires_at) {
+            return null;
+        }
+
+        return $m->expires_at->isPast() ? $m : null;
+    }
+
+    #[Computed]
     public function pendingPaymentMembership()
     {
         // Get membership that is awaiting payment (applied status with payment reference)
@@ -419,6 +430,37 @@ new #[Title('Dashboard')] class extends Component {
                         </svg>
                         Dismiss
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Expired Membership Alert --}}
+    @if($this->expiredMembership)
+    @php $expMembership = $this->expiredMembership; @endphp
+    <div class="rounded-xl border-2 border-red-300 dark:border-red-700 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 p-6">
+        <div class="flex items-start gap-4">
+            <div class="flex size-14 flex-shrink-0 items-center justify-center rounded-xl bg-red-200 dark:bg-red-800">
+                <svg class="size-7 text-red-700 dark:text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-lg font-bold text-red-800 dark:text-red-200">Your Membership Has Expired</h3>
+                <p class="mt-1 text-sm text-red-700 dark:text-red-300">
+                    Your <strong>{{ $expMembership->type->name }}</strong> membership expired on
+                    <strong>{{ $expMembership->expires_at->format('d M Y') }}</strong>.
+                    Renew now to keep your membership active and retain access to endorsements, certificates, and all member benefits.
+                </p>
+                <div class="mt-4 flex flex-wrap items-center gap-3">
+                    <a href="{{ route('membership') }}" wire:navigate
+                        class="inline-flex items-center gap-2 rounded-lg bg-red-600 hover:bg-red-700 px-5 py-2.5 text-sm font-medium text-white transition-colors">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        Renew Membership
+                    </a>
                 </div>
             </div>
         </div>

@@ -211,7 +211,9 @@ new #[Title('My Membership')] class extends Component {
         $this->sendRenewalPaymentEmail($renewal);
 
         $this->showRenewalModal = false;
-        session()->flash('success', 'Your renewal application has been submitted! Payment instructions have been sent to your email.');
+        session()->flash('success', 'Your renewal has been submitted! Please complete your payment using the details below.');
+
+        $this->redirectRoute('dashboard', navigate: true);
     }
 
     protected function sendRenewalPaymentEmail(Membership $membership): void
@@ -272,6 +274,15 @@ new #[Title('My Membership')] class extends Component {
 
         $this->showChangeModal = false;
         session()->flash('success', 'Your membership change request has been submitted for review.');
+    }
+
+    public function getDisplayStatus(Membership $membership): string
+    {
+        if ($membership->status === 'active' && $membership->expires_at?->isPast()) {
+            return 'expired';
+        }
+
+        return $membership->status;
     }
 
     public function getStatusClasses(string $status): string
@@ -587,9 +598,10 @@ new #[Title('My Membership')] class extends Component {
                             <p class="text-sm text-zinc-500 dark:text-zinc-400">Applied {{ $membership->applied_at->format('d M Y') }}</p>
                         </div>
                     </div>
+                    @php $displayStatus = $this->getDisplayStatus($membership); @endphp
                     <div class="flex items-center gap-4">
-                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $this->getStatusClasses($membership->status) }}">
-                            {{ ucfirst(str_replace('_', ' ', $membership->status)) }}
+                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $this->getStatusClasses($displayStatus) }}">
+                            {{ ucfirst(str_replace('_', ' ', $displayStatus)) }}
                         </span>
                         <a href="{{ route('membership.show', $membership) }}" wire:navigate 
                             class="text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 font-medium">
@@ -613,11 +625,12 @@ new #[Title('My Membership')] class extends Component {
                     </thead>
                     <tbody class="divide-y divide-zinc-100 dark:divide-zinc-700">
                         @foreach($this->memberships as $membership)
+                        @php $displayStatus = $this->getDisplayStatus($membership); @endphp
                         <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/30 transition-colors">
                             <td class="px-6 py-3 text-zinc-900 dark:text-white">{{ $membership->type->name }}</td>
                             <td class="px-6 py-3">
-                                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {{ $this->getStatusClasses($membership->status) }}">
-                                    {{ ucfirst(str_replace('_', ' ', $membership->status)) }}
+                                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {{ $this->getStatusClasses($displayStatus) }}">
+                                    {{ ucfirst(str_replace('_', ' ', $displayStatus)) }}
                                 </span>
                             </td>
                             <td class="px-6 py-3 text-zinc-500 dark:text-zinc-400">{{ $membership->applied_at->format('d M Y') }}</td>
