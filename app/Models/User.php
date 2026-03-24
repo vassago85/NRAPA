@@ -128,7 +128,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public static function nextMemberNumber(): int
     {
-        return ((int) static::withTrashed()->max('member_number')) + 1;
+        return ((int) static::max('member_number')) + 1;
     }
 
     // ===== Relationships =====
