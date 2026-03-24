@@ -290,6 +290,8 @@ class User extends Authenticatable implements MustVerifyEmail
                 ]);
             }
 
+            try { \App\Models\ShootingActivity::where('user_id', $user->id)->delete(); } catch (\Exception $e) {}
+
             try {
                 $documents = \App\Models\MemberDocument::withTrashed()
                     ->where('user_id', $user->id)->get();
@@ -305,8 +307,6 @@ class User extends Authenticatable implements MustVerifyEmail
                     'user_id' => $user->id, 'error' => $e->getMessage(),
                 ]);
             }
-
-            try { \App\Models\ShootingActivity::where('user_id', $user->id)->delete(); } catch (\Exception $e) {}
 
             try {
                 $memberships = \App\Models\Membership::withTrashed()
