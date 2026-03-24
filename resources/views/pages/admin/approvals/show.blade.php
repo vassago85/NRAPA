@@ -5,6 +5,8 @@ use App\Models\Certificate;
 use App\Models\AuditLog;
 use App\Mail\MembershipApproved;
 use App\Mail\MembershipRejected;
+use App\Mail\PaymentInstructions;
+use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
@@ -112,8 +114,9 @@ new #[Title('Review Application - Admin')] class extends Component {
         // Issue welcome letter and membership card
         $this->issueWelcomeLetterAndCard($admin);
 
-        // Send welcome email
+        // Queue welcome email and payment instructions
         $this->sendApprovalEmail();
+        $this->sendPaymentEmail();
 
         // Log the action
         AuditLog::log(
@@ -124,7 +127,7 @@ new #[Title('Review Application - Admin')] class extends Component {
             $admin
         );
 
-        session()->flash('success', 'Membership approved, welcome letter issued, and welcome email sent!');
+        session()->flash('success', 'Membership approved, welcome letter issued, and emails queued!');
 
         $this->redirect(route('admin.approvals.index'), navigate: true);
     }
@@ -434,7 +437,7 @@ new #[Title('Review Application - Admin')] class extends Component {
             $user = $this->membership->user;
             $cardUrl = route('card');
 
-            Mail::to($user->email)->send(new MembershipApproved(
+            Mail::to($user->email)->queue(new MembershipApproved(
                 membership: $this->membership,
                 cardUrl: $cardUrl,
             ));
@@ -446,6 +449,29 @@ new #[Title('Review Application - Admin')] class extends Component {
                 'error' => $e->getMessage(),
             ]);
             // Don't fail the approval if email fails
+        }
+    }
+
+    protected function sendPaymentEmail(): void
+    {
+        if ($this->membership->source === 'import') {
+            return;
+        }
+
+        try {
+            $bankAccount = SystemSetting::getBankAccount();
+            $user = $this->membership->user;
+
+            Mail::to($user->email)->queue(new PaymentInstructions(
+                $this->membership->load('type', 'user', 'affiliatedClub'),
+                $bankAccount,
+                $this->membership->payment_reference,
+            ));
+        } catch (\Exception $e) {
+            Log::warning('Failed to send payment instructions on approval', [
+                'membership_id' => $this->membership->id,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 

@@ -1,6 +1,7 @@
 <?php
 
 use App\Mail\MembershipApproved;
+use App\Mail\PaymentInstructions;
 use App\Models\CalibreRequest;
 use App\Models\EndorsementRequest;
 use App\Models\MemberDocument;
@@ -270,6 +271,22 @@ new #[Title('All Approvals - Admin')] class extends Component {
                     'membership_id' => $membership->id,
                     'error' => $e->getMessage(),
                 ]);
+            }
+
+            if ($membership->source !== 'import' && $membership->user) {
+                try {
+                    $bankAccount = \App\Models\SystemSetting::getBankAccount();
+                    Mail::to($membership->user->email)->queue(new PaymentInstructions(
+                        $membership->load('type', 'user', 'affiliatedClub'),
+                        $bankAccount,
+                        $membership->payment_reference,
+                    ));
+                } catch (\Exception $e) {
+                    Log::warning('Failed to queue payment email on bulk approval', [
+                        'membership_id' => $membership->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
 
             $cleared++;
