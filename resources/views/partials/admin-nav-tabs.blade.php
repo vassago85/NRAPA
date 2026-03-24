@@ -73,6 +73,15 @@
                 Billing
             </a>
 
+            <a href="{{ route('admin.reports.index') }}" wire:navigate
+               class="flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 {{ $currentRoute === 'admin.reports.index' ? $active : $inactive }} transition-colors whitespace-nowrap">
+                <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z"/>
+                </svg>
+                Reports
+            </a>
+
             <div class="{{ $separator }}"></div>
 
             {{-- Configuration (group link) --}}

@@ -200,7 +200,7 @@ new class extends Component {
                     @endif
                 </div>
             </div>
-            <a href="{{ route('admin.members.index', ['filter' => 'active']) }}" wire:navigate class="mt-4 block text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium transition-colors">
+            <a href="{{ route('admin.members.index', ['status' => 'active']) }}" wire:navigate class="mt-4 block text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium transition-colors">
                 View active members →
             </a>
         </div>

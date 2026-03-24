@@ -20,7 +20,12 @@ RUN apk add --no-cache \
     npm \
     ttf-freefont \
     font-noto \
-    ca-certificates
+    ca-certificates \
+    tzdata
+
+# Set timezone to Johannesburg
+ENV TZ=Africa/Johannesburg
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \

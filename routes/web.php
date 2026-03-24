@@ -815,6 +815,15 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::livewire('members', 'pages::admin.members.index')->name('members.index');
     Route::livewire('members/create', 'pages::admin.members.create')->name('members.create');
     Route::livewire('members/import-failures', 'pages::admin.members.import-failures')->name('members.import-failures');
+    Route::get('members/download-template', function () {
+        $importer = new \App\Services\ExcelMemberImporter();
+        $tempPath = storage_path('app/temp/member_import_template.xlsx');
+        \Illuminate\Support\Facades\File::ensureDirectoryExists(dirname($tempPath));
+        $importer->generateTemplate($tempPath);
+        return response()->download($tempPath, 'member_import_template.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend();
+    })->name('members.download-template');
     Route::livewire('members/{user}', 'pages::admin.members.show')->name('members.show');
 
     // Certificates (admin can view all certificates)
@@ -996,6 +1005,9 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 
     // Billing Reports
     Route::livewire('billing', 'pages::admin.billing.index')->name('billing.index');
+
+    // Membership Reports
+    Route::livewire('reports', 'pages::admin.reports.index')->name('reports.index');
 
     // Document Verification
     Route::livewire('documents', 'pages::admin.documents.index')->name('documents.index');

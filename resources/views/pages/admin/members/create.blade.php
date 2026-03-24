@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\MembershipType;
+use App\Models\User;
 use App\Services\ExcelMemberImporter;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -23,6 +24,27 @@ new #[Title('Add Member - Admin')] class extends Component {
     public bool $activitiesUpToDate = false;
 
     public ?string $error = null;
+    public ?array $duplicateMatch = null;
+
+    public function updatedIdNumber(): void
+    {
+        $this->duplicateMatch = null;
+
+        $id = trim($this->idNumber);
+        if (strlen($id) < 6) {
+            return;
+        }
+
+        $existing = User::where('id_number', $id)->first();
+        if ($existing) {
+            $this->duplicateMatch = [
+                'name' => $existing->name,
+                'email' => $existing->email,
+                'member_number' => $existing->formatted_member_number,
+                'uuid' => $existing->uuid,
+            ];
+        }
+    }
 
     public function updatedMemberMode(): void
     {
@@ -41,6 +63,10 @@ new #[Title('Add Member - Admin')] class extends Component {
 
     public function addMember(): void
     {
+        if ($this->duplicateMatch) {
+            $this->error = "A member with ID number '{$this->idNumber}' already exists ({$this->duplicateMatch['name']} — {$this->duplicateMatch['member_number']}). Please check before proceeding.";
+            return;
+        }
         $this->validate([
             'memberMode' => 'required|in:import,new',
             'initials' => 'required|string|max:20',
@@ -197,9 +223,27 @@ new #[Title('Add Member - Admin')] class extends Component {
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div>
                             <label for="idNumber" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">ID Number</label>
-                            <input type="text" id="idNumber" wire:model="idNumber" placeholder="13-digit SA ID" maxlength="13"
-                                class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-mono focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
-                            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Date of birth is derived automatically</p>
+                            <input type="text" id="idNumber" wire:model.blur="idNumber" placeholder="13-digit SA ID" maxlength="13"
+                                class="w-full rounded-lg border {{ $duplicateMatch ? 'border-red-500 ring-1 ring-red-500' : 'border-zinc-300' }} bg-white px-3 py-2 text-sm font-mono focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                            @if($duplicateMatch)
+                                <div class="mt-2 rounded-lg border border-red-300 bg-red-50 p-3 dark:border-red-700 dark:bg-red-900/30">
+                                    <div class="flex items-start gap-2">
+                                        <svg class="mt-0.5 h-5 w-5 shrink-0 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.168 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/></svg>
+                                        <div>
+                                            <p class="text-sm font-semibold text-red-800 dark:text-red-300">Duplicate ID Number Found</p>
+                                            <p class="mt-1 text-sm text-red-700 dark:text-red-400">
+                                                This ID number is already assigned to
+                                                <a href="{{ route('admin.members.show', $duplicateMatch['uuid']) }}" class="font-semibold underline hover:text-red-900 dark:hover:text-red-200" wire:navigate>
+                                                    {{ $duplicateMatch['name'] }} ({{ $duplicateMatch['member_number'] }})
+                                                </a>
+                                            </p>
+                                            <p class="mt-0.5 text-xs text-red-600 dark:text-red-500">{{ $duplicateMatch['email'] }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            @else
+                                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Date of birth is derived automatically</p>
+                            @endif
                             @error('idNumber') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                         </div>
                         <div>

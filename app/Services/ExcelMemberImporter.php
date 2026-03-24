@@ -6,6 +6,7 @@ use App\Mail\ImportWelcome;
 use App\Models\ActivityType;
 use App\Models\EndorsementRequest;
 use App\Models\ImportFailure;
+use App\Models\KnowledgeTest;
 use App\Models\KnowledgeTestAttempt;
 use App\Models\Membership;
 use App\Models\MembershipType;
@@ -597,9 +598,17 @@ class ExcelMemberImporter
             return;
         }
 
-        $requiredTests = $membershipType->requiredKnowledgeTests()->get();
+        $dedicatedType = $membershipType->dedicated_type;
 
-        foreach ($requiredTests as $test) {
+        if ($membershipType->isLifetime() && !$dedicatedType) {
+            $dedicatedType = 'both';
+        }
+
+        $applicableTests = KnowledgeTest::active()
+            ->forDedicatedType($dedicatedType)
+            ->get();
+
+        foreach ($applicableTests as $test) {
             $alreadyPassed = KnowledgeTestAttempt::where('user_id', $user->id)
                 ->where('knowledge_test_id', $test->id)
                 ->where('passed', true)
@@ -637,40 +646,57 @@ class ExcelMemberImporter
         }
 
         $dedicatedType = $membershipType->dedicated_type;
-        $required = ($dedicatedType === 'hunter')
-            ? SystemSetting::get('endorsement_min_activities_hunter', EndorsementRequest::DEFAULT_MIN_ACTIVITIES_HUNTER)
-            : SystemSetting::get('endorsement_min_activities_sport', EndorsementRequest::DEFAULT_MIN_ACTIVITIES_SPORT);
 
-        $currentYear = now()->year;
-        $existingCount = ShootingActivity::where('user_id', $user->id)
-            ->where('status', 'approved')
-            ->whereBetween('activity_date', [
-                \Carbon\Carbon::create($currentYear, 1, 1)->startOfDay(),
-                \Carbon\Carbon::create($currentYear, 10, 31)->endOfDay(),
-            ])
-            ->count();
-
-        $needed = max(0, $required - $existingCount);
-        if ($needed === 0) {
-            return;
+        if ($membershipType->isLifetime() && !$dedicatedType) {
+            $dedicatedType = 'both';
         }
 
-        $activityType = ActivityType::active()
-            ->forTrack($dedicatedType === 'hunter' ? 'hunting' : 'sport')
-            ->first() ?? ActivityType::active()->first();
+        $tracks = match ($dedicatedType) {
+            'hunter' => [['track' => 'hunting', 'setting' => 'endorsement_min_activities_hunter', 'default' => EndorsementRequest::DEFAULT_MIN_ACTIVITIES_HUNTER]],
+            'sport', 'sport_shooter' => [['track' => 'sport', 'setting' => 'endorsement_min_activities_sport', 'default' => EndorsementRequest::DEFAULT_MIN_ACTIVITIES_SPORT]],
+            'both' => [
+                ['track' => 'hunting', 'setting' => 'endorsement_min_activities_hunter', 'default' => EndorsementRequest::DEFAULT_MIN_ACTIVITIES_HUNTER],
+                ['track' => 'sport', 'setting' => 'endorsement_min_activities_sport', 'default' => EndorsementRequest::DEFAULT_MIN_ACTIVITIES_SPORT],
+            ],
+            default => [],
+        };
 
-        for ($i = 0; $i < $needed; $i++) {
-            ShootingActivity::create([
-                'uuid' => Str::uuid(),
-                'user_id' => $user->id,
-                'activity_type_id' => $activityType?->id,
-                'track' => $dedicatedType === 'hunter' ? 'hunting' : 'sport',
-                'activity_date' => now()->subDays($i + 1)->toDateString(),
-                'description' => 'Imported — prior activities from previous system',
-                'status' => 'approved',
-                'verified_at' => now(),
-                'verified_by' => auth()->id(),
-            ]);
+        $currentYear = now()->year;
+
+        foreach ($tracks as $trackConfig) {
+            $required = SystemSetting::get($trackConfig['setting'], $trackConfig['default']);
+
+            $existingCount = ShootingActivity::where('user_id', $user->id)
+                ->where('status', 'approved')
+                ->where('track', $trackConfig['track'])
+                ->whereBetween('activity_date', [
+                    \Carbon\Carbon::create($currentYear, 1, 1)->startOfDay(),
+                    \Carbon\Carbon::create($currentYear, 10, 31)->endOfDay(),
+                ])
+                ->count();
+
+            $needed = max(0, $required - $existingCount);
+            if ($needed === 0) {
+                continue;
+            }
+
+            $activityType = ActivityType::active()
+                ->forTrack($trackConfig['track'])
+                ->first() ?? ActivityType::active()->first();
+
+            for ($i = 0; $i < $needed; $i++) {
+                ShootingActivity::create([
+                    'uuid' => Str::uuid(),
+                    'user_id' => $user->id,
+                    'activity_type_id' => $activityType?->id,
+                    'track' => $trackConfig['track'],
+                    'activity_date' => now()->subDays($i + 1)->toDateString(),
+                    'description' => 'Imported — prior activities from previous system',
+                    'status' => 'approved',
+                    'verified_at' => now(),
+                    'verified_by' => auth()->id(),
+                ]);
+            }
         }
     }
 

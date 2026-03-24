@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use App\Models\Membership;
+use App\Models\MembershipType;
 use App\Models\UserDeletionRequest;
 use App\Models\AccountResetLog;
 use App\Models\UserSecurityQuestion;
@@ -40,6 +41,25 @@ new #[Title('Member Details - Admin')] class extends Component {
     public array $securityAnswers = [];
     public bool $verificationPassed = false;
     public ?string $verificationError = null;
+
+    // Edit profile properties
+    public bool $showEditProfileModal = false;
+    public string $editName = '';
+    public string $editEmail = '';
+    public string $editIdNumber = '';
+    public string $editPhone = '';
+    public string $editDateOfBirth = '';
+    public string $editPhysicalAddress = '';
+    public string $editPostalAddress = '';
+
+    // Edit membership properties
+    public bool $showEditMembershipModal = false;
+    public ?int $editMembershipId = null;
+    public string $editMembershipTypeId = '';
+    public string $editMembershipStatus = '';
+    public string $editMembershipExpiresAt = '';
+    public string $editMembershipActivatedAt = '';
+    public string $editMembershipNotes = '';
 
     public function mount(User $user): void
     {
@@ -544,6 +564,106 @@ new #[Title('Member Details - Admin')] class extends Component {
         return KnowledgeTest::active()->orderBy('name')->get();
     }
 
+    #[Computed]
+    public function membershipTypes()
+    {
+        return MembershipType::where('is_active', true)->orderBy('name')->get();
+    }
+
+    public function openEditProfileModal(): void
+    {
+        $this->editName = $this->user->name;
+        $this->editEmail = $this->user->email;
+        $this->editIdNumber = $this->user->id_number ?? '';
+        $this->editPhone = $this->user->phone ?? '';
+        $this->editDateOfBirth = $this->user->date_of_birth?->format('Y-m-d') ?? '';
+        $this->editPhysicalAddress = $this->user->physical_address ?? '';
+        $this->editPostalAddress = $this->user->postal_address ?? '';
+        $this->showEditProfileModal = true;
+    }
+
+    public function saveProfile(): void
+    {
+        $this->validate([
+            'editName' => 'required|string|max:255',
+            'editEmail' => 'required|email|max:255|unique:users,email,' . $this->user->id,
+            'editIdNumber' => 'nullable|string|max:13',
+            'editPhone' => 'nullable|string|max:20',
+            'editDateOfBirth' => 'nullable|date',
+            'editPhysicalAddress' => 'nullable|string|max:500',
+            'editPostalAddress' => 'nullable|string|max:500',
+        ]);
+
+        $this->user->update([
+            'name' => $this->editName,
+            'email' => $this->editEmail,
+            'id_number' => $this->editIdNumber ?: null,
+            'phone' => $this->editPhone ?: null,
+            'date_of_birth' => $this->editDateOfBirth ?: null,
+            'physical_address' => $this->editPhysicalAddress ?: null,
+            'postal_address' => $this->editPostalAddress ?: null,
+        ]);
+
+        $this->user->refresh();
+        $this->showEditProfileModal = false;
+        session()->flash('success', 'Member profile updated successfully.');
+    }
+
+    public function openEditMembershipModal(?int $membershipId = null): void
+    {
+        $membership = $membershipId
+            ? $this->user->memberships->firstWhere('id', $membershipId)
+            : $this->user->memberships->first();
+
+        if (!$membership) {
+            session()->flash('error', 'No membership found to edit.');
+            return;
+        }
+
+        $this->editMembershipId = $membership->id;
+        $this->editMembershipTypeId = (string) $membership->membership_type_id;
+        $this->editMembershipStatus = $membership->status;
+        $this->editMembershipExpiresAt = $membership->expires_at?->format('Y-m-d') ?? '';
+        $this->editMembershipActivatedAt = $membership->activated_at?->format('Y-m-d') ?? '';
+        $this->editMembershipNotes = $membership->notes ?? '';
+        $this->showEditMembershipModal = true;
+    }
+
+    public function saveMembership(): void
+    {
+        $this->validate([
+            'editMembershipTypeId' => 'required|exists:membership_types,id',
+            'editMembershipStatus' => 'required|in:applied,approved,active,suspended,revoked,expired',
+            'editMembershipExpiresAt' => 'nullable|date',
+            'editMembershipActivatedAt' => 'nullable|date',
+            'editMembershipNotes' => 'nullable|string|max:1000',
+        ]);
+
+        $membership = Membership::findOrFail($this->editMembershipId);
+
+        $oldTypeId = $membership->membership_type_id;
+        $oldStatus = $membership->status;
+
+        $membership->update([
+            'membership_type_id' => $this->editMembershipTypeId,
+            'status' => $this->editMembershipStatus,
+            'expires_at' => $this->editMembershipExpiresAt ?: null,
+            'activated_at' => $this->editMembershipActivatedAt ?: null,
+            'notes' => $this->editMembershipNotes ?: null,
+        ]);
+
+        if ($this->editMembershipStatus === 'active' && $oldStatus !== 'active' && !$membership->approved_at) {
+            $membership->update([
+                'approved_at' => now(),
+                'approved_by' => auth()->id(),
+            ]);
+        }
+
+        $this->user->load(['memberships.type', 'memberships.approver', 'activeMembership.type']);
+        $this->showEditMembershipModal = false;
+        session()->flash('success', 'Membership updated successfully.');
+    }
+
     public function getStatusClasses(string $status): string
     {
         return match($status) {
@@ -654,8 +774,12 @@ new #[Title('Member Details - Admin')] class extends Component {
     <div class="grid gap-6 lg:grid-cols-3">
         {{-- Member Info --}}
         <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
-            <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
+            <div class="flex items-center justify-between border-b border-zinc-200 p-6 dark:border-zinc-700">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Member Information</h2>
+                <button wire:click="openEditProfileModal" class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600 transition-colors">
+                    <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/></svg>
+                    Edit
+                </button>
             </div>
             <div class="p-6">
                 <dl class="space-y-4">
@@ -664,25 +788,35 @@ new #[Title('Member Details - Admin')] class extends Component {
                         <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $this->user->name }}</dd>
                     </div>
                     <div>
+                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Member Number</dt>
+                        <dd class="mt-1 font-mono font-medium text-zinc-900 dark:text-white">{{ $this->user->formatted_member_number }}</dd>
+                    </div>
+                    <div>
                         <dt class="text-sm text-zinc-500 dark:text-zinc-400">Email</dt>
                         <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $this->user->email }}</dd>
                     </div>
-                    @if($this->user->phone)
+                    <div>
+                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">ID Number</dt>
+                        <dd class="mt-1 font-mono font-medium text-zinc-900 dark:text-white">{{ $this->user->id_number ?? '—' }}</dd>
+                    </div>
                     <div>
                         <dt class="text-sm text-zinc-500 dark:text-zinc-400">Phone</dt>
-                        <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $this->user->phone }}</dd>
+                        <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $this->user->phone ?? '—' }}</dd>
                     </div>
-                    @endif
-                    @if($this->user->date_of_birth)
                     <div>
                         <dt class="text-sm text-zinc-500 dark:text-zinc-400">Date of Birth</dt>
-                        <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $this->user->date_of_birth->format('d M Y') }}</dd>
+                        <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $this->user->date_of_birth?->format('d M Y') ?? '—' }}</dd>
                     </div>
-                    @endif
                     @if($this->user->physical_address)
                     <div>
                         <dt class="text-sm text-zinc-500 dark:text-zinc-400">Physical Address</dt>
                         <dd class="mt-1 text-sm text-zinc-900 dark:text-white">{{ $this->user->physical_address }}</dd>
+                    </div>
+                    @endif
+                    @if($this->user->postal_address)
+                    <div>
+                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Postal Address</dt>
+                        <dd class="mt-1 text-sm text-zinc-900 dark:text-white">{{ $this->user->postal_address }}</dd>
                     </div>
                     @endif
                     <div>
@@ -710,8 +844,14 @@ new #[Title('Member Details - Admin')] class extends Component {
 
         {{-- Current Membership --}}
         <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800 lg:col-span-2">
-            <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
+            <div class="flex items-center justify-between border-b border-zinc-200 p-6 dark:border-zinc-700">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Current Membership</h2>
+                @if($this->activeMembership)
+                <button wire:click="openEditMembershipModal({{ $this->activeMembership->id }})" class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600 transition-colors">
+                    <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/></svg>
+                    Edit
+                </button>
+                @endif
             </div>
             <div class="p-6">
                 @if($this->activeMembership)
@@ -815,11 +955,16 @@ new #[Title('Member Details - Admin')] class extends Component {
                             @endif
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-sm">
-                            @if($membership->status === 'applied')
-                            <a href="{{ route('admin.approvals.show', $membership) }}" wire:navigate class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
-                                Review
-                            </a>
-                            @endif
+                            <div class="flex items-center gap-2">
+                                <button wire:click="openEditMembershipModal({{ $membership->id }})" class="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors" title="Edit">
+                                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z"/></svg>
+                                </button>
+                                @if($membership->status === 'applied')
+                                <a href="{{ route('admin.approvals.show', $membership) }}" wire:navigate class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
+                                    Review
+                                </a>
+                                @endif
+                            </div>
                         </td>
                     </tr>
                     @endforeach
@@ -1535,6 +1680,128 @@ new #[Title('Member Details - Admin')] class extends Component {
     @endif
 
     {{-- Mark Knowledge Test Complete Modal --}}
+    {{-- Edit Profile Modal --}}
+    @if($showEditProfileModal)
+    <div class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div wire:click="$set('showEditProfileModal', false)" class="fixed inset-0 bg-black/50"></div>
+            <div class="relative w-full max-w-lg rounded-xl bg-white shadow-xl dark:bg-zinc-800">
+                <div class="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-700">
+                    <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Edit Member Profile</h3>
+                    <button wire:click="$set('showEditProfileModal', false)" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <form wire:submit="saveProfile" class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Full Name <span class="text-red-500">*</span></label>
+                        <input type="text" wire:model="editName" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                        @error('editName') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Email <span class="text-red-500">*</span></label>
+                        <input type="email" wire:model="editEmail" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                        @error('editEmail') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">ID Number</label>
+                            <input type="text" wire:model="editIdNumber" maxlength="13" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-mono focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                            @error('editIdNumber') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Phone</label>
+                            <input type="text" wire:model="editPhone" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                            @error('editPhone') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Date of Birth</label>
+                        <input type="date" wire:model="editDateOfBirth" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                        @error('editDateOfBirth') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Physical Address</label>
+                        <textarea wire:model="editPhysicalAddress" rows="2" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white"></textarea>
+                        @error('editPhysicalAddress') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Postal Address</label>
+                        <textarea wire:model="editPostalAddress" rows="2" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white"></textarea>
+                        @error('editPostalAddress') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div class="flex justify-end gap-3 pt-2 border-t border-zinc-200 dark:border-zinc-700">
+                        <button type="button" wire:click="$set('showEditProfileModal', false)" class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 transition-colors">Cancel</button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Edit Membership Modal --}}
+    @if($showEditMembershipModal)
+    <div class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div wire:click="$set('showEditMembershipModal', false)" class="fixed inset-0 bg-black/50"></div>
+            <div class="relative w-full max-w-lg rounded-xl bg-white shadow-xl dark:bg-zinc-800">
+                <div class="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-700">
+                    <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Edit Membership</h3>
+                    <button wire:click="$set('showEditMembershipModal', false)" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <form wire:submit="saveMembership" class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Membership Type <span class="text-red-500">*</span></label>
+                        <select wire:model="editMembershipTypeId" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                            @foreach($this->membershipTypes as $type)
+                            <option value="{{ $type->id }}">{{ $type->name }}</option>
+                            @endforeach
+                        </select>
+                        @error('editMembershipTypeId') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Status <span class="text-red-500">*</span></label>
+                        <select wire:model="editMembershipStatus" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                            <option value="applied">Applied</option>
+                            <option value="approved">Approved</option>
+                            <option value="active">Active</option>
+                            <option value="suspended">Suspended</option>
+                            <option value="revoked">Revoked</option>
+                            <option value="expired">Expired</option>
+                        </select>
+                        @error('editMembershipStatus') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Activated On</label>
+                            <input type="date" wire:model="editMembershipActivatedAt" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                            @error('editMembershipActivatedAt') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Expires On</label>
+                            <input type="date" wire:model="editMembershipExpiresAt" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Leave blank for lifetime memberships</p>
+                            @error('editMembershipExpiresAt') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Admin Notes</label>
+                        <textarea wire:model="editMembershipNotes" rows="3" placeholder="Reason for change..." class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white"></textarea>
+                        @error('editMembershipNotes') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div class="flex justify-end gap-3 pt-2 border-t border-zinc-200 dark:border-zinc-700">
+                        <button type="button" wire:click="$set('showEditMembershipModal', false)" class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 transition-colors">Cancel</button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endif
+
     @if($showMarkKnowledgeTestModal)
     <div class="fixed inset-0 z-50 overflow-y-auto">
         <div class="flex min-h-screen items-center justify-center p-4">
