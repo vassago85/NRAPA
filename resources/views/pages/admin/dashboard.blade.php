@@ -34,7 +34,8 @@ new class extends Component {
 
         $this->activeMembers = User::where('role', User::ROLE_MEMBER)
             ->whereHas('memberships', function ($query) {
-                $query->where('status', 'active');
+                $query->where('status', 'active')
+                    ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()));
             })
             ->count();
 
