@@ -48,6 +48,12 @@ new #[Title('Membership Reports - Admin')] class extends Component {
             ? round(($lifetimeActiveCount / $activeCount) * 100, 1)
             : 0;
 
+        $expectedRevenue = Membership::where('status', 'active')
+            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->whereHas('type', fn ($q) => $q->where('requires_renewal', true))
+            ->join('membership_types', 'memberships.membership_type_id', '=', 'membership_types.id')
+            ->sum('membership_types.renewal_price');
+
         return [
             'total' => $totalWithMembership,
             'active' => $activeCount,
@@ -55,6 +61,7 @@ new #[Title('Membership Reports - Admin')] class extends Component {
             'pending' => $pendingCount,
             'lifetime' => $lifetimeActiveCount,
             'lifetime_percent' => $lifetimePercent,
+            'expected_revenue' => (float) $expectedRevenue,
         ];
     }
 
@@ -106,19 +113,26 @@ new #[Title('Membership Reports - Admin')] class extends Component {
             if ($this->statusFilter === 'expired' && $expired === 0) continue;
             if ($this->statusFilter === 'pending' && $pending === 0) continue;
 
+            $renewalPrice = (float) ($type->renewal_price ?? 0);
+            $initialPrice = (float) ($type->initial_price ?? 0);
+            $requiresRenewal = (bool) $type->requires_renewal;
+            $expectedRevenue = $requiresRenewal ? $active * $renewalPrice : 0;
+
             $rows[] = [
                 'id' => $type->id,
                 'name' => $type->name,
                 'slug' => $type->slug,
                 'dedicated_type' => $type->dedicated_type,
                 'duration_type' => $type->duration_type,
+                'requires_renewal' => $requiresRenewal,
                 'active' => $active,
                 'expired' => $expired,
                 'pending' => $pending,
                 'total' => $total,
                 'active_percent' => $totalActive > 0 ? round(($active / $totalActive) * 100, 1) : 0,
-                'renewal_price' => $type->renewal_price,
-                'initial_price' => $type->initial_price,
+                'renewal_price' => $renewalPrice,
+                'initial_price' => $initialPrice,
+                'expected_revenue' => $expectedRevenue,
             ];
         }
 
@@ -160,7 +174,9 @@ new #[Title('Membership Reports - Admin')] class extends Component {
     {
         $rows = $this->typeBreakdown;
         $data = [];
+        $totalRevenue = 0;
         foreach ($rows as $row) {
+            $totalRevenue += $row['expected_revenue'];
             $data[] = [
                 $row['name'],
                 $row['dedicated_type'] ? ucfirst($row['dedicated_type']) : 'None',
@@ -170,14 +186,16 @@ new #[Title('Membership Reports - Admin')] class extends Component {
                 (string) $row['pending'],
                 (string) $row['total'],
                 $row['active_percent'] . '%',
-                $row['initial_price'] ? 'R' . number_format($row['initial_price'], 2) : '',
-                $row['renewal_price'] ? 'R' . number_format($row['renewal_price'], 2) : '',
+                'R' . number_format($row['initial_price'], 2),
+                $row['requires_renewal'] ? 'R' . number_format($row['renewal_price'], 2) : 'N/A',
+                $row['requires_renewal'] ? 'R' . number_format($row['expected_revenue'], 2) : 'N/A',
             ];
         }
+        $data[] = ['TOTAL', '', '', '', '', '', '', '', '', '', 'R' . number_format($totalRevenue, 2)];
 
         $this->dispatch('download-csv', [
             'data' => $data,
-            'headers' => ['Membership Type', 'Dedicated Type', 'Duration', 'Active', 'Expired', 'Pending', 'Total', '% of Active', 'Initial Price', 'Renewal Price'],
+            'headers' => ['Membership Type', 'Dedicated Type', 'Duration', 'Active', 'Expired', 'Pending', 'Total', '% of Active', 'Sign-up Price', 'Renewal Price', 'Est. Annual Revenue'],
             'filename' => 'membership-report-' . now()->format('Y-m-d') . '.csv',
         ]);
     }
@@ -219,7 +237,7 @@ new #[Title('Membership Reports - Admin')] class extends Component {
 
     {{-- Summary Cards --}}
     @php $stats = $this->summaryStats; @endphp
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
         <div class="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-800">
             <p class="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Total Members</p>
             <p class="mt-2 text-3xl font-bold text-zinc-900 dark:text-white">{{ number_format($stats['total']) }}</p>
@@ -250,6 +268,11 @@ new #[Title('Membership Reports - Admin')] class extends Component {
             <p class="mt-1 text-xs {{ $stats['lifetime_percent'] > 30 ? 'text-red-600 dark:text-red-400' : ($stats['lifetime_percent'] > 15 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400') }}">
                 of active members
             </p>
+        </div>
+        <div class="rounded-xl border-2 border-emerald-300 bg-emerald-50 p-5 dark:border-emerald-700 dark:bg-emerald-900/20">
+            <p class="text-xs font-medium uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Expected Annual Revenue</p>
+            <p class="mt-2 text-2xl font-bold text-emerald-700 dark:text-emerald-300">R{{ number_format($stats['expected_revenue'], 0) }}</p>
+            <p class="mt-1 text-xs text-emerald-600 dark:text-emerald-400">if all active renew</p>
         </div>
     </div>
 
@@ -295,12 +318,13 @@ new #[Title('Membership Reports - Admin')] class extends Component {
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">% of Active</th>
                         <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Sign-up</th>
                         <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Renewal</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Est. Revenue</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
                     @php
                         $rows = $this->typeBreakdown;
-                        $totals = ['active' => 0, 'expired' => 0, 'pending' => 0, 'total' => 0];
+                        $totals = ['active' => 0, 'expired' => 0, 'pending' => 0, 'total' => 0, 'revenue' => 0];
                     @endphp
                     @forelse($rows as $row)
                     @php
@@ -308,6 +332,7 @@ new #[Title('Membership Reports - Admin')] class extends Component {
                         $totals['expired'] += $row['expired'];
                         $totals['pending'] += $row['pending'];
                         $totals['total'] += $row['total'];
+                        $totals['revenue'] += $row['expected_revenue'];
                     @endphp
                     <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
                         <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-zinc-900 dark:text-white">
@@ -336,15 +361,26 @@ new #[Title('Membership Reports - Admin')] class extends Component {
                             </div>
                         </td>
                         <td class="whitespace-nowrap px-4 py-4 text-right text-sm text-zinc-600 dark:text-zinc-400">
-                            @if($row['initial_price']) R{{ number_format($row['initial_price'], 0) }} @else — @endif
+                            @if($row['initial_price']) R{{ number_format($row['initial_price'], 0) }} @else <span class="text-zinc-400 dark:text-zinc-500">R0</span> @endif
                         </td>
                         <td class="whitespace-nowrap px-4 py-4 text-right text-sm text-zinc-600 dark:text-zinc-400">
-                            @if($row['renewal_price']) R{{ number_format($row['renewal_price'], 0) }} @else — @endif
+                            @if($row['requires_renewal'])
+                                @if($row['renewal_price']) R{{ number_format($row['renewal_price'], 0) }} @else <span class="text-zinc-400 dark:text-zinc-500">R0</span> @endif
+                            @else
+                                <span class="text-zinc-400 dark:text-zinc-500">—</span>
+                            @endif
+                        </td>
+                        <td class="whitespace-nowrap px-4 py-4 text-right text-sm font-medium {{ $row['expected_revenue'] > 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-zinc-400 dark:text-zinc-500' }}">
+                            @if($row['requires_renewal'])
+                                R{{ number_format($row['expected_revenue'], 0) }}
+                            @else
+                                —
+                            @endif
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="9" class="px-6 py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">No memberships match the current filters.</td>
+                        <td colspan="10" class="px-6 py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">No memberships match the current filters.</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -360,6 +396,7 @@ new #[Title('Membership Reports - Admin')] class extends Component {
                         <td class="px-6 py-4 text-right text-xs font-bold text-zinc-600 dark:text-zinc-400">100%</td>
                         <td></td>
                         <td></td>
+                        <td class="whitespace-nowrap px-4 py-4 text-right text-sm font-bold text-emerald-700 dark:text-emerald-300">R{{ number_format($totals['revenue'], 0) }}</td>
                     </tr>
                 </tfoot>
                 @endif

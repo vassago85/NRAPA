@@ -195,34 +195,30 @@ new #[Title('Members - Admin')] class extends Component {
         }
     }
     
-    public function sendWelcomeEmailsToImported(): void
+    public function resendWelcomeEmail(int $userId): void
     {
-        $importedMembers = User::whereHas('memberships', fn ($q) => $q->where('source', 'import'))
-            ->with(['memberships' => fn ($q) => $q->where('source', 'import')->latest()])
-            ->get();
+        $user = User::with(['memberships' => fn ($q) => $q->latest()])->findOrFail($userId);
+        $membership = $user->memberships->first();
 
-        $sent = 0;
-        foreach ($importedMembers as $user) {
-            $membership = $user->memberships->first();
-            if (! $membership) {
-                continue;
-            }
-            try {
-                Mail::to($user->email)->queue(new ImportWelcome(
-                    $user,
-                    $membership,
-                    'Use the password provided during import',
-                ));
-                $sent++;
-            } catch (\Exception $e) {
-                Log::warning('Failed to queue import welcome email (bulk resend)', [
-                    'user_id' => $user->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
+        if (!$membership) {
+            session()->flash('error', "No membership found for {$user->name}.");
+            return;
         }
 
-        session()->flash('success', "{$sent} welcome email(s) queued for imported members.");
+        try {
+            Mail::to($user->email)->queue(new ImportWelcome(
+                $user,
+                $membership,
+                'Use the password provided during import',
+            ));
+            session()->flash('success', "Welcome email queued for {$user->name} ({$user->email}).");
+        } catch (\Exception $e) {
+            Log::warning('Failed to queue welcome email resend', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+            session()->flash('error', "Failed to send email to {$user->name}: {$e->getMessage()}");
+        }
     }
 
     #[Computed]
@@ -267,11 +263,6 @@ new #[Title('Members - Admin')] class extends Component {
             <button wire:click="openImportModal" class="px-4 py-2 text-sm font-medium text-white bg-nrapa-blue rounded-lg hover:bg-nrapa-blue-dark transition-colors">
                 <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                 Import Members
-            </button>
-            <button wire:click="sendWelcomeEmailsToImported" wire:confirm="This will send a welcome email to all imported members. Continue?"
-                class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-200 dark:border-zinc-600 dark:hover:bg-zinc-700 transition-colors">
-                <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                Resend Welcome Emails
             </button>
         </div>
     </div>
@@ -380,7 +371,13 @@ new #[Title('Members - Admin')] class extends Component {
                         <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">
                             {{ $user->created_at->format('d M Y') }}
                         </td>
-                        <td class="whitespace-nowrap px-6 py-4 text-right text-sm">
+                        <td class="whitespace-nowrap px-6 py-4 text-right text-sm flex items-center justify-end gap-3">
+                            <button wire:click="resendWelcomeEmail({{ $user->id }})"
+                                wire:confirm="Send welcome email to {{ $user->name }} ({{ $user->email }})?"
+                                title="Resend welcome email"
+                                class="text-zinc-400 hover:text-nrapa-blue dark:text-zinc-500 dark:hover:text-nrapa-blue-light transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                            </button>
                             <a href="{{ route('admin.members.show', $user) }}" wire:navigate class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
                                 View
                             </a>
@@ -433,10 +430,10 @@ new #[Title('Members - Admin')] class extends Component {
                     <div class="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
                         <p class="text-xs font-semibold text-blue-800 dark:text-blue-200 mb-1">Expected Excel columns (in order):</p>
                         <p class="text-xs text-blue-700 dark:text-blue-300">
-                            Date Joined &bull; Initials &bull; Surname &bull; ID Number &bull; Tel Number &bull; Email &bull; Membership Type &bull; Renewal Date &bull; Status (Active/blank)
+                            Date Joined &bull; Initials &bull; Surname &bull; ID Number &bull; Tel Number &bull; Email &bull; Membership Type &bull; Renewal Date &bull; Status &bull; Knowledge Test (Yes/No) &bull; Activities (Yes/No)
                         </p>
                         <p class="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                            Date of birth is derived from ID numbers automatically. Use the <strong>Download Template</strong> button for a sample file.
+                            The last two columns are per-member. Leave blank to use the defaults below. Use the <strong>Download Template</strong> button for a sample file.
                         </p>
                     </div>
 
@@ -509,15 +506,16 @@ new #[Title('Members - Admin')] class extends Component {
                             </div>
 
                             <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20">
-                                <p class="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-2">Compliance Carry-Over</p>
+                                <p class="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-2">Compliance Defaults</p>
+                                <p class="text-xs text-amber-700 dark:text-amber-400 mb-2">Applied when the Excel row's Knowledge Test / Activities column is blank.</p>
                                 <div class="space-y-2">
                                     <label class="flex items-center gap-2 cursor-pointer">
                                         <input type="checkbox" wire:model="knowledgeTestCompleted" class="rounded border-zinc-300 text-amber-600 focus:ring-amber-500">
-                                        <span class="text-sm text-zinc-700 dark:text-zinc-300">Knowledge test completed</span>
+                                        <span class="text-sm text-zinc-700 dark:text-zinc-300">Knowledge test completed (default)</span>
                                     </label>
                                     <label class="flex items-center gap-2 cursor-pointer">
                                         <input type="checkbox" wire:model="activitiesUpToDate" class="rounded border-zinc-300 text-amber-600 focus:ring-amber-500">
-                                        <span class="text-sm text-zinc-700 dark:text-zinc-300">Activities up to date</span>
+                                        <span class="text-sm text-zinc-700 dark:text-zinc-300">Activities up to date (default)</span>
                                     </label>
                                 </div>
                             </div>

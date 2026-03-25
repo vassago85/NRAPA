@@ -140,10 +140,16 @@ class ExcelMemberImporter
 
                     if ($membershipType) {
                         $membership = $this->createMembership($user, $memberData, $membershipType, $autoApprove, $autoActivate, 'import');
-                        if ($autoPassTests) {
+
+                        $rowPassTests = $memberData['knowledge_test'] ?? null;
+                        $shouldPassTests = $rowPassTests !== null ? $rowPassTests : $autoPassTests;
+                        if ($shouldPassTests) {
                             $this->autoPassKnowledgeTests($user, $membershipType);
                         }
-                        if ($autoActivities) {
+
+                        $rowActivities = $memberData['activities'] ?? null;
+                        $shouldCreateActivities = $rowActivities !== null ? $rowActivities : $autoActivities;
+                        if ($shouldCreateActivities) {
                             $this->autoCreateActivities($user, $membershipType);
                         }
                     }
@@ -235,6 +241,8 @@ class ExcelMemberImporter
                 'membership_type' => trim($rawRow[6] ?? ''),
                 'renewal_date' => trim($rawRow[7] ?? ''),
                 'status' => trim($rawRow[8] ?? ''),
+                'knowledge_test' => trim($rawRow[9] ?? ''),
+                'activities' => trim($rawRow[10] ?? ''),
             ],
             'error_message' => Str::limit($error, 497),
             'imported_by' => auth()->id(),
@@ -376,6 +384,9 @@ class ExcelMemberImporter
                   || $isLifeMember
                   || ($renewalDate && $renewalDate >= date('Y-m-d'));
 
+        $knowledgeTestRaw = strtolower(trim($row[9] ?? ''));
+        $activitiesRaw2 = strtolower(trim($row[10] ?? ''));
+
         return [
             'name' => $name,
             'email' => trim(strtolower($row[5] ?? '')),
@@ -390,6 +401,10 @@ class ExcelMemberImporter
             'date_joined' => $this->parseDate($row[0] ?? null),
             'renewal_date' => $renewalDate,
             'is_life_member' => $isLifeMember,
+            'knowledge_test' => in_array($knowledgeTestRaw, ['yes', 'y', '1', 'true']) ? true
+                                : (in_array($knowledgeTestRaw, ['no', 'n', '0', 'false']) ? false : null),
+            'activities' => in_array($activitiesRaw2, ['yes', 'y', '1', 'true']) ? true
+                            : (in_array($activitiesRaw2, ['no', 'n', '0', 'false']) ? false : null),
         ];
     }
 
@@ -720,15 +735,17 @@ class ExcelMemberImporter
             'Membership Type',
             'Renewal Date (DD/MM/YYYY)',
             'Status (Active / blank)',
+            'Knowledge Test (Yes / No)',
+            'Activities (Yes / No)',
         ];
 
         $sheet->fromArray([$headers], null, 'A1');
 
         // Add sample rows demonstrating the various membership types
         $sampleRows = [
-            ['24/11/2025', 'SP', 'Basson', '0010165037085', '084 407 6112', 'spbasson123@example.com', 'Dedicated Life Membership', 'Life Member', 'Active'],
-            ['28/11/2025', 'TA', 'Tilbury', '9907201326086', '072 119 8026', 'tilbury@example.com', 'Regular Member', '27/11/2025', ''],
-            ['17/12/2025', 'PJ', 'Pretorius', '8705185113087', '071 586 7077', 'pretorius@example.com', 'Dedicated Hunting & Sport', '16/12/2026', 'Active'],
+            ['24/11/2025', 'SP', 'Basson', '0010165037085', '084 407 6112', 'spbasson123@example.com', 'Dedicated Life Membership', 'Life Member', 'Active', 'Yes', 'Yes'],
+            ['28/11/2025', 'TA', 'Tilbury', '9907201326086', '072 119 8026', 'tilbury@example.com', 'Regular Member', '27/11/2025', '', 'No', 'No'],
+            ['17/12/2025', 'PJ', 'Pretorius', '8705185113087', '071 586 7077', 'pretorius@example.com', 'Dedicated Hunting & Sport', '16/12/2026', 'Active', 'Yes', 'Yes'],
         ];
 
         $rowNum = 2;
@@ -748,6 +765,14 @@ class ExcelMemberImporter
             ['Dedicated Life Membership / Lifetime / Life Member', 'Lifetime Membership'],
             ['Regular Member / Standard / Occasional', 'Standard Annual Membership'],
             ['Junior / Junior Member', 'Junior Annual Membership'],
+            ['', ''],
+            ['Knowledge Test column', 'Yes = auto-pass knowledge test for this member'],
+            ['', 'No = skip knowledge test for this member'],
+            ['', 'Blank = use the default setting from the import form'],
+            ['', ''],
+            ['Activities column', 'Yes = auto-create required activities for this member'],
+            ['', 'No = skip activities for this member'],
+            ['', 'Blank = use the default setting from the import form'],
         ];
         $r = 2;
         foreach ($notes as $note) {
@@ -760,8 +785,8 @@ class ExcelMemberImporter
 
         // Style header row on main sheet
         $spreadsheet->setActiveSheetIndex(0);
-        $sheet->getStyle('A1:I1')->getFont()->setBold(true);
-        $sheet->getStyle('A1:I1')->getFill()
+        $sheet->getStyle('A1:K1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:K1')->getFill()
             ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
             ->getStartColor()->setARGB('FFE2E8F0');
         $sheet->getColumnDimension('A')->setWidth(22);
@@ -773,6 +798,8 @@ class ExcelMemberImporter
         $sheet->getColumnDimension('G')->setWidth(35);
         $sheet->getColumnDimension('H')->setWidth(25);
         $sheet->getColumnDimension('I')->setWidth(18);
+        $sheet->getColumnDimension('J')->setWidth(24);
+        $sheet->getColumnDimension('K')->setWidth(22);
 
         // Save file
         $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');

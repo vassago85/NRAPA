@@ -9,6 +9,7 @@ use App\Models\UserSecurityQuestion;
 use App\Models\KnowledgeTest;
 use App\Models\KnowledgeTestAttempt;
 use App\Mail\AccountDeleted;
+use App\Mail\ImportWelcome;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
@@ -174,6 +175,31 @@ new #[Title('Member Details - Admin')] class extends Component {
             session()->flash('success', 'Password reset email has been sent to ' . $this->user->email);
         } else {
             session()->flash('warning', 'Password reset initiated. The user should check their email.');
+        }
+    }
+
+    public function resendWelcomeEmail(): void
+    {
+        $membership = $this->user->memberships()->latest()->first();
+
+        if (!$membership) {
+            session()->flash('error', 'No membership found for this member.');
+            return;
+        }
+
+        try {
+            Mail::to($this->user->email)->queue(new ImportWelcome(
+                $this->user,
+                $membership,
+                'Use the password provided during import',
+            ));
+            session()->flash('success', "Welcome email queued for {$this->user->name} ({$this->user->email}).");
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to queue welcome email resend', [
+                'user_id' => $this->user->id,
+                'error' => $e->getMessage(),
+            ]);
+            session()->flash('error', "Failed to send email: {$e->getMessage()}");
         }
     }
 
@@ -752,6 +778,13 @@ new #[Title('Member Details - Admin')] class extends Component {
                 Reset 2FA
             </button>
             @endif
+
+            <button wire:click="resendWelcomeEmail"
+                wire:confirm="Send welcome email to {{ $this->user->name }} ({{ $this->user->email }})?"
+                class="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 dark:hover:bg-emerald-900/50 transition-colors">
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" /></svg>
+                Resend Welcome Email
+            </button>
 
             @if($this->canDelete)
             <button wire:click="$set('showDeleteModal', true)" class="inline-flex items-center gap-1 rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 transition-colors">
