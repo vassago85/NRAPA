@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\SageOAuthController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -520,7 +521,14 @@ Route::middleware(['auth', 'verified', 'owner'])->prefix('owner')->name('owner.'
     Route::livewire('settings/approvals', 'pages::owner.settings.approvals')->name('settings.approvals');
     Route::livewire('settings/documents', 'pages::owner.settings.documents')->name('settings.documents');
     Route::livewire('settings/backup', 'pages::owner.settings.backup')->name('settings.backup');
+    Route::livewire('settings/sage', 'pages::owner.settings.sage')->name('settings.sage');
+
+    // Sage OAuth flow (redirect initiates from owner panel)
+    Route::get('sage/redirect', [SageOAuthController::class, 'redirect'])->name('sage.redirect');
 });
+
+// Sage OAuth callback (outside owner prefix so the redirect URI is /sage/callback)
+Route::middleware(['auth', 'verified', 'owner'])->get('sage/callback', [SageOAuthController::class, 'callback'])->name('sage.callback');
 
 // Developer Routes (Developer only)
 Route::middleware(['auth', 'verified', 'developer'])->prefix('developer')->name('developer.')->group(function () {

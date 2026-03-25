@@ -46,4 +46,11 @@
             System Backup
         </a>
     </li>
+    <li>
+        <a href="{{ route('owner.settings.sage') }}" wire:navigate
+           class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg {{ $currentRoute === 'owner.settings.sage' ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700' }}">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            Sage Invoicing
+        </a>
+    </li>
 </ul>

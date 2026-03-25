@@ -324,6 +324,8 @@ class EndorsementDocument extends Model
             'verified_by' => $admin->id,
             'verified_at' => now(),
         ]);
+
+        $this->notifyVerification();
     }
 
     /**
@@ -337,6 +339,46 @@ class EndorsementDocument extends Model
             'verified_at' => now(),
             'rejection_reason' => $reason,
         ]);
+
+        $this->notifyRejection($reason);
+    }
+
+    protected function notifyVerification(): void
+    {
+        $user = $this->endorsementRequest?->user;
+        if (! $user?->email) {
+            return;
+        }
+
+        try {
+            \Illuminate\Support\Facades\Mail::to($user->email)->queue(
+                new \App\Mail\EndorsementDocumentVerified($this)
+            );
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to send endorsement document verified email', [
+                'document_id' => $this->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    protected function notifyRejection(string $reason): void
+    {
+        $user = $this->endorsementRequest?->user;
+        if (! $user?->email) {
+            return;
+        }
+
+        try {
+            \Illuminate\Support\Facades\Mail::to($user->email)->queue(
+                new \App\Mail\EndorsementDocumentRejected($this, $reason)
+            );
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to send endorsement document rejected email', [
+                'document_id' => $this->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

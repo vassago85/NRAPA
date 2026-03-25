@@ -98,6 +98,21 @@ class SystemSetting extends Model
     }
 
     /**
+     * Get Sage Network integration settings.
+     */
+    public static function getSageConfig(): array
+    {
+        return [
+            'client_id' => static::get('sage_client_id', ''),
+            'client_secret' => static::get('sage_client_secret', ''),
+            'api_key' => static::get('sage_api_key', ''),
+            'enabled' => (bool) static::get('sage_enabled', false),
+            'group_key' => static::get('sage_group_key', ''),
+            'connected_at' => static::get('sage_connected_at', ''),
+        ];
+    }
+
+    /**
      * Get email/SMTP settings.
      */
     public static function getEmailSettings(): array

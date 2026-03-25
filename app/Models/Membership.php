@@ -45,6 +45,8 @@ class Membership extends Model
         'welcome_email_sent_at',
         'affiliated_club_id',
         'change_amount',
+        'sage_invoice_id',
+        'sage_invoice_number',
     ];
 
     /**

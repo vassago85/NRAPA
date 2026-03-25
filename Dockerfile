@@ -59,7 +59,7 @@ COPY . .
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Install Node dependencies and build frontend assets
-RUN npm ci && npm run build && rm -rf node_modules
+RUN npm install && npm run build && rm -rf node_modules
 
 # Set permissions (775 for storage to allow write access)
 RUN chown -R www-data:www-data /var/www/html \

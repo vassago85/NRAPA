@@ -1,11 +1,13 @@
 <?php
 
+use App\Jobs\SyncMembershipToSage;
 use App\Models\Membership;
 use App\Models\Certificate;
 use App\Models\AuditLog;
 use App\Mail\MembershipApproved;
 use App\Mail\MembershipRejected;
 use App\Mail\PaymentInstructions;
+use App\Mail\PaymentReceived;
 use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
@@ -126,6 +128,8 @@ new #[Title('Review Application - Admin')] class extends Component {
             ['status' => 'active'],
             $admin
         );
+
+        SyncMembershipToSage::dispatch($this->membership)->afterCommit();
 
         session()->flash('success', 'Membership approved, welcome letter issued, and emails queued!');
 
@@ -277,7 +281,8 @@ new #[Title('Review Application - Admin')] class extends Component {
             $this->membership->update(['proof_of_payment_path' => null]);
         }
 
-        // Send approval email
+        // Send payment confirmation and approval email
+        $this->sendPaymentReceivedEmail();
         $this->sendApprovalEmail();
 
         AuditLog::log(
@@ -287,6 +292,8 @@ new #[Title('Review Application - Admin')] class extends Component {
             ['status' => 'active', 'new_type' => $this->membership->type?->name],
             $admin
         );
+
+        SyncMembershipToSage::dispatch($this->membership)->afterCommit();
 
         session()->flash('success', 'Membership type change approved and member notified!');
         $this->redirect(route('admin.approvals.index'), navigate: true);
@@ -469,6 +476,22 @@ new #[Title('Review Application - Admin')] class extends Component {
             ));
         } catch (\Exception $e) {
             Log::warning('Failed to send payment instructions on approval', [
+                'membership_id' => $this->membership->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    protected function sendPaymentReceivedEmail(): void
+    {
+        try {
+            $user = $this->membership->user;
+
+            Mail::to($user->email)->queue(new PaymentReceived(
+                membership: $this->membership->load('type', 'user'),
+            ));
+        } catch (\Exception $e) {
+            Log::warning('Failed to send payment received email', [
                 'membership_id' => $this->membership->id,
                 'error' => $e->getMessage(),
             ]);
@@ -787,6 +810,14 @@ new #[Title('Review Application - Admin')] class extends Component {
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                     <span>Payment email not sent</span>
+                </div>
+                @endif
+                @if($this->membership->sage_invoice_id)
+                <div class="flex items-center gap-1 text-indigo-600 dark:text-indigo-400">
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    <span>Sage invoice synced</span>
                 </div>
                 @endif
             </div>

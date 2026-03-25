@@ -266,6 +266,8 @@ class ShootingActivity extends Model
         if ($this->additionalDocument && $this->additionalDocument->status === 'pending') {
             $this->additionalDocument->verify($admin);
         }
+
+        $this->notifyApproval();
     }
 
     /**
@@ -292,9 +294,25 @@ class ShootingActivity extends Model
         $this->notifyRejection($reason);
     }
 
-    /**
-     * Send notification to member about activity rejection.
-     */
+    protected function notifyApproval(): void
+    {
+        $user = $this->user;
+        if (! $user?->email) {
+            return;
+        }
+
+        try {
+            \Illuminate\Support\Facades\Mail::to($user->email)->queue(
+                new \App\Mail\ActivityApproved($this)
+            );
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to send activity approved email', [
+                'activity_id' => $this->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
     protected function notifyRejection(string $reason): void
     {
         $user = $this->user;
@@ -302,12 +320,24 @@ class ShootingActivity extends Model
             return;
         }
 
+        if ($user->email) {
+            try {
+                \Illuminate\Support\Facades\Mail::to($user->email)->queue(
+                    new \App\Mail\ActivityRejected($this, $reason)
+                );
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning('Failed to send activity rejected email', [
+                    'activity_id' => $this->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
         $activityTypeName = $this->activityType?->name ?? 'Activity';
         $activityDate = $this->activity_date->format('d M Y');
         $title = "Activity Rejected: {$activityTypeName}";
         $message = "Your activity submission for {$activityDate} ({$activityTypeName}) has been rejected.\n\nReason: {$reason}\n\nPlease review and resubmit if needed.";
 
-        // Send via NtfyService if available
         if (class_exists(\App\Services\NtfyService::class)) {
             $ntfyService = app(\App\Services\NtfyService::class);
             $ntfyService->notifyUser(

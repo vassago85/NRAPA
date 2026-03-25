@@ -80,6 +80,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'last_2fa_reminder_at',
         'email_verified_at',
         'welcome_letter_seen_at',
+        'sage_company_id',
     ];
 
     /**
