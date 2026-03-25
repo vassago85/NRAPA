@@ -311,24 +311,6 @@ class KnowledgeTestQuestionsSeeder extends Seeder
                 'correct_answers' => ['A', 'C', 'E', 'G'],
                 'points' => 4,
             ],
-            // Q18 - Multiple select (4 marks)
-            [
-                'question_type' => 'multiple_select',
-                'question_text' => 'There are four standard bolt action rifle shooting positions: (Select 4 correct answers)',
-                'options' => [
-                    'A' => 'Standing',
-                    'B' => 'Running',
-                    'C' => 'Kneeling',
-                    'D' => 'Recoil pad',
-                    'E' => 'Prone',
-                    'F' => 'Sling',
-                    'G' => 'Sitting',
-                    'H' => 'Cheek piece',
-                    'I' => 'Swivel',
-                ],
-                'correct_answers' => ['A', 'C', 'E', 'G'],
-                'points' => 4,
-            ],
             // Q19 - Multiple choice (1 mark)
             [
                 'question_type' => 'multiple_choice',
