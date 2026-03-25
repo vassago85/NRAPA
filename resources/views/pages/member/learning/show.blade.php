@@ -252,7 +252,7 @@ new #[Title('Article - Learning Center')] class extends Component {
                 </header>
 
                 <figure class="mb-8">
-                    <img src="{{ $currentPage->display_image_url }}" alt="{{ $currentPage->title }}" class="w-full rounded-xl object-cover max-h-64">
+                    <img src="{{ $currentPage->display_image_url }}" alt="{{ $currentPage->title }}" class="w-full rounded-xl object-contain max-h-96">
                     @if($currentPage->image_caption)
                     <figcaption class="mt-2 text-center text-sm text-zinc-500 dark:text-zinc-400">{{ $currentPage->image_caption }}</figcaption>
                     @endif

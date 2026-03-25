@@ -20,6 +20,12 @@ class ImportLearningImages extends Command
 
     protected int $skipped = 0;
 
+    protected array $articleAliasMap = [
+        'tracking-spoor-and-sign' => [
+            'african-animal-tracks-spoor-identification',
+        ],
+    ];
+
     protected array $trackPageMap = [
         'q-track-leopard' => 'Leopard',
         'q-track-hippo' => 'Hippo',
@@ -115,15 +121,29 @@ class ImportLearningImages extends Command
 
         if ($dryRun) {
             $this->line("  [DRY] Would set featured_image on article '{$article->title}' -> {$storagePath}");
-            $this->updated++;
-
-            return;
+        } else {
+            Storage::disk('public')->put($storagePath, File::get($file));
+            $article->update(['featured_image' => $storagePath]);
+            $this->info("  OK article '{$article->title}' -> {$storagePath}");
         }
-
-        Storage::disk('public')->put($storagePath, File::get($file));
-        $article->update(['featured_image' => $storagePath]);
-        $this->info("  OK article '{$article->title}' -> {$storagePath}");
         $this->updated++;
+
+        if (isset($this->articleAliasMap[$slug])) {
+            foreach ($this->articleAliasMap[$slug] as $aliasSlug) {
+                $aliasArticle = LearningArticle::where('slug', $aliasSlug)->first();
+                if (! $aliasArticle) {
+                    $this->warn("  SKIP alias slug not found: {$aliasSlug}");
+                    continue;
+                }
+                if ($dryRun) {
+                    $this->line("  [DRY] Would also set featured_image on '{$aliasArticle->title}' -> {$storagePath}");
+                } else {
+                    $aliasArticle->update(['featured_image' => $storagePath]);
+                    $this->info("  OK alias '{$aliasArticle->title}' -> {$storagePath}");
+                }
+                $this->updated++;
+            }
+        }
     }
 
     protected function processQuizImage($file, string $slug, string $ext, bool $dryRun): void
