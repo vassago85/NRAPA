@@ -1,6 +1,10 @@
 <?php
 
+use App\Mail\DocumentCorrected;
 use App\Models\MemberDocument;
+use App\Models\User;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -9,9 +13,132 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     public MemberDocument $document;
     public string $rejectionReason = '';
 
+    public bool $editingMetadata = false;
+    public string $editSurname = '';
+    public string $editNames = '';
+    public string $editIdNumber = '';
+    public string $editSex = '';
+    public string $editDateOfBirth = '';
+
     public function mount(MemberDocument $document): void
     {
         $this->document = $document->load('documentType', 'verifier', 'user');
+    }
+
+    public function openEditMetadata(): void
+    {
+        $meta = $this->document->metadata ?? [];
+        $this->editSurname = $meta['surname'] ?? '';
+        $this->editNames = $meta['names'] ?? '';
+        $this->editIdNumber = $meta['identity_number'] ?? '';
+        $this->editSex = $meta['sex'] ?? '';
+        $this->editDateOfBirth = $meta['date_of_birth'] ?? '';
+        $this->editingMetadata = true;
+    }
+
+    public function cancelEditMetadata(): void
+    {
+        $this->editingMetadata = false;
+    }
+
+    public function saveCorrections(): void
+    {
+        $this->validate([
+            'editSurname' => 'required|string|max:100',
+            'editNames' => 'required|string|max:100',
+            'editIdNumber' => 'required|string|max:20',
+            'editSex' => 'required|in:male,female',
+            'editDateOfBirth' => 'required|date',
+        ]);
+
+        $oldMeta = $this->document->metadata ?? [];
+        $changes = [];
+
+        $fieldMap = [
+            'surname' => ['prop' => 'editSurname', 'label' => 'Surname'],
+            'names' => ['prop' => 'editNames', 'label' => 'Names'],
+            'identity_number' => ['prop' => 'editIdNumber', 'label' => 'ID Number'],
+            'sex' => ['prop' => 'editSex', 'label' => 'Sex'],
+            'date_of_birth' => ['prop' => 'editDateOfBirth', 'label' => 'Date of Birth'],
+        ];
+
+        foreach ($fieldMap as $key => $info) {
+            $oldVal = $oldMeta[$key] ?? '';
+            $newVal = $this->{$info['prop']};
+            if ((string) $oldVal !== (string) $newVal) {
+                $displayOld = $oldVal;
+                $displayNew = $newVal;
+                if ($key === 'sex') {
+                    $displayOld = $oldVal ? ucfirst($oldVal) : '';
+                    $displayNew = ucfirst($newVal);
+                }
+                if ($key === 'date_of_birth') {
+                    $displayOld = $oldVal ? \Carbon\Carbon::parse($oldVal)->format('d F Y') : '';
+                    $displayNew = \Carbon\Carbon::parse($newVal)->format('d F Y');
+                }
+                $changes[] = ['label' => $info['label'], 'old' => $displayOld, 'new' => $displayNew];
+            }
+        }
+
+        if (empty($changes)) {
+            $this->editingMetadata = false;
+            session()->flash('info', 'No changes were made.');
+            return;
+        }
+
+        $newMeta = array_merge($oldMeta, [
+            'surname' => $this->editSurname,
+            'names' => $this->editNames,
+            'identity_number' => $this->editIdNumber,
+            'sex' => $this->editSex,
+            'date_of_birth' => $this->editDateOfBirth,
+        ]);
+        $this->document->update(['metadata' => $newMeta]);
+
+        $user = $this->document->user;
+        if ($user) {
+            $userUpdates = [];
+            if ($this->editSurname !== ($oldMeta['surname'] ?? '') || $this->editNames !== ($oldMeta['names'] ?? '')) {
+                $userUpdates['name'] = trim($this->editNames . ' ' . $this->editSurname);
+            }
+            if ($this->editIdNumber !== ($oldMeta['identity_number'] ?? '')) {
+                $duplicate = User::where('id_number', $this->editIdNumber)
+                    ->where('id', '!=', $user->id)
+                    ->exists();
+                if (!$duplicate) {
+                    $userUpdates['id_number'] = $this->editIdNumber;
+                } else {
+                    Log::warning('Skipped syncing corrected ID number: duplicate exists', [
+                        'id_number' => $this->editIdNumber,
+                        'user_id' => $user->id,
+                    ]);
+                }
+            }
+            if ($this->editDateOfBirth !== ($oldMeta['date_of_birth'] ?? '')) {
+                $userUpdates['date_of_birth'] = $this->editDateOfBirth;
+            }
+            if (!empty($userUpdates)) {
+                $user->update($userUpdates);
+            }
+        }
+
+        try {
+            Mail::to($user->email)->queue(new DocumentCorrected(
+                $this->document,
+                $changes,
+                auth()->user()->name,
+            ));
+        } catch (\Exception $e) {
+            Log::warning('Failed to send document correction email', [
+                'document_id' => $this->document->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        $this->document->refresh();
+        $this->editingMetadata = false;
+        $changeCount = count($changes);
+        session()->flash('success', "{$changeCount} correction(s) saved. The member has been notified by email.");
     }
 
     protected function getPrivateDisk(): string
@@ -212,10 +339,63 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             {{-- ID Document Metadata --}}
             @if($document->metadata && isset($document->metadata['identity_number']))
                 <div class="mt-6 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
-                    <h4 class="text-sm font-semibold text-indigo-800 dark:text-indigo-200 mb-3 flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/></svg>
-                        ID Document Details (Entered by Member)
-                    </h4>
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-sm font-semibold text-indigo-800 dark:text-indigo-200 flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/></svg>
+                            ID Document Details (Entered by Member)
+                        </h4>
+                        @if(!$editingMetadata)
+                        <button wire:click="openEditMetadata" class="text-xs font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-200 transition-colors flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                            Edit
+                        </button>
+                        @endif
+                    </div>
+
+                    @if($editingMetadata)
+                    <form wire:submit="saveCorrections" class="space-y-3">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-indigo-700 dark:text-indigo-300 mb-1">Surname</label>
+                                <input type="text" wire:model="editSurname" class="w-full rounded-md border border-indigo-300 bg-white px-2.5 py-1.5 text-sm text-zinc-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-indigo-600 dark:bg-zinc-800 dark:text-white">
+                                @error('editSurname') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-indigo-700 dark:text-indigo-300 mb-1">Names</label>
+                                <input type="text" wire:model="editNames" class="w-full rounded-md border border-indigo-300 bg-white px-2.5 py-1.5 text-sm text-zinc-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-indigo-600 dark:bg-zinc-800 dark:text-white">
+                                @error('editNames') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-indigo-700 dark:text-indigo-300 mb-1">ID Number</label>
+                                <input type="text" wire:model="editIdNumber" class="w-full rounded-md border border-indigo-300 bg-white px-2.5 py-1.5 text-sm font-mono text-zinc-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-indigo-600 dark:bg-zinc-800 dark:text-white">
+                                @error('editIdNumber') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-indigo-700 dark:text-indigo-300 mb-1">Sex</label>
+                                <select wire:model="editSex" class="w-full rounded-md border border-indigo-300 bg-white px-2.5 py-1.5 text-sm text-zinc-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-indigo-600 dark:bg-zinc-800 dark:text-white">
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                </select>
+                                @error('editSex') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-xs font-medium text-indigo-700 dark:text-indigo-300 mb-1">Date of Birth</label>
+                                <input type="date" wire:model="editDateOfBirth" class="w-full rounded-md border border-indigo-300 bg-white px-2.5 py-1.5 text-sm text-zinc-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-indigo-600 dark:bg-zinc-800 dark:text-white">
+                                @error('editDateOfBirth') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 pt-2">
+                            <button type="submit" class="inline-flex items-center gap-1 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 transition-colors">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                Save & Notify Member
+                            </button>
+                            <button type="button" wire:click="cancelEditMetadata" class="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600 transition-colors">
+                                Cancel
+                            </button>
+                        </div>
+                        <p class="text-xs text-indigo-600 dark:text-indigo-400">Changes will be saved to the document and synced to the member's profile. The member will receive an email detailing what was changed.</p>
+                    </form>
+                    @else
                     <div class="grid grid-cols-2 gap-3 text-sm">
                         <div>
                             <span class="text-indigo-600 dark:text-indigo-400 font-medium">Surname:</span>
@@ -244,6 +424,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                             </span>
                         </div>
                     </div>
+                    @endif
                 </div>
             @endif
 

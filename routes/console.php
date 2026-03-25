@@ -46,3 +46,11 @@ Schedule::command('nrapa:purge-verified-document-files')
     ->timezone('Africa/Johannesburg')
     ->withoutOverlapping()
     ->runInBackground();
+
+// Process queued NTFY notifications every 5 minutes (sends any that were
+// deferred outside working hours as soon as working hours begin)
+Schedule::command('notifications:process')
+    ->everyFiveMinutes()
+    ->timezone('Africa/Johannesburg')
+    ->withoutOverlapping()
+    ->runInBackground();

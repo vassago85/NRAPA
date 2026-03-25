@@ -46,6 +46,7 @@ class NotificationPreference extends Model
             'notify_membership_expiring' => 'boolean',
             'notify_activity_submitted' => 'boolean',
             'notify_knowledge_test_completed' => 'boolean',
+            'notify_endorsement_request' => 'boolean',
             'notify_system_errors' => 'boolean',
             'notify_license_expiry' => 'boolean',
             'license_expiry_intervals' => 'array',

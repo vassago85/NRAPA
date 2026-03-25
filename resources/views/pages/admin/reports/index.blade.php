@@ -115,6 +115,8 @@ new #[Title('Membership Reports - Admin')] class extends Component {
 
             $renewalPrice = (float) ($type->renewal_price ?? 0);
             $initialPrice = (float) ($type->initial_price ?? 0);
+            $upgradePrice = (float) ($type->upgrade_price ?? 0);
+            $signupFee = $initialPrice > 0 ? $initialPrice : $upgradePrice;
             $requiresRenewal = (bool) $type->requires_renewal;
             $expectedRevenue = $requiresRenewal ? $active * $renewalPrice : 0;
 
@@ -131,7 +133,7 @@ new #[Title('Membership Reports - Admin')] class extends Component {
                 'total' => $total,
                 'active_percent' => $totalActive > 0 ? round(($active / $totalActive) * 100, 1) : 0,
                 'renewal_price' => $renewalPrice,
-                'initial_price' => $initialPrice,
+                'signup_fee' => $signupFee,
                 'expected_revenue' => $expectedRevenue,
             ];
         }
@@ -186,7 +188,7 @@ new #[Title('Membership Reports - Admin')] class extends Component {
                 (string) $row['pending'],
                 (string) $row['total'],
                 $row['active_percent'] . '%',
-                'R' . number_format($row['initial_price'], 2),
+                $row['signup_fee'] ? 'R' . number_format($row['signup_fee'], 2) : 'N/A',
                 $row['requires_renewal'] ? 'R' . number_format($row['renewal_price'], 2) : 'N/A',
                 $row['requires_renewal'] ? 'R' . number_format($row['expected_revenue'], 2) : 'N/A',
             ];
@@ -361,7 +363,7 @@ new #[Title('Membership Reports - Admin')] class extends Component {
                             </div>
                         </td>
                         <td class="whitespace-nowrap px-4 py-4 text-right text-sm text-zinc-600 dark:text-zinc-400">
-                            @if($row['initial_price']) R{{ number_format($row['initial_price'], 0) }} @else <span class="text-zinc-400 dark:text-zinc-500">R0</span> @endif
+                            @if($row['signup_fee']) R{{ number_format($row['signup_fee'], 0) }} @else <span class="text-zinc-400 dark:text-zinc-500">—</span> @endif
                         </td>
                         <td class="whitespace-nowrap px-4 py-4 text-right text-sm text-zinc-600 dark:text-zinc-400">
                             @if($row['requires_renewal'])
