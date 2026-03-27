@@ -635,6 +635,17 @@ new #[Title('Member Details - Admin')] class extends Component {
         session()->flash('success', 'Member profile updated successfully.');
     }
 
+    public function openAssignMembershipModal(): void
+    {
+        $this->editMembershipId = null;
+        $this->editMembershipTypeId = '';
+        $this->editMembershipStatus = 'active';
+        $this->editMembershipExpiresAt = '';
+        $this->editMembershipActivatedAt = now()->format('Y-m-d');
+        $this->editMembershipNotes = '';
+        $this->showEditMembershipModal = true;
+    }
+
     public function openEditMembershipModal(?int $membershipId = null): void
     {
         $membership = $membershipId
@@ -665,29 +676,56 @@ new #[Title('Member Details - Admin')] class extends Component {
             'editMembershipNotes' => 'nullable|string|max:1000',
         ]);
 
-        $membership = Membership::findOrFail($this->editMembershipId);
+        if ($this->editMembershipId) {
+            $membership = Membership::findOrFail($this->editMembershipId);
+            $oldStatus = $membership->status;
 
-        $oldTypeId = $membership->membership_type_id;
-        $oldStatus = $membership->status;
-
-        $membership->update([
-            'membership_type_id' => $this->editMembershipTypeId,
-            'status' => $this->editMembershipStatus,
-            'expires_at' => $this->editMembershipExpiresAt ?: null,
-            'activated_at' => $this->editMembershipActivatedAt ?: null,
-            'notes' => $this->editMembershipNotes ?: null,
-        ]);
-
-        if ($this->editMembershipStatus === 'active' && $oldStatus !== 'active' && !$membership->approved_at) {
             $membership->update([
-                'approved_at' => now(),
-                'approved_by' => auth()->id(),
+                'membership_type_id' => $this->editMembershipTypeId,
+                'status' => $this->editMembershipStatus,
+                'expires_at' => $this->editMembershipExpiresAt ?: null,
+                'activated_at' => $this->editMembershipActivatedAt ?: null,
+                'notes' => $this->editMembershipNotes ?: null,
             ]);
+
+            if ($this->editMembershipStatus === 'active' && $oldStatus !== 'active' && !$membership->approved_at) {
+                $membership->update([
+                    'approved_at' => now(),
+                    'approved_by' => auth()->id(),
+                ]);
+            }
+
+            $message = 'Membership updated successfully.';
+        } else {
+            $membershipType = MembershipType::findOrFail($this->editMembershipTypeId);
+
+            $expiresAt = $this->editMembershipExpiresAt ?: null;
+            if (!$expiresAt && $membershipType->requires_renewal && $membershipType->duration_months) {
+                $activatedAt = $this->editMembershipActivatedAt ? \Carbon\Carbon::parse($this->editMembershipActivatedAt) : now();
+                $expiresAt = $activatedAt->copy()->addMonths($membershipType->duration_months)->format('Y-m-d');
+            }
+
+            Membership::create([
+                'uuid' => \Illuminate\Support\Str::uuid(),
+                'user_id' => $this->user->id,
+                'membership_type_id' => $this->editMembershipTypeId,
+                'membership_number' => $this->user->formatted_member_number,
+                'status' => $this->editMembershipStatus,
+                'applied_at' => $this->user->created_at,
+                'approved_at' => in_array($this->editMembershipStatus, ['approved', 'active']) ? now() : null,
+                'approved_by' => in_array($this->editMembershipStatus, ['approved', 'active']) ? auth()->id() : null,
+                'activated_at' => $this->editMembershipActivatedAt ?: null,
+                'expires_at' => $expiresAt,
+                'notes' => $this->editMembershipNotes ?: null,
+                'source' => 'admin',
+            ]);
+
+            $message = 'Membership assigned successfully.';
         }
 
         $this->user->load(['memberships.type', 'memberships.approver', 'activeMembership.type']);
         $this->showEditMembershipModal = false;
-        session()->flash('success', 'Membership updated successfully.');
+        session()->flash('success', $message);
     }
 
     public function getStatusClasses(string $status): string
@@ -941,6 +979,10 @@ new #[Title('Member Details - Admin')] class extends Component {
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm1.294 6.336a6.721 6.721 0 0 1-3.17.789 6.721 6.721 0 0 1-3.168-.789 3.376 3.376 0 0 1 6.338 0Z" />
                     </svg>
                     <p class="mt-4 text-zinc-500 dark:text-zinc-400">No active membership</p>
+                    <button wire:click="openAssignMembershipModal" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        Assign Membership
+                    </button>
                 </div>
                 @endif
             </div>
@@ -1785,7 +1827,7 @@ new #[Title('Member Details - Admin')] class extends Component {
             <div wire:click="$set('showEditMembershipModal', false)" class="fixed inset-0 bg-black/50"></div>
             <div class="relative w-full max-w-lg rounded-xl bg-white shadow-xl dark:bg-zinc-800">
                 <div class="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-700">
-                    <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Edit Membership</h3>
+                    <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">{{ $editMembershipId ? 'Edit Membership' : 'Assign Membership' }}</h3>
                     <button wire:click="$set('showEditMembershipModal', false)" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
@@ -1794,6 +1836,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Membership Type <span class="text-red-500">*</span></label>
                         <select wire:model="editMembershipTypeId" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                            <option value="">Select membership type...</option>
                             @foreach($this->membershipTypes as $type)
                             <option value="{{ $type->id }}">{{ $type->name }}</option>
                             @endforeach
@@ -1832,7 +1875,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                     </div>
                     <div class="flex justify-end gap-3 pt-2 border-t border-zinc-200 dark:border-zinc-700">
                         <button type="button" wire:click="$set('showEditMembershipModal', false)" class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 transition-colors">Cancel</button>
-                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">Save Changes</button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">{{ $editMembershipId ? 'Save Changes' : 'Assign Membership' }}</button>
                     </div>
                 </form>
             </div>
