@@ -342,10 +342,21 @@ class EndorsementRequest extends Model
      */
     public static function checkActivityRequirements(User $user): array
     {
+        $membership = $user->activeMembership;
+
+        if ($membership?->type?->isLifetime()) {
+            return [
+                'met' => true,
+                'approved_count' => 0,
+                'required' => 0,
+                'period' => 'Lifetime',
+                'message' => 'Lifetime members are exempt from activity requirements.',
+            ];
+        }
+
         $minActivitiesSport = SystemSetting::get('endorsement_min_activities_sport', self::DEFAULT_MIN_ACTIVITIES_SPORT);
         $minActivitiesHunter = SystemSetting::get('endorsement_min_activities_hunter', self::DEFAULT_MIN_ACTIVITIES_HUNTER);
 
-        $membership = $user->activeMembership;
         $dedicatedType = $membership?->type?->dedicated_type;
         $required = ($dedicatedType === 'hunter') ? $minActivitiesHunter : $minActivitiesSport;
 

@@ -3,6 +3,8 @@
 use App\Models\User;
 use App\Models\Membership;
 use App\Models\MembershipType;
+use App\Models\ShootingActivity;
+use App\Models\ActivityType;
 use App\Models\UserDeletionRequest;
 use App\Models\AccountResetLog;
 use App\Models\UserSecurityQuestion;
@@ -62,6 +64,13 @@ new #[Title('Member Details - Admin')] class extends Component {
     public string $editMembershipActivatedAt = '';
     public string $editMembershipNotes = '';
 
+    // Add activity properties
+    public bool $showAddActivityModal = false;
+    public string $addActivityTrack = 'hunting';
+    public string $addActivityTypeId = '';
+    public string $addActivityDate = '';
+    public string $addActivityDescription = '';
+
     public function mount(User $user): void
     {
         $this->user = $user->load([
@@ -88,6 +97,44 @@ new #[Title('Member Details - Admin')] class extends Component {
     public function activeMembership()
     {
         return $this->user->memberships->firstWhere('status', 'active');
+    }
+
+    #[Computed]
+    public function isLifetimeMember(): bool
+    {
+        return $this->activeMembership?->type?->isLifetime() ?? false;
+    }
+
+    #[Computed]
+    public function memberActivities()
+    {
+        return ShootingActivity::where('user_id', $this->user->id)
+            ->with(['activityType', 'verifier'])
+            ->latest('activity_date')
+            ->get();
+    }
+
+    #[Computed]
+    public function activitySummary(): array
+    {
+        $period = ShootingActivity::getActivityPeriod($this->user);
+        $currentYear = ShootingActivity::where('user_id', $this->user->id)
+            ->approved()
+            ->withinActivityYear($this->user)
+            ->get();
+
+        return [
+            'total' => $currentYear->count(),
+            'hunting' => $currentYear->where('track', 'hunting')->count(),
+            'sport' => $currentYear->where('track', 'sport')->count(),
+            'period_label' => $period['label'],
+        ];
+    }
+
+    #[Computed]
+    public function activityTypes()
+    {
+        return ActivityType::active()->orderBy('name')->get();
     }
 
     #[Computed]
@@ -728,6 +775,61 @@ new #[Title('Member Details - Admin')] class extends Component {
         session()->flash('success', $message);
     }
 
+    public function approveActivity(int $activityId): void
+    {
+        $activity = ShootingActivity::where('user_id', $this->user->id)->findOrFail($activityId);
+        $activity->approve(auth()->user());
+        unset($this->memberActivities, $this->activitySummary);
+        session()->flash('success', 'Activity approved.');
+    }
+
+    public function rejectActivity(int $activityId): void
+    {
+        $activity = ShootingActivity::where('user_id', $this->user->id)->findOrFail($activityId);
+        $activity->reject(auth()->user(), 'Rejected by admin');
+        unset($this->memberActivities, $this->activitySummary);
+        session()->flash('success', 'Activity rejected.');
+    }
+
+    public function openAddActivityModal(): void
+    {
+        $this->addActivityTrack = 'hunting';
+        $this->addActivityTypeId = '';
+        $this->addActivityDate = now()->format('Y-m-d');
+        $this->addActivityDescription = '';
+        $this->showAddActivityModal = true;
+    }
+
+    public function saveActivity(): void
+    {
+        $this->validate([
+            'addActivityTrack' => 'required|in:hunting,sport',
+            'addActivityTypeId' => 'nullable|exists:activity_types,id',
+            'addActivityDate' => 'required|date',
+            'addActivityDescription' => 'required|string|max:500',
+        ]);
+
+        $activityType = $this->addActivityTypeId
+            ? ActivityType::find($this->addActivityTypeId)
+            : ActivityType::active()->forTrack($this->addActivityTrack)->first();
+
+        ShootingActivity::create([
+            'uuid' => \Illuminate\Support\Str::uuid(),
+            'user_id' => $this->user->id,
+            'activity_type_id' => $activityType?->id,
+            'track' => $this->addActivityTrack,
+            'activity_date' => $this->addActivityDate,
+            'description' => $this->addActivityDescription,
+            'status' => 'approved',
+            'verified_at' => now(),
+            'verified_by' => auth()->id(),
+        ]);
+
+        unset($this->memberActivities, $this->activitySummary);
+        $this->showAddActivityModal = false;
+        session()->flash('success', 'Activity added and approved.');
+    }
+
     public function getStatusClasses(string $status): string
     {
         return match($status) {
@@ -1054,6 +1156,105 @@ new #[Title('Member Details - Admin')] class extends Component {
         @else
         <div class="p-8 text-center">
             <p class="text-zinc-500 dark:text-zinc-400">No membership history</p>
+        </div>
+        @endif
+    </div>
+
+    {{-- Activities --}}
+    <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="flex items-center justify-between border-b border-zinc-200 p-6 dark:border-zinc-700">
+            <div>
+                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Activities</h2>
+                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ $this->activitySummary['period_label'] }}</p>
+            </div>
+            <button wire:click="openAddActivityModal" class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 transition-colors">
+                <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                Add Activity
+            </button>
+        </div>
+
+        {{-- Activity Summary --}}
+        <div class="border-b border-zinc-200 bg-zinc-50 px-6 py-3 dark:border-zinc-700 dark:bg-zinc-900/50">
+            <div class="flex flex-wrap items-center gap-4 text-sm">
+                @if($this->isLifetimeMember)
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                        Lifetime Member — Activities always up to date
+                    </span>
+                @else
+                    <span class="text-zinc-600 dark:text-zinc-400">
+                        Approved this year: <strong class="text-zinc-900 dark:text-white">{{ $this->activitySummary['total'] }}</strong>
+                    </span>
+                    <span class="text-zinc-400 dark:text-zinc-600">|</span>
+                    <span class="text-zinc-600 dark:text-zinc-400">
+                        Hunting: <strong class="text-zinc-900 dark:text-white">{{ $this->activitySummary['hunting'] }}</strong>
+                    </span>
+                    <span class="text-zinc-600 dark:text-zinc-400">
+                        Sport: <strong class="text-zinc-900 dark:text-white">{{ $this->activitySummary['sport'] }}</strong>
+                    </span>
+                @endif
+            </div>
+        </div>
+
+        @if($this->memberActivities->count() > 0)
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Type</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Track</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Description</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400"></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                    @foreach($this->memberActivities as $activity)
+                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
+                        <td class="whitespace-nowrap px-6 py-3 text-sm text-zinc-900 dark:text-white">{{ $activity->activity_date->format('d M Y') }}</td>
+                        <td class="whitespace-nowrap px-6 py-3 text-sm text-zinc-900 dark:text-white">{{ $activity->activityType?->name ?? '—' }}</td>
+                        <td class="whitespace-nowrap px-6 py-3 text-sm">
+                            @if($activity->track === 'hunting')
+                                <span class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/40 dark:text-green-300">Hunting</span>
+                            @elseif($activity->track === 'sport')
+                                <span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">Sport</span>
+                            @else
+                                <span class="text-zinc-400">—</span>
+                            @endif
+                        </td>
+                        <td class="max-w-xs truncate px-6 py-3 text-sm text-zinc-500 dark:text-zinc-400" title="{{ $activity->description }}">{{ \Illuminate\Support\Str::limit($activity->description, 60) }}</td>
+                        <td class="whitespace-nowrap px-6 py-3 text-sm">
+                            @if($activity->status === 'approved')
+                                <span class="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Approved</span>
+                            @elseif($activity->status === 'pending')
+                                <span class="inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Pending</span>
+                            @elseif($activity->status === 'rejected')
+                                <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">Rejected</span>
+                            @endif
+                        </td>
+                        <td class="whitespace-nowrap px-6 py-3 text-sm">
+                            @if($activity->status === 'pending')
+                            <div class="flex items-center gap-2">
+                                <button wire:click="approveActivity({{ $activity->id }})" wire:confirm="Approve this activity?" class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors" title="Approve">
+                                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                </button>
+                                <button wire:click="rejectActivity({{ $activity->id }})" wire:confirm="Reject this activity?" class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors" title="Reject">
+                                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                            </div>
+                            @elseif($activity->verifier)
+                                <span class="text-xs text-zinc-400 dark:text-zinc-500">by {{ $activity->verifier->name }}</span>
+                            @endif
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        @else
+        <div class="p-8 text-center">
+            <p class="text-zinc-500 dark:text-zinc-400">No activities recorded</p>
         </div>
         @endif
     </div>
@@ -1935,6 +2136,60 @@ new #[Title('Member Details - Admin')] class extends Component {
                         Mark as Complete
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Add Activity Modal --}}
+    @if($showAddActivityModal)
+    <div class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div wire:click="$set('showAddActivityModal', false)" class="fixed inset-0 bg-black/50"></div>
+            <div class="relative w-full max-w-lg rounded-xl bg-white shadow-xl dark:bg-zinc-800">
+                <div class="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-700">
+                    <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Add Activity</h3>
+                    <button wire:click="$set('showAddActivityModal', false)" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <form wire:submit="saveActivity" class="p-6 space-y-4">
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Track <span class="text-red-500">*</span></label>
+                            <select wire:model="addActivityTrack" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                                <option value="hunting">Hunting</option>
+                                <option value="sport">Sport Shooting</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Activity Date <span class="text-red-500">*</span></label>
+                            <input type="date" wire:model="addActivityDate" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                            @error('addActivityDate') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Activity Type</label>
+                        <select wire:model="addActivityTypeId" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                            <option value="">Auto-select based on track</option>
+                            @foreach($this->activityTypes as $type)
+                            <option value="{{ $type->id }}">{{ $type->name }} ({{ $type->track }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Description / Reason <span class="text-red-500">*</span></label>
+                        <textarea wire:model="addActivityDescription" rows="3" placeholder="e.g. Letter received — member was overseas, Medical certificate provided..." class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white"></textarea>
+                        @error('addActivityDescription') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div class="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
+                        <p class="text-xs text-blue-700 dark:text-blue-300">This activity will be created as <strong>approved</strong> and credited to the member's current activity year.</p>
+                    </div>
+                    <div class="flex justify-end gap-3 pt-2 border-t border-zinc-200 dark:border-zinc-700">
+                        <button type="button" wire:click="$set('showAddActivityModal', false)" class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 transition-colors">Cancel</button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">Add Activity</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
