@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 class FixImportedMemberships extends Command
 {
     protected $signature = 'nrapa:fix-imported-memberships
-                            {--type=standard-annual : Default membership type slug to assign}
+                            {--type= : Membership type slug to assign to ALL members (skips per-member prompt)}
                             {--dry-run : Preview changes without applying them}';
 
     protected $description = 'Assign and activate memberships for imported users who have no membership record';
@@ -19,17 +19,28 @@ class FixImportedMemberships extends Command
     public function handle(): int
     {
         $dryRun = $this->option('dry-run');
-        $typeSlug = $this->option('type');
+        $bulkTypeSlug = $this->option('type');
 
-        $membershipType = MembershipType::where('slug', $typeSlug)->first();
-        if (! $membershipType) {
-            $this->error("Membership type '{$typeSlug}' not found.");
-            $this->line('Available types:');
-            MembershipType::where('is_active', true)->orderBy('name')->each(function ($t) {
-                $this->line("  {$t->slug}  —  {$t->name}");
-            });
+        $types = MembershipType::where('is_active', true)->orderBy('name')->get();
+        if ($types->isEmpty()) {
+            $this->error('No active membership types found.');
 
             return Command::FAILURE;
+        }
+
+        $typeChoices = $types->mapWithKeys(fn ($t) => [$t->slug => $t->name])->toArray();
+
+        if ($bulkTypeSlug) {
+            $bulkType = $types->firstWhere('slug', $bulkTypeSlug);
+            if (! $bulkType) {
+                $this->error("Membership type '{$bulkTypeSlug}' not found.");
+                $this->line('Available types:');
+                foreach ($typeChoices as $slug => $name) {
+                    $this->line("  {$slug}  —  {$name}");
+                }
+
+                return Command::FAILURE;
+            }
         }
 
         $usersWithoutMembership = User::where('role', User::ROLE_MEMBER)
@@ -42,26 +53,59 @@ class FixImportedMemberships extends Command
             return Command::SUCCESS;
         }
 
-        $this->info(($dryRun ? '[DRY RUN] ' : '') . "Found {$usersWithoutMembership->count()} member(s) without a membership.");
+        $prefix = $dryRun ? '[DRY RUN] ' : '';
+        $this->info("{$prefix}Found {$usersWithoutMembership->count()} member(s) without a membership.");
+        $this->newLine();
+
         $this->table(
-            ['Name', 'Email', 'Registered'],
-            $usersWithoutMembership->map(fn ($u) => [$u->name, $u->email, $u->created_at->format('d M Y')])->toArray()
+            ['#', 'Name', 'Email', 'Registered'],
+            $usersWithoutMembership->values()->map(fn ($u, $i) => [$i + 1, $u->name, $u->email, $u->created_at->format('d M Y')])->toArray()
         );
 
         if ($dryRun) {
-            $this->warn("Dry run complete. Re-run without --dry-run to apply changes.");
+            $this->warn('Dry run complete. Re-run without --dry-run to apply changes.');
 
             return Command::SUCCESS;
         }
 
-        if (! $this->confirm("Assign '{$membershipType->name}' and activate all {$usersWithoutMembership->count()} member(s)?")) {
-            $this->info('Cancelled.');
-
-            return Command::SUCCESS;
+        $this->newLine();
+        $this->line('Available membership types:');
+        foreach ($typeChoices as $slug => $name) {
+            $this->line("  <info>{$slug}</info>  —  {$name}");
         }
+        $this->newLine();
 
         $fixed = 0;
+        $skipped = 0;
+
         foreach ($usersWithoutMembership as $user) {
+            $this->line("━━━ <comment>{$user->name}</comment> ({$user->email}) ━━━");
+
+            if ($bulkTypeSlug) {
+                $membershipType = $bulkType;
+                $this->line("  Type: {$membershipType->name} (from --type flag)");
+            } else {
+                $chosenSlug = $this->anticipate(
+                    "  Membership type for {$user->name}? (type slug or 'skip')",
+                    array_merge(array_keys($typeChoices), ['skip'])
+                );
+
+                if (strtolower($chosenSlug) === 'skip') {
+                    $this->warn("  Skipped {$user->name}");
+                    $skipped++;
+
+                    continue;
+                }
+
+                $membershipType = $types->firstWhere('slug', $chosenSlug);
+                if (! $membershipType) {
+                    $this->error("  Unknown type '{$chosenSlug}' — skipping.");
+                    $skipped++;
+
+                    continue;
+                }
+            }
+
             $expiresAt = null;
             if ($membershipType->requires_renewal && $membershipType->duration_months) {
                 $expiresAt = now()->addMonths($membershipType->duration_months);
@@ -75,17 +119,17 @@ class FixImportedMemberships extends Command
                 'status' => 'active',
                 'applied_at' => $user->created_at,
                 'approved_at' => now(),
-                'approved_by' => auth()->id(),
                 'activated_at' => now(),
                 'expires_at' => $expiresAt,
                 'source' => 'import',
             ]);
 
             $fixed++;
-            $this->line("  ✓ {$user->name} ({$user->email})");
+            $this->info("  ✓ Assigned '{$membershipType->name}' to {$user->name}");
         }
 
-        $this->info("Done. {$fixed} membership(s) created and activated.");
+        $this->newLine();
+        $this->info("Done. {$fixed} membership(s) created. {$skipped} skipped.");
 
         return Command::SUCCESS;
     }
