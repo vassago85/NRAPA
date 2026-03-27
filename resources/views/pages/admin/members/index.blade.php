@@ -30,8 +30,8 @@ new #[Title('Members - Admin')] class extends Component {
     public string $defaultPassword = 'password123';
     public string $defaultMembershipType = '';
     public bool $skipDuplicates = true;
-    public bool $autoApprove = false;
-    public bool $autoActivate = false;
+    public bool $autoApprove = true;
+    public bool $autoActivate = true;
     public bool $sendWelcomeEmail = true;
     public bool $knowledgeTestCompleted = true;
     public bool $activitiesUpToDate = false;

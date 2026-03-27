@@ -138,20 +138,27 @@ class ExcelMemberImporter
                     $membershipType = $this->resolveMembershipType($memberData['membership_type_raw'], $defaultMembershipType);
                     $membership = null;
 
-                    if ($membershipType) {
-                        $membership = $this->createMembership($user, $memberData, $membershipType, $autoApprove, $autoActivate, 'import');
+                    if (! $membershipType) {
+                        $failed++;
+                        $rawLabel = $memberData['membership_type_raw'] ?: '(empty)';
+                        $errors[] = "Row {$rowNumber}: Could not resolve membership type '{$rawLabel}' — user created without membership.";
+                        $this->recordFailure($batchId, $rowNumber, $row, "Unresolvable membership type: {$rawLabel}. User {$memberData['email']} was created but has no membership.");
 
-                        $rowPassTests = $memberData['knowledge_test'] ?? null;
-                        $shouldPassTests = $rowPassTests !== null ? $rowPassTests : $autoPassTests;
-                        if ($shouldPassTests) {
-                            $this->autoPassKnowledgeTests($user, $membershipType);
-                        }
+                        continue;
+                    }
 
-                        $rowActivities = $memberData['activities'] ?? null;
-                        $shouldCreateActivities = $rowActivities !== null ? $rowActivities : $autoActivities;
-                        if ($shouldCreateActivities) {
-                            $this->autoCreateActivities($user, $membershipType);
-                        }
+                    $membership = $this->createMembership($user, $memberData, $membershipType, $autoApprove, $autoActivate, 'import');
+
+                    $rowPassTests = $memberData['knowledge_test'] ?? null;
+                    $shouldPassTests = $rowPassTests !== null ? $rowPassTests : $autoPassTests;
+                    if ($shouldPassTests) {
+                        $this->autoPassKnowledgeTests($user, $membershipType);
+                    }
+
+                    $rowActivities = $memberData['activities'] ?? null;
+                    $shouldCreateActivities = $rowActivities !== null ? $rowActivities : $autoActivities;
+                    if ($shouldCreateActivities) {
+                        $this->autoCreateActivities($user, $membershipType);
                     }
 
                     if ($sendWelcomeEmail && $membership) {
@@ -306,16 +313,20 @@ class ExcelMemberImporter
             $user = $this->createUser($memberData, $defaultPassword);
 
             $membershipType = $this->resolveMembershipType($memberData['membership_type_raw'], $defaultMembershipType);
-            $membership = null;
-            if ($membershipType) {
-                $membership = $this->createMembership($user, $memberData, $membershipType, $autoApprove, $autoActivate, $source);
+            if (! $membershipType) {
+                DB::rollBack();
+                $rawLabel = $memberData['membership_type_raw'] ?: '(empty)';
 
-                if ($autoPassTests) {
-                    $this->autoPassKnowledgeTests($user, $membershipType);
-                }
-                if ($autoActivities) {
-                    $this->autoCreateActivities($user, $membershipType);
-                }
+                return ['success' => false, 'error' => "Could not resolve membership type '{$rawLabel}'. Please select a valid type.", 'user' => null];
+            }
+
+            $membership = $this->createMembership($user, $memberData, $membershipType, $autoApprove, $autoActivate, $source);
+
+            if ($autoPassTests) {
+                $this->autoPassKnowledgeTests($user, $membershipType);
+            }
+            if ($autoActivities) {
+                $this->autoCreateActivities($user, $membershipType);
             }
 
             DB::commit();
