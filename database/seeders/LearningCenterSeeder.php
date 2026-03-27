@@ -1312,7 +1312,7 @@ HTML;
 <p>The gun rests across your forearm and the crook of your elbow, with your hand securing the rifle by grasping the stock or fore-end. This is a <strong>comfortable carry that reduces arm fatigue</strong> on longer hunts. The muzzle points to one side and the action is easily accessible.</p>
 
 <h3 class="mt-5 mb-2 text-lg font-semibold">3. Elbow or Side Carry</h3>
-<p>Very comfortable for <strong>break-action firearms</strong>. The pivot of the open action rests in the crook of the elbow, with the barrel naturally pointing downward. Others in the hunting party can clearly see that the action is <strong>open and safe</strong>. This is ideal when walking to and from the hunting area.</p>
+<p>The elbow or "side" carry is a very comfortable carry for <strong>break-action firearms</strong>. The pivot of the open action rests easily in the crook of your elbow and <strong>down over your forearm</strong>. In this manner the barrel naturally points down. Others can easily see that your action is <strong>safe and open</strong>.</p>
 
 <h3 class="mt-5 mb-2 text-lg font-semibold">4. Shoulder Carry</h3>
 <p>The rifle is balanced on the shoulder with your hand on the grip and your <strong>finger off the trigger</strong>. This is a good carry when walking <strong>beside or behind others</strong>, as the muzzle points upward and behind. It is <strong>not a good carry if others are behind you</strong>, as the muzzle would be directed toward them.</p>

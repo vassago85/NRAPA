@@ -8,12 +8,12 @@
         <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-JV2NSWMYTQ');</script>
         <title>NRAPA — SAPS Accredited Membership for Dedicated Sport &amp; Hunter Status</title>
         <meta name="description" content="NRAPA is a SAPS-accredited association helping South African firearm owners obtain dedicated sport and hunter status, manage licences, and stay compliant with the Firearms Control Act.">
-        <link rel="canonical" href="https://nrapa.ranyati.co.za/">
+        <link rel="canonical" href="{{ url('/') }}">
         <meta property="og:type" content="website">
         <meta property="og:site_name" content="NRAPA">
         <meta property="og:title" content="NRAPA — SAPS Accredited Membership for Dedicated Sport & Hunter Status">
         <meta property="og:description" content="SAPS-accredited association helping South African firearm owners obtain dedicated status, manage licences, and stay compliant.">
-        <meta property="og:url" content="https://nrapa.ranyati.co.za/">
+        <meta property="og:url" content="{{ url('/') }}">
         <meta property="og:image" content="{{ asset('logo-nrapa-white.png') }}">
         <meta name="twitter:card" content="summary">
         <meta name="twitter:title" content="NRAPA — Dedicated Sport & Hunter Status">
