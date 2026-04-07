@@ -862,7 +862,6 @@ class EndorsementRequest extends Model
                 $dedicatedCategory = match ($dedicatedType) {
                     'sport' => 'Dedicated Sport Shooter',
                     'hunter' => 'Dedicated Hunter',
-                    'both' => 'Dedicated Sport Shooter & Dedicated Hunter',
                     default => null,
                 };
             }
@@ -873,9 +872,13 @@ class EndorsementRequest extends Model
             throw new \Exception('Dedicated Status is not compliant. Endorsement cannot be issued.');
         }
 
-        // Ensure dedicated category is set
+        // Ensure dedicated category is set and is a single category (not both)
         if (empty($dedicatedCategory)) {
             throw new \Exception('Dedicated Category must be specified before endorsement can be issued.');
+        }
+
+        if (!in_array($dedicatedCategory, ['Dedicated Sport Shooter', 'Dedicated Hunter'])) {
+            throw new \Exception('Dedicated Category must be either "Dedicated Sport Shooter" or "Dedicated Hunter".');
         }
 
         $issuedAt = now();

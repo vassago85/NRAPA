@@ -414,7 +414,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                     'model' => 'required|string|max:255',
                 ],
             3 => [
-                'dedicatedCategory' => 'required|in:Dedicated Sport Shooter,Dedicated Hunter,Dedicated Sport Shooter & Dedicated Hunter',
+                'dedicatedCategory' => 'required|in:Dedicated Sport Shooter,Dedicated Hunter',
             ],
             4 => [], // Declaration validated on submit
             default => [],
@@ -776,7 +776,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         }
         
         if (empty($this->dedicatedCategory)) {
-            $errors[] = 'Dedicated category is required (Sport Shooter, Hunter, or Both).';
+            $errors[] = 'Dedicated category is required (Sport Shooter or Hunter).';
         }
 
         return $errors;
@@ -1404,7 +1404,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                         $allCategories = [
                             'Dedicated Sport Shooter' => ['label' => 'Dedicated Sport Shooter', 'desc' => 'Section 16 sport shooting licence'],
                             'Dedicated Hunter' => ['label' => 'Dedicated Hunter', 'desc' => 'Section 16 dedicated hunting licence'],
-                            'Dedicated Sport Shooter & Dedicated Hunter' => ['label' => 'Sport Shooter & Hunter', 'desc' => 'Both dedicated categories'],
                         ];
                         $availableCategories = match($dedicatedType) {
                             'sport', 'sport_shooter' => collect($allCategories)->only(['Dedicated Sport Shooter'])->all(),

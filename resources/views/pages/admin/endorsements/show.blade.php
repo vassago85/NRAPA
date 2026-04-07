@@ -17,6 +17,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
     public string $adminNotes = '';
     public bool $showIssueModal = false;
     public string $selectedDedicatedCategory = '';
+    public bool $editingDedicatedCategory = false;
+    public string $editDedicatedCategoryValue = '';
 
     public function mount(EndorsementRequest $request): void
     {
@@ -49,7 +51,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             $this->selectedDedicatedCategory = match($dedicatedType) {
                 'sport' => 'Dedicated Sport Shooter',
                 'hunter' => 'Dedicated Hunter',
-                'both' => 'Dedicated Sport Shooter & Dedicated Hunter',
+                'both' => '',
                 default => '',
             };
         }
@@ -245,7 +247,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
         $category = match($dedicatedType) {
             'sport' => 'Dedicated Sport Shooter',
             'hunter' => 'Dedicated Hunter',
-            'both' => 'Dedicated Sport Shooter & Dedicated Hunter',
+            'both' => null,
             default => null,
         };
         
@@ -359,6 +361,38 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             ]);
             session()->flash('error', 'Failed to generate endorsement letter: ' . $e->getMessage());
         }
+    }
+
+    public function startEditDedicatedCategory(): void
+    {
+        $this->editDedicatedCategoryValue = $this->request->dedicated_category ?? '';
+        $this->editingDedicatedCategory = true;
+    }
+
+    public function saveDedicatedCategory(): void
+    {
+        if (!in_array($this->editDedicatedCategoryValue, ['Dedicated Sport Shooter', 'Dedicated Hunter'])) {
+            session()->flash('error', 'Please select a valid dedicated category.');
+            return;
+        }
+
+        $oldCategory = $this->request->dedicated_category;
+        $this->request->update(['dedicated_category' => $this->editDedicatedCategoryValue]);
+
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'event' => 'endorsement_category_updated',
+            'auditable_type' => EndorsementRequest::class,
+            'auditable_id' => $this->request->id,
+            'old_values' => ['dedicated_category' => $oldCategory],
+            'new_values' => ['dedicated_category' => $this->editDedicatedCategoryValue],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+
+        $this->editingDedicatedCategory = false;
+        $this->request->refresh();
+        session()->flash('success', 'Dedicated category updated to: ' . $this->editDedicatedCategoryValue);
     }
 
     public function rejectRequest(): void
@@ -653,10 +687,24 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                         <div>
                             <dt class="text-zinc-500">Dedicated Category</dt>
                             <dd class="font-medium text-zinc-900 dark:text-white">
-                                @if($request->dedicated_category)
+                                @if($editingDedicatedCategory)
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <select wire:model="editDedicatedCategoryValue"
+                                            class="px-2 py-1 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                                            <option value="">Select...</option>
+                                            <option value="Dedicated Sport Shooter">Dedicated Sport Shooter</option>
+                                            <option value="Dedicated Hunter">Dedicated Hunter</option>
+                                        </select>
+                                        <button wire:click="saveDedicatedCategory" class="text-xs px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700">Save</button>
+                                        <button wire:click="$set('editingDedicatedCategory', false)" class="text-xs px-2 py-1 bg-zinc-200 dark:bg-zinc-600 text-zinc-700 dark:text-zinc-200 rounded hover:bg-zinc-300 dark:hover:bg-zinc-500">Cancel</button>
+                                    </div>
+                                @elseif($request->dedicated_category)
                                     <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
                                         {{ $request->dedicated_category }}
                                     </span>
+                                    @if(in_array($request->status, ['approved', 'issued']))
+                                        <button wire:click="startEditDedicatedCategory" class="ml-2 text-xs text-blue-600 dark:text-blue-400 hover:underline">Edit</button>
+                                    @endif
                                 @else
                                     <span class="text-amber-600 dark:text-amber-400">Not specified</span>
                                 @endif
@@ -1198,7 +1246,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                             <option value="">Select category...</option>
                             <option value="Dedicated Sport Shooter">Dedicated Sport Shooter</option>
                             <option value="Dedicated Hunter">Dedicated Hunter</option>
-                            <option value="Dedicated Sport Shooter & Dedicated Hunter">Dedicated Sport Shooter & Dedicated Hunter</option>
                         </select>
                         @error('selectedDedicatedCategory') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
