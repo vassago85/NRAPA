@@ -122,6 +122,7 @@
             padding: 0;
         }
         .layout-table td.half { width: 50%; }
+        .layout-table td.half { height: 1px; }
         .layout-table td.half:first-child { padding-right: 3px; }
         .layout-table td.half:last-child { padding-left: 3px; }
         .layout-table td.third { width: 33.33%; }
