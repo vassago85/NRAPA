@@ -275,8 +275,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         $this->receiverSerialNumber = $data['receiver_serial_number'] ?? '';
         $this->receiverMake = $data['receiver_make_text'] ?? '';
         
-        // Legacy fields for backward compatibility
-        $this->calibreId = $this->firearmCalibreId;
+        // Legacy fields for backward compatibility (calibreId left null - different ID space from firearmCalibreId)
         $this->calibreManual = $this->calibreTextOverride;
         $this->make = $this->makeTextOverride
             ?: ($this->firearmMakeId ? \App\Models\FirearmMake::find($this->firearmMakeId)?->name : '') 
@@ -435,9 +434,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                         ?: ($this->firearmModelId ? \App\Models\FirearmModel::find($this->firearmModelId)?->name : '')
                         ?: '';
                 }
-                if (empty($this->calibreId) && $this->firearmCalibreId) {
-                    $this->calibreId = $this->firearmCalibreId;
-                }
+                // calibreId is legacy (calibres table) - don't copy firearmCalibreId (firearm_calibres table) into it
                 if (empty($this->calibreManual) && $this->calibreTextOverride) {
                     $this->calibreManual = $this->calibreTextOverride;
                 }
@@ -934,8 +931,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                 'make_text_override' => $firearmData['make_text_override'] ?? $this->makeTextOverride,
                 'firearm_model_id' => $firearmData['firearm_model_id'] ?? $this->firearmModelId,
                 'model_text_override' => $firearmData['model_text_override'] ?? $this->modelTextOverride,
-                // Legacy fields (for backward compatibility)
-                'calibre_id' => $this->calibreId,                      // 1.3 Calibre
+                // Legacy calibre_id left null - new system uses firearm_calibre_id above
+                'calibre_id' => null,
                 'calibre_manual' => $firearmData['calibre_text_override'] ?? $this->calibreManual ?: null,
                 'calibre_code' => $firearmData['calibre_code'] ?? $this->calibreCode ?: null,          // 1.4 Calibre code
                 'make' => $firearmData['make_text_override'] ?? $this->make ?: null,                         // 1.5 Make
