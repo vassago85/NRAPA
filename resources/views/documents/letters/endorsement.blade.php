@@ -7,7 +7,6 @@
         : ($request->uuid ? url('/verify/endorsement/' . $request->uuid) : '#');
     $signatory = \App\Helpers\DocumentDataHelper::getEndorsementSignatoryInfo($request);
     $signatureHtml = \App\Helpers\DocumentDataHelper::getSignatureImageHtml(\App\Helpers\DocumentDataHelper::getDefaultSignaturePath());
-    $commissionerHtml = \App\Helpers\DocumentDataHelper::getCommissionerScanHtml(\App\Helpers\DocumentDataHelper::getDefaultCommissionerScanPath());
 
     $user = $request->user;
     $membership = $user->activeMembership;
@@ -187,7 +186,7 @@
         The Association confirms that the firearm or component(s) described above is suitable for the stated purpose in accordance with the Firearms Control Act (Act 60 of 2000, as amended) and relevant Regulations.
     </div>
 
-    {{-- Bottom: Signatory + Commissioner (table layout) --}}
+    {{-- Bottom: Signatory + Verification (table layout) --}}
     <table class="layout-table">
         <tr>
             <td class="half">
@@ -202,37 +201,19 @@
                 </div>
             </td>
             <td class="half">
-                <div class="card commissioner-card">
-                    <div class="card-title">Commissioner of Oaths</div>
-                    <div class="commissioner-box">
-                        @if($commissionerHtml && trim(strip_tags($commissionerHtml)))
-                            {!! $commissionerHtml !!}
-                        @else
-                            Commissioner of Oaths scan
-                        @endif
+                <div class="card verify-card" style="text-align:center; padding:10px;">
+                    <div class="card-title">Verify This Endorsement</div>
+                    <div style="margin:8px 0;">
+                        <div class="qr-box" style="display:inline-block;">
+                            <img src="{{ $qrCodeUrl }}" alt="QR Code" style="width:100px; height:100px;"/>
+                        </div>
                     </div>
-                    <div class="commissioner-sub">Upload commissioned scan in admin dashboard. Placeholder must remain white.</div>
+                    <div style="font-size:9px; color:#333; margin-bottom:4px;">
+                        Scan the QR code or visit the link below to confirm this is a genuine NRAPA endorsement letter.
+                    </div>
+                    <a href="{{ $verifyUrl }}" style="color:#1f4e8c; word-break:break-all; font-size:8px;">{{ $verifyUrl }}</a>
                 </div>
             </td>
         </tr>
     </table>
-
-    {{-- Verification row (table layout) --}}
-    <div class="verify-card">
-        <table style="width:100%; border-collapse:collapse;">
-            <tr>
-                <td style="width:85px; vertical-align:top; padding:0;">
-                    <div class="qr-box">
-                        <img src="{{ $qrCodeUrl }}" alt="QR Code"/>
-                    </div>
-                </td>
-                <td class="verify-text" style="vertical-align:top;">
-                    <strong>Verify this endorsement</strong>
-                    Scan the QR code or visit the link below.
-                    <br/>
-                    <a href="{{ $verifyUrl }}" style="color:#1f4e8c; word-break:break-all; font-size:8px;">{{ $verifyUrl }}</a>
-                </td>
-            </tr>
-        </table>
-    </div>
 @endsection
