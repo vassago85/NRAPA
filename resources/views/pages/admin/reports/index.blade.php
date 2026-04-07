@@ -172,58 +172,40 @@ new #[Title('Membership Reports - Admin')] class extends Component {
         $this->dateTo = '';
     }
 
-    public function exportCsv(): void
+    public function exportCsv(): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         $rows = $this->typeBreakdown;
-        $data = [];
-        $totalRevenue = 0;
-        foreach ($rows as $row) {
-            $totalRevenue += $row['expected_revenue'];
-            $data[] = [
-                $row['name'],
-                $row['dedicated_type'] ? ucfirst($row['dedicated_type']) : 'None',
-                ucfirst($row['duration_type'] ?? 'Annual'),
-                (string) $row['active'],
-                (string) $row['expired'],
-                (string) $row['pending'],
-                (string) $row['total'],
-                $row['active_percent'] . '%',
-                $row['signup_fee'] ? 'R' . number_format($row['signup_fee'], 2) : 'N/A',
-                $row['requires_renewal'] ? 'R' . number_format($row['renewal_price'], 2) : 'N/A',
-                $row['requires_renewal'] ? 'R' . number_format($row['expected_revenue'], 2) : 'N/A',
-            ];
-        }
-        $data[] = ['TOTAL', '', '', '', '', '', '', '', '', '', 'R' . number_format($totalRevenue, 2)];
+        $filename = 'membership-report-' . now()->format('Y-m-d') . '.csv';
 
-        $this->dispatch('download-csv', [
-            'data' => $data,
-            'headers' => ['Membership Type', 'Dedicated Type', 'Duration', 'Active', 'Expired', 'Pending', 'Total', '% of Active', 'Sign-up Price', 'Renewal Price', 'Est. Annual Revenue'],
-            'filename' => 'membership-report-' . now()->format('Y-m-d') . '.csv',
-        ]);
+        return response()->streamDownload(function () use ($rows) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Membership Type', 'Dedicated Type', 'Duration', 'Active', 'Expired', 'Pending', 'Total', '% of Active', 'Sign-up Price', 'Renewal Price', 'Est. Annual Revenue']);
+
+            $totalRevenue = 0;
+            foreach ($rows as $row) {
+                $totalRevenue += $row['expected_revenue'];
+                fputcsv($handle, [
+                    $row['name'],
+                    $row['dedicated_type'] ? ucfirst($row['dedicated_type']) : 'None',
+                    ucfirst($row['duration_type'] ?? 'Annual'),
+                    (string) $row['active'],
+                    (string) $row['expired'],
+                    (string) $row['pending'],
+                    (string) $row['total'],
+                    $row['active_percent'] . '%',
+                    $row['signup_fee'] ? 'R' . number_format($row['signup_fee'], 2) : 'N/A',
+                    $row['requires_renewal'] ? 'R' . number_format($row['renewal_price'], 2) : 'N/A',
+                    $row['requires_renewal'] ? 'R' . number_format($row['expected_revenue'], 2) : 'N/A',
+                ]);
+            }
+            fputcsv($handle, ['TOTAL', '', '', '', '', '', '', '', '', '', 'R' . number_format($totalRevenue, 2)]);
+
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv']);
     }
 }; ?>
 
-<div x-data="{
-    downloadCsv(event) {
-        const d = event.detail[0];
-        let csv = d.headers.join(',') + '\n';
-        d.data.forEach(row => {
-            csv += row.map(cell => {
-                if (cell && (cell.includes(',') || cell.includes('\"') || cell.includes('\n'))) {
-                    return '\"' + cell.replace(/\"/g, '\"\"') + '\"';
-                }
-                return cell;
-            }).join(',') + '\n';
-        });
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.setAttribute('href', url);
-        a.setAttribute('download', d.filename);
-        a.click();
-        window.URL.revokeObjectURL(url);
-    }
-}" @download-csv.window="downloadCsv($event)" class="flex flex-col gap-6">
+<div class="flex flex-col gap-6">
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <div>

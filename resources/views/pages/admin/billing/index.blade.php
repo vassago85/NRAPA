@@ -304,21 +304,23 @@ new class extends Component {
         }
     }
     
-    public function exportCsv(): void
+    public function exportCsv(): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         $memberships = Membership::billable()
             ->approvedInMonth($this->selectedYear, $this->selectedMonth)
             ->with(['user', 'type', 'previousMembership.type', 'affiliatedClub'])
             ->orderBy('approved_at', 'desc')
             ->get();
-        
+
         $monthName = date('F', mktime(0, 0, 0, $this->selectedMonth, 1));
         $filename = "billing-report-{$monthName}-{$this->selectedYear}.csv";
-        
-        // Stream the response
-        $this->dispatch('download-csv', [
-            'data' => $memberships->map(function ($m) {
-                return [
+
+        return response()->streamDownload(function () use ($memberships) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Date Approved', 'Membership Number', 'Member Name', 'Email', 'Membership Type', 'Affiliated Club', 'Type (New/Renewal)', 'Previous Membership', 'Source']);
+
+            foreach ($memberships as $m) {
+                fputcsv($handle, [
                     $m->approved_at?->format('Y-m-d H:i:s') ?? '',
                     $m->membership_number,
                     $m->user->name ?? '',
@@ -328,39 +330,15 @@ new class extends Component {
                     $m->isRenewal() ? 'Renewal' : 'New',
                     $m->previousMembership?->type?->name ?? 'N/A',
                     ucfirst($m->source ?? 'web'),
-                ];
-            })->toArray(),
-            'filename' => $filename,
-            'headers' => ['Date Approved', 'Membership Number', 'Member Name', 'Email', 'Membership Type', 'Affiliated Club', 'Type (New/Renewal)', 'Previous Membership', 'Source'],
-        ]);
+                ]);
+            }
+
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv']);
     }
 }; ?>
 
-<div x-data="{
-    downloadCsv(event) {
-        const data = event.detail[0].data;
-        const filename = event.detail[0].filename;
-        const headers = event.detail[0].headers;
-        
-        let csv = headers.join(',') + '\n';
-        data.forEach(row => {
-            csv += row.map(cell => {
-                if (cell && (cell.includes(',') || cell.includes('\"') || cell.includes('\n'))) {
-                    return '\"' + cell.replace(/\"/g, '\"\"') + '\"';
-                }
-                return cell;
-            }).join(',') + '\n';
-        });
-        
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.setAttribute('href', url);
-        a.setAttribute('download', filename);
-        a.click();
-        window.URL.revokeObjectURL(url);
-    }
-}" @download-csv.window="downloadCsv($event)">
+<div>
     <x-slot name="header">
         <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Billing & Stats</h1>
         <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Financial overview and membership statistics</p>
