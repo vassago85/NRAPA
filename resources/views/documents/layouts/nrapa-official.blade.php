@@ -203,21 +203,17 @@
             border: 1px solid #e5e5e5;
             border-radius: 6px;
             padding: 8px 12px;
-            margin-top: 4px;
-            width: 95%;
-            margin-left: auto;
-            margin-right: auto;
+            text-align: center;
+            height: 100%;
         }
         .qr-box {
-            width: 77px;
-            height: 77px;
+            display: inline-block;
             border: 1px solid #e5e5e5;
             border-radius: 6px;
-            overflow: hidden;
             background: #fff;
-            padding: 2px;
+            padding: 4px;
         }
-        .qr-box img { width: 100%; height: auto; }
+        .qr-box img { width: 100px; height: 100px; display: block; }
         .verify-text { font-size: 10px; color: #6a6a6a; line-height: 1.4; padding-left: 10px; }
         .verify-text strong { display: block; font-size: 11px; color: #222222; margin-bottom: 2px; }
         .verify-text a { color: #1f4e8c; font-weight: 500; text-decoration: none; }
@@ -236,22 +232,7 @@
         .sig-title { font-size: 10px; color: #6a6a6a; }
         .sig-date { font-size: 9px; color: #6a6a6a; margin-top: 2px; }
 
-        /* Commissioner card (used by endorsement letters) */
-        .commissioner-card { text-align: left; }
-        .commissioner-box {
-            min-height: 36px;
-            border: 2px dashed #d7d7d7;
-            border-radius: 6px;
-            text-align: center;
-            color: #888;
-            font-size: 10px;
-            background: #fff;
-            overflow: hidden;
-            margin-top: 4px;
-            padding: 4px;
-        }
-        .commissioner-box img { max-height: 60px; max-width: 100%; }
-        .commissioner-sub { font-size: 8px; color: #6a6a6a; margin-top: 2px; }
+        
 
         /* Orange footer bar — pinned to bottom of A4 page */
         .footer-bar {

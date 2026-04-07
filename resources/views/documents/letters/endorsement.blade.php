@@ -201,11 +201,11 @@
                 </div>
             </td>
             <td class="half">
-                <div class="card verify-card" style="text-align:center; padding:10px;">
+                <div class="verify-card">
                     <div class="card-title">Verify This Endorsement</div>
                     <div style="margin:8px 0;">
-                        <div class="qr-box" style="display:inline-block;">
-                            <img src="{{ $qrCodeUrl }}" alt="QR Code" style="width:100px; height:100px;"/>
+                        <div class="qr-box">
+                            <img src="{{ $qrCodeUrl }}" alt="QR Code"/>
                         </div>
                     </div>
                     <div style="font-size:9px; color:#333; margin-bottom:4px;">
