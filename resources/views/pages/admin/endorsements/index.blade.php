@@ -47,7 +47,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Requests - Admin')] cl
         if ($this->search) {
             $query->whereHas('user', function ($q) {
                 $q->where('name', 'like', '%' . $this->search . '%')
-                    ->orWhere('email', 'like', '%' . $this->search . '%');
+                    ->orWhere('email', 'like', '%' . $this->search . '%')
+                    ->orWhere('id_number', 'like', '%' . $this->search . '%');
             });
         }
 
@@ -135,7 +136,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Requests - Admin')] cl
     <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-4 mb-6">
         <div class="flex flex-col md:flex-row gap-4">
             <div class="flex-1">
-                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search by member name or email..."
+                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search by name, email, or ID number..."
                     class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
             </div>
             <div class="w-full md:w-48">

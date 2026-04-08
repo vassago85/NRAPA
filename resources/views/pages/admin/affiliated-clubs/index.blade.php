@@ -107,7 +107,8 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
 
         return User::where(function ($q) {
                 $q->where('name', 'like', "%{$this->memberSearch}%")
-                  ->orWhere('email', 'like', "%{$this->memberSearch}%");
+                  ->orWhere('email', 'like', "%{$this->memberSearch}%")
+                  ->orWhere('id_number', 'like', "%{$this->memberSearch}%");
             })
             ->limit(10)
             ->get();
@@ -624,7 +625,7 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Search Member</label>
-                        <input type="text" wire:model.live.debounce.300ms="memberSearch" placeholder="Name, email, or membership number..." class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white" autofocus>
+                        <input type="text" wire:model.live.debounce.300ms="memberSearch" placeholder="Name, email, ID number, or membership number..." class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white" autofocus>
                         @error('memberSearch') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
 

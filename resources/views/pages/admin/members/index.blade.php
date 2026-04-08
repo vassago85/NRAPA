@@ -56,6 +56,7 @@ new #[Title('Members - Admin')] class extends Component {
                 $query->where(function ($q) {
                     $q->where('name', 'like', '%' . $this->search . '%')
                         ->orWhere('email', 'like', '%' . $this->search . '%')
+                        ->orWhere('id_number', 'like', '%' . $this->search . '%')
                         ->orWhereHas('memberships', function ($mq) {
                             $mq->where('membership_number', 'like', '%' . $this->search . '%');
                         });
@@ -305,7 +306,7 @@ new #[Title('Members - Admin')] class extends Component {
             <input
                 type="text"
                 wire:model.live.debounce.300ms="search"
-                placeholder="Search by name, email, or membership number..."
+                placeholder="Search by name, email, ID number, or membership number..."
                 class="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white dark:placeholder-zinc-400"
             >
         </div>

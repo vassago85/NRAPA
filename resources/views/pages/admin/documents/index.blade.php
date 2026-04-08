@@ -43,7 +43,8 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             ->when($this->search, function ($q) {
                 $q->whereHas('user', function ($userQuery) {
                     $userQuery->where('name', 'like', "%{$this->search}%")
-                        ->orWhere('email', 'like', "%{$this->search}%");
+                        ->orWhere('email', 'like', "%{$this->search}%")
+                        ->orWhere('id_number', 'like', "%{$this->search}%");
                 })->orWhere('original_filename', 'like', "%{$this->search}%");
             })
             ->orderBy('created_at', 'desc');
@@ -183,7 +184,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     {{-- Filters --}}
     <div class="mb-6 flex flex-wrap gap-4">
         <div class="flex-1 min-w-64">
-            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search by member name, email, or filename..."
+            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search by name, email, ID number, or filename..."
                 class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
         </div>
         <select wire:model.live="statusFilter"

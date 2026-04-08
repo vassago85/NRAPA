@@ -24,7 +24,8 @@ new class extends Component {
             ->when($this->statusFilter, fn($q) => $q->where('status', $this->statusFilter))
             ->when($this->search, fn($q) => $q->whereHas('user', function($query) {
                 $query->where('name', 'like', '%' . $this->search . '%')
-                    ->orWhere('email', 'like', '%' . $this->search . '%');
+                    ->orWhere('email', 'like', '%' . $this->search . '%')
+                    ->orWhere('id_number', 'like', '%' . $this->search . '%');
             }))
             ->orderBy('created_at', 'desc')
             ->paginate(15);
@@ -96,7 +97,7 @@ new class extends Component {
     <!-- Search -->
     <div class="mb-6">
         <div class="relative max-w-md">
-            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search by member name or email..." class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-4 py-2 pl-10 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:border-emerald-500 focus:ring-emerald-500">
+            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search by name, email, or ID number..." class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-4 py-2 pl-10 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:border-emerald-500 focus:ring-emerald-500">
             <svg class="absolute left-3 top-2.5 size-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
         </div>
     </div>
