@@ -103,7 +103,10 @@ new #[Title('Member Details - Admin')] class extends Component {
     #[Computed]
     public function activeMembership()
     {
-        return $this->user->memberships->firstWhere('status', 'active');
+        $active = $this->user->memberships->where('status', 'active');
+
+        return $active->first(fn ($m) => !$m->expires_at?->isPast())
+            ?? $active->sortByDesc('id')->first();
     }
 
     #[Computed]

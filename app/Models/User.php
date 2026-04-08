@@ -391,10 +391,14 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * Get the active membership for the user.
+     * Prefers a non-expired active membership over an expired one.
      */
     public function activeMembership(): HasOne
     {
-        return $this->hasOne(Membership::class)->where('status', 'active');
+        return $this->hasOne(Membership::class)
+            ->where('status', 'active')
+            ->orderByRaw('(expires_at IS NULL OR expires_at > NOW()) DESC')
+            ->orderByDesc('id');
     }
 
     /**
