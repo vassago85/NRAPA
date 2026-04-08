@@ -40,7 +40,7 @@
     }
 
     $membership = $certificate->membership;
-    $statusEffectiveDate = $membership->activated_at?->format('d F Y') ?? $membership->applied_at?->format('d F Y') ?? 'N/A';
+    $statusEffectiveDate = $membership->approved_at?->format('d F Y') ?? $membership->activated_at?->format('d F Y') ?? 'N/A';
 
     $activityCheck = \App\Models\EndorsementRequest::checkActivityRequirements($certificate->user);
     $missingDocs = \App\Models\EndorsementRequest::getMissingRequiredDocuments($certificate->user);
