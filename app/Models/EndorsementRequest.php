@@ -849,6 +849,11 @@ class EndorsementRequest extends Model
             throw new \Exception('Endorsement request must be approved before letter can be issued.');
         }
 
+        $membership = $this->user->activeMembership;
+        if ($membership && $membership->expires_at && $membership->expires_at->isPast()) {
+            throw new \Exception('Cannot issue endorsement letter: membership expired on ' . $membership->expires_at->format('d M Y') . '.');
+        }
+
         // If dedicated status not provided, determine from current membership
         if ($dedicatedStatusCompliant === null || $dedicatedCategory === null) {
             $eligibility = self::getEligibilitySummary($this->user);

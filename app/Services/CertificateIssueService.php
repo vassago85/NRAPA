@@ -42,6 +42,13 @@ class CertificateIssueService
         return $data;
     }
 
+    protected function guardMembershipNotExpired(Membership $membership): void
+    {
+        if ($membership->expires_at && $membership->expires_at->isPast()) {
+            throw new \Exception('Cannot issue certificate: membership expired on ' . $membership->expires_at->format('d M Y') . '.');
+        }
+    }
+
     /**
      * Issue a Dedicated Hunter Certificate.
      * Requires: approved dedicated status, good standing, valid documents, and activities up to date.
@@ -65,6 +72,7 @@ class CertificateIssueService
         if (! $membership) {
             throw new \Exception('User does not have an active membership.');
         }
+        $this->guardMembershipNotExpired($membership);
 
         // Check required documents are valid
         $missingDocs = \App\Models\EndorsementRequest::getMissingRequiredDocuments($user);
@@ -172,6 +180,7 @@ class CertificateIssueService
         if (! $membership) {
             throw new \Exception('User does not have an active membership.');
         }
+        $this->guardMembershipNotExpired($membership);
 
         // Check required documents are valid
         $missingDocs = \App\Models\EndorsementRequest::getMissingRequiredDocuments($user);
@@ -270,6 +279,7 @@ class CertificateIssueService
         if (! $membership) {
             throw new \Exception('User does not have an active membership.');
         }
+        $this->guardMembershipNotExpired($membership);
 
         $missingDocs = \App\Models\EndorsementRequest::getMissingRequiredDocuments($user);
         if (count($missingDocs) > 0) {
@@ -339,6 +349,7 @@ class CertificateIssueService
         if (! $membership) {
             throw new \Exception('User does not have an active membership.');
         }
+        $this->guardMembershipNotExpired($membership);
 
         $missingDocs = $this->getMissingRequiredDocumentsForMembership($user);
         if (count($missingDocs) > 0) {
@@ -424,6 +435,7 @@ class CertificateIssueService
         if (! $membership) {
             throw new \Exception('User does not have an active membership.');
         }
+        $this->guardMembershipNotExpired($membership);
 
         // Always require ID and Proof of Address documents (regardless of skipChecks)
         $missingDocs = $this->getMissingRequiredDocumentsForMembership($user);
@@ -508,6 +520,7 @@ class CertificateIssueService
         if (! $membership) {
             throw new \Exception('User does not have an active membership.');
         }
+        $this->guardMembershipNotExpired($membership);
 
         // Get or create certificate type
         $certType = CertificateType::firstOrCreate(
@@ -585,6 +598,7 @@ class CertificateIssueService
         if (! $membership) {
             throw new \Exception('User does not have an active membership.');
         }
+        $this->guardMembershipNotExpired($membership);
 
         // Get or create certificate type
         $certType = CertificateType::firstOrCreate(
