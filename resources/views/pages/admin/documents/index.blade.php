@@ -226,7 +226,11 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                                     <span class="text-sm font-medium text-zinc-600 dark:text-zinc-300">{{ $document->user?->initials() ?? '?' }}</span>
                                 </div>
                                 <div class="ml-4">
-                                    <div class="text-sm font-medium text-zinc-900 dark:text-white">{{ $document->user?->name ?? 'Deleted User' }}</div>
+                                    @if($document->user)
+                                        <a href="{{ route('admin.members.show', $document->user) }}" wire:navigate class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">{{ $document->user->name }}</a>
+                                    @else
+                                        <div class="text-sm font-medium text-zinc-900 dark:text-white">Deleted User</div>
+                                    @endif
                                     <div class="text-sm text-zinc-500 dark:text-zinc-400">{{ $document->user?->email ?? '-' }}</div>
                                 </div>
                             </div>

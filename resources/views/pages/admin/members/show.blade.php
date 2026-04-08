@@ -77,6 +77,8 @@ new #[Title('Member Details - Admin')] class extends Component {
             'memberships.type',
             'memberships.approver',
             'certificates.certificateType',
+            'documents.documentType',
+            'documents.verifier',
             'dedicatedStatusApplications',
             'knowledgeTestAttempts.knowledgeTest',
             'deletionRequests',
@@ -84,13 +86,18 @@ new #[Title('Member Details - Admin')] class extends Component {
     }
 
     #[Computed]
-    public function issuedEndorsements()
+    public function endorsementRequests()
     {
         return \App\Models\EndorsementRequest::where('user_id', $this->user->id)
-            ->where('status', 'issued')
             ->with(['firearm.firearmCalibre', 'firearm.firearmMake', 'firearm.firearmModel'])
-            ->latest('issued_at')
+            ->latest('updated_at')
             ->get();
+    }
+
+    #[Computed]
+    public function memberDocuments()
+    {
+        return $this->user->documents->sortByDesc('created_at');
     }
 
     #[Computed]
@@ -1259,6 +1266,62 @@ new #[Title('Member Details - Admin')] class extends Component {
         @endif
     </div>
 
+    {{-- Uploaded Documents --}}
+    <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
+            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Uploaded Documents</h2>
+        </div>
+
+        @if($this->memberDocuments->count() > 0)
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Document Type</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Filename</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Uploaded</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Verified By</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                    @foreach($this->memberDocuments as $document)
+                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
+                        <td class="whitespace-nowrap px-6 py-3 text-sm text-zinc-900 dark:text-white">{{ $document->documentType?->name ?? '—' }}</td>
+                        <td class="max-w-xs truncate px-6 py-3 text-sm text-zinc-500 dark:text-zinc-400" title="{{ $document->original_filename }}">{{ \Illuminate\Support\Str::limit($document->original_filename, 40) }}</td>
+                        <td class="whitespace-nowrap px-6 py-3 text-sm text-zinc-500 dark:text-zinc-400">{{ $document->created_at->format('d M Y') }}</td>
+                        <td class="whitespace-nowrap px-6 py-3 text-sm">
+                            @if($document->status === 'verified')
+                                <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Verified</span>
+                            @elseif($document->status === 'pending')
+                                <span class="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Pending</span>
+                            @elseif($document->status === 'rejected')
+                                <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">Rejected</span>
+                            @else
+                                <span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">{{ ucfirst($document->status) }}</span>
+                            @endif
+                        </td>
+                        <td class="whitespace-nowrap px-6 py-3 text-sm text-zinc-500 dark:text-zinc-400">{{ $document->verifier?->name ?? '—' }}</td>
+                        <td class="whitespace-nowrap px-6 py-3 text-sm">
+                            <a href="{{ route('admin.documents.show', $document) }}" wire:navigate
+                                class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/></svg>
+                                Review
+                            </a>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        @else
+        <div class="p-8 text-center">
+            <p class="text-zinc-500 dark:text-zinc-400">No documents uploaded</p>
+        </div>
+        @endif
+    </div>
+
     {{-- Document Issuance --}}
     @if($this->activeMembership)
     <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
@@ -1409,11 +1472,11 @@ new #[Title('Member Details - Admin')] class extends Component {
     </div>
     @endif
 
-    {{-- Certificates & Endorsements --}}
-    @if($this->user->certificates->count() > 0 || $this->issuedEndorsements->count() > 0)
+    {{-- Certificates & Endorsement Requests --}}
+    @if($this->user->certificates->count() > 0 || $this->endorsementRequests->count() > 0)
     <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
         <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
-            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Issued Certificates & Endorsements</h2>
+            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Certificates & Endorsement Requests</h2>
         </div>
 
         <div class="overflow-x-auto">
@@ -1466,11 +1529,11 @@ new #[Title('Member Details - Admin')] class extends Component {
                         </td>
                     </tr>
                     @endforeach
-                    {{-- Endorsement Letters --}}
-                    @foreach($this->issuedEndorsements as $endorsement)
+                    {{-- Endorsement Requests --}}
+                    @foreach($this->endorsementRequests as $endorsement)
                     <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
                         <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-900 dark:text-white">
-                            Endorsement Letter{{ $endorsement->request_type === 'renewal' ? ' (Renewal)' : '' }}
+                            Endorsement {{ ucfirst($endorsement->request_type) }}
                             @if($endorsement->firearm)
                                 <span class="block text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                                     {{ $endorsement->firearm->make }} {{ $endorsement->firearm->model }}
@@ -1478,10 +1541,16 @@ new #[Title('Member Details - Admin')] class extends Component {
                             @endif
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 font-mono text-sm text-zinc-900 dark:text-white">
-                            {{ $endorsement->letter_reference ?? 'END-' . $endorsement->id }}
+                            {{ $endorsement->letter_reference ?? '—' }}
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">
-                            {{ $endorsement->issued_at ? $endorsement->issued_at->format('d M Y') : '-' }}
+                            @if($endorsement->issued_at)
+                                {{ $endorsement->issued_at->format('d M Y') }}
+                            @elseif($endorsement->submitted_at)
+                                {{ $endorsement->submitted_at->format('d M Y') }}
+                            @else
+                                {{ $endorsement->created_at->format('d M Y') }}
+                            @endif
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">
                             @if($endorsement->expires_at)
@@ -1494,16 +1563,30 @@ new #[Title('Member Details - Admin')] class extends Component {
                                     <span class="ml-1 text-xs text-amber-600 dark:text-amber-400">(Expiring Soon)</span>
                                 @endif
                             @else
-                                <span class="text-zinc-400 dark:text-zinc-500">-</span>
+                                <span class="text-zinc-400 dark:text-zinc-500">—</span>
                             @endif
                         </td>
                         <td class="whitespace-nowrap px-6 py-4">
-                            @if($endorsement->is_expired)
+                            @if($endorsement->status === 'issued' && $endorsement->is_expired)
                                 <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">Expired</span>
-                            @elseif($endorsement->is_expiring_soon)
+                            @elseif($endorsement->status === 'issued' && $endorsement->is_expiring_soon)
                                 <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Expiring Soon</span>
-                            @else
+                            @elseif($endorsement->status === 'issued')
                                 <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Issued</span>
+                            @elseif($endorsement->status === 'approved')
+                                <span class="inline-flex items-center rounded-full bg-teal-100 px-2.5 py-0.5 text-xs font-medium text-teal-800 dark:bg-teal-900/40 dark:text-teal-300">Approved</span>
+                            @elseif($endorsement->status === 'submitted')
+                                <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">Submitted</span>
+                            @elseif($endorsement->status === 'under_review')
+                                <span class="inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300">Under Review</span>
+                            @elseif($endorsement->status === 'rejected')
+                                <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">Rejected</span>
+                            @elseif($endorsement->status === 'draft')
+                                <span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">Draft</span>
+                            @elseif($endorsement->status === 'cancelled')
+                                <span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">Cancelled</span>
+                            @else
+                                <span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">{{ ucfirst($endorsement->status) }}</span>
                             @endif
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-sm">

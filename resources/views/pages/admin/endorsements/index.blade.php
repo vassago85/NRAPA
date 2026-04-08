@@ -181,7 +181,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Requests - Admin')] cl
                                         {{ $request->user?->initials() ?? '?' }}
                                     </div>
                                     <div>
-                                        <p class="font-medium text-zinc-900 dark:text-white">{{ $request->user?->name ?? 'Deleted User' }}</p>
+                                        @if($request->user)
+                                            <a href="{{ route('admin.members.show', $request->user) }}" wire:navigate class="font-medium text-blue-600 dark:text-blue-400 hover:underline">{{ $request->user->name }}</a>
+                                        @else
+                                            <p class="font-medium text-zinc-900 dark:text-white">Deleted User</p>
+                                        @endif
                                         <p class="text-sm text-zinc-500">{{ $request->user?->email ?? '—' }}</p>
                                     </div>
                                 </div>

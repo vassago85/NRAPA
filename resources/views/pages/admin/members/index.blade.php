@@ -349,7 +349,7 @@ new #[Title('Members - Admin')] class extends Component {
                                     {{ $user->initials() }}
                                 </div>
                                 <div>
-                                    <p class="font-medium text-zinc-900 dark:text-white">{{ $user->name }}</p>
+                                    <a href="{{ route('admin.members.show', $user) }}" wire:navigate class="font-medium text-blue-600 dark:text-blue-400 hover:underline">{{ $user->name }}</a>
                                     <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ $user->email }}</p>
                                 </div>
                             </div>

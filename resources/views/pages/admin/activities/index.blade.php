@@ -126,7 +126,11 @@ new class extends Component {
                         @foreach($activities as $activity)
                             <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
                                 <td class="whitespace-nowrap px-6 py-4">
-                                    <div class="text-sm font-medium text-zinc-900 dark:text-white">{{ $activity->user?->name ?? 'Deleted User' }}</div>
+                                    @if($activity->user)
+                                        <a href="{{ route('admin.members.show', $activity->user) }}" wire:navigate class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">{{ $activity->user->name }}</a>
+                                    @else
+                                        <div class="text-sm font-medium text-zinc-900 dark:text-white">Deleted User</div>
+                                    @endif
                                     <div class="text-xs text-zinc-500">{{ $activity->user?->email ?? '-' }}</div>
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-600 dark:text-zinc-300">
