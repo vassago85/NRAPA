@@ -219,7 +219,7 @@ class FirearmSearchPanel extends Component
                 // Map firearm type to category hint
                 $categoryHint = match ($this->firearmType) {
                     'handgun' => 'handgun',
-                    'rifle' => 'rifle',
+                    'rifle', 'self_loading_rifle' => 'rifle',
                     'shotgun' => 'shotgun',
                     default => null,
                 };
@@ -425,10 +425,10 @@ class FirearmSearchPanel extends Component
     protected function mapFirearmTypeToCategory(?string $firearmType): ?string
     {
         return match ($firearmType) {
-            'rifle' => 'rifle',
+            'rifle', 'self_loading_rifle' => 'rifle',
             'shotgun' => 'shotgun',
             'handgun' => 'handgun',
-            default => null, // combination, other, empty - show all
+            default => null,
         };
     }
 

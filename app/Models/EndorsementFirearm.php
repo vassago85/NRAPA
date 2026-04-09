@@ -11,6 +11,8 @@ class EndorsementFirearm extends Model
     // Firearm category constants (SAPS 271 Form Section E compliant)
     public const CATEGORY_RIFLE = 'rifle';
 
+    public const CATEGORY_SELF_LOADING_RIFLE = 'self_loading_rifle';
+
     public const CATEGORY_SHOTGUN = 'shotgun';
 
     public const CATEGORY_HANDGUN = 'handgun';
@@ -177,7 +179,8 @@ class EndorsementFirearm extends Model
     public static function getCategoryOptions(): array
     {
         return [
-            self::CATEGORY_RIFLE => 'Rifle',
+            self::CATEGORY_RIFLE => 'Rifle (Manually Operated)',
+            self::CATEGORY_SELF_LOADING_RIFLE => 'Self-Loading Rifle (S/L Rifle)',
             self::CATEGORY_SHOTGUN => 'Shotgun',
             self::CATEGORY_HANDGUN => 'Handgun',
             self::CATEGORY_BARREL => 'Main Firearm Component',
@@ -224,9 +227,15 @@ class EndorsementFirearm extends Model
             return [
                 self::ACTION_BOLT_ACTION => 'Bolt Action',
                 self::ACTION_LEVER_ACTION => 'Lever Action',
-                self::ACTION_SEMI_AUTO => 'Semi-Automatic',
                 self::ACTION_SINGLE_SHOT => 'Single Shot',
                 self::ACTION_PUMP_ACTION => 'Pump Action',
+                self::ACTION_OTHER => 'Other',
+            ];
+        }
+
+        if ($category === self::CATEGORY_SELF_LOADING_RIFLE) {
+            return [
+                self::ACTION_SEMI_AUTO => 'Semi-Automatic',
                 self::ACTION_OTHER => 'Other',
             ];
         }
@@ -283,10 +292,10 @@ class EndorsementFirearm extends Model
         // Map SAPS 271 firearm categories to calibre categories for filtering
         // Note: This is for legacy Calibre system - new system uses FirearmCalibre
         return match ($firearmCategory) {
-            self::CATEGORY_RIFLE, self::CATEGORY_COMBINATION => 'rifle', // Combination can use rifle calibres
+            self::CATEGORY_RIFLE, self::CATEGORY_SELF_LOADING_RIFLE, self::CATEGORY_COMBINATION => 'rifle',
             self::CATEGORY_SHOTGUN => 'shotgun',
             self::CATEGORY_HANDGUN => 'handgun',
-            self::CATEGORY_OTHER => null, // Other types - no filter
+            self::CATEGORY_OTHER => null,
             default => null,
         };
     }

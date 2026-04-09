@@ -1258,7 +1258,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                             Type <span class="text-red-500">*</span>
                         </label>
-                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             @foreach($categoryOptions as $value => $label)
                                 <label class="relative cursor-pointer">
                                     <input type="radio" wire:model.live="firearmCategory" value="{{ $value }}" class="peer sr-only">

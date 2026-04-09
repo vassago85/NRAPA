@@ -64,6 +64,10 @@ new #[Title('Member Details - Admin')] class extends Component {
     public string $editMembershipActivatedAt = '';
     public string $editMembershipNotes = '';
 
+    // Revoke approval properties
+    public bool $showRevokeApprovalModal = false;
+    public string $revokeApprovalMessage = '';
+
     // Add activity properties
     public bool $showAddActivityModal = false;
     public string $addActivityTrack = 'hunting';
@@ -785,6 +789,64 @@ new #[Title('Member Details - Admin')] class extends Component {
         session()->flash('success', $message);
     }
 
+    public function revokeApproval(): void
+    {
+        $this->validate([
+            'revokeApprovalMessage' => ['required', 'string', 'min:10'],
+        ], [
+            'revokeApprovalMessage.required' => 'Please provide a message to send to the member.',
+            'revokeApprovalMessage.min' => 'The message must be at least 10 characters.',
+        ]);
+
+        $membership = $this->activeMembership;
+        if (!$membership || $membership->status !== 'active') {
+            session()->flash('error', 'No active membership to revoke.');
+            return;
+        }
+
+        $admin = Auth::user();
+        $oldStatus = $membership->status;
+
+        $membership->update([
+            'status' => 'applied',
+            'approved_at' => null,
+            'approved_by' => null,
+            'activated_at' => null,
+            'welcome_email_sent_at' => null,
+            'approval_revoked_at' => now(),
+            'approval_revoked_by' => $admin->id,
+            'approval_revoked_reason' => $this->revokeApprovalMessage,
+            'pop_reminder_sent_at' => null,
+        ]);
+
+        \App\Models\AuditLog::log(
+            'membership_approval_revoked',
+            $membership,
+            ['status' => $oldStatus],
+            ['status' => 'applied', 'reason' => $this->revokeApprovalMessage],
+            $admin
+        );
+
+        try {
+            Mail::to($membership->user->email)->queue(
+                new \App\Mail\MembershipApprovalRevoked(
+                    membership: $membership->load('type', 'user'),
+                    message: $this->revokeApprovalMessage,
+                )
+            );
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to send approval revoked email', [
+                'membership_id' => $membership->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        $this->showRevokeApprovalModal = false;
+        $this->revokeApprovalMessage = '';
+        $this->user->load(['memberships.type', 'memberships.approver']);
+        session()->flash('success', 'Membership approval revoked and member notified. They will appear in the pending approvals queue.');
+    }
+
     public function approveActivity(int $activityId): void
     {
         $activity = ShootingActivity::where('user_id', $this->user->id)->findOrFail($activityId);
@@ -1030,10 +1092,18 @@ new #[Title('Member Details - Admin')] class extends Component {
             <div class="flex items-center justify-between border-b border-zinc-200 p-6 dark:border-zinc-700">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Current Membership</h2>
                 @if($this->activeMembership)
-                <button wire:click="openEditMembershipModal({{ $this->activeMembership->id }})" class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600 transition-colors">
-                    <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/></svg>
-                    Edit
-                </button>
+                <div class="flex items-center gap-2">
+                    @if($this->activeMembership->status === 'active')
+                    <button wire:click="$set('showRevokeApprovalModal', true)" class="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-white px-2.5 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:bg-zinc-700 dark:text-amber-400 dark:hover:bg-amber-950/20 transition-colors">
+                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"/></svg>
+                        Revoke Approval
+                    </button>
+                    @endif
+                    <button wire:click="openEditMembershipModal({{ $this->activeMembership->id }})" class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600 transition-colors">
+                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/></svg>
+                        Edit
+                    </button>
+                </div>
                 @endif
             </div>
             <div class="p-6">
@@ -1084,6 +1154,23 @@ new #[Title('Member Details - Admin')] class extends Component {
                         <dt class="text-sm text-zinc-500 dark:text-zinc-400">Approved By</dt>
                         <dd class="mt-1 text-zinc-900 dark:text-white">{{ $this->activeMembership->approver?->name ?? 'N/A' }}</dd>
                     </div>
+                    <div>
+                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Proof of Payment</dt>
+                        <dd class="mt-1">
+                            @if($this->activeMembership->proof_of_payment_path)
+                                <a href="{{ route('admin.approvals.proof-of-payment', $this->activeMembership) }}" target="_blank"
+                                    class="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+                                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                                    Uploaded — View
+                                </a>
+                            @else
+                                <span class="inline-flex items-center gap-1.5 text-sm text-amber-600 dark:text-amber-400">
+                                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"/></svg>
+                                    Not uploaded
+                                </span>
+                            @endif
+                        </dd>
+                    </div>
                 </div>
                 @else
                 <div class="text-center py-8">
@@ -1115,6 +1202,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Type</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Member #</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Status</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">POP</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Applied</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Approved</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Expires</th>
@@ -1131,6 +1219,17 @@ new #[Title('Member Details - Admin')] class extends Component {
                             <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $this->getStatusClasses($displayStatus) }}">
                                 {{ ucfirst(str_replace('_', ' ', $displayStatus)) }}
                             </span>
+                        </td>
+                        <td class="whitespace-nowrap px-6 py-4 text-center">
+                            @if($membership->proof_of_payment_path)
+                                <a href="{{ route('admin.approvals.proof-of-payment', $membership) }}" target="_blank" title="View Proof of Payment" class="text-emerald-500 hover:text-emerald-700 dark:text-emerald-400">
+                                    <svg class="size-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                                </a>
+                            @else
+                                <span class="text-zinc-300 dark:text-zinc-600" title="No POP uploaded">
+                                    <svg class="size-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12"/></svg>
+                                </span>
+                            @endif
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">{{ $membership->applied_at->format('d M Y') }}</td>
                         <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">{{ $membership->approved_at?->format('d M Y') ?? '—' }}</td>
@@ -2108,6 +2207,55 @@ new #[Title('Member Details - Admin')] class extends Component {
     @endif
 
     {{-- Edit Membership Modal --}}
+    {{-- Revoke Approval Modal --}}
+    @if($showRevokeApprovalModal)
+    <div class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div wire:click="$set('showRevokeApprovalModal', false)" class="fixed inset-0 bg-black/50"></div>
+            <div class="relative w-full max-w-lg rounded-xl bg-white shadow-xl dark:bg-zinc-800">
+                <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
+                    <div class="flex items-center gap-3">
+                        <div class="flex size-10 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
+                            <svg class="size-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Revoke Membership Approval</h3>
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400">This will move the membership back to "Applied" status</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="rounded-lg bg-amber-50 border border-amber-200 p-3 dark:bg-amber-900/20 dark:border-amber-800">
+                        <p class="text-sm text-amber-800 dark:text-amber-200">
+                            The member's approval will be reversed and they will receive an email with your message below. 
+                            The membership will re-appear in the pending approvals queue for re-approval once the member has addressed the issue.
+                        </p>
+                    </div>
+                    <div>
+                        <label for="revokeMessage" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Message to Member</label>
+                        <textarea
+                            wire:model="revokeApprovalMessage"
+                            id="revokeMessage"
+                            rows="4"
+                            placeholder="e.g. Please upload your proof of payment for your membership to be approved."
+                            class="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-white dark:placeholder-zinc-400"
+                        ></textarea>
+                        @error('revokeApprovalMessage') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 border-t border-zinc-200 p-6 dark:border-zinc-700">
+                    <button wire:click="$set('showRevokeApprovalModal', false)" class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 transition-colors">
+                        Cancel
+                    </button>
+                    <button wire:click="revokeApproval" class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 transition-colors">
+                        Revoke & Notify Member
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     @if($showEditMembershipModal)
     <div class="fixed inset-0 z-50 overflow-y-auto">
         <div class="flex min-h-screen items-center justify-center p-4">

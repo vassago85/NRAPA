@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\EndorsementRequest;
+use App\Models\EndorsementFirearm;
 use App\Models\AuditLog;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -19,6 +20,17 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
     public string $selectedDedicatedCategory = '';
     public bool $editingDedicatedCategory = false;
     public string $editDedicatedCategoryValue = '';
+
+    // Edit firearm details
+    public bool $showEditFirearmModal = false;
+    public string $editFirearmCategory = '';
+    public string $editFirearmActionType = '';
+    public string $editFirearmIgnitionType = '';
+    public string $editFirearmMake = '';
+    public string $editFirearmModel = '';
+    public string $editFirearmCalibreManual = '';
+    public string $editFirearmSapsReference = '';
+    public string $editFirearmLicenceSection = '';
 
     public function mount(EndorsementRequest $request): void
     {
@@ -395,6 +407,101 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
         session()->flash('success', 'Dedicated category updated to: ' . $this->editDedicatedCategoryValue);
     }
 
+    public function openEditFirearmModal(): void
+    {
+        $firearm = $this->request->firearm;
+        if (!$firearm) {
+            session()->flash('error', 'No firearm details to edit.');
+            return;
+        }
+
+        $this->editFirearmCategory = $firearm->firearm_category ?? '';
+        $this->editFirearmActionType = $firearm->action_type ?? '';
+        $this->editFirearmIgnitionType = $firearm->ignition_type ?? '';
+        $this->editFirearmMake = $firearm->make ?? '';
+        $this->editFirearmModel = $firearm->model ?? '';
+        $this->editFirearmCalibreManual = $firearm->calibre_manual ?? '';
+        $this->editFirearmSapsReference = $firearm->saps_reference ?? '';
+        $this->editFirearmLicenceSection = $firearm->licence_section ?? '';
+        $this->showEditFirearmModal = true;
+    }
+
+    #[Computed]
+    public function editFirearmActionOptions(): array
+    {
+        return EndorsementFirearm::getActionTypeOptions($this->editFirearmCategory ?: null);
+    }
+
+    public function updatedEditFirearmCategory(): void
+    {
+        $available = EndorsementFirearm::getActionTypeOptions($this->editFirearmCategory ?: null);
+        if (!array_key_exists($this->editFirearmActionType, $available)) {
+            $this->editFirearmActionType = '';
+        }
+    }
+
+    public function saveFirearmDetails(): void
+    {
+        $firearm = $this->request->firearm;
+        if (!$firearm) {
+            session()->flash('error', 'No firearm details to update.');
+            return;
+        }
+
+        $this->validate([
+            'editFirearmCategory' => 'required|string',
+        ], [
+            'editFirearmCategory.required' => 'Firearm type is required.',
+        ]);
+
+        $oldValues = [
+            'firearm_category' => $firearm->firearm_category,
+            'action_type' => $firearm->action_type,
+            'ignition_type' => $firearm->ignition_type,
+            'make' => $firearm->make,
+            'model' => $firearm->model,
+            'calibre_manual' => $firearm->calibre_manual,
+            'saps_reference' => $firearm->saps_reference,
+            'licence_section' => $firearm->licence_section,
+        ];
+
+        $firearm->update([
+            'firearm_category' => $this->editFirearmCategory,
+            'action_type' => $this->editFirearmActionType ?: null,
+            'ignition_type' => $this->editFirearmIgnitionType ?: null,
+            'make' => $this->editFirearmMake ?: null,
+            'model' => $this->editFirearmModel ?: null,
+            'calibre_manual' => $this->editFirearmCalibreManual ?: null,
+            'saps_reference' => $this->editFirearmSapsReference ?: null,
+            'licence_section' => $this->editFirearmLicenceSection ?: null,
+        ]);
+
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'event' => 'endorsement_firearm_edited',
+            'auditable_type' => EndorsementRequest::class,
+            'auditable_id' => $this->request->id,
+            'old_values' => $oldValues,
+            'new_values' => [
+                'firearm_category' => $this->editFirearmCategory,
+                'action_type' => $this->editFirearmActionType ?: null,
+                'ignition_type' => $this->editFirearmIgnitionType ?: null,
+                'make' => $this->editFirearmMake ?: null,
+                'model' => $this->editFirearmModel ?: null,
+                'calibre_manual' => $this->editFirearmCalibreManual ?: null,
+                'saps_reference' => $this->editFirearmSapsReference ?: null,
+                'licence_section' => $this->editFirearmLicenceSection ?: null,
+            ],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+
+        $this->showEditFirearmModal = false;
+        $this->request->refresh();
+        $this->request->load('firearm');
+        session()->flash('success', 'Firearm details updated.');
+    }
+
     public function rejectRequest(): void
     {
         $this->validate([
@@ -739,10 +846,14 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             {{-- Firearm Details --}}
             @if($request->firearm)
                 <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
-                    <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
                         <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">
                             {{ \App\Models\EndorsementFirearm::isComponentCategory($request->firearm->firearm_category) ? 'Component Details' : 'Firearm Details' }}
                         </h2>
+                        <button wire:click="openEditFirearmModal" class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600 transition-colors">
+                            <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/></svg>
+                            Edit
+                        </button>
                     </div>
                     <div class="p-6">
                         <dl class="grid grid-cols-2 gap-4 text-sm">
@@ -1296,6 +1407,96 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                             Delete Request
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Edit Firearm Details Modal --}}
+    @if($showEditFirearmModal)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" wire:click.self="$set('showEditFirearmModal', false)">
+            <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Edit Firearm Details</h3>
+                    <button wire:click="$set('showEditFirearmModal', false)" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                        <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Firearm Type</label>
+                        <select wire:model.live="editFirearmCategory" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
+                            <option value="">— Select —</option>
+                            @foreach(\App\Models\EndorsementFirearm::getCategoryOptions() as $val => $label)
+                                <option value="{{ $val }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        @error('editFirearmCategory') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    @if(!empty($this->editFirearmActionOptions))
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Action Type</label>
+                        <select wire:model="editFirearmActionType" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
+                            <option value="">— Select —</option>
+                            @foreach($this->editFirearmActionOptions as $val => $label)
+                                <option value="{{ $val }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @endif
+
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Ignition Type</label>
+                        <select wire:model="editFirearmIgnitionType" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
+                            <option value="">— Select —</option>
+                            @foreach(\App\Models\EndorsementFirearm::getIgnitionTypeOptions() as $val => $label)
+                                <option value="{{ $val }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Make</label>
+                            <input type="text" wire:model="editFirearmMake" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Model</label>
+                            <input type="text" wire:model="editFirearmModel" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Calibre (manual)</label>
+                        <input type="text" wire:model="editFirearmCalibreManual" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">SAPS Reference</label>
+                            <input type="text" wire:model="editFirearmSapsReference" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Licence Section</label>
+                            <select wire:model="editFirearmLicenceSection" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
+                                <option value="">— Select —</option>
+                                @foreach(\App\Models\EndorsementFirearm::getLicenceSectionOptions() as $val => $label)
+                                    <option value="{{ $val }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 justify-end mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                    <button wire:click="$set('showEditFirearmModal', false)" class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors text-sm">
+                        Cancel
+                    </button>
+                    <button wire:click="saveFirearmDetails" class="px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors text-sm font-medium">
+                        Save Changes
+                    </button>
                 </div>
             </div>
         </div>
