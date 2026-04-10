@@ -129,7 +129,7 @@
                     <p>To obtain Dedicated Hunter or Dedicated Sport Shooter status, members must:</p>
                     <ul>
                         <li>Be a fully paid-up member in good standing.</li>
-                        <li>Successfully complete NRAPA&rsquo;s prescribed dedicated-status programme and assessments as required by the Firearms Control Regulations. (This is separate from SAPS firearm competency training, which must be completed through an accredited firearm training provider.)</li>
+                        <li>Successfully complete NRAPA&rsquo;s prescribed dedicated-status programme and assessments as required by the Firearms Control Regulations.</li>
                         <li>Pass any required knowledge tests administered through the Portal.</li>
                         <li>Adhere to NRAPA's Code of Conduct.</li>
                     </ul>

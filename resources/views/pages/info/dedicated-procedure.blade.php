@@ -14,7 +14,7 @@
     <ul>
         <li>Only allows dedicated membership while member is in good standing</li>
         <li>Keeps records of participation in hunting/sport-shooting activities</li>
-        <li>Administers dedicated-status theoretical and practical assessments and member programmes compliant with the SAQA Act (1995) and Skills Development Act (1998) (this is not SAPS firearm competency training, which members obtain separately through accredited firearm training providers)</li>
+        <li>Administers dedicated-status theoretical and practical assessments and member programmes compliant with the SAQA Act (1995) and Skills Development Act (1998)</li>
         <li>Verifies bona fides of dedicated members</li>
     </ul>
 
