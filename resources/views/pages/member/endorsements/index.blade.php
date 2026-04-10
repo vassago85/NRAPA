@@ -3,6 +3,7 @@
 use App\Models\EndorsementRequest;
 use App\Models\MembershipType;
 use App\Models\ShootingActivity;
+use App\Models\SystemSetting;
 use Carbon\Carbon;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -12,6 +13,16 @@ use Livewire\Component;
 new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends Component {
     
     public string $statusFilter = '';
+
+    public function trackRanyatiClick(): void
+    {
+        $data = SystemSetting::get('ranyati_click_stats') ?: [];
+        $data['total'] = ($data['total'] ?? 0) + 1;
+        $userId = (string) auth()->id();
+        $data['users'][$userId] = ($data['users'][$userId] ?? 0) + 1;
+        $data['last_at'] = now()->toIso8601String();
+        SystemSetting::set('ranyati_click_stats', $data, 'json', 'analytics');
+    }
 
     public function updatedStatusFilter(): void
     {
@@ -127,11 +138,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
         $sportCompliant = $approvedActivities >= $requiredSport;
         $hunterCompliant = $approvedActivities >= $requiredHunter;
 
-        // Check Proof of Address compliance (age check, doesn't block compliance)
-        $poaCompliance = EndorsementRequest::checkProofOfAddressCompliance($user);
-
-        // Determine overall compliance based on dedicated type
-        // Note: POA age doesn't block compliance, only activities do
         $isCompliant = match($dedicatedType) {
             MembershipType::DEDICATED_TYPE_SPORT => $sportCompliant,
             MembershipType::DEDICATED_TYPE_HUNTER => $hunterCompliant,
@@ -154,7 +160,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
             'is_past_deadline' => $isPastDeadline,
             'deadline_date' => $period['nrapa_deadline']->format('d M Y'),
             'period_label' => $period['label'],
-            'poa_compliance' => $poaCompliance,
         ];
     }
 
@@ -478,40 +483,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                     @endif
                 </div>
 
-                {{-- Proof of Address Compliance (Age Check) --}}
-                @if($this->complianceStatus['poa_compliance']['has_document'])
-                <div class="p-4 rounded-xl border {{ $this->complianceStatus['poa_compliance']['is_compliant'] ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20' }}">
-                    <div class="flex items-center gap-3 mb-2">
-                        @if($this->complianceStatus['poa_compliance']['is_compliant'])
-                        <div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
-                            <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                            </svg>
-                        </div>
-                        @else
-                        <div class="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-full">
-                            <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                            </svg>
-                        </div>
-                        @endif
-                        <h3 class="font-semibold text-zinc-900 dark:text-white">Proof of Address</h3>
-                    </div>
-                    @if($this->complianceStatus['poa_compliance']['is_compliant'])
-                    <p class="text-sm text-emerald-700 dark:text-emerald-300">
-                        Up to date ({{ round($this->complianceStatus['poa_compliance']['age_days'] / 30, 1) }} months old)
-                    </p>
-                    @else
-                    <p class="text-sm text-amber-700 dark:text-amber-300 mb-1">
-                        Older than 3 months ({{ round($this->complianceStatus['poa_compliance']['age_days'] / 30, 1) }} months old)
-                    </p>
-                    <p class="text-xs text-amber-600 dark:text-amber-400">
-                        New POA will be required when requesting an endorsement
-                    </p>
-                    @endif
-                </div>
-                @endif
-
                 {{-- Activities --}}
                 <div class="p-4 rounded-xl border {{ $this->eligibility['activities_met'] ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20' }}">
                     <div class="flex items-center gap-3 mb-2">
@@ -629,7 +600,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
     @endphp
     <div class="mb-6 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden shadow-sm">
         <div class="flex flex-col sm:flex-row items-stretch">
-            <a href="{{ $motivationsUrl }}" target="_blank"
+            <a href="{{ $motivationsUrl }}" target="_blank" wire:click="trackRanyatiClick"
                 class="flex-shrink-0 flex items-center justify-center px-6 py-4 bg-[#1b2a4a]">
                 <img src="{{ asset('logo-ranyati_motivations-white-text.png') }}" alt="Ranyati Motivations" class="h-12 w-auto" />
             </a>
@@ -640,7 +611,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                         Your endorsement is ready &mdash; now let Ranyati Motivations draft your Section 16 motivation letter for SAPS. Professional, compliant, and tailored to your application.
                     </p>
                 </div>
-                <a href="{{ $motivationsUrl }}" target="_blank"
+                <a href="{{ $motivationsUrl }}" target="_blank" wire:click="trackRanyatiClick"
                     class="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-[#F58220] to-[#d46f16] hover:from-[#d46f16] hover:to-[#c06010] shadow-sm transition-all">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>

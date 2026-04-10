@@ -258,7 +258,6 @@ class EndorsementRequest extends Model
 
     /**
      * Get missing required documents for endorsement.
-     * For Proof of Address: requires document to be verified and not older than 3 months.
      * ID can be satisfied by either 'identity-document' or 'id-document' slug.
      */
     public static function getMissingRequiredDocuments(User $user): array
@@ -280,64 +279,6 @@ class EndorsementRequest extends Model
         }
 
         return $missing;
-    }
-
-    /**
-     * Check Proof of Address compliance for dedicated status.
-     * Returns compliance info without requiring new upload (only checks age).
-     */
-    public static function checkProofOfAddressCompliance(User $user): array
-    {
-        $docType = DocumentType::where('slug', 'proof-of-address')->first();
-
-        if (! $docType) {
-            return [
-                'has_document' => false,
-                'is_compliant' => false,
-                'is_older_than_3_months' => false,
-                'verified_at' => null,
-                'age_days' => null,
-                'message' => 'Proof of Address document type not found',
-            ];
-        }
-
-        // Get the most recent verified document
-        $validDocument = MemberDocument::where('user_id', $user->id)
-            ->where('document_type_id', $docType->id)
-            ->where('status', 'verified')
-            ->where(function ($q) {
-                $q->whereNull('expires_at')
-                    ->orWhere('expires_at', '>', now());
-            })
-            ->orderBy('verified_at', 'desc')
-            ->first();
-
-        if (! $validDocument || ! $validDocument->verified_at) {
-            return [
-                'has_document' => false,
-                'is_compliant' => false,
-                'is_older_than_3_months' => true,
-                'verified_at' => null,
-                'age_days' => null,
-                'message' => 'No verified Proof of Address found',
-            ];
-        }
-
-        $threeMonthsAgo = now()->subMonths(3);
-        $isOlderThan3Months = $validDocument->verified_at->lt($threeMonthsAgo);
-        $ageDays = $validDocument->verified_at->diffInDays(now());
-
-        return [
-            'has_document' => true,
-            'is_compliant' => ! $isOlderThan3Months,
-            'is_older_than_3_months' => $isOlderThan3Months,
-            'verified_at' => $validDocument->verified_at,
-            'age_days' => $ageDays,
-            'age_months' => round($ageDays / 30, 1),
-            'message' => $isOlderThan3Months
-                ? "Proof of Address is older than 3 months ({$ageDays} days old). New POA will be required when requesting an endorsement."
-                : "Proof of Address is up to date ({$ageDays} days old).",
-        ];
     }
 
     /**
@@ -493,7 +434,6 @@ class EndorsementRequest extends Model
 
         if ($requestType === self::TYPE_NEW) {
             return array_merge($baseRequired, [
-                'proof_of_address',
                 'membership_proof',
             ]);
         }
@@ -509,6 +449,7 @@ class EndorsementRequest extends Model
     {
         if ($requestType === self::TYPE_NEW) {
             return [
+                'proof_of_address',
                 'competency_certificate',
             ];
         }

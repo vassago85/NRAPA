@@ -5,6 +5,7 @@ use App\Models\LoginLog;
 use App\Models\User;
 use App\Models\Membership;
 use App\Models\SystemSetting;
+use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -35,6 +36,17 @@ new class extends Component {
         $this->activeMemberships = Membership::where('status', 'active')->count();
         $this->dailyBackupEnabled = (bool) SystemSetting::get('daily_backup_enabled', false);
         $this->storageSettingsLocked = (bool) SystemSetting::get('storage_settings_locked', false);
+    }
+
+    #[Computed]
+    public function ranyatiClickStats(): array
+    {
+        $data = SystemSetting::get('ranyati_click_stats') ?: [];
+        return [
+            'total' => $data['total'] ?? 0,
+            'unique_users' => isset($data['users']) ? count($data['users']) : 0,
+            'last_at' => isset($data['last_at']) ? \Carbon\Carbon::parse($data['last_at'])->diffForHumans() : null,
+        ];
     }
 
     public function setLoginLogTab(string $tab): void
@@ -145,6 +157,34 @@ new class extends Component {
         <div class="bg-white dark:bg-zinc-800 rounded-xl border border-emerald-200 dark:border-emerald-700 p-4">
             <p class="text-sm text-emerald-600 dark:text-emerald-400">Active Memberships</p>
             <p class="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{{ $activeMemberships }}</p>
+        </div>
+    </div>
+
+    {{-- Ranyati Motivations Click Tracker --}}
+    <div class="bg-white dark:bg-zinc-800 rounded-xl border border-orange-200 dark:border-orange-800 p-6 mb-8">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
+                <svg class="w-5 h-5 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"/></svg>
+            </div>
+            <div>
+                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Ranyati Motivations Link</h2>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400">Click tracking on endorsements page</p>
+            </div>
+        </div>
+        @php $rStats = $this->ranyatiClickStats; @endphp
+        <div class="grid grid-cols-3 gap-4">
+            <div class="text-center p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20">
+                <p class="text-2xl font-bold text-orange-700 dark:text-orange-300">{{ $rStats['total'] }}</p>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Total Clicks</p>
+            </div>
+            <div class="text-center p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20">
+                <p class="text-2xl font-bold text-orange-700 dark:text-orange-300">{{ $rStats['unique_users'] }}</p>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Unique Members</p>
+            </div>
+            <div class="text-center p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20">
+                <p class="text-sm font-medium text-orange-700 dark:text-orange-300 mt-1">{{ $rStats['last_at'] ?? 'No clicks yet' }}</p>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Last Click</p>
+            </div>
         </div>
     </div>
 

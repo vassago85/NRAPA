@@ -1121,14 +1121,6 @@ new #[Title('Dashboard')] class extends Component {
                             ->first()
                         : null;
 
-                    $poaType = \App\Models\DocumentType::where('slug', 'proof-of-address')->first();
-                    $poaDoc = $poaType
-                        ? \App\Models\MemberDocument::where('user_id', $this->user->id)
-                            ->where('document_type_id', $poaType->id)
-                            ->orderByRaw("FIELD(status, 'verified', 'pending', 'rejected') ASC")
-                            ->first()
-                        : null;
-
                     $docStatusLabel = function ($doc) {
                         if (!$doc) return 'Not uploaded';
                         return match($doc->status) {
@@ -1153,7 +1145,7 @@ new #[Title('Dashboard')] class extends Component {
                                 </a>
                             @endif
                             <p class="text-xs text-zinc-500 dark:text-zinc-400">
-                                ID: {{ $docStatusLabel($idDoc) }} &middot; PoA: {{ $docStatusLabel($poaDoc) }}
+                                ID: {{ $docStatusLabel($idDoc) }}
                             </p>
                         </div>
                     </div>
@@ -1227,24 +1219,8 @@ new #[Title('Dashboard')] class extends Component {
                                     $missingDocNames = array_column($missingDocs, 'name');
                                 @endphp
                                 @if(count($missingDocNames) > 0)
-                                    Missing required documents: {{ implode(', ', $missingDocNames) }}. 
-                                    @if(in_array('Proof of Address', $missingDocNames))
-                                        @php
-                                            $poaPending = \App\Models\MemberDocument::where('user_id', $this->user->id)
-                                                ->whereHas('documentType', fn($q) => $q->where('slug', 'proof-of-address'))
-                                                ->where('status', 'pending')
-                                                ->exists();
-                                        @endphp
-                                        @if($poaPending)
-                                            Your Proof of Address is pending admin verification.
-                                        @else
-                                            Upload and verify your Proof of Address (must be valid within 3 months).
-                                        @endif
-                                    @else
-                                        Documents must be verified by an admin before they count toward requirements.
-                                    @endif
-                                @else
-                                    Update your proof of address - must be valid within 3 months for endorsement requests.
+                                    Missing required documents: {{ implode(', ', $missingDocNames) }}.
+                                    Documents must be verified by an admin before they count toward requirements.
                                 @endif
                             @elseif(!$activitiesMet)
                                 Submit {{ $requiredCount }} activities per year to maintain dedicated status. You have {{ $approvedCount }} approved.
