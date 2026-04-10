@@ -348,7 +348,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
         }
 
         try {
-            Mail::to($membership->user->email)->queue(new PopFollowupReminder($membership));
+            Mail::to($membership->user->email)->send(new PopFollowupReminder($membership));
             $membership->update(['pop_reminder_sent_at' => now()]);
 
             unset($this->awaitingPayment);

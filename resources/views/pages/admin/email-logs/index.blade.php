@@ -184,7 +184,7 @@ new class extends Component {
             <div class="fixed inset-0 z-50 overflow-y-auto">
                 <div class="flex min-h-screen items-center justify-center p-4">
                     <div wire:click="closeLog" class="fixed inset-0 bg-black/50"></div>
-                    <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto">
+                    <div wire:key="email-detail-{{ $selectedLog }}" class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto">
                         <div class="flex items-center justify-between mb-4">
                             <h2 class="text-xl font-bold text-zinc-900 dark:text-white">Email Details</h2>
                             <button wire:click="closeLog" class="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200">
@@ -230,23 +230,13 @@ new class extends Component {
                                 <div>
                                     <label class="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1 block">Email Content</label>
                                     @if(str_contains($log->body, '<'))
-                                        <div x-data="{ html: @json($log->body) }" x-init="
-                                            $nextTick(() => {
-                                                let iframe = $refs.emailFrame;
-                                                let doc = iframe.contentDocument || iframe.contentWindow.document;
-                                                doc.open();
-                                                doc.write(html);
-                                                doc.close();
-                                                setTimeout(() => {
-                                                    try { iframe.style.height = (doc.body.scrollHeight + 40) + 'px'; } catch(e) {}
-                                                }, 150);
-                                            });
-                                        ">
+                                        <div wire:ignore>
                                             <iframe
-                                                x-ref="emailFrame"
+                                                srcdoc="{!! htmlspecialchars($log->body, ENT_QUOTES, 'UTF-8') !!}"
                                                 sandbox="allow-same-origin"
                                                 class="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white"
                                                 style="min-height: 500px;"
+                                                onload="try{this.style.height=(this.contentDocument.body.scrollHeight+40)+'px'}catch(e){}"
                                             ></iframe>
                                         </div>
                                     @else
