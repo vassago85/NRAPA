@@ -27,9 +27,9 @@ RUN apk add --no-cache \
 ENV TZ=Africa/Johannesburg
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# Install PHP extensions
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) \
+# Install PHP extensions (install-php-extensions handles build deps + cleanup automatically)
+ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
+RUN install-php-extensions \
     pdo_mysql \
     pdo_sqlite \
     mbstring \
@@ -38,11 +38,8 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     bcmath \
     gd \
     zip \
-    intl
-
-# Install Redis extension (using install-php-extensions for reliability)
-ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
-RUN install-php-extensions redis
+    intl \
+    redis
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer

@@ -28,11 +28,7 @@
 <body class="min-h-screen bg-zinc-950 text-white antialiased">
     <div class="mx-auto max-w-2xl px-4 py-12">
         <div class="mb-8 text-center">
-            <div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-nrapa-blue">
-                <svg class="size-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-            </div>
+            <img src="{{ asset('logo-nrapa-white.png') }}" alt="NRAPA" width="200" height="74" class="mx-auto mb-5 h-[74px] w-auto max-w-[min(100%,220px)] object-contain object-center" />
             <h1 class="text-3xl font-bold text-white">NRAPA Certificate Verification</h1>
             <p class="mt-2 text-zinc-400">Verify the authenticity of NRAPA certificates and documents</p>
         </div>
@@ -59,16 +55,20 @@
                     </div>
 
                     @if($result['member_info'])
-                        <div class="grid gap-4 sm:grid-cols-2">
-                            <div>
-                                <dt class="text-sm font-medium text-zinc-400">Member Name</dt>
-                                <dd class="mt-1 font-semibold text-white">
-                                    {{ $result['member_info']['initials'] }}. {{ $result['member_info']['surname'] }}
-                                </dd>
+                        <div class="rounded-lg border border-zinc-700/80 bg-zinc-800/40 divide-y divide-zinc-700/80">
+                            <div class="grid gap-1 px-4 py-3 sm:grid-cols-[minmax(0,11rem)_1fr] sm:items-baseline sm:gap-4">
+                                <dt class="text-sm font-medium text-zinc-400">Name</dt>
+                                <dd class="text-base font-semibold text-white">{{ $result['member_info']['display_name'] }}</dd>
                             </div>
-                            <div>
+                            @if(!empty($result['member_info']['id_masked']))
+                                <div class="grid gap-1 px-4 py-3 sm:grid-cols-[minmax(0,11rem)_1fr] sm:items-baseline sm:gap-4">
+                                    <dt class="text-sm font-medium text-zinc-400">ID Number</dt>
+                                    <dd class="text-base font-semibold text-white">{{ $result['member_info']['id_masked'] }}</dd>
+                                </div>
+                            @endif
+                            <div class="grid gap-1 px-4 py-3 sm:grid-cols-[minmax(0,11rem)_1fr] sm:items-baseline sm:gap-4">
                                 <dt class="text-sm font-medium text-zinc-400">Membership Number</dt>
-                                <dd class="mt-1 font-semibold text-white">{{ $result['member_info']['membership_number'] }}</dd>
+                                <dd class="text-base font-semibold text-white">{{ $result['member_info']['membership_number'] }}</dd>
                             </div>
                         </div>
                     @endif

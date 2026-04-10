@@ -3,12 +3,65 @@
 namespace App\Services;
 
 use App\Models\Certificate;
+use App\Models\Membership;
+use App\Models\User;
 
 class VerificationService
 {
     public function __construct(
         protected MembershipStandingService $standingService
     ) {}
+
+    /**
+     * Mask an identity / ID number for public verification pages (POPIA minimisation).
+     * Longer values: first 4 + masked middle + last 4 (e.g. SA ID style).
+     */
+    public static function maskIdentityNumberForPublicDisplay(?string $id): ?string
+    {
+        if ($id === null || trim($id) === '') {
+            return null;
+        }
+
+        $clean = preg_replace('/\s+/', '', trim($id));
+        $len = strlen($clean);
+
+        if ($len < 4) {
+            return str_repeat('*', $len);
+        }
+
+        if ($len <= 8) {
+            $keep = 2;
+
+            return substr($clean, 0, $keep).str_repeat('*', max(3, $len - 2 * $keep)).substr($clean, -$keep);
+        }
+
+        return substr($clean, 0, 4).str_repeat('*', $len - 8).substr($clean, -4);
+    }
+
+    /**
+     * Public-safe member fields for certificate / endorsement verification UIs.
+     *
+     * @param  Membership|null  $membership  Membership linked to the document; if null, active membership is resolved when possible.
+     * @return array{display_name: string, id_masked: ?string, membership_number: string}|null
+     */
+    public function memberPublicDisplay(?User $user, ?Membership $membership = null): ?array
+    {
+        if (! $user) {
+            return null;
+        }
+
+        if ($membership === null) {
+            $membership = $user->activeMembership;
+        }
+
+        $membershipNumber = $membership?->membership_number;
+
+        return [
+            'display_name' => $user->name,
+            'id_masked' => static::maskIdentityNumberForPublicDisplay($user->getIdNumber()),
+            'membership_number' => $membershipNumber ?? 'N/A',
+        ];
+    }
 
     /**
      * Verify a certificate by QR code.
@@ -57,36 +110,7 @@ class VerificationService
             }
         }
 
-        // Build public-safe member info
-        $memberInfo = null;
-        if ($user) {
-            $nameParts = explode(' ', $user->name);
-            $initials = '';
-            $surname = '';
-
-            if (count($nameParts) > 0) {
-                // First letter of first name
-                $initials = strtoupper(substr($nameParts[0], 0, 1));
-                // Add middle initials if any
-                for ($i = 1; $i < count($nameParts) - 1; $i++) {
-                    $initials .= strtoupper(substr($nameParts[$i], 0, 1));
-                }
-                // Last name
-                $surname = end($nameParts);
-            }
-
-            // Mask membership number (show last 4 digits)
-            $membershipNumber = $membership?->membership_number ?? 'N/A';
-            $maskedNumber = strlen($membershipNumber) > 4
-                ? '****'.substr($membershipNumber, -4)
-                : '****';
-
-            $memberInfo = [
-                'initials' => $initials,
-                'surname' => $surname,
-                'membership_number' => $maskedNumber,
-            ];
-        }
+        $memberInfo = ($isValid && $user) ? $this->memberPublicDisplay($user, $membership) : null;
 
         return [
             'valid' => $isValid,

@@ -1139,15 +1139,22 @@ Route::get('verify/endorsement/{reference}', function ($reference) {
             'request' => null,
             'reference' => $reference,
             'error' => 'Endorsement not found',
+            'member_info' => null,
         ]);
     }
 
     $request->load(['user', 'user.activeMembership', 'firearm', 'firearm.firearmCalibre', 'firearm.firearmMake', 'firearm.firearmModel', 'components']);
 
+    $memberInfo = app(\App\Services\VerificationService::class)->memberPublicDisplay(
+        $request->user,
+        $request->user?->activeMembership
+    );
+
     return view('pages.verify-endorsement', [
         'request' => $request,
         'reference' => $reference,
         'error' => null,
+        'member_info' => $memberInfo,
     ]);
 })->name('endorsements.verify');
 

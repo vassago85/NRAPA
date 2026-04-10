@@ -39,6 +39,14 @@
             padding: 24px;
             text-align: center;
         }
+        .header img {
+            display: block;
+            margin: 0 auto 14px;
+            height: 52px;
+            width: auto;
+            max-width: min(100%, 200px);
+            object-fit: contain;
+        }
         .header h1 {
             font-size: 24px;
             font-weight: 700;
@@ -102,6 +110,7 @@
 <body>
     <div class="container">
         <div class="header">
+            <img src="{{ asset('logo-nrapa-white.png') }}" alt="NRAPA" width="200" height="74" />
             <h1>Endorsement Verification</h1>
         </div>
         <div class="body">
@@ -114,6 +123,25 @@
                     ✓ Valid Endorsement
                 </div>
                 
+                @if($member_info)
+                    <div style="margin-bottom: 24px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+                        <div style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; background: #f9fafb;">
+                            <div class="info-label" style="margin-bottom: 4px;">Name</div>
+                            <div class="info-value" style="font-weight: 600;">{{ $member_info['display_name'] }}</div>
+                        </div>
+                        @if(!empty($member_info['id_masked']))
+                        <div style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; background: #fff;">
+                            <div class="info-label" style="margin-bottom: 4px;">ID Number</div>
+                            <div class="info-value" style="font-weight: 600;">{{ $member_info['id_masked'] }}</div>
+                        </div>
+                        @endif
+                        <div style="padding: 12px 16px; background: #fff;">
+                            <div class="info-label" style="margin-bottom: 4px;">Membership Number</div>
+                            <div class="info-value" style="font-weight: 600;">{{ $member_info['membership_number'] }}</div>
+                        </div>
+                    </div>
+                @endif
+
                 <div class="info-grid">
                     <div class="info-item">
                         <div class="info-label">Endorsement Ref</div>
