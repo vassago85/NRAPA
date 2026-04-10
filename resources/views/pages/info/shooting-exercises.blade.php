@@ -62,18 +62,29 @@
     </div>
 
     <h2>How to Participate</h2>
-    <ol>
-        <li>Contact the NRAPA office at <a href="mailto:info@nrapa.co.za">info@nrapa.co.za</a> or call <a href="tel:+27871510988">087 151 0988</a> for high-resolution targets</li>
-        <li>Shoot targets at any recognised shooting range</li>
-        <li>Submit completed targets electronically to the NRAPA office</li>
-        <li>All targets shot on one day constitute one activity</li>
-        <li>Scores must be forwarded via email to count as an activity</li>
-        <li><strong>Note:</strong> Shooting on farm ranges only accepted with written Exco approval</li>
+    <ol class="step-list">
+        <li>
+            <strong>Get your targets</strong>
+            <p>Contact the NRAPA office at <a href="mailto:info@nrapa.co.za">info@nrapa.co.za</a> or call <a href="tel:+27871510988">087 151 0988</a> for high-resolution targets.</p>
+        </li>
+        <li>
+            <strong>Shoot at a recognised range</strong>
+            <p>Complete targets at any recognised shooting range.</p>
+        </li>
+        <li>
+            <strong>Submit electronically</strong>
+            <p>Email completed targets to the NRAPA office. All targets shot on one day constitute one activity.</p>
+        </li>
     </ol>
 
-    <h2>Scoring & Submission</h2>
-    <ul>
-        <li>Most exercises require a minimum 60% score for dedicated status qualification</li>
+    <div class="info-card">
+        <h4>Note</h4>
+        <p>Shooting on farm ranges is only accepted with written Exco approval.</p>
+    </div>
+
+    <h2>Scoring &amp; Submission</h2>
+    <ul class="checklist">
+        <li>Most exercises require a minimum <strong>60% score</strong> for dedicated status qualification</li>
         <li>Targets must be accompanied by range receipt or written declaration from range officer</li>
         <li>Electronically submitted scorecards build participation records for licence renewal applications</li>
     </ul>

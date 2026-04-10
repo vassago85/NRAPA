@@ -42,14 +42,19 @@
     <p>Yes. NRAPA is the association and membership portal within the same group as <a href="https://motivations.ranyati.co.za">Ranyati Motivations</a> and <a href="https://storage.ranyati.co.za">Ranyati Storage</a>. The parent brand is <a href="https://ranyati.co.za">Ranyati Group</a>.</p>
 
     <h2>Will NRAPA guarantee my licence is approved?</h2>
-    <p>No. We support compliance and documentation; SAPS makes final decisions.</p>
+    <p>No. We support compliance and documentation; SAPS makes final decisions on every application.</p>
 
     <h2>Who writes my motivation?</h2>
-    <p>Use <a href="https://motivations.ranyati.co.za">Ranyati Motivations</a> for motivation drafting; use NRAPA for membership, activities, and dedicated status administration.</p>
+    <p><a href="https://motivations.ranyati.co.za">Ranyati Motivations</a> handles motivation drafting. NRAPA handles membership, activities, and dedicated status administration.</p>
 
     <h2>How do I contact support?</h2>
     <p>Email <a href="mailto:info@nrapa.co.za">info@nrapa.co.za</a> or call <a href="tel:+27871510987">+27 87 151 0987</a>. Registered members should also check the dashboard for notices.</p>
 
     <h2>More reading</h2>
-    <p><a href="{{ route('info.index') }}">Info hub</a> · <a href="{{ route('info.how-to-get-dedicated-status-south-africa') }}">How to get dedicated status</a></p>
+    <ul class="link-list">
+        <li><a href="{{ route('info.index') }}">Info hub</a></li>
+        <li><a href="{{ route('info.how-to-get-dedicated-status-south-africa') }}">How to get dedicated status</a></li>
+        <li><a href="{{ route('info.about') }}">About NRAPA</a></li>
+        <li><a href="{{ route('register') }}">Register now</a></li>
+    </ul>
 @endsection

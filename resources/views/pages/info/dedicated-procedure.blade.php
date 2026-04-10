@@ -7,11 +7,13 @@
 @section('breadcrumb', 'Dedicated Procedure')
 
 @section('content')
-    <h2>Legal Responsibility</h2>
-    <p>NRAPA's accreditation rests on this process. No deviation from prescribed steps. Non-compliance would result in forfeiting accredited status with SAPS.</p>
+    <div class="info-card">
+        <h4>Legal Responsibility</h4>
+        <p>NRAPA's accreditation rests on this process. No deviation from prescribed steps. Non-compliance would result in forfeiting accredited status with SAPS.</p>
+    </div>
 
     <h2>NRAPA's Obligations</h2>
-    <ul>
+    <ul class="checklist">
         <li>Only allows dedicated membership while member is in good standing</li>
         <li>Keeps records of participation in hunting/sport-shooting activities</li>
         <li>Administers dedicated-status theoretical and practical assessments and member programmes compliant with the SAQA Act (1995) and Skills Development Act (1998)</li>
@@ -19,58 +21,64 @@
     </ul>
 
     <h2>The Dedicated Award Scheme</h2>
-    <p>Three sections:</p>
-    <ol>
-        <li><strong>FIRST:</strong> Online theoretical evaluation</li>
-        <li><strong>SECOND:</strong> Practical — shooting of relevant NRAPA targets and electronic submission</li>
-        <li><strong>THIRD:</strong> Print, sign and issue of certificates</li>
+    <ol class="step-list">
+        <li>
+            <strong>Online theoretical evaluation</strong>
+            <p>Complete the knowledge assessment through the member portal.</p>
+        </li>
+        <li>
+            <strong>Practical — shooting of relevant NRAPA targets</strong>
+            <p>Shoot targets at a recognised range and submit electronically to the NRAPA office.</p>
+        </li>
+        <li>
+            <strong>Certificate issuance</strong>
+            <p>Once all steps are completed, certificates are generated, submitted to a commissioner of oaths for signing, then forwarded to the member.</p>
+        </li>
     </ol>
 
     <h2>Practical Evaluation</h2>
     <ul>
-        <li>Dedicated Sport-Person: one target at 60% score (any medium/large calibre rifle, .22, handgun, or 25-clay round at 60%). Plus range receipt or written declaration from range officer.</li>
-        <li>Officially signed shotgun score cards acceptable</li>
-        <li>Candidate shoots on recognised range, submits targets to NRAPA office</li>
+        <li><strong>Dedicated Sport-Person:</strong> one target at 60% score (any medium/large calibre rifle, .22, handgun, or 25-clay round at 60%), plus range receipt or written declaration from range officer</li>
+        <li>Officially signed shotgun score cards are acceptable</li>
+        <li>Candidate shoots on a recognised range and submits targets to the NRAPA office</li>
         <li>Once completed, notified by email to apply for Dedicated Status</li>
     </ul>
 
-    <h2>Certificate Issuance</h2>
-    <p>Once all steps completed, certificates are generated, submitted to commissioner of oaths for signing, then forwarded to member.</p>
-
     <h2>Maintaining Dedicated Status</h2>
-    <ul>
-        <li>Members submit dedicated activities document by not later than 31 October each year</li>
-        <li>Minimum of two activities required as proof of dedicated participation</li>
-        <li>Dedicated members do NOT have to submit activities report for the year they join</li>
-        <li>Last day for Annual Dedicated Activities reports: 31 October</li>
+    <div class="info-card">
+        <h4>Annual Deadline</h4>
+        <p>Dedicated activities reports must be submitted by <strong>31 October</strong> each year. Members do not need to submit a report for the year they join.</p>
+    </div>
+    <ul class="checklist">
+        <li>Minimum of <strong>two activities</strong> required as proof of dedicated participation each year</li>
+        <li>Submit via the member portal or directly to the NRAPA office</li>
+        <li>Dedicated members do NOT have to submit an activities report for the year they join</li>
     </ul>
 
     <h2>Qualifying Activities</h2>
-    <p>Any TWO of ANY of the following in ANY combination:</p>
+    <p>Any <strong>two</strong> of any of the following in any combination:</p>
     <ol>
         <li>Any hunting trip (furred/feathered game) — even as cook or photographer</li>
         <li>Any range activity related to hunting (e.g. load development)</li>
-        <li>Sport-Person: NRAPA in-house postal target shooting exercises</li>
-        <li>Sport-Person: NRAPA annual national postal target competition</li>
-        <li>Hunter or Sport-Person: Any non-NRAPA shooting range, hunting, or firearm-related activity</li>
+        <li><strong>Sport-Person:</strong> NRAPA in-house postal target shooting exercises</li>
+        <li><strong>Sport-Person:</strong> NRAPA annual national postal target competition</li>
+        <li><strong>Hunter or Sport-Person:</strong> Any non-NRAPA shooting range, hunting, or firearm-related activity</li>
     </ol>
     <p><strong>Note:</strong> All shooting on farm ranges only accepted with written Exco approval.</p>
 
     <h2>Non-Activities Report</h2>
-    <p>May submit if personal circumstances prevented participation. Second consecutive year requires clear evidence and written proof.</p>
+    <p>May submit if personal circumstances prevented participation. A second consecutive year requires clear evidence and written proof.</p>
 
     <h2>Proof of Participation</h2>
-    <ul>
+    <ul class="checklist">
         <li>Always keep documentary proof of events</li>
-        <li>Proof forwarded to NRAPA office (and keep own records)</li>
-        <li>Submitting an activity is considered as good as sworn statement</li>
+        <li>Forward proof to the NRAPA office (and keep own records)</li>
+        <li>Submitting an activity is considered as good as a sworn statement</li>
     </ul>
 
     <h2>Consequences of Non-Compliance</h2>
-    <ul>
-        <li>Failure to submit by 31 October results in automatic loss of dedicated status by January following year</li>
-        <li>Loss of dedicated status means possession of illegal firearms (unless equivalent status with another association)</li>
-        <li>SAPS must be informed of all members who lose dedicated status</li>
-        <li>This has no effect on continued validity of paid-up membership</li>
-    </ul>
+    <div class="info-card">
+        <h4>Important</h4>
+        <p>Failure to submit by 31 October results in automatic loss of dedicated status by January of the following year. Loss of dedicated status means possession of illegal firearms (unless equivalent status exists with another association). SAPS must be informed of all members who lose dedicated status. This has no effect on continued validity of paid-up membership.</p>
+    </div>
 @endsection

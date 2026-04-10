@@ -76,6 +76,53 @@
                 background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0);
                 background-size: 40px 40px;
             }
+            .info-prose a { color: #0B4EA2; text-decoration: underline; text-underline-offset: 3px; }
+            .dark .info-prose a { color: #60a5fa; }
+            .info-prose a:hover { color: #083A7A; }
+            .dark .info-prose a:hover { color: #93c5fd; }
+            .info-prose .checklist { list-style: none; padding-left: 0; margin-left: 0; }
+            .info-prose .checklist li {
+                position: relative; padding-left: 32px; margin-bottom: 10px;
+            }
+            .info-prose .checklist li::before {
+                content: ''; position: absolute; left: 0; top: 5px;
+                width: 18px; height: 18px; border-radius: 5px;
+                background: rgba(11,78,162,0.1); border: 1px solid rgba(11,78,162,0.2);
+            }
+            .dark .info-prose .checklist li::before {
+                background: rgba(96,165,250,0.1); border-color: rgba(96,165,250,0.2);
+            }
+            .info-prose .checklist li::after {
+                content: '\2713'; position: absolute; left: 3.5px; top: 3px;
+                font-size: 12px; font-weight: 700; color: #0B4EA2;
+            }
+            .dark .info-prose .checklist li::after { color: #60a5fa; }
+            .info-prose .info-card {
+                padding: 20px 24px; border-radius: 12px; margin: 20px 0;
+                background: #f4f6fa; border: 1px solid #e2e8f0;
+            }
+            .dark .info-prose .info-card {
+                background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.06);
+            }
+            .info-prose .info-card h4 {
+                font-size: 15px; font-weight: 700; margin-bottom: 8px;
+            }
+            .info-prose .step-list { list-style: none; counter-reset: step; padding-left: 0; margin-left: 0; }
+            .info-prose .step-list > li {
+                counter-increment: step; position: relative; padding-left: 48px; margin-bottom: 20px;
+            }
+            .info-prose .step-list > li::before {
+                content: counter(step); position: absolute; left: 0; top: 0;
+                width: 32px; height: 32px; border-radius: 8px;
+                background: #0B4EA2; color: #fff;
+                font-size: 14px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+                line-height: 32px; text-align: center;
+            }
+            .info-prose .link-list { list-style: none; padding-left: 0; margin-left: 0; display: flex; flex-wrap: wrap; gap: 8px 16px; }
+            .info-prose .link-list li a {
+                display: inline-flex; align-items: center; gap: 4px; padding: 4px 0;
+            }
+            .info-prose .link-list li a::before { content: '→ '; font-weight: 600; }
         </style>
     </head>
     <body class="min-h-screen bg-white text-zinc-900 antialiased dark:bg-zinc-900 dark:text-zinc-100">
@@ -153,7 +200,7 @@
                 <a href="{{ route('info.shooting-exercises') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.shooting-exercises') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">Shooting exercises</a>
             </div>
 
-            <article class="prose prose-zinc max-w-none dark:prose-invert prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3 prose-p:leading-relaxed prose-li:leading-relaxed prose-a:text-nrapa-blue">
+            <article class="info-prose prose prose-zinc max-w-none dark:prose-invert prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3 prose-p:leading-relaxed prose-li:leading-relaxed">
                 @yield('content')
             </article>
 
