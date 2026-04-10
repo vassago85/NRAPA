@@ -53,10 +53,10 @@ new class extends Component {
                 EndorsementRequest::STATUS_PENDING_DOCUMENTS,
             ])->count();
 
-            // Awaiting payment: revoked applied without POP/confirmation + pending_payment without POP/confirmation
+            // Awaiting payment: billable applied without POP/confirmation + pending_payment without POP/confirmation
             $this->awaitingPaymentCount = Membership::where('status', 'applied')
                     ->whereHas('user')
-                    ->whereNotNull('approval_revoked_at')
+                    ->whereIn('source', ['web', 'admin'])
                     ->whereNull('proof_of_payment_path')
                     ->whereNull('payment_confirmed_at')
                     ->count()
@@ -70,7 +70,7 @@ new class extends Component {
             $this->pendingMemberships = Membership::where('status', 'applied')
                     ->whereHas('user')
                     ->where(function ($q) {
-                        $q->whereNull('approval_revoked_at')
+                        $q->whereNotIn('source', ['web', 'admin'])
                             ->orWhereNotNull('proof_of_payment_path')
                             ->orWhereNotNull('payment_confirmed_at');
                     })

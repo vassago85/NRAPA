@@ -93,12 +93,12 @@ new #[Title('All Approvals - Admin')] class extends Component {
 
         // --- Memberships ready for admin action ---
 
-        // Fresh applied memberships (never had approval revoked) OR applied with POP/payment confirmed
+        // Applied memberships that are either non-billable (imports) OR have POP/payment confirmed
         $items = $items->merge(
             Membership::where('status', 'applied')
                 ->whereHas('user')
                 ->where(function ($q) {
-                    $q->whereNull('approval_revoked_at')                        // fresh applications
+                    $q->whereNotIn('source', ['web', 'admin'])                  // non-billable (imports)
                         ->orWhereNotNull('proof_of_payment_path')               // POP uploaded
                         ->orWhereNotNull('payment_confirmed_at');               // admin confirmed payment
                 })
@@ -168,11 +168,11 @@ new #[Title('All Approvals - Admin')] class extends Component {
     {
         $items = collect();
 
-        // Applied memberships where approval was revoked and no POP / no payment confirmation
+        // Billable applied memberships without POP and no payment confirmation
         $items = $items->merge(
             Membership::where('status', 'applied')
                 ->whereHas('user')
-                ->whereNotNull('approval_revoked_at')
+                ->whereIn('source', ['web', 'admin'])
                 ->whereNull('proof_of_payment_path')
                 ->whereNull('payment_confirmed_at')
                 ->with(['user', 'type'])
@@ -236,10 +236,10 @@ new #[Title('All Approvals - Admin')] class extends Component {
             EndorsementRequest::STATUS_PENDING_DOCUMENTS,
         ])->count();
 
-        // Awaiting payment: revoked applied without POP/confirmation + pending_payment without POP/confirmation
+        // Awaiting payment: billable applied without POP/confirmation + pending_payment without POP/confirmation
         $awaitingPaymentCount = Membership::where('status', 'applied')
                 ->whereHas('user')
-                ->whereNotNull('approval_revoked_at')
+                ->whereIn('source', ['web', 'admin'])
                 ->whereNull('proof_of_payment_path')
                 ->whereNull('payment_confirmed_at')
                 ->count()
@@ -253,7 +253,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
         $actionableMemberships = Membership::where('status', 'applied')
                 ->whereHas('user')
                 ->where(function ($q) {
-                    $q->whereNull('approval_revoked_at')
+                    $q->whereNotIn('source', ['web', 'admin'])
                         ->orWhereNotNull('proof_of_payment_path')
                         ->orWhereNotNull('payment_confirmed_at');
                 })
@@ -384,7 +384,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
             ->whereHas('user')
             ->whereHas('type')
             ->where(function ($q) {
-                $q->whereNull('approval_revoked_at')
+                $q->whereNotIn('source', ['web', 'admin'])
                     ->orWhereNotNull('proof_of_payment_path')
                     ->orWhereNotNull('payment_confirmed_at');
             })

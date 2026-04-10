@@ -304,7 +304,7 @@ new #[Title('Review Application - Admin')] class extends Component {
     {
         $m = $this->membership;
 
-        if ($m->status === 'applied' && $m->approval_revoked_at && !$m->proof_of_payment_path && !$m->payment_confirmed_at) {
+        if ($m->status === 'applied' && in_array($m->source, ['web', 'admin']) && !$m->proof_of_payment_path && !$m->payment_confirmed_at) {
             return true;
         }
 
