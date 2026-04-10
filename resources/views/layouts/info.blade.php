@@ -3,22 +3,67 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>@yield('title') - NRAPA</title>
+        <title>@yield('title') | NRAPA</title>
         <meta name="description" content="@yield('description')">
         <link rel="canonical" href="{{ url()->current() }}">
-        <meta property="og:type" content="website">
+        <meta property="og:type" content="article">
         <meta property="og:site_name" content="NRAPA">
-        <meta property="og:title" content="@yield('title') - NRAPA">
+        <meta property="og:title" content="@yield('title') | NRAPA">
         <meta property="og:description" content="@yield('description')">
         <meta property="og:url" content="{{ url()->current() }}">
         <meta property="og:image" content="{{ asset('nrapa-icon.png') }}">
         <meta name="twitter:card" content="summary">
-        <meta name="twitter:title" content="@yield('title') - NRAPA">
+        <meta name="twitter:title" content="@yield('title') | NRAPA">
         <meta name="twitter:description" content="@yield('description')">
         <meta name="twitter:image" content="{{ asset('nrapa-icon.png') }}">
         <link rel="icon" href="/nrapa-icon.png" type="image/png">
         <link rel="apple-touch-icon" href="/nrapa-icon.png">
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @php
+            $seoTitle = trim($__env->yieldContent('title'));
+            $seoDescription = trim($__env->yieldContent('description'));
+            $breadcrumbLabel = trim($__env->yieldContent('breadcrumb'));
+        @endphp
+        <script type="application/ld+json">
+            {!! json_encode([
+                '@context' => 'https://schema.org',
+                '@type' => 'BreadcrumbList',
+                'itemListElement' => [
+                    [
+                        '@type' => 'ListItem',
+                        'position' => 1,
+                        'name' => 'Home',
+                        'item' => route('home'),
+                    ],
+                    [
+                        '@type' => 'ListItem',
+                        'position' => 2,
+                        'name' => 'Resources',
+                        'item' => route('info.about'),
+                    ],
+                    [
+                        '@type' => 'ListItem',
+                        'position' => 3,
+                        'name' => $breadcrumbLabel !== '' ? $breadcrumbLabel : 'Guide',
+                        'item' => url()->current(),
+                    ],
+                ],
+            ], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}
+        </script>
+        <script type="application/ld+json">
+            {!! json_encode([
+                '@context' => 'https://schema.org',
+                '@type' => 'WebPage',
+                'name' => $seoTitle,
+                'description' => $seoDescription,
+                'url' => url()->current(),
+                'isPartOf' => [
+                    '@type' => 'WebSite',
+                    'name' => 'NRAPA',
+                    'url' => config('app.url'),
+                ],
+            ], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}
+        </script>
         <style>
             .hero-gradient {
                 background: linear-gradient(135deg, #061e3c 0%, #0B4EA2 50%, #083A7A 100%);
@@ -127,6 +172,7 @@
                         <div class="mt-5 flex flex-col gap-2">
                             <a href="{{ route('info.about') }}" class="text-[13px] text-white/40 hover:text-white transition">About NRAPA</a>
                             <a href="{{ route('info.firearm-licence-process') }}" class="text-[13px] text-white/40 hover:text-white transition">Firearm Licence Process</a>
+                            <a href="{{ route('info.minimum-requirements') }}" class="text-[13px] text-white/40 hover:text-white transition">Minimum Requirements</a>
                             <a href="{{ route('info.dedicated-procedure') }}" class="text-[13px] text-white/40 hover:text-white transition">Dedicated Procedure</a>
                             <a href="{{ route('info.shooting-exercises') }}" class="text-[13px] text-white/40 hover:text-white transition">Shooting Exercises</a>
                         </div>

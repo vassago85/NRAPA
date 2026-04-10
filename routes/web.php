@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\SageOAuthController;
+use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -14,6 +15,8 @@ Route::get('/terms-and-conditions', function () {
 Route::get('/privacy-policy', function () {
     return view('pages.privacy');
 })->name('privacy-policy');
+
+Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 
 // Info / Resources pages (public)
 Route::prefix('info')->name('info.')->group(function () {

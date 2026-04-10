@@ -575,6 +575,50 @@
             </div>
         </section>
 
+        {{-- SEO: crawlable internal links from the home page (helps indexing of resource pages) --}}
+        <section class="hero-section relative overflow-hidden border-t border-white/[0.04]" aria-labelledby="guides-heading">
+            <div class="relative z-10 mx-auto max-w-5xl px-6 py-16 lg:px-8">
+                <h2 id="guides-heading" class="text-center text-xl font-black tracking-tight text-white sm:text-2xl">
+                    Guides &amp; resources
+                </h2>
+                <p class="mx-auto mt-3 max-w-2xl text-center text-sm leading-relaxed text-white/45">
+                    Dedicated status, SAPS accreditation, licence steps, and membership requirements for South African firearm owners.
+                </p>
+                <ul class="mt-10 grid list-none gap-3 p-0 sm:grid-cols-2 lg:grid-cols-3">
+                    <li>
+                        <a href="{{ route('info.about') }}" class="block rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-sm font-medium text-white/85 transition hover:border-white/18 hover:bg-white/[0.06]">
+                            About NRAPA &amp; SAPS accreditation
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('info.firearm-licence-process') }}" class="block rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-sm font-medium text-white/85 transition hover:border-white/18 hover:bg-white/[0.06]">
+                            Firearm licence process
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('info.minimum-requirements') }}" class="block rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-sm font-medium text-white/85 transition hover:border-white/18 hover:bg-white/[0.06]">
+                            Minimum requirements
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('info.dedicated-procedure') }}" class="block rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-sm font-medium text-white/85 transition hover:border-white/18 hover:bg-white/[0.06]">
+                            Dedicated procedure
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('info.shooting-exercises') }}" class="block rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-sm font-medium text-white/85 transition hover:border-white/18 hover:bg-white/[0.06]">
+                            Shooting exercises &amp; activities
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('privacy-policy') }}" class="block rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-sm font-medium text-white/85 transition hover:border-white/18 hover:bg-white/[0.06]">
+                            Privacy policy (POPIA)
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
         {{-- Footer --}}
         <footer style="background: #020810; border-top: 1px solid rgba(255,255,255,0.04);">
             <div style="max-width: 80rem; margin: 0 auto; padding: 0 24px;">
