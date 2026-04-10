@@ -230,13 +230,25 @@ new class extends Component {
                                 <div>
                                     <label class="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1 block">Email Content</label>
                                     @if(str_contains($log->body, '<'))
-                                        <iframe
-                                            srcdoc="{{ e($log->body) }}"
-                                            sandbox="allow-same-origin"
-                                            class="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white"
-                                            style="min-height: 500px;"
-                                            onload="this.style.height = this.contentWindow.document.body.scrollHeight + 40 + 'px';"
-                                        ></iframe>
+                                        <div x-data="{ html: @json($log->body) }" x-init="
+                                            $nextTick(() => {
+                                                let iframe = $refs.emailFrame;
+                                                let doc = iframe.contentDocument || iframe.contentWindow.document;
+                                                doc.open();
+                                                doc.write(html);
+                                                doc.close();
+                                                setTimeout(() => {
+                                                    try { iframe.style.height = (doc.body.scrollHeight + 40) + 'px'; } catch(e) {}
+                                                }, 150);
+                                            });
+                                        ">
+                                            <iframe
+                                                x-ref="emailFrame"
+                                                sandbox="allow-same-origin"
+                                                class="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white"
+                                                style="min-height: 500px;"
+                                            ></iframe>
+                                        </div>
                                     @else
                                         <div class="mt-1 p-4 bg-zinc-50 dark:bg-zinc-700 rounded-lg text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">{{ $log->body }}</div>
                                     @endif
