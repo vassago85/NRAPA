@@ -21,6 +21,10 @@ new class extends Component {
     public array $selected = [];
     public bool $selectAll = false;
     public string $bulkAction = '';
+
+    // Removed-from-billing search
+    public string $removedSearch = '';
+    public array $removedSelected = [];
     
     public function mount(): void
     {
@@ -133,7 +137,56 @@ new class extends Component {
         $this->resetSelection();
         $this->loadStats();
     }
-    
+
+    public function addToBilling(): void
+    {
+        if (empty($this->removedSelected)) {
+            session()->flash('error', 'No items selected.');
+            return;
+        }
+
+        $ids = array_map('intval', $this->removedSelected);
+        $count = Membership::whereIn('id', $ids)
+            ->where('source', 'import')
+            ->update(['source' => 'admin']);
+
+        $firstMembership = Membership::find($ids[0]);
+        if ($firstMembership) {
+            AuditLog::log(
+                'billing_restore',
+                $firstMembership,
+                ['membership_ids' => $ids, 'source' => 'import'],
+                ['source' => 'admin'],
+                Auth::user()
+            );
+        }
+
+        session()->flash('success', "{$count} membership(s) restored to billing.");
+        $this->removedSelected = [];
+        $this->removedSearch = '';
+        $this->loadStats();
+    }
+
+    public function getRemovedMembershipsProperty()
+    {
+        if (strlen($this->removedSearch) < 2) {
+            return collect();
+        }
+
+        $search = $this->removedSearch;
+        return Membership::where('source', 'import')
+            ->where(function ($q) use ($search) {
+                $q->where('membership_number', 'like', "%{$search}%")
+                  ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%"));
+            })
+            ->whereNotNull('approved_at')
+            ->with(['user', 'type'])
+            ->orderBy('approved_at', 'desc')
+            ->limit(20)
+            ->get();
+    }
+
     protected function loadStats(): void
     {
         try {
@@ -676,6 +729,96 @@ new class extends Component {
                 {{ $memberships->links() }}
             </div>
         @endif
+    </div>
+
+    {{-- Restore to Billing --}}
+    <div class="mt-8 bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+        <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+            <div class="flex items-center gap-3">
+                <div class="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                    <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Restore to Billing</h2>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400">Search for members previously removed from billing and add them back</p>
+                </div>
+            </div>
+        </div>
+        <div class="p-6">
+            <div class="relative max-w-md">
+                <input type="text"
+                       wire:model.live.debounce.300ms="removedSearch"
+                       placeholder="Search by name, email, or membership number..."
+                       class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+            </div>
+
+            @if(strlen($removedSearch) >= 2)
+                @if($this->removedMemberships->isEmpty())
+                    <p class="mt-4 text-sm text-zinc-500 dark:text-zinc-400">No removed memberships found matching "{{ $removedSearch }}".</p>
+                @else
+                    @if(count($removedSelected) > 0)
+                    <div class="mt-4 flex items-center gap-3">
+                        <span class="text-sm font-medium text-emerald-700 dark:text-emerald-300">{{ count($removedSelected) }} selected</span>
+                        <button
+                            wire:click="addToBilling"
+                            wire:confirm="Restore selected memberships to billing? They will be marked as admin-created and included in billing counts."
+                            class="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Add to Billing
+                        </button>
+                        <button wire:click="$set('removedSelected', [])" class="text-sm text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200">Clear</button>
+                    </div>
+                    @endif
+
+                    <div class="mt-4 overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-zinc-50 dark:bg-zinc-700/50">
+                                <tr>
+                                    <th class="px-4 py-2 text-left w-10">
+                                        <span class="sr-only">Select</span>
+                                    </th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">Member</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">Membership #</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">Type</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">Approved</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                                @foreach($this->removedMemberships as $m)
+                                <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/30 {{ in_array((string) $m->id, $removedSelected) ? 'bg-emerald-50/50 dark:bg-emerald-900/10' : '' }}">
+                                    <td class="px-4 py-3">
+                                        <input type="checkbox" wire:model.live="removedSelected" value="{{ $m->id }}"
+                                            class="w-4 h-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700">
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div class="font-medium text-zinc-900 dark:text-white">{{ $m->user?->name ?? 'Deleted User' }}</div>
+                                        <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ $m->user?->email ?? '—' }}</div>
+                                    </td>
+                                    <td class="px-4 py-3 text-zinc-600 dark:text-zinc-300">{{ $m->membership_number }}</td>
+                                    <td class="px-4 py-3 text-zinc-600 dark:text-zinc-300">{{ $m->type?->name ?? '—' }}</td>
+                                    <td class="px-4 py-3 text-zinc-600 dark:text-zinc-300">{{ $m->approved_at?->format('d M Y') ?? '—' }}</td>
+                                    <td class="px-4 py-3">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                                            {{ $m->status === 'active' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400' }}">
+                                            {{ ucfirst($m->status) }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            @else
+                <p class="mt-3 text-xs text-zinc-400 dark:text-zinc-500">Type at least 2 characters to search</p>
+            @endif
+        </div>
     </div>
 
     {{-- Note about imports --}}
