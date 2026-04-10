@@ -20,7 +20,7 @@ class SitemapController extends Controller
             ['route' => 'info.firearm-licence-process', 'priority' => '0.8', 'changefreq' => 'monthly', 'file' => resource_path('views/pages/info/firearm-licence-process.blade.php')],
             ['route' => 'info.minimum-requirements', 'priority' => '0.7', 'changefreq' => 'monthly', 'file' => resource_path('views/pages/info/minimum-requirements.blade.php')],
             ['route' => 'info.dedicated-procedure', 'priority' => '0.8', 'changefreq' => 'monthly', 'file' => resource_path('views/pages/info/dedicated-procedure.blade.php')],
-            ['route' => 'info.shooting-exercises', 'priority' => '0.7', 'changefreq' => 'monthly', 'file' => resource_path('views/pages/info/shooting-exercises.blade.php')],
+            ['route' => 'info.shooting-exercises', 'priority' => '0.8', 'changefreq' => 'weekly', 'file' => resource_path('views/pages/info/shooting-exercises.blade.php')],
             ['route' => 'info.dedicated-sport-shooter-south-africa', 'priority' => '0.85', 'changefreq' => 'monthly', 'file' => resource_path('views/pages/info/dedicated-sport-shooter-south-africa.blade.php')],
             ['route' => 'info.dedicated-hunter-south-africa', 'priority' => '0.85', 'changefreq' => 'monthly', 'file' => resource_path('views/pages/info/dedicated-hunter-south-africa.blade.php')],
             ['route' => 'info.how-to-get-dedicated-status-south-africa', 'priority' => '0.85', 'changefreq' => 'monthly', 'file' => resource_path('views/pages/info/how-to-get-dedicated-status-south-africa.blade.php')],

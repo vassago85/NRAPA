@@ -612,7 +612,7 @@
                     </li>
                     <li>
                         <a href="{{ route('info.shooting-exercises') }}" class="block rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-sm font-medium text-white/85 transition hover:border-white/18 hover:bg-white/[0.06]">
-                            Shooting disciplines (reference)
+                            Shooting activities &amp; participation records
                         </a>
                     </li>
                     <li>

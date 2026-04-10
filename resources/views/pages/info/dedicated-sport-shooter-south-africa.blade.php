@@ -9,7 +9,7 @@
     <p>Dedicated sport shooter status is an administrative pathway under the Firearms Control Act for members of SAPS-accredited sport shooting associations. NRAPA is accredited for this purpose and provides membership, activity recording, and certificates aligned with regulatory expectations.</p>
 
     <h2>Who it is for</h2>
-    <p>Competitors and active participants in recognised shooting disciplines — such as practical shooting (IPSC/IDPA-style), precision rifle, gong shooting, and related formats — who need association-backed evidence of ongoing sport shooting activity.</p>
+    <p>Competitors and active participants who need association-backed evidence of ongoing sport shooting activity and organised participation records.</p>
 
     <h2>What NRAPA provides</h2>
     <ul class="checklist">
@@ -23,7 +23,7 @@
     <ul class="link-list">
         <li><a href="{{ route('info.how-to-get-dedicated-status-south-africa') }}">How to get dedicated status</a></li>
         <li><a href="{{ route('info.dedicated-procedure') }}">Dedicated procedure</a></li>
-        <li><a href="{{ route('info.shooting-exercises') }}">Shooting disciplines (reference)</a></li>
+        <li><a href="{{ route('info.shooting-exercises') }}">Shooting activities &amp; participation records</a></li>
         <li><a href="{{ route('register') }}">Register for NRAPA</a></li>
         <li><a href="https://motivations.ranyati.co.za/firearm-licence-motivation-sport-shooting">Sport shooting motivations (Ranyati Motivations)</a></li>
     </ul>

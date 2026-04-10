@@ -23,7 +23,7 @@
         <li>Registered with SAPS, affiliating with sport shooting clubs since 2015</li>
     </ul>
 
-    <h2>Shooting Disciplines</h2>
+    <h2>Shooting activities</h2>
     <p>NRAPA supports both <strong>IPSC</strong> (International Practical Shooting Confederation) and <strong>IDPA</strong> (International Defensive Pistol Association) formats. IPSC is competition-focused, emphasising speed, accuracy and power across varied scenarios. IDPA is more defensive-related, simulating real-world self-defence situations with concealment and cover.</p>
 
     <h2>Code of Conduct — Firearm Safety</h2>

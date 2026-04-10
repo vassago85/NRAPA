@@ -99,8 +99,8 @@
                 <svg class="size-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z" /></svg>
             </span>
             <div>
-                <p class="font-semibold text-zinc-900 group-hover:text-nrapa-blue dark:text-white dark:group-hover:text-nrapa-blue transition">Shooting disciplines (reference)</p>
-                <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Reference list of discipline types. NRAPA does not supply targets—log real activities in the portal.</p>
+                <p class="font-semibold text-zinc-900 group-hover:text-nrapa-blue dark:text-white dark:group-hover:text-nrapa-blue transition">Shooting activities &amp; records</p>
+                <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">How to maintain genuine shooting activities and participation records for dedicated status and compliance.</p>
             </div>
         </a>
     </div>

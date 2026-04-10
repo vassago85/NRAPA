@@ -1,94 +1,94 @@
 @extends('layouts.info')
 
-@section('title', 'Shooting Disciplines (Reference) | NRAPA')
-@section('description', 'Reference overview of sport shooting discipline types NRAPA members may log as activities. NRAPA does not supply target downloads or postal target packs.')
-@section('heading', 'Shooting disciplines (reference)')
-@section('subheading', 'Information only — log real outings as activities in the member portal')
-@section('breadcrumb', 'Shooting disciplines')
+@section('title', 'Shooting Activities & Participation Records')
+@section('description', 'Learn how structured shooting activities and participation records support dedicated status, endorsements, and firearm compliance in South Africa through NRAPA.')
+@section('heading', 'Shooting Activities & Participation Records')
+@section('subheading', 'Maintain genuine activity records that support dedicated status and firearm compliance in South Africa')
+@section('breadcrumb', 'Shooting activities')
 
 @section('content')
+    <div class="not-prose mb-8 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <img
+            src="{{ asset('learning_images/shooting-activities-participation-records-hero.svg') }}"
+            alt="Responsible firearm owner at a South African shooting range using a logbook and tablet to maintain participation records."
+            class="h-auto w-full object-cover"
+            loading="eager"
+        >
+    </div>
+
     <div class="info-card">
-        <h4>What this page is</h4>
-        <p><strong>NRAPA does not offer targets for download, postal target packs, or printed sheets for sale.</strong> This page is a <strong>reference only</strong>: typical discipline names, paper sizes, and scoring notes used in the shooting community. Your proof of shooting is recorded when you <strong>log qualifying activities</strong> in the member portal (scorecards, range receipts, competition results, photos, etc.).</p>
+        <h4>Structured participation, properly recorded</h4>
+        <p>Shooting activities form part of a structured participation record for members who hold, apply for, or maintain dedicated status. Clear records support administrative consistency across endorsements, annual participation evidence, and related compliance processes.</p>
+        <p>As an accredited association, NRAPA provides a practical system to keep participation records organised, credible, and ready when required.</p>
     </div>
 
-    <h2>Discipline reference</h2>
-    <p>The list below describes common exercise formats. Sizes (e.g. A3, A4) refer to typical target paper dimensions for those disciplines—not something NRAPA distributes.</p>
+    <h2>What counts as shooting activities</h2>
+    <p>Shooting activities should be genuine, relevant, and capable of being recorded with supporting detail. Depending on your context, this may include range practice, club shoots, organised participation events, hunting-related participation where relevant, and other lawful firearm-related activities that can be documented properly.</p>
 
-    <div class="grid gap-4 sm:grid-cols-1 md:grid-cols-2 mt-6 not-prose">
+    <h2>Why record-keeping matters</h2>
+    <div class="info-card">
+        <h4>Participation records are part of compliance readiness</h4>
+        <ul class="checklist">
+            <li>Supports dedicated status applications and annual participation evidence</li>
+            <li>Strengthens endorsement requests with traceable activity history</li>
+            <li>Provides supporting documentation for licence-related admin where relevant</li>
+            <li>Reduces last-minute pressure by keeping records current throughout the year</li>
+        </ul>
+    </div>
+
+    <h2>NRAPA activity logging</h2>
+    <p>NRAPA provides a structured activity-logging workflow for members. The system is designed to keep participation history centralised and administratively useful.</p>
+    <div class="not-prose mt-5 grid gap-4 sm:grid-cols-2">
         <div class="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800">
-            <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-2">1. Dedicated sport practical (reference)</h3>
-            <p class="text-sm text-zinc-600 dark:text-zinc-300">Typical 100m course using A4-sized scoring paper.</p>
+            <h3 class="mb-1 text-base font-semibold text-zinc-900 dark:text-white">Log each activity</h3>
+            <p class="text-sm text-zinc-600 dark:text-zinc-300">Capture date, context, and relevant details for each participation entry.</p>
         </div>
         <div class="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800">
-            <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-2">2. Dedicated sport handgun practical (reference)</h3>
-            <p class="text-sm text-zinc-600 dark:text-zinc-300">Typical handgun practical format; A4-style scoring layout.</p>
+            <h3 class="mb-1 text-base font-semibold text-zinc-900 dark:text-white">Attach supporting evidence</h3>
+            <p class="text-sm text-zinc-600 dark:text-zinc-300">Add scorecards, receipts, declarations, or other evidence where the process requires it.</p>
         </div>
         <div class="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800">
-            <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-2">3. Air rifles</h3>
-            <p class="text-sm text-zinc-600 dark:text-zinc-300">Air rifle disciplines — recreational and competitive.</p>
+            <h3 class="mb-1 text-base font-semibold text-zinc-900 dark:text-white">Maintain central history</h3>
+            <p class="text-sm text-zinc-600 dark:text-zinc-300">Keep your activity trail in one place for easier administrative use.</p>
         </div>
         <div class="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800">
-            <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-2">4. Rim fire rifle</h3>
-            <p class="text-sm text-zinc-600 dark:text-zinc-300">Bolt action and semi-auto rimfire; often A3-style precision targets.</p>
-        </div>
-        <div class="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800">
-            <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-2">5. High power rim fire rifle</h3>
-            <p class="text-sm text-zinc-600 dark:text-zinc-300">Bolt action; extended rimfire precision; often A3.</p>
-        </div>
-        <div class="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800">
-            <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-2">6. Rim fire gallery rifle</h3>
-            <p class="text-sm text-zinc-600 dark:text-zinc-300">Gallery-style rimfire; typical A3 layouts.</p>
-        </div>
-        <div class="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800">
-            <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-2">7. Classic precision shooting — rimfire</h3>
-            <p class="text-sm text-zinc-600 dark:text-zinc-300">Self-loading and bolt-action rimfire; A3-style precision.</p>
-        </div>
-        <div class="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800">
-            <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-2">8. Classic precision shooting — centerfire</h3>
-            <p class="text-sm text-zinc-600 dark:text-zinc-300">Self-loading rifles; centerfire precision; A3-style.</p>
-        </div>
-        <div class="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800">
-            <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-2">9. String precision shooting</h3>
-            <p class="text-sm text-zinc-600 dark:text-zinc-300">Rimfire and centre-fire self-loading only; timed strings; A3-style.</p>
-        </div>
-        <div class="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800">
-            <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-2">10. Sporting precision shooting</h3>
-            <p class="text-sm text-zinc-600 dark:text-zinc-300">Rimfire self-loading and bolt-action; sporting precision; A3-style.</p>
-        </div>
-        <div class="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800">
-            <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-2">11. Standard pistol or revolver precision</h3>
-            <p class="text-sm text-zinc-600 dark:text-zinc-300">Formal handgun precision; typical A3 layouts.</p>
-        </div>
-        <div class="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800">
-            <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-2">12. Sporting pistol or revolver precision</h3>
-            <p class="text-sm text-zinc-600 dark:text-zinc-300">Sporting-style handgun precision events.</p>
+            <h3 class="mb-1 text-base font-semibold text-zinc-900 dark:text-white">Stay organised year-round</h3>
+            <p class="text-sm text-zinc-600 dark:text-zinc-300">Consistent updates improve record quality and reduce compliance friction.</p>
         </div>
     </div>
 
-    <h2>Recording your shooting</h2>
+    <h2>Good practice for members</h2>
     <ol class="step-list">
         <li>
-            <strong>Shoot at a recognised range or sanctioned event</strong>
-            <p>Complete your shooting where it is lawful and appropriate.</p>
+            <strong>Keep records up to date</strong>
+            <p>Log activities soon after participation while details are still accurate.</p>
         </li>
         <li>
-            <strong>Log a dedicated activity in the portal</strong>
-            <p>Open the member portal and create an activity with the evidence the form asks for (scorecard, receipt, match results, declaration, photos, etc.). One day’s shooting is usually one activity.</p>
+            <strong>Participate consistently</strong>
+            <p>Spread participation across the year instead of relying on late catch-up submissions.</p>
+        </li>
+        <li>
+            <strong>Ensure entries are genuine and relevant</strong>
+            <p>Record only legitimate activities with information that supports administrative review.</p>
+        </li>
+        <li>
+            <strong>Do not leave logging too late</strong>
+            <p>Late bulk entries are harder to verify and often create avoidable delays.</p>
         </li>
     </ol>
 
-    <div class="info-card">
-        <h4>Farm ranges</h4>
-        <p>Shooting on farm ranges is only accepted with written Exco approval.</p>
+    <h2>Supporting your applications</h2>
+    <p>A well-maintained participation record can strengthen dedicated status processes, endorsement submissions, and licence-related supporting documentation where applicable. It also helps keep your member profile compliance-ready when evidence is requested.</p>
+
+    <div class="not-prose mt-8 rounded-2xl border border-nrapa-blue/20 bg-gradient-to-r from-nrapa-blue/10 to-nrapa-orange/10 p-6 dark:border-nrapa-blue/40 dark:from-nrapa-blue/20 dark:to-nrapa-orange/20">
+        <h2 class="m-0 text-xl font-bold text-zinc-900 dark:text-white">Next steps</h2>
+        <p class="mt-3 text-sm text-zinc-700 dark:text-zinc-200">Use the key guides below to move from participation logging to complete dedicated-status administration.</p>
+        <ul class="link-list mt-4">
+            <li><a href="{{ route('home') }}">NRAPA homepage</a></li>
+            <li><a href="{{ route('info.dedicated-procedure') }}">Dedicated procedure</a></li>
+            <li><a href="{{ route('info.minimum-requirements') }}">Minimum requirements</a></li>
+            <li><a href="{{ route('info.endorsements') }}">Endorsements</a></li>
+            <li><a href="{{ route('info.how-to-get-dedicated-status-south-africa') }}">How to get dedicated status in South Africa</a></li>
+        </ul>
     </div>
-
-    <h2>Scoring notes (when you attach evidence)</h2>
-    <ul class="checklist">
-        <li>Many discipline formats use around <strong>60% minimum</strong> when a scored round is part of your uploaded evidence—follow what the portal prompts for that activity type.</li>
-        <li>Range receipts or a range officer’s written declaration often support paper-based evidence.</li>
-        <li>Activities you log build your participation record for annual reporting and renewal support.</li>
-    </ul>
-
-    <p class="text-sm text-zinc-600 dark:text-zinc-400">For the full dedicated workflow, see <a href="{{ route('info.dedicated-procedure') }}">Dedicated procedure</a>.</p>
 @endsection
