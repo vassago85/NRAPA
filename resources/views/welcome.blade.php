@@ -7,12 +7,12 @@
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-JV2NSWMYTQ"></script>
         <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-JV2NSWMYTQ');</script>
         <title>NRAPA — SAPS Accredited Membership for Dedicated Sport &amp; Hunter Status</title>
-        <meta name="description" content="NRAPA is a SAPS-accredited association helping South African firearm owners obtain dedicated sport and hunter status, manage licences, and stay compliant with the Firearms Control Act.">
+        <meta name="description" content="NRAPA is a SAPS-accredited association serving members across South Africa—dedicated sport shooter and hunter status, endorsements, and compliance support under the Firearms Control Act.">
         <link rel="canonical" href="{{ url('/') }}">
         <meta property="og:type" content="website">
         <meta property="og:site_name" content="NRAPA">
         <meta property="og:title" content="NRAPA — SAPS Accredited Membership for Dedicated Sport & Hunter Status">
-        <meta property="og:description" content="SAPS-accredited association helping South African firearm owners obtain dedicated status, manage licences, and stay compliant.">
+        <meta property="og:description" content="SAPS-accredited membership nationwide: dedicated status, endorsements, and compliance support for South African firearm owners.">
         <meta property="og:url" content="{{ url('/') }}">
         <meta property="og:image" content="{{ asset('logo-nrapa-white.png') }}">
         <meta name="twitter:card" content="summary">
@@ -29,7 +29,7 @@
             "legalName": "National Rifle and Pistol Association of South Africa",
             "url": "https://nrapa.ranyati.co.za",
             "logo": "{{ asset('logo-nrapa-white.png') }}",
-            "description": "SAPS-accredited association providing dedicated sport and hunter status, membership management, and compliance support for South African firearm owners.",
+            "description": "SAPS-accredited association providing dedicated sport and hunter status, membership management, and compliance support for firearm owners across South Africa.",
             "parentOrganization": {
                 "@type": "Organization",
                 "name": "Ranyati Group",

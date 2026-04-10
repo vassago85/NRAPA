@@ -7,7 +7,7 @@
 @section('short_breadcrumb', '1')
 
 @section('content')
-    <p>Use these pages to understand how NRAPA supports lawful firearm owners under the Firearms Control Act. NRAPA is a SAPS-accredited association for dedicated sport shooter and dedicated hunter pathways, operated within the <a href="https://ranyati.co.za">Ranyati Group</a> ecosystem.</p>
+    <p>Use these pages to understand how NRAPA supports lawful firearm owners under the Firearms Control Act. NRAPA is a SAPS-accredited association for dedicated sport shooter and dedicated hunter pathways, serving <strong>members across South Africa</strong>, operated within the <a href="https://ranyati.co.za">Ranyati Group</a> ecosystem.</p>
 
     {{-- Dedicated status & membership --}}
     <h2>Dedicated status &amp; membership</h2>
