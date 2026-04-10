@@ -1,14 +1,18 @@
 <?php
 
+use App\Jobs\SyncMembershipToSage;
 use App\Mail\MembershipApproved;
 use App\Mail\PaymentInstructions;
 use App\Mail\PopFollowupReminder;
 use App\Models\AuditLog;
 use App\Models\CalibreRequest;
+use App\Models\Certificate;
+use App\Models\CertificateType;
 use App\Models\EndorsementRequest;
 use App\Models\MemberDocument;
 use App\Models\Membership;
 use App\Models\ShootingActivity;
+use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Attributes\Computed;
@@ -183,11 +187,13 @@ new #[Title('All Approvals - Admin')] class extends Component {
                     'id' => $m->id,
                     'membership_id' => $m->id,
                     'membership_uuid' => $m->uuid,
-                    'title' => ($m->type?->name ?? 'Membership') . ' Membership',
+                    'title' => ($m->type?->name ?? 'Membership') . ($m->isRenewal() ? ' Renewal' : ' Membership'),
+                    'is_renewal' => $m->isRenewal(),
                     'user' => $m->user,
                     'date' => $m->applied_at,
                     'payment_reference' => $m->payment_reference,
                     'pop_reminder_sent_at' => $m->pop_reminder_sent_at,
+                    'amount_due' => $m->amount_due,
                     'route' => route('admin.approvals.show', $m),
                 ])
         );
@@ -355,6 +361,87 @@ new #[Title('All Approvals - Admin')] class extends Component {
             ]);
             session()->flash('error', 'Failed to send reminder: ' . $e->getMessage());
         }
+    }
+
+    public function approveMembership(int $membershipId): void
+    {
+        $membership = Membership::with(['user', 'type', 'affiliatedClub'])
+            ->whereHas('user')
+            ->whereHas('type')
+            ->findOrFail($membershipId);
+
+        if ($membership->status !== 'applied') {
+            session()->flash('error', 'This membership has already been processed.');
+            return;
+        }
+
+        $admin = auth()->user();
+        $expiresAt = $membership->type->calculateExpiryDate(now());
+
+        $membership->update([
+            'status' => 'active',
+            'approved_at' => now(),
+            'approved_by' => $admin->id,
+            'activated_at' => now(),
+            'expires_at' => $expiresAt,
+            'payment_confirmed_at' => $membership->payment_confirmed_at ?? now(),
+            'payment_confirmed_by' => $membership->payment_confirmed_by ?? $admin->id,
+        ]);
+
+        if (!$membership->membership_number && $membership->user) {
+            $membership->update([
+                'membership_number' => $membership->user->formatted_member_number,
+            ]);
+        }
+
+        // Issue certificates
+        try {
+            $service = app(\App\Services\CertificateIssueService::class);
+            $service->issueMembershipCertificate($membership->user, $admin, skipChecks: true);
+        } catch (\Exception $e) {
+            Log::info('Certificate not issued at inline approval', ['membership_id' => $membership->id, 'reason' => $e->getMessage()]);
+        }
+
+        // Issue welcome letter + card
+        try {
+            $service = app(\App\Services\CertificateIssueService::class);
+            try { $service->issueWelcomeLetter($membership->user, $admin); } catch (\Exception $e) {
+                $certType = CertificateType::firstOrCreate(['slug' => 'welcome-letter'], ['name' => 'Welcome Letter', 'description' => 'Welcome letter for new members', 'template' => 'documents.welcome-letter', 'is_active' => true, 'sort_order' => 14]);
+                Certificate::create(['user_id' => $membership->user->id, 'membership_id' => $membership->id, 'certificate_type_id' => $certType->id, 'certificate_number' => 'WEL-' . strtoupper(substr(md5(uniqid()), 0, 8)), 'qr_code' => bin2hex(random_bytes(16)), 'issued_at' => now(), 'valid_from' => now(), 'issued_by' => $admin->id]);
+            }
+            try { $service->issueMembershipCard($membership->user, $admin); } catch (\Exception $e) {
+                $certType = CertificateType::firstOrCreate(['slug' => 'membership-card'], ['name' => 'Membership Card', 'description' => 'NRAPA membership identification card', 'template' => 'documents.membership-card', 'is_active' => true, 'sort_order' => 13]);
+                Certificate::create(['user_id' => $membership->user->id, 'membership_id' => $membership->id, 'certificate_type_id' => $certType->id, 'certificate_number' => 'CARD-' . strtoupper(substr(md5(uniqid()), 0, 8)), 'qr_code' => bin2hex(random_bytes(16)), 'issued_at' => now(), 'valid_from' => now(), 'valid_until' => $membership->expires_at, 'issued_by' => $admin->id]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to issue welcome letter/card on inline approval', ['membership_id' => $membership->id, 'error' => $e->getMessage()]);
+        }
+
+        // Send emails
+        try {
+            if ($membership->user && !$membership->welcome_email_sent_at) {
+                Mail::to($membership->user->email)->queue(new MembershipApproved(membership: $membership, cardUrl: route('card')));
+                $membership->update(['welcome_email_sent_at' => now()]);
+            }
+        } catch (\Exception $e) {
+            Log::warning('Failed to send approval email', ['membership_id' => $membership->id, 'error' => $e->getMessage()]);
+        }
+
+        if ($membership->source !== 'import' && $membership->user) {
+            try {
+                $bankAccount = SystemSetting::getBankAccount();
+                Mail::to($membership->user->email)->queue(new PaymentInstructions($membership->load('type', 'user', 'affiliatedClub'), $bankAccount, $membership->payment_reference));
+            } catch (\Exception $e) {
+                Log::warning('Failed to queue payment email on inline approval', ['membership_id' => $membership->id, 'error' => $e->getMessage()]);
+            }
+        }
+
+        AuditLog::log('membership_approved', $membership, ['status' => 'applied'], ['status' => 'active'], $admin);
+        SyncMembershipToSage::dispatch($membership)->afterCommit();
+
+        unset($this->pendingApprovals, $this->awaitingPayment, $this->stats);
+
+        session()->flash('success', $membership->user->name . ' approved and activated!');
     }
 
     public function clearAllApprovals(): void
@@ -667,7 +754,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
         @if($this->awaitingPayment->count() > 0)
         <div class="divide-y divide-zinc-200 dark:divide-zinc-700">
             @foreach($this->awaitingPayment as $item)
-            <div class="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
+            <div class="flex flex-col gap-4 p-6 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
                 <div class="flex items-center gap-4 flex-1">
                     <div class="flex size-12 items-center justify-center rounded-full bg-amber-100 text-sm font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
                         {{ $item['user']->initials() }}
@@ -678,20 +765,41 @@ new #[Title('All Approvals - Admin')] class extends Component {
                             <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {{ $this->getTypeBadgeClass($item['type']) }}">
                                 {{ $this->getTypeLabel($item['type']) }}
                             </span>
+                            @if($item['is_renewal'] ?? false)
+                            <span class="inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800 dark:bg-sky-900 dark:text-sky-200">
+                                Renewal
+                            </span>
+                            @endif
                         </div>
                         <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">{{ $item['user']->name }} &middot; {{ $item['user']->email }}</p>
-                        <div class="flex items-center gap-3 mt-1">
+                        <div class="flex items-center gap-3 mt-1 flex-wrap">
                             <p class="text-xs text-zinc-400 dark:text-zinc-500">{{ $item['date']->diffForHumans() }}</p>
                             @if($item['payment_reference'])
                             <span class="text-xs font-mono text-zinc-500 dark:text-zinc-400">Ref: {{ $item['payment_reference'] }}</span>
                             @endif
+                            @if(isset($item['amount_due']) && $item['amount_due'] > 0)
+                            <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">R{{ number_format($item['amount_due'], 2) }}</span>
+                            @endif
                         </div>
                     </div>
                 </div>
-                <div class="flex items-center gap-2 flex-shrink-0 flex-wrap sm:flex-nowrap">
+                <div class="flex items-center gap-2 flex-wrap sm:ml-16">
+                    @if($item['type'] === 'membership')
+                    <button
+                        wire:click="approveMembership({{ $item['membership_id'] }})"
+                        wire:loading.attr="disabled"
+                        wire:target="approveMembership({{ $item['membership_id'] }})"
+                        wire:confirm="Approve {{ $item['user']->name }}? This will activate the membership, issue certificates, and send emails."
+                        class="inline-flex items-center gap-1.5 rounded-lg bg-nrapa-blue px-3 py-1.5 text-xs font-medium text-white hover:bg-nrapa-blue-dark transition-colors disabled:opacity-50">
+                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m4.5 12.75 6 6 9-13.5"/>
+                        </svg>
+                        Approve
+                    </button>
+                    @endif
                     <button
                         wire:click="confirmPayment({{ $item['membership_id'] }})"
-                        wire:confirm="Confirm payment received for {{ $item['user']->name }}? This will move the item to Pending Approvals."
+                        wire:confirm="Confirm payment received for {{ $item['user']->name }}? This will move the item to Pending Approvals for review."
                         class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 transition-colors">
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
