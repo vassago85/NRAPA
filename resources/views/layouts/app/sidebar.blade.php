@@ -71,6 +71,38 @@
 
                 <!-- Navigation -->
                 <nav class="flex-1 px-3 py-4 space-y-6 overflow-y-auto">
+                    {{-- Admin/Member mode toggle --}}
+                    @if(\App\Helpers\SidebarMenu::showModeToggle())
+                    @php $inMemberMode = \App\Helpers\SidebarMenu::isAdminInMemberMode(); @endphp
+                    <form method="POST" action="{{ route('toggle-member-view') }}" class="px-1" id="sidebar-mode-form">
+                        @csrf
+                        <div class="flex rounded-lg bg-zinc-200/70 dark:bg-zinc-700/70 p-0.5">
+                            <button
+                                type="{{ $inMemberMode ? 'submit' : 'button' }}"
+                                @if(!$inMemberMode) disabled @endif
+                                class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all
+                                    {{ !$inMemberMode ? 'bg-white dark:bg-zinc-600 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer' }}"
+                            >
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                </svg>
+                                Admin
+                            </button>
+                            <button
+                                type="{{ !$inMemberMode ? 'submit' : 'button' }}"
+                                @if($inMemberMode) disabled @endif
+                                class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all
+                                    {{ $inMemberMode ? 'bg-white dark:bg-zinc-600 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer' }}"
+                            >
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                                Member
+                            </button>
+                        </div>
+                    </form>
+                    @endif
+
                     @php
                         $menu = \App\Helpers\SidebarMenu::getMenu();
                     @endphp
@@ -103,22 +135,6 @@
                             <p class="text-xs text-zinc-500 dark:text-zinc-300 truncate">{{ auth()->user()->email }}</p>
                         </div>
                     </div>
-                    
-                    {{-- View as Member Toggle (for admin/owner/dev) --}}
-                    @if(auth()->user()->hasRoleLevel(\App\Models\User::ROLE_ADMIN))
-                        @php
-                            $viewingAsMember = session('view_as_member', false);
-                        @endphp
-                        <form method="POST" action="{{ route('toggle-member-view') }}" class="mt-3">
-                            @csrf
-                            <button type="submit" class="w-full px-3 py-2 text-xs font-medium text-center {{ $viewingAsMember ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/50' : 'text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800' }} rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors flex items-center justify-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
-                                </svg>
-                                {{ $viewingAsMember ? 'View as Admin' : 'View as Member' }}
-                            </button>
-                        </form>
-                    @endif
                     
                     <div class="mt-3 flex gap-2">
                         <a href="{{ route('profile.edit') }}" wire:navigate @click="sidebarOpen = false" class="flex-1 px-3 py-2 text-xs font-medium text-center text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">

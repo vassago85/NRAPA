@@ -5,6 +5,30 @@ namespace App\Helpers;
 class SidebarMenu
 {
     /**
+     * Check if the current user is an admin-level role viewing in member mode.
+     */
+    public static function isAdminInMemberMode(): bool
+    {
+        $user = auth()->user();
+        if (! $user) {
+            return false;
+        }
+
+        return $user->hasRoleLevel(\App\Models\User::ROLE_ADMIN)
+            && session('view_as_member', false);
+    }
+
+    /**
+     * Check if the sidebar mode toggle should be shown.
+     */
+    public static function showModeToggle(): bool
+    {
+        $user = auth()->user();
+
+        return $user && $user->hasRoleLevel(\App\Models\User::ROLE_ADMIN);
+    }
+
+    /**
      * Get the sidebar menu structure based on user role.
      */
     public static function getMenu(): array
@@ -12,12 +36,15 @@ class SidebarMenu
         $user = auth()->user();
         $menu = [];
 
-        // Check if admin/owner/dev is viewing as member
         $viewingAsMember = session('view_as_member', false);
         $isAdminRole = $user->hasRoleLevel(\App\Models\User::ROLE_ADMIN);
-        $showMemberArea = ! $isAdminRole || $viewingAsMember;
 
-        // 1. MEMBER AREA (only visible to members OR admin/owner/dev viewing as member)
+        // For admins: member mode hides admin sections, admin mode hides member sections
+        // For non-admins: always show member area
+        $showMemberArea = ! $isAdminRole || $viewingAsMember;
+        $showAdminArea = ! $isAdminRole || ! $viewingAsMember;
+
+        // 1. MEMBER AREA (visible to members, or admins in member mode)
         if ($showMemberArea) {
             // Check if user has an active membership
             $hasActiveMembership = $user->activeMembership !== null;
@@ -121,8 +148,8 @@ class SidebarMenu
             ];
         }
 
-        // 2. ADMINISTRATION (admin + owner)
-        if ($user->hasRoleLevel(\App\Models\User::ROLE_ADMIN)) {
+        // 2. ADMINISTRATION (admin + owner, hidden in member mode)
+        if ($showAdminArea && $user->hasRoleLevel(\App\Models\User::ROLE_ADMIN)) {
             // Calculate combined pending count for all approval types
             $totalPending = 0;
             try {
@@ -183,8 +210,8 @@ class SidebarMenu
             ];
         }
 
-        // 3. CONFIGURATION (admin + owner)
-        if ($user->hasRoleLevel(\App\Models\User::ROLE_ADMIN)) {
+        // 3. CONFIGURATION (admin + owner, hidden in member mode)
+        if ($showAdminArea && $user->hasRoleLevel(\App\Models\User::ROLE_ADMIN)) {
             $menu[] = [
                 'section' => 'CONFIGURATION',
                 'items' => [
@@ -234,8 +261,8 @@ class SidebarMenu
             ];
         }
 
-        // 4. LEARNING & COMPLIANCE (admin + owner; optionally member)
-        if ($user->hasRoleLevel(\App\Models\User::ROLE_ADMIN)) {
+        // 4. LEARNING & COMPLIANCE (admin + owner, hidden in member mode)
+        if ($showAdminArea && $user->hasRoleLevel(\App\Models\User::ROLE_ADMIN)) {
             $menu[] = [
                 'section' => 'LEARNING & COMPLIANCE',
                 'items' => [
@@ -255,8 +282,8 @@ class SidebarMenu
             ];
         }
 
-        // 5. SYSTEM (admin + owner)
-        if ($user->hasRoleLevel(\App\Models\User::ROLE_ADMIN)) {
+        // 5. SYSTEM (admin + owner, hidden in member mode)
+        if ($showAdminArea && $user->hasRoleLevel(\App\Models\User::ROLE_ADMIN)) {
             $menu[] = [
                 'section' => 'SYSTEM',
                 'items' => [
@@ -276,8 +303,8 @@ class SidebarMenu
             ];
         }
 
-        // 6. OWNER (owner only, separated by divider)
-        if ($user->isOwner() || $user->isDeveloper()) {
+        // 6. OWNER (owner only, hidden in member mode)
+        if ($showAdminArea && ($user->isOwner() || $user->isDeveloper())) {
             $menu[] = [
                 'section' => 'OWNER',
                 'items' => [
@@ -297,8 +324,8 @@ class SidebarMenu
             ];
         }
 
-        // 7. DEVELOPER (developer only - at bottom)
-        if ($user->isDeveloper()) {
+        // 7. DEVELOPER (developer only, hidden in member mode)
+        if ($showAdminArea && $user->isDeveloper()) {
             $menu[] = [
                 'section' => 'DEVELOPER',
                 'items' => [
