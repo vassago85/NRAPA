@@ -82,9 +82,8 @@
 
         <header class="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#061e3c]/80 backdrop-blur-xl">
             <nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-3 lg:px-8" aria-label="Global">
-                <a href="/" class="flex items-center gap-3 group">
-                    <img src="{{ asset('nrapa-logo.png') }}" alt="NRAPA" class="size-9 object-contain transition group-hover:scale-105" />
-                    <span class="text-lg font-bold tracking-tight text-white">NRAPA</span>
+                <a href="/" class="group">
+                    <img src="{{ asset('logo-nrapa-wiite_text.png') }}" alt="NRAPA" class="h-9 w-auto object-contain transition group-hover:opacity-80" />
                 </a>
                 <div class="hidden sm:flex items-center gap-8">
                     <a href="{{ route('home') }}#features" class="text-sm font-medium text-zinc-300 hover:text-white transition">Features</a>
