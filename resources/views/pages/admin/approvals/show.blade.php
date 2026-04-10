@@ -299,6 +299,42 @@ new #[Title('Review Application - Admin')] class extends Component {
         $this->redirect(route('admin.approvals.index'), navigate: true);
     }
 
+    #[Computed]
+    public function isAwaitingPayment(): bool
+    {
+        $m = $this->membership;
+
+        if ($m->status === 'applied' && $m->approval_revoked_at && !$m->proof_of_payment_path && !$m->payment_confirmed_at) {
+            return true;
+        }
+
+        if ($m->status === 'pending_payment' && !$m->proof_of_payment_path && !$m->payment_confirmed_at) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public function confirmPayment(): void
+    {
+        $admin = Auth::user();
+
+        $this->membership->update([
+            'payment_confirmed_at' => now(),
+            'payment_confirmed_by' => $admin->id,
+        ]);
+
+        AuditLog::log(
+            'payment_confirmed_by_admin',
+            $this->membership,
+            ['payment_confirmed_at' => null],
+            ['payment_confirmed_at' => now()->toDateTimeString(), 'confirmed_by' => $admin->name],
+            $admin
+        );
+
+        session()->flash('success', 'Payment confirmed. This application is now ready for approval.');
+    }
+
     public function rejectChange(): void
     {
         if (!in_array($this->membership->status, ['pending_change', 'pending_payment'])) {
@@ -876,6 +912,51 @@ new #[Title('Review Application - Admin')] class extends Component {
     </div>
     @endif
 
+    {{-- Mark as Paid (for awaiting-payment memberships) --}}
+    @if($this->isAwaitingPayment)
+    <div class="rounded-xl border border-amber-200 bg-amber-50 p-6 dark:border-amber-700 dark:bg-amber-900/20">
+        <div class="flex items-start gap-4">
+            <div class="flex size-10 items-center justify-center rounded-lg bg-amber-200 dark:bg-amber-800 flex-shrink-0">
+                <svg class="size-5 text-amber-700 dark:text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h3 class="font-semibold text-amber-800 dark:text-amber-200">Awaiting Payment</h3>
+                <p class="mt-1 text-sm text-amber-700 dark:text-amber-300">
+                    This member has not yet uploaded proof of payment. If you have confirmed payment through other means (e.g. bank statement), you can mark it as paid.
+                </p>
+                <div class="mt-3">
+                    <button
+                        wire:click="confirmPayment"
+                        wire:confirm="Confirm payment received for this member? The application will become ready for approval."
+                        class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors"
+                    >
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Mark as Paid
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Payment Confirmed indicator --}}
+    @if($this->membership->payment_confirmed_at && !$this->membership->proof_of_payment_path)
+    <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
+        <div class="flex items-center gap-3">
+            <svg class="size-5 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m4.5 12.75 6 6 9-13.5" />
+            </svg>
+            <p class="text-sm text-emerald-700 dark:text-emerald-300">
+                Payment confirmed by admin on {{ $this->membership->payment_confirmed_at->format('d M Y \a\t H:i') }}.
+            </p>
+        </div>
+    </div>
+    @endif
+
     {{-- Action Buttons --}}
     @if($this->membership->status === 'applied')
     <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
@@ -1055,6 +1136,22 @@ new #[Title('Review Application - Admin')] class extends Component {
         @else
         <div class="mb-4 p-4 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
             <p class="text-sm text-amber-700 dark:text-amber-300">No proof of payment uploaded yet. The member has been notified to make payment.</p>
+            @if(!$this->membership->payment_confirmed_at)
+            <div class="mt-3">
+                <button
+                    wire:click="confirmPayment"
+                    wire:confirm="Confirm payment received? The application will become ready for final approval."
+                    class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 transition-colors"
+                >
+                    <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Mark as Paid
+                </button>
+            </div>
+            @else
+            <p class="mt-2 text-xs text-emerald-600 dark:text-emerald-400">Payment confirmed by admin on {{ $this->membership->payment_confirmed_at->format('d M Y \a\t H:i') }}.</p>
+            @endif
         </div>
         @endif
 

@@ -18,6 +18,7 @@ new class extends Component {
     public int $activeMembers = 0;
     public int $pendingDocuments = 0;
     public int $pendingMemberships = 0;
+    public int $awaitingPaymentCount = 0;
     public int $pendingActivities = 0;
     public int $pendingCalibres = 0;
     public int $pendingEndorsements = 0;
@@ -44,7 +45,6 @@ new class extends Component {
                 ->whereDoesntHave('shootingActivityAsEvidence')
                 ->whereDoesntHave('shootingActivityAsAdditional')
                 ->count();
-            $this->pendingMemberships = Membership::where('status', 'applied')->count();
             $this->pendingActivities = ShootingActivity::where('status', 'pending')->count();
             $this->pendingCalibres = CalibreRequest::where('status', 'pending')->count();
             $this->pendingEndorsements = EndorsementRequest::whereIn('status', [
@@ -52,12 +52,44 @@ new class extends Component {
                 EndorsementRequest::STATUS_UNDER_REVIEW,
                 EndorsementRequest::STATUS_PENDING_DOCUMENTS,
             ])->count();
+
+            // Awaiting payment: revoked applied without POP/confirmation + pending_payment without POP/confirmation
+            $this->awaitingPaymentCount = Membership::where('status', 'applied')
+                    ->whereHas('user')
+                    ->whereNotNull('approval_revoked_at')
+                    ->whereNull('proof_of_payment_path')
+                    ->whereNull('payment_confirmed_at')
+                    ->count()
+                + Membership::where('status', 'pending_payment')
+                    ->whereHas('user')
+                    ->whereNull('proof_of_payment_path')
+                    ->whereNull('payment_confirmed_at')
+                    ->count();
+
+            // Actionable memberships (not blocked on payment)
+            $this->pendingMemberships = Membership::where('status', 'applied')
+                    ->whereHas('user')
+                    ->where(function ($q) {
+                        $q->whereNull('approval_revoked_at')
+                            ->orWhereNotNull('proof_of_payment_path')
+                            ->orWhereNotNull('payment_confirmed_at');
+                    })
+                    ->count()
+                + Membership::whereIn('status', ['pending_change'])->whereHas('user')->count()
+                + Membership::where('status', 'pending_payment')
+                    ->whereHas('user')
+                    ->where(function ($q) {
+                        $q->whereNotNull('proof_of_payment_path')
+                            ->orWhereNotNull('payment_confirmed_at');
+                    })
+                    ->count();
         } catch (\Exception $e) {
             // Tables might not exist yet
         }
 
         $this->totalOutstandingApprovals = $this->pendingDocuments
             + $this->pendingMemberships
+            + $this->awaitingPaymentCount
             + $this->pendingActivities
             + $this->pendingCalibres
             + $this->pendingEndorsements;
@@ -237,28 +269,25 @@ new class extends Component {
                     </svg>
                 </div>
                 <div class="flex-1">
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">Pending Breakdown</p>
-                    <div class="mt-2 space-y-1 text-xs">
-                        <div class="flex justify-between">
-                            <span class="text-zinc-600 dark:text-zinc-400">Documents:</span>
-                            <span class="font-medium text-zinc-900 dark:text-white">{{ $pendingDocuments }}</span>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">Approval Breakdown</p>
+                    <div class="mt-2 space-y-2 text-xs">
+                        <div class="flex justify-between font-semibold">
+                            <span class="text-nrapa-blue dark:text-blue-400">Pending Approvals:</span>
+                            <span class="text-nrapa-blue dark:text-blue-400">{{ $pendingDocuments + $pendingMemberships + $pendingActivities + $pendingCalibres + $pendingEndorsements }}</span>
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-zinc-600 dark:text-zinc-400">Memberships:</span>
-                            <span class="font-medium text-zinc-900 dark:text-white">{{ $pendingMemberships }}</span>
+                        <div class="pl-3 space-y-0.5 text-zinc-500 dark:text-zinc-400">
+                            <div class="flex justify-between"><span>Documents:</span><span class="text-zinc-900 dark:text-white">{{ $pendingDocuments }}</span></div>
+                            <div class="flex justify-between"><span>Memberships:</span><span class="text-zinc-900 dark:text-white">{{ $pendingMemberships }}</span></div>
+                            <div class="flex justify-between"><span>Activities:</span><span class="text-zinc-900 dark:text-white">{{ $pendingActivities }}</span></div>
+                            <div class="flex justify-between"><span>Calibres:</span><span class="text-zinc-900 dark:text-white">{{ $pendingCalibres }}</span></div>
+                            <div class="flex justify-between"><span>Endorsements:</span><span class="text-zinc-900 dark:text-white">{{ $pendingEndorsements }}</span></div>
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-zinc-600 dark:text-zinc-400">Activities:</span>
-                            <span class="font-medium text-zinc-900 dark:text-white">{{ $pendingActivities }}</span>
+                        @if($awaitingPaymentCount > 0)
+                        <div class="flex justify-between font-semibold pt-1 border-t border-zinc-200 dark:border-zinc-700">
+                            <span class="text-amber-600 dark:text-amber-400">Awaiting Payment:</span>
+                            <span class="text-amber-600 dark:text-amber-400">{{ $awaitingPaymentCount }}</span>
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-zinc-600 dark:text-zinc-400">Calibres:</span>
-                            <span class="font-medium text-zinc-900 dark:text-white">{{ $pendingCalibres }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-zinc-600 dark:text-zinc-400">Endorsements:</span>
-                            <span class="font-medium text-zinc-900 dark:text-white">{{ $pendingEndorsements }}</span>
-                        </div>
+                        @endif
                     </div>
                 </div>
                 <svg class="w-5 h-5 text-zinc-400 group-hover:text-purple-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">

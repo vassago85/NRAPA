@@ -47,6 +47,8 @@ class Membership extends Model
         'approval_revoked_by',
         'approval_revoked_reason',
         'pop_reminder_sent_at',
+        'payment_confirmed_at',
+        'payment_confirmed_by',
         'affiliated_club_id',
         'change_amount',
         'sage_invoice_id',
@@ -71,6 +73,7 @@ class Membership extends Model
             'welcome_email_sent_at' => 'datetime',
             'approval_revoked_at' => 'datetime',
             'pop_reminder_sent_at' => 'datetime',
+            'payment_confirmed_at' => 'datetime',
             'dedicated_declaration_accepted_at' => 'datetime',
             'change_amount' => 'decimal:2',
         ];
