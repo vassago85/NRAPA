@@ -15,11 +15,18 @@ class SitemapController extends Controller
             ['route' => 'home', 'priority' => '1.0', 'changefreq' => 'weekly', 'file' => resource_path('views/welcome.blade.php')],
             ['route' => 'terms-and-conditions', 'priority' => '0.3', 'changefreq' => 'yearly', 'file' => resource_path('views/pages/terms.blade.php')],
             ['route' => 'privacy-policy', 'priority' => '0.3', 'changefreq' => 'yearly', 'file' => resource_path('views/pages/privacy.blade.php')],
+            ['route' => 'info.index', 'priority' => '0.85', 'changefreq' => 'weekly', 'file' => resource_path('views/pages/info/index.blade.php')],
             ['route' => 'info.about', 'priority' => '0.8', 'changefreq' => 'monthly', 'file' => resource_path('views/pages/info/about.blade.php')],
             ['route' => 'info.firearm-licence-process', 'priority' => '0.8', 'changefreq' => 'monthly', 'file' => resource_path('views/pages/info/firearm-licence-process.blade.php')],
             ['route' => 'info.minimum-requirements', 'priority' => '0.7', 'changefreq' => 'monthly', 'file' => resource_path('views/pages/info/minimum-requirements.blade.php')],
             ['route' => 'info.dedicated-procedure', 'priority' => '0.8', 'changefreq' => 'monthly', 'file' => resource_path('views/pages/info/dedicated-procedure.blade.php')],
             ['route' => 'info.shooting-exercises', 'priority' => '0.7', 'changefreq' => 'monthly', 'file' => resource_path('views/pages/info/shooting-exercises.blade.php')],
+            ['route' => 'info.dedicated-sport-shooter-south-africa', 'priority' => '0.85', 'changefreq' => 'monthly', 'file' => resource_path('views/pages/info/dedicated-sport-shooter-south-africa.blade.php')],
+            ['route' => 'info.dedicated-hunter-south-africa', 'priority' => '0.85', 'changefreq' => 'monthly', 'file' => resource_path('views/pages/info/dedicated-hunter-south-africa.blade.php')],
+            ['route' => 'info.how-to-get-dedicated-status-south-africa', 'priority' => '0.85', 'changefreq' => 'monthly', 'file' => resource_path('views/pages/info/how-to-get-dedicated-status-south-africa.blade.php')],
+            ['route' => 'info.endorsements', 'priority' => '0.75', 'changefreq' => 'monthly', 'file' => resource_path('views/pages/info/endorsements.blade.php')],
+            ['route' => 'info.membership-benefits', 'priority' => '0.8', 'changefreq' => 'monthly', 'file' => resource_path('views/pages/info/membership-benefits.blade.php')],
+            ['route' => 'info.faq', 'priority' => '0.8', 'changefreq' => 'weekly', 'file' => resource_path('views/pages/info/faq.blade.php')],
         ];
 
         $lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'];

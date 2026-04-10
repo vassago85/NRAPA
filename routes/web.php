@@ -20,11 +20,18 @@ Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 
 // Info / Resources pages (public)
 Route::prefix('info')->name('info.')->group(function () {
+    Route::get('/', fn () => view('pages.info.index'))->name('index');
     Route::get('/about', fn () => view('pages.info.about'))->name('about');
     Route::get('/firearm-licence-process', fn () => view('pages.info.firearm-licence-process'))->name('firearm-licence-process');
     Route::get('/minimum-requirements', fn () => view('pages.info.minimum-requirements'))->name('minimum-requirements');
     Route::get('/dedicated-procedure', fn () => view('pages.info.dedicated-procedure'))->name('dedicated-procedure');
     Route::get('/shooting-exercises', fn () => view('pages.info.shooting-exercises'))->name('shooting-exercises');
+    Route::get('/dedicated-sport-shooter-south-africa', fn () => view('pages.info.dedicated-sport-shooter-south-africa'))->name('dedicated-sport-shooter-south-africa');
+    Route::get('/dedicated-hunter-south-africa', fn () => view('pages.info.dedicated-hunter-south-africa'))->name('dedicated-hunter-south-africa');
+    Route::get('/how-to-get-dedicated-status-south-africa', fn () => view('pages.info.how-to-get-dedicated-status-south-africa'))->name('how-to-get-dedicated-status-south-africa');
+    Route::get('/endorsements', fn () => view('pages.info.endorsements'))->name('endorsements');
+    Route::get('/membership-benefits', fn () => view('pages.info.membership-benefits'))->name('membership-benefits');
+    Route::get('/faq', fn () => view('pages.info.faq'))->name('faq');
 });
 
 // Custom email verification route - works WITHOUT authentication

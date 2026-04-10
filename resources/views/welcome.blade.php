@@ -586,6 +586,11 @@
                 </p>
                 <ul class="mt-10 grid list-none gap-3 p-0 sm:grid-cols-2 lg:grid-cols-3">
                     <li>
+                        <a href="{{ route('info.index') }}" class="block rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-sm font-medium text-white/85 transition hover:border-white/18 hover:bg-white/[0.06]">
+                            All guides &amp; info hub
+                        </a>
+                    </li>
+                    <li>
                         <a href="{{ route('info.about') }}" class="block rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-sm font-medium text-white/85 transition hover:border-white/18 hover:bg-white/[0.06]">
                             About NRAPA &amp; SAPS accreditation
                         </a>
@@ -662,13 +667,21 @@
                         </div>
                     </div>
                 </div>
+                <div style="border-top: 1px solid rgba(255,255,255,0.04); padding: 20px 0 10px;">
+                    <nav aria-label="Ranyati ecosystem" style="display:flex;flex-wrap:wrap;justify-content:center;gap:10px 16px;margin-bottom:10px;">
+                        <a href="https://ranyati.co.za" style="font-size:11px;color:rgba(255,255,255,0.35);">Ranyati Group home</a>
+                        <a href="https://motivations.ranyati.co.za" style="font-size:11px;color:rgba(255,255,255,0.35);">Firearm licence motivations</a>
+                        <a href="https://storage.ranyati.co.za" style="font-size:11px;color:rgba(255,255,255,0.35);">Secure firearm storage</a>
+                        <a href="{{ route('info.index') }}" style="font-size:11px;color:rgba(255,255,255,0.35);">NRAPA info &amp; guides</a>
+                    </nav>
+                </div>
                 <div style="border-top: 1px solid rgba(255,255,255,0.04); padding: 24px 0; display: flex; flex-direction: column; align-items: center; gap: 8px;">
                     <div style="display: flex; gap: 16px; align-items: center;">
                         <a href="{{ route('terms-and-conditions') }}" style="font-size: 11px; color: rgba(255,255,255,0.3); text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='rgba(255,255,255,0.6)'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">Terms &amp; Conditions</a>
                         <span style="color: rgba(255,255,255,0.1);">&bull;</span>
                         <a href="{{ route('privacy-policy') }}" style="font-size: 11px; color: rgba(255,255,255,0.3); text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='rgba(255,255,255,0.6)'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">Privacy Policy</a>
                         <span style="color: rgba(255,255,255,0.1);">&bull;</span>
-                        <a href="{{ route('info.about') }}" style="font-size: 11px; color: rgba(255,255,255,0.3); text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='rgba(255,255,255,0.6)'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">Resources</a>
+                        <a href="{{ route('info.index') }}" style="font-size: 11px; color: rgba(255,255,255,0.3); text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='rgba(255,255,255,0.6)'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">Info &amp; guides</a>
                     </div>
                     <p style="text-align: center; font-size: 10px; letter-spacing: 0.1em; color: rgba(255,255,255,0.15);">
                         &copy; {{ date('Y') }} Ranyati Firearm Motivations (Pty) Ltd. All rights reserved.

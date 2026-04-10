@@ -23,31 +23,29 @@
             $seoTitle = trim($__env->yieldContent('title'));
             $seoDescription = trim($__env->yieldContent('description'));
             $breadcrumbLabel = trim($__env->yieldContent('breadcrumb'));
+            $infoShortBreadcrumb = trim($__env->yieldContent('short_breadcrumb')) !== '';
+            $infoBreadcrumbItems = $infoShortBreadcrumb
+                ? [
+                    ['position' => 1, 'name' => 'Home', 'item' => route('home')],
+                    ['position' => 2, 'name' => $breadcrumbLabel !== '' ? $breadcrumbLabel : 'Info', 'item' => url()->current()],
+                ]
+                : [
+                    ['position' => 1, 'name' => 'Home', 'item' => route('home')],
+                    ['position' => 2, 'name' => 'Info & guides', 'item' => route('info.index')],
+                    ['position' => 3, 'name' => $breadcrumbLabel !== '' ? $breadcrumbLabel : 'Guide', 'item' => url()->current()],
+                ];
+            $infoBreadcrumbJson = array_map(fn ($row) => [
+                '@type' => 'ListItem',
+                'position' => $row['position'],
+                'name' => $row['name'],
+                'item' => $row['item'],
+            ], $infoBreadcrumbItems);
         @endphp
         <script type="application/ld+json">
             {!! json_encode([
                 '@context' => 'https://schema.org',
                 '@type' => 'BreadcrumbList',
-                'itemListElement' => [
-                    [
-                        '@type' => 'ListItem',
-                        'position' => 1,
-                        'name' => 'Home',
-                        'item' => route('home'),
-                    ],
-                    [
-                        '@type' => 'ListItem',
-                        'position' => 2,
-                        'name' => 'Resources',
-                        'item' => route('info.about'),
-                    ],
-                    [
-                        '@type' => 'ListItem',
-                        'position' => 3,
-                        'name' => $breadcrumbLabel !== '' ? $breadcrumbLabel : 'Guide',
-                        'item' => url()->current(),
-                    ],
-                ],
+                'itemListElement' => $infoBreadcrumbJson,
             ], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}
         </script>
         <script type="application/ld+json">
@@ -61,9 +59,15 @@
                     '@type' => 'WebSite',
                     'name' => 'NRAPA',
                     'url' => config('app.url'),
+                    'publisher' => [
+                        '@type' => 'Organization',
+                        'name' => 'Ranyati Group',
+                        'url' => 'https://ranyati.co.za',
+                    ],
                 ],
             ], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}
         </script>
+        @stack('structured_data')
         <style>
             .hero-gradient {
                 background: linear-gradient(135deg, #061e3c 0%, #0B4EA2 50%, #083A7A 100%);
@@ -85,7 +89,7 @@
                 <div class="hidden sm:flex items-center gap-8">
                     <a href="{{ route('home') }}#features" class="text-sm font-medium text-zinc-300 hover:text-white transition">Features</a>
                     <a href="{{ route('home') }}#pricing" class="text-sm font-medium text-zinc-300 hover:text-white transition">Packages</a>
-                    <a href="{{ route('info.about') }}" class="text-sm font-medium text-zinc-300 hover:text-white transition">Resources</a>
+                    <a href="{{ route('info.index') }}" class="text-sm font-medium text-zinc-300 hover:text-white transition">Info &amp; guides</a>
                 </div>
                 <div class="flex items-center gap-3">
                     @auth
@@ -121,21 +125,33 @@
 
         <main class="mx-auto max-w-4xl px-6 py-12 lg:px-8">
             {{-- Breadcrumb navigation --}}
-            <nav class="mb-8 flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+            <nav class="mb-8 flex flex-wrap items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400" aria-label="Breadcrumb">
                 <a href="{{ route('home') }}" class="hover:text-zinc-700 dark:hover:text-zinc-200 transition">Home</a>
-                <span>&rsaquo;</span>
-                <a href="{{ route('info.about') }}" class="hover:text-zinc-700 dark:hover:text-zinc-200 transition">Resources</a>
-                <span>&rsaquo;</span>
-                <span class="text-zinc-900 dark:text-white font-medium">@yield('breadcrumb')</span>
+                @if(trim($__env->yieldContent('short_breadcrumb')))
+                    <span>&rsaquo;</span>
+                    <span class="text-zinc-900 dark:text-white font-medium">@yield('breadcrumb')</span>
+                @else
+                    <span>&rsaquo;</span>
+                    <a href="{{ route('info.index') }}" class="hover:text-zinc-700 dark:hover:text-zinc-200 transition">Info &amp; guides</a>
+                    <span>&rsaquo;</span>
+                    <span class="text-zinc-900 dark:text-white font-medium">@yield('breadcrumb')</span>
+                @endif
             </nav>
 
             {{-- Sidebar navigation for info pages --}}
             <div class="mb-8 flex flex-wrap gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800">
+                <a href="{{ route('info.index') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.index') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">Hub</a>
                 <a href="{{ route('info.about') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.about') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">About NRAPA</a>
-                <a href="{{ route('info.firearm-licence-process') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.firearm-licence-process') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">Firearm Licence Process</a>
-                <a href="{{ route('info.minimum-requirements') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.minimum-requirements') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">Minimum Requirements</a>
-                <a href="{{ route('info.dedicated-procedure') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.dedicated-procedure') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">Dedicated Procedure</a>
-                <a href="{{ route('info.shooting-exercises') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.shooting-exercises') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">Shooting Exercises</a>
+                <a href="{{ route('info.dedicated-sport-shooter-south-africa') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.dedicated-sport-shooter-south-africa') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">Dedicated sport shooter</a>
+                <a href="{{ route('info.dedicated-hunter-south-africa') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.dedicated-hunter-south-africa') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">Dedicated hunter</a>
+                <a href="{{ route('info.how-to-get-dedicated-status-south-africa') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.how-to-get-dedicated-status-south-africa') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">How to get dedicated status</a>
+                <a href="{{ route('info.dedicated-procedure') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.dedicated-procedure') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">Dedicated procedure</a>
+                <a href="{{ route('info.endorsements') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.endorsements') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">Endorsements</a>
+                <a href="{{ route('info.membership-benefits') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.membership-benefits') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">Membership benefits</a>
+                <a href="{{ route('info.faq') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.faq') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">FAQ</a>
+                <a href="{{ route('info.firearm-licence-process') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.firearm-licence-process') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">Firearm licence process</a>
+                <a href="{{ route('info.minimum-requirements') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.minimum-requirements') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">Minimum requirements</a>
+                <a href="{{ route('info.shooting-exercises') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.shooting-exercises') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">Shooting exercises</a>
             </div>
 
             <article class="prose prose-zinc max-w-none dark:prose-invert prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3 prose-p:leading-relaxed prose-li:leading-relaxed prose-a:text-nrapa-blue">
@@ -170,11 +186,14 @@
                     <div class="flex flex-col items-start sm:items-center text-left sm:text-center">
                         <h4 class="text-[10px] font-bold uppercase tracking-[0.25em] text-white/25">Resources</h4>
                         <div class="mt-5 flex flex-col gap-2">
+                            <a href="{{ route('info.index') }}" class="text-[13px] text-white/40 hover:text-white transition">Info hub</a>
                             <a href="{{ route('info.about') }}" class="text-[13px] text-white/40 hover:text-white transition">About NRAPA</a>
-                            <a href="{{ route('info.firearm-licence-process') }}" class="text-[13px] text-white/40 hover:text-white transition">Firearm Licence Process</a>
-                            <a href="{{ route('info.minimum-requirements') }}" class="text-[13px] text-white/40 hover:text-white transition">Minimum Requirements</a>
-                            <a href="{{ route('info.dedicated-procedure') }}" class="text-[13px] text-white/40 hover:text-white transition">Dedicated Procedure</a>
-                            <a href="{{ route('info.shooting-exercises') }}" class="text-[13px] text-white/40 hover:text-white transition">Shooting Exercises</a>
+                            <a href="{{ route('info.dedicated-sport-shooter-south-africa') }}" class="text-[13px] text-white/40 hover:text-white transition">Dedicated sport shooter</a>
+                            <a href="{{ route('info.dedicated-hunter-south-africa') }}" class="text-[13px] text-white/40 hover:text-white transition">Dedicated hunter</a>
+                            <a href="{{ route('info.faq') }}" class="text-[13px] text-white/40 hover:text-white transition">FAQ</a>
+                            <a href="https://ranyati.co.za" class="text-[13px] text-white/40 hover:text-white transition">Ranyati Group</a>
+                            <a href="https://motivations.ranyati.co.za" class="text-[13px] text-white/40 hover:text-white transition">Firearm licence motivations</a>
+                            <a href="https://storage.ranyati.co.za" class="text-[13px] text-white/40 hover:text-white transition">Secure firearm storage</a>
                         </div>
                     </div>
                     <div class="flex flex-col items-start sm:items-end">
