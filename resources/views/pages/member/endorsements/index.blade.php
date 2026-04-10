@@ -201,13 +201,15 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                 <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Dedicated Status</h1>
                 <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Manage your dedicated status and request endorsement letters for firearm applications.</p>
             </div>
-            <a href="{{ route('member.endorsements.create') }}" wire:navigate
-                class="inline-flex items-center gap-2 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                </svg>
-                Request Endorsement
-            </a>
+            @if($this->dedicatedType)
+                <a href="{{ route('member.endorsements.create') }}" wire:navigate
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Request Endorsement
+                </a>
+            @endif
         </div>
     </x-slot>
 
@@ -215,7 +217,33 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
     <div class="mb-8">
 
         {{-- Compliance Status Bar --}}
-        @if($this->dedicatedType)
+        @if(!$this->dedicatedType)
+        <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-amber-300 dark:border-amber-700 overflow-hidden">
+            <div class="p-6">
+                <div class="flex items-start gap-4">
+                    <div class="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-full shrink-0">
+                        <svg class="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Dedicated Membership Required</h3>
+                        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                            Endorsement letters are only available for <strong>Dedicated Hunter</strong> or <strong>Dedicated Sport Shooter</strong> members.
+                            To request endorsement letters for Section 16 firearm applications, you need to upgrade your membership to a dedicated membership type.
+                        </p>
+                        <a href="{{ route('membership.apply') }}" wire:navigate
+                            class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors text-sm font-medium">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+                            </svg>
+                            Upgrade Membership
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @else
         <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
             {{-- Status Header --}}
             <div class="px-6 py-4 bg-gradient-to-r from-nrapa-blue to-nrapa-blue-dark">
@@ -798,13 +826,23 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
             <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400 max-w-md mx-auto">
                 You haven't submitted any endorsement letter requests yet. Start a new request to get an endorsement letter for your dedicated status firearms.
             </p>
-            <a href="{{ route('member.endorsements.create') }}" wire:navigate
-                class="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                </svg>
-                Request Endorsement Letter
-            </a>
+            @if($this->dedicatedType)
+                <a href="{{ route('member.endorsements.create') }}" wire:navigate
+                    class="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Request Endorsement Letter
+                </a>
+            @else
+                <a href="{{ route('membership.apply') }}" wire:navigate
+                    class="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+                    </svg>
+                    Upgrade to Dedicated Membership
+                </a>
+            @endif
         </div>
     @endif
 

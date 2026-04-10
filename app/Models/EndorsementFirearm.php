@@ -215,7 +215,6 @@ class EndorsementFirearm extends Model
         $allOptions = [
             self::ACTION_SINGLE_SHOT => 'Single Shot',
             self::ACTION_REVOLVER => 'Revolver',
-            self::ACTION_SEMI_AUTO => 'Semi-Automatic',
             self::ACTION_BOLT_ACTION => 'Bolt Action',
             self::ACTION_LEVER_ACTION => 'Lever Action',
             self::ACTION_PUMP_ACTION => 'Pump Action',

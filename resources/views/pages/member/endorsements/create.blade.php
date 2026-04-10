@@ -102,6 +102,14 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             $this->redirect(route('login'), navigate: true);
             return;
         }
+
+        $dedicatedType = $user->activeMembership?->type?->dedicated_type;
+        if (! in_array($dedicatedType, ['hunter', 'sport', 'both'], true)) {
+            session()->flash('error', 'Endorsement letters are only available for Dedicated Hunter or Dedicated Sport Shooter members. Please upgrade your membership first.');
+            $this->redirect(route('member.endorsements.index'), navigate: true);
+            return;
+        }
+
         // Get eligibility summary for display (not for blocking)
         try {
             $this->eligibility = EndorsementRequest::getEligibilitySummary($user);

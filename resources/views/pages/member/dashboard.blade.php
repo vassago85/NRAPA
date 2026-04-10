@@ -372,6 +372,121 @@ new #[Title('Dashboard')] class extends Component {
             $this->redirect(route('certificates.show', $this->welcomeLetterCertificate), navigate: true);
         }
     }
+
+    #[Computed]
+    public function nextStep(): ?array
+    {
+        if ($this->needsMembership) {
+            return [
+                'key' => 'apply',
+                'title' => 'Apply for Membership',
+                'description' => 'Join NRAPA to access all member features including the Virtual Safe, Learning Center, and dedicated status support.',
+                'action' => 'Browse Memberships',
+                'route' => 'membership.apply',
+                'color' => 'blue',
+            ];
+        }
+
+        if ($this->pendingPaymentMembership) {
+            return null;
+        }
+
+        if (! $this->activeMembership && $this->latestMembership?->status === 'applied') {
+            return [
+                'key' => 'awaiting_review',
+                'title' => 'Application Under Review',
+                'description' => 'Your membership application is being reviewed. You\'ll be notified once it\'s approved.',
+                'action' => 'View Application',
+                'route' => 'membership.index',
+                'color' => 'amber',
+                'waiting' => true,
+            ];
+        }
+
+        if ($this->expiredMembership) {
+            return null;
+        }
+
+        if ($this->activeMembership && ! $this->hasDedicatedMembership) {
+            return [
+                'key' => 'explore',
+                'title' => 'Your Membership is Active',
+                'description' => 'Explore the member portal — upload documents, manage your Virtual Safe, and access the Learning Center.',
+                'action' => 'Explore',
+                'route' => 'armoury.index',
+                'color' => 'emerald',
+            ];
+        }
+
+        if (! $this->hasDedicatedMembership) {
+            return null;
+        }
+
+        if ($this->activeRejectedDocuments->count() > 0 || $this->activeRejectedActivities->count() > 0) {
+            $total = $this->activeRejectedDocuments->count() + $this->activeRejectedActivities->count();
+            return [
+                'key' => 'fix_rejected',
+                'title' => 'Action Required: Rejected Items',
+                'description' => "You have {$total} rejected " . ($total === 1 ? 'item' : 'items') . " that need your attention before you can proceed. Review the details below and re-submit.",
+                'action' => null,
+                'route' => null,
+                'color' => 'red',
+            ];
+        }
+
+        $eligibility = $this->endorsementEligibility;
+        if (! $eligibility) {
+            return null;
+        }
+
+        if (! ($eligibility['knowledge_test_passed'] ?? false)) {
+            return [
+                'key' => 'knowledge_test',
+                'title' => 'Complete the Knowledge Test',
+                'description' => 'Pass the dedicated status knowledge test to unlock endorsement letters. This is a one-time requirement.',
+                'action' => 'Take the Test',
+                'route' => 'knowledge-test.index',
+                'color' => 'blue',
+            ];
+        }
+
+        if (! ($eligibility['documents_complete'] ?? false)) {
+            $missing = $eligibility['missing_documents'] ?? [];
+            $docNames = array_column($missing, 'name');
+            $docList = count($docNames) > 0 ? implode(', ', $docNames) : 'required documents';
+            return [
+                'key' => 'documents',
+                'title' => 'Upload Required Documents',
+                'description' => "Missing: {$docList}. Documents must be verified before endorsement requests can be approved.",
+                'action' => 'Upload Documents',
+                'route' => 'documents.index',
+                'color' => 'blue',
+            ];
+        }
+
+        if (! ($eligibility['activities_met'] ?? false)) {
+            $approved = $eligibility['activity_details']['approved_count'] ?? 0;
+            $required = $eligibility['activity_details']['required'] ?? 2;
+            $remaining = max(0, $required - $approved);
+            return [
+                'key' => 'activities',
+                'title' => 'Log Shooting Activities',
+                'description' => "You need {$remaining} more approved " . ($remaining === 1 ? 'activity' : 'activities') . " this year to maintain your dedicated status ({$approved}/{$required} completed).",
+                'action' => 'Submit Activity',
+                'route' => 'activities.submit',
+                'color' => 'blue',
+            ];
+        }
+
+        return [
+            'key' => 'compliant',
+            'title' => 'You\'re Fully Compliant',
+            'description' => 'All dedicated status requirements are met. You can request endorsement letters for Section 16 firearm licence applications.',
+            'action' => 'Request Endorsement',
+            'route' => 'member.endorsements.create',
+            'color' => 'emerald',
+        ];
+    }
 }; ?>
 
 <div>
@@ -618,6 +733,100 @@ new #[Title('Dashboard')] class extends Component {
                     <p class="text-xs text-amber-600 dark:text-amber-400">
                         Your membership will be activated once payment is confirmed (1-3 business days).
                     </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- YOUR NEXT STEP — Primary CTA --}}
+    @if($this->nextStep)
+    @php $step = $this->nextStep; @endphp
+    <div class="rounded-xl border-2 overflow-hidden
+        {{ $step['color'] === 'emerald' ? 'border-emerald-300 dark:border-emerald-700' : '' }}
+        {{ $step['color'] === 'blue' ? 'border-nrapa-blue/40 dark:border-nrapa-blue/50' : '' }}
+        {{ $step['color'] === 'amber' ? 'border-amber-300 dark:border-amber-700' : '' }}
+        {{ $step['color'] === 'red' ? 'border-red-300 dark:border-red-700' : '' }}
+    ">
+        <div class="px-5 py-2.5
+            {{ $step['color'] === 'emerald' ? 'bg-emerald-600 dark:bg-emerald-700' : '' }}
+            {{ $step['color'] === 'blue' ? 'bg-nrapa-blue dark:bg-nrapa-blue-dark' : '' }}
+            {{ $step['color'] === 'amber' ? 'bg-amber-500 dark:bg-amber-600' : '' }}
+            {{ $step['color'] === 'red' ? 'bg-red-600 dark:bg-red-700' : '' }}
+        ">
+            <p class="text-xs font-bold uppercase tracking-widest text-white/90">Your Next Step</p>
+        </div>
+        <div class="p-5 sm:p-6
+            {{ $step['color'] === 'emerald' ? 'bg-emerald-50 dark:bg-emerald-900/20' : '' }}
+            {{ $step['color'] === 'blue' ? 'bg-blue-50 dark:bg-blue-900/15' : '' }}
+            {{ $step['color'] === 'amber' ? 'bg-amber-50 dark:bg-amber-900/20' : '' }}
+            {{ $step['color'] === 'red' ? 'bg-red-50 dark:bg-red-900/20' : '' }}
+        ">
+            <div class="flex items-start gap-4">
+                <div class="flex size-12 flex-shrink-0 items-center justify-center rounded-xl
+                    {{ $step['color'] === 'emerald' ? 'bg-emerald-200 dark:bg-emerald-800' : '' }}
+                    {{ $step['color'] === 'blue' ? 'bg-blue-200 dark:bg-blue-800' : '' }}
+                    {{ $step['color'] === 'amber' ? 'bg-amber-200 dark:bg-amber-800' : '' }}
+                    {{ $step['color'] === 'red' ? 'bg-red-200 dark:bg-red-800' : '' }}
+                ">
+                    @if($step['key'] === 'compliant' || $step['key'] === 'explore')
+                        <svg class="size-6 {{ $step['color'] === 'emerald' ? 'text-emerald-700 dark:text-emerald-300' : 'text-blue-700 dark:text-blue-300' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    @elseif($step['key'] === 'knowledge_test')
+                        <svg class="size-6 text-blue-700 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.62 48.62 0 0112 20.904a48.62 48.62 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.636 50.636 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0112 13.489a50.702 50.702 0 017.74-3.342"/>
+                        </svg>
+                    @elseif($step['key'] === 'documents')
+                        <svg class="size-6 text-blue-700 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                    @elseif($step['key'] === 'activities')
+                        <svg class="size-6 text-blue-700 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                        </svg>
+                    @elseif($step['key'] === 'fix_rejected')
+                        <svg class="size-6 text-red-700 dark:text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                        </svg>
+                    @elseif($step['key'] === 'awaiting_review')
+                        <svg class="size-6 text-amber-700 dark:text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    @else
+                        <svg class="size-6 text-blue-700 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                        </svg>
+                    @endif
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-lg font-bold
+                        {{ $step['color'] === 'emerald' ? 'text-emerald-800 dark:text-emerald-200' : '' }}
+                        {{ $step['color'] === 'blue' ? 'text-zinc-900 dark:text-white' : '' }}
+                        {{ $step['color'] === 'amber' ? 'text-amber-800 dark:text-amber-200' : '' }}
+                        {{ $step['color'] === 'red' ? 'text-red-800 dark:text-red-200' : '' }}
+                    ">{{ $step['title'] }}</h3>
+                    <p class="mt-1 text-sm
+                        {{ $step['color'] === 'emerald' ? 'text-emerald-700 dark:text-emerald-300' : '' }}
+                        {{ $step['color'] === 'blue' ? 'text-zinc-600 dark:text-zinc-400' : '' }}
+                        {{ $step['color'] === 'amber' ? 'text-amber-700 dark:text-amber-300' : '' }}
+                        {{ $step['color'] === 'red' ? 'text-red-700 dark:text-red-300' : '' }}
+                    ">{{ $step['description'] }}</p>
+                    @if($step['action'] ?? null)
+                    <div class="mt-4">
+                        <a href="{{ route($step['route']) }}" wire:navigate
+                            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors
+                                {{ $step['color'] === 'emerald' ? 'bg-emerald-600 hover:bg-emerald-700' : '' }}
+                                {{ $step['color'] === 'blue' ? 'bg-nrapa-blue hover:bg-nrapa-blue-dark' : '' }}
+                                {{ $step['color'] === 'amber' ? 'bg-amber-600 hover:bg-amber-700' : '' }}
+                            ">
+                            {{ $step['action'] }}
+                            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                            </svg>
+                        </a>
+                    </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -1059,6 +1268,7 @@ new #[Title('Dashboard')] class extends Component {
 
             {{-- Action Buttons --}}
             <div class="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-700 flex flex-col sm:flex-row gap-3">
+                @if(in_array($this->activeMembership?->type?->dedicated_type, ['hunter', 'sport', 'both']))
                 <a href="{{ route('member.endorsements.create') }}" wire:navigate 
                     class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-nrapa-blue hover:bg-nrapa-blue-dark text-white text-sm font-medium transition-colors">
                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1066,6 +1276,7 @@ new #[Title('Dashboard')] class extends Component {
                     </svg>
                     Request Endorsement
                 </a>
+                @endif
                 <a href="{{ route('member.endorsements.index') }}" wire:navigate 
                     class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                     Manage Dedicated Status

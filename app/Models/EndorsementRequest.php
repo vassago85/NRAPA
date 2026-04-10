@@ -240,6 +240,13 @@ class EndorsementRequest extends Model
                 'action' => 'Apply for membership',
                 'route' => 'membership.apply',
             ];
+        } elseif (! in_array($membership->type?->dedicated_type, ['hunter', 'sport', 'both'], true)) {
+            $errors[] = [
+                'type' => 'dedicated_status',
+                'message' => 'Endorsement letters are only available for Dedicated Hunter or Dedicated Sport Shooter members. Please upgrade your membership to a dedicated membership type.',
+                'action' => 'Upgrade membership',
+                'route' => 'membership.apply',
+            ];
         }
 
         return [
@@ -649,6 +656,12 @@ class EndorsementRequest extends Model
     public function getSubmissionErrors(): array
     {
         $errors = [];
+
+        // Check dedicated membership status
+        $dedicatedType = $this->user->activeMembership?->type?->dedicated_type;
+        if (! in_array($dedicatedType, ['hunter', 'sport', 'both'], true)) {
+            $errors[] = 'Endorsement letters are only available for Dedicated Hunter or Dedicated Sport Shooter members.';
+        }
 
         // Check terms acceptance
         $activeTerms = \App\Models\TermsVersion::active();
