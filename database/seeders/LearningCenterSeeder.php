@@ -379,9 +379,9 @@ class LearningCenterSeeder extends Seeder
         );
 
         $this->ensureArticle($cat1, [
-            'title' => 'NRAPA Promotes Postal Shooting and Compliance',
+            'title' => 'NRAPA Promotes Lawful Sport Shooting and Compliance',
             'slug' => 'nrapa-promotes-postal-compliance',
-            'excerpt' => 'Active participation in postal shooting and obeying laws and regulations.',
+            'excerpt' => 'Active participation in lawful sport shooting and obeying laws and regulations.',
             'content' => $this->contentNRAPAPostalCompliance(),
             'sort_order' => 1,
         ], $dedicatedType);
@@ -403,9 +403,9 @@ class LearningCenterSeeder extends Seeder
         ], $dedicatedType);
 
         $this->ensureArticle($cat1, [
-            'title' => 'Postal Shooting',
+            'title' => 'Postal-style shooting (reference)',
             'slug' => 'postal-shooting',
-            'excerpt' => 'How postal shooting works and how it qualifies as a dedicated activity.',
+            'excerpt' => 'What postal-style shooting means in the sport, and logging qualifying activities in the portal.',
             'content' => $this->contentPostalShooting(),
             'sort_order' => 4,
         ], $dedicatedType);
@@ -1012,7 +1012,7 @@ HTML;
 <h2 class="mt-6 mb-3 text-xl font-bold">Ongoing Activity Requirements</h2>
 <p>A Dedicated Hunter must take part in at least <strong>two dedicated activities on at least two separate occasions</strong> during the year. Qualifying activities include:</p>
 <ul class="list-disc pl-6 my-4 space-y-2">
-<li>A complete course of fire of any NRAPA <strong>postal shooting competition</strong> on an official range, with the scorecard signed by a Range Officer or responsible person.</li>
+<li>A complete course of fire at a <strong>recognised range</strong> or in a <strong>sanctioned postal-style or club competition</strong>, with the scorecard signed by a Range Officer or responsible person.</li>
 <li><strong>Written confirmation of a hunt</strong> from an outfitter, Professional Hunter, or fellow member.</li>
 <li>Participation in a <strong>sport shooting event</strong> of any other SAPS-accredited association.</li>
 </ul>
@@ -2073,7 +2073,7 @@ HTML;
 <li>Obeying all <strong>laws, regulations, codes of conduct</strong> and practices pertaining to hunting and the private possession of arms and ammunition.</li>
 <li>Conducting <strong>training and educational courses</strong> for its members — Dedicated Hunter and Sport Shooter.</li>
 <li>Promoting at all times the ethic of <strong>"Single Shot Humane Kill"</strong> to ensure the humane harvesting of game.</li>
-<li>Promoting <strong>active participation in postal shooting</strong>.</li>
+<li>Promoting <strong>active participation in lawful sport shooting</strong> (range practice, sanctioned events, and club activities).</li>
 <li>Pursuing these objectives without political or sectarian bias.</li>
 </ul>
 
@@ -2098,7 +2098,7 @@ HTML;
 <li><strong>Safe</strong> — by following all firearm and shooting safety rules at all times, on and off the range.</li>
 <li><strong>Responsible</strong> — about sport shooting, wildlife conservation, and compliance with all applicable laws and regulations.</li>
 <li><strong>Knowledgeable</strong> — by knowing and demonstrating acceptable behaviour and attitudes while shooting, and understanding the firearms they use.</li>
-<li><strong>Involved</strong> — in joining and actively participating in sport shooting organisations, postal competitions, and dedicated shooting activities.</li>
+<li><strong>Involved</strong> — in joining and actively participating in sport shooting organisations, sanctioned competitions, and dedicated shooting activities.</li>
 </ul>
 
 <h2 class="mt-6 mb-3 text-xl font-bold">Outcome of the Programme</h2>
@@ -2108,7 +2108,7 @@ HTML;
 <li>Improves <strong>sport shooting skills</strong> through structured training and ongoing practice.</li>
 <li>Promotes <strong>compliance with the Firearms Control Act</strong> and all applicable regulations.</li>
 <li>Improves shooter behaviour, ensuring <strong>public acceptance of sport shooting</strong> as a responsible activity.</li>
-<li>Encourages <strong>regular participation</strong> in postal shooting and dedicated activities, which are required to maintain dedicated status.</li>
+<li>Encourages <strong>regular participation</strong> in lawful sport shooting and dedicated activities, which are required to maintain dedicated status.</li>
 </ul>
 
 <h2 class="mt-6 mb-3 text-xl font-bold">NRAPA Code of Conduct — Firearm Safety</h2>
@@ -2146,12 +2146,12 @@ HTML;
 </ul>
 
 <h2 class="mt-6 mb-3 text-xl font-bold">Ongoing Activity Requirements</h2>
-<p>A Dedicated Sport Shooter must take part in at least <strong>two dedicated activities on at least two separate occasions</strong> during the year. The primary qualifying activity for sport shooters is <strong>postal shooting</strong>:</p>
+<p>A Dedicated Sport Shooter must take part in at least <strong>two dedicated activities on at least two separate occasions</strong> during the year. Typical qualifying activities include range practice, club or postal-style leagues, and sanctioned matches—recorded through the <strong>member portal</strong>:</p>
 <ul class="list-disc pl-6 my-4 space-y-2">
-<li>Complete a course of fire of any NRAPA <strong>postal shooting competition</strong> on an official shooting range. The scorecard must be signed by a Range Officer, a responsible person at the range, or a fellow NRAPA shooter.</li>
-<li>Only <strong>one score per day per discipline</strong> may be submitted.</li>
-<li>The signed scorecard must be submitted to NRAPA Head Office.</li>
-<li>Participation in a <strong>sport shooting event</strong> of any other SAPS-accredited association also qualifies as a dedicated activity.</li>
+<li>Complete a course of fire at an <strong>official shooting range</strong> or recognised event; attach a signed scorecard, range receipt, or other evidence the portal requests.</li>
+<li>Where a competition format allows only one official score per day per discipline, follow that rule when logging.</li>
+<li><strong>NRAPA does not supply postal targets or scorecard packs.</strong> Use targets and courses provided by your range or club; upload proof through the portal.</li>
+<li>Participation in a <strong>sport shooting event</strong> of any other SAPS-accredited association also qualifies when logged with appropriate evidence.</li>
 </ul>
 
 <h2 class="mt-6 mb-3 text-xl font-bold">Annual Reporting</h2>
@@ -2168,20 +2168,19 @@ HTML;
     protected function contentPostalShooting(): string
     {
         return <<<'HTML'
-<h2 class="mt-6 mb-3 text-xl font-bold">What Is Postal Shooting?</h2>
-<p>Postal shooting is a competition format where shooters fire at official targets on their local shooting range, then submit signed scorecards to NRAPA for national ranking and comparison. The term "postal" comes from the traditional practice of posting (mailing) scorecards to a central office — today, submission is typically done by email. This format allows members across the country to compete against each other without travelling to a central venue.</p>
+<h2 class="mt-6 mb-3 text-xl font-bold">What Is Postal-style Shooting?</h2>
+<p><strong>Postal-style shooting</strong> is a competition format where shooters fire a defined course of fire at their local range using targets supplied by the <strong>range or club</strong>, then compare results through a league or association. The name comes from the historical habit of mailing scorecards to a central scorer. <strong>NRAPA does not issue postal target sheets, PDFs, or printed packs for sale or download.</strong> If you take part in a club or range postal league, use that organiser's targets and rules.</p>
 
-<h2 class="mt-6 mb-3 text-xl font-bold">How It Works</h2>
+<h2 class="mt-6 mb-3 text-xl font-bold">How Qualifying Activities Are Recorded</h2>
 <ul class="list-disc pl-6 my-4 space-y-2">
-<li>The shooter completes the official course of fire for a given discipline at any <strong>official shooting range</strong>.</li>
-<li>The scorecard must be <strong>signed by a Range Officer</strong>, a responsible person employed to manage the range, or a fellow NRAPA shooter.</li>
-<li>The completed and signed scorecard is submitted to NRAPA Head Office by email, fax, or hand delivery. Scorecard forms can be downloaded from the NRAPA website.</li>
-<li>It is the shooter's responsibility to <strong>keep a record of all targets</strong> shot.</li>
-<li>Members may only submit <strong>one score per day per discipline</strong>. Multiple disciplines may be shot on the same day, but only one entry per discipline per day is permitted.</li>
+<li>Complete the course of fire at an <strong>official shooting range</strong> or as directed by a sanctioned event.</li>
+<li>Keep evidence such as a <strong>signed scorecard</strong>, range receipt, match results, or range officer declaration, as the member portal prompts.</li>
+<li>Log the outing as a <strong>dedicated activity in the NRAPA member portal</strong> and attach the requested proof.</li>
+<li>Follow any one-score-per-day-per-discipline rules set by the competition you entered.</li>
 </ul>
 
-<h2 class="mt-6 mb-3 text-xl font-bold">Available Disciplines</h2>
-<p>NRAPA offers postal shooting in the following disciplines, each with its own defined target, course of fire, shooting position, and classification bands (e.g. X, A, B, C class):</p>
+<h2 class="mt-6 mb-3 text-xl font-bold">Common Discipline Names (reference)</h2>
+<p>The sport uses many named disciplines (examples below). Paper sizes and courses vary by organiser—this list is for orientation only:</p>
 <ul class="list-disc pl-6 my-4 space-y-1">
 <li>Dedicated Rifle</li>
 <li>Dedicated Handgun</li>
@@ -2196,15 +2195,15 @@ HTML;
 </ul>
 <p class="mt-4">Eye and ear protection are required for all live-fire disciplines. Firearms must be unloaded when moving between positions; actions must be open and magazines removed where applicable.</p>
 
-<h2 class="mt-6 mb-3 text-xl font-bold">Postal Shooting and Dedicated Status</h2>
-<p>Postal shooting counts as a <strong>dedicated activity</strong> for the purposes of maintaining dedicated hunter or dedicated sport shooter status under the FCA. Completing a course of fire on an official range with a signed scorecard satisfies the activity requirement. This makes postal shooting one of the most accessible and practical ways to fulfil annual dedicated status obligations.</p>
+<h2 class="mt-6 mb-3 text-xl font-bold">Postal-style Shooting and Dedicated Status</h2>
+<p>A qualifying range day or sanctioned postal-style match can count as a <strong>dedicated activity</strong> under the FCA when you log it with proper evidence in the portal. The important part is <strong>lawful participation</strong> and <strong>documentation</strong>, not whether NRAPA supplied the paper target.</p>
 
-<h2 class="mt-6 mb-3 text-xl font-bold">Benefits of Postal Shooting</h2>
+<h2 class="mt-6 mb-3 text-xl font-bold">Why the Format Helps Shooters</h2>
 <ul class="list-disc pl-6 my-4 space-y-2">
-<li><strong>Develop and maintain shooting skills</strong> — Regular practice with structured courses of fire improves accuracy, consistency, and confidence.</li>
-<li><strong>Contribute to dedicated status requirements</strong> — Each qualifying postal shoot counts towards the minimum two dedicated activities per year.</li>
-<li><strong>Participate in national competition without travel</strong> — Compete against shooters across the country from your local range.</li>
-<li><strong>Promote regular practice and safe shooting habits</strong> — The discipline of shooting to a formal course of fire reinforces good technique, safety procedures, and range etiquette.</li>
+<li><strong>Structured practice</strong> — Formal courses of fire build accuracy and consistency.</li>
+<li><strong>Fits dedicated activity reporting</strong> — Each qualifying outing logged in the portal supports your annual participation record.</li>
+<li><strong>Often local</strong> — Many leagues let you shoot at a nearby range on your own schedule.</li>
+<li><strong>Reinforces safety</strong> — Regular formal shooting reinforces range etiquette and safe gun handling.</li>
 </ul>
 HTML;
     }
@@ -2223,7 +2222,7 @@ HTML;
 </ul>
 
 <h3 class="mt-5 mb-2 text-lg font-semibold">Dedicated Status Benefits</h3>
-<p>Members with <strong>Dedicated Hunter or Sport Shooter status</strong> from an accredited association such as NRAPA are permitted higher ammunition limits to support regular practice, postal shooting, and handloading activities.</p>
+<p>Members with <strong>Dedicated Hunter or Sport Shooter status</strong> from an accredited association such as NRAPA are permitted higher ammunition limits to support regular practice, sport shooting, and handloading activities.</p>
 
 <h3 class="mt-5 mb-2 text-lg font-semibold">Reloading Restrictions</h3>
 <p><strong>No person may reload ammunition for another person.</strong> Reloading (handloading) is permitted only for your own personal use with your own licensed firearms.</p>

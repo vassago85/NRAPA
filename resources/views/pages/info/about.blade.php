@@ -18,8 +18,8 @@
     <ul class="checklist">
         <li>Promoting practical shooting (IDPA, IPSC formats), handguns, semi-auto rifles, manually operated rifles and shotguns</li>
         <li>Promoting gong shooting, long-range matches (NRL SA, Practical Precision Rifle)</li>
-        <li>Managing administrative records for members — electronically submitting targets and scorecards</li>
-        <li>Promoting postal shooting competitions</li>
+        <li>Managing administrative records for members — activity logging and digital compliance records in the portal</li>
+        <li>Supporting members in lawful sport shooting, including club and range events (postal-style leagues, precision, practical)</li>
         <li>Registered with SAPS, affiliating with sport shooting clubs since 2015</li>
     </ul>
 

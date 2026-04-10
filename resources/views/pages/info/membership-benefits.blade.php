@@ -14,7 +14,7 @@
         <li><strong>Digital administration</strong> — Member portal for documents, certificates, activities, and endorsements</li>
         <li><strong>QR-verified certificates</strong> — Certificates support verification by third parties via QR code scan</li>
         <li><strong>Ecosystem access</strong> — Straightforward referrals to <a href="https://motivations.ranyati.co.za">Ranyati Motivations</a> and <a href="https://storage.ranyati.co.za">Ranyati Storage</a> when members need motivations or safe custody</li>
-        <li><strong>Activity tracking</strong> — Log events, targets, and scores to maintain your dedicated status</li>
+        <li><strong>Activity tracking</strong> — Log qualifying activities and evidence in the portal</li>
         <li><strong>Endorsement letters</strong> — Request and receive endorsement letters through the portal</li>
     </ul>
 

@@ -24,19 +24,22 @@ class KnowledgeTestQuestionsSeeder extends Seeder
      */
     protected function clearTestQuestions(KnowledgeTest $test): void
     {
-        // Disable foreign key checks temporarily
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        $mysql = DB::getDriverName() === 'mysql';
 
-        // Delete all questions for this test
+        if ($mysql) {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        }
+
         KnowledgeTestQuestion::where('knowledge_test_id', $test->id)->delete();
 
-        // Re-enable foreign key checks
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        if ($mysql) {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        }
     }
 
     /**
      * Seed Dedicated Sport Shooter test questions (45 questions, 171 marks)
-     * Based on NRAPA SPORT TEST ANSWER SHEET COMBINED.pdf
+     * Based on NRAPA SPORT TEST ANSWER SHEET COMBINED.pdf (Q1 wording follows published member portal / Learning Center commitments.)
      */
     protected function seedSportShooterQuestions(): void
     {
@@ -51,12 +54,12 @@ class KnowledgeTestQuestionsSeeder extends Seeder
         $this->clearTestQuestions($test);
 
         $questions = [
-            // Q1 - Multiple choice (1 mark)
+            // Q1 - Multiple choice (1 mark) — aligned with public Learning Center / commitments (lawful sport shooting)
             [
                 'question_type' => 'multiple_choice',
-                'question_text' => 'Complete the sentence: NRAPA Promotes active participation in _________ shooting.',
-                'options' => ['A' => 'Pin', 'B' => 'Three-gun', 'C' => 'Practical', 'D' => 'Postal'],
-                'correct_answer' => 'D',
+                'question_text' => 'Complete the sentence: NRAPA promotes active participation in lawful __________ shooting.',
+                'options' => ['A' => 'Pin', 'B' => 'Three-gun', 'C' => 'sport', 'D' => 'unlicensed'],
+                'correct_answer' => 'C',
                 'points' => 1,
             ],
             // Q2 - Multiple select (6 marks)
@@ -1370,7 +1373,7 @@ class KnowledgeTestQuestionsSeeder extends Seeder
 
     /**
      * Seed Combined Hunter & Sport Shooter test questions (76 questions, 239 marks)
-     * Based on NRAPA SPORT HUNTING TEST ANSWER SHEET.pdf
+     * Based on NRAPA SPORT HUNTING TEST ANSWER SHEET.pdf (Q1 wording follows published member portal / Learning Center commitments.)
      */
     protected function seedCombinedQuestions(): void
     {
@@ -1385,12 +1388,12 @@ class KnowledgeTestQuestionsSeeder extends Seeder
         $this->clearTestQuestions($test);
 
         $questions = [
-            // Q1 - Multiple choice (1 mark)
+            // Q1 - Multiple choice (1 mark) — aligned with public Learning Center / commitments (lawful sport shooting)
             [
                 'question_type' => 'multiple_choice',
-                'question_text' => 'Complete the sentence: NRAPA Promotes active participation in _________ shooting.',
-                'options' => ['A' => 'Pin', 'B' => 'Three-gun', 'C' => 'Practical', 'D' => 'Postal'],
-                'correct_answer' => 'D',
+                'question_text' => 'Complete the sentence: NRAPA promotes active participation in lawful __________ shooting.',
+                'options' => ['A' => 'Pin', 'B' => 'Three-gun', 'C' => 'sport', 'D' => 'unlicensed'],
+                'correct_answer' => 'C',
                 'points' => 1,
             ],
             // Q2 - Multiple select (6 marks)

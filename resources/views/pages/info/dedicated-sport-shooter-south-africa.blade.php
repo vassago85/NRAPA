@@ -23,7 +23,7 @@
     <ul class="link-list">
         <li><a href="{{ route('info.how-to-get-dedicated-status-south-africa') }}">How to get dedicated status</a></li>
         <li><a href="{{ route('info.dedicated-procedure') }}">Dedicated procedure</a></li>
-        <li><a href="{{ route('info.shooting-exercises') }}">Shooting exercises</a></li>
+        <li><a href="{{ route('info.shooting-exercises') }}">Shooting disciplines (reference)</a></li>
         <li><a href="{{ route('register') }}">Register for NRAPA</a></li>
         <li><a href="https://motivations.ranyati.co.za/firearm-licence-motivation-sport-shooting">Sport shooting motivations (Ranyati Motivations)</a></li>
     </ul>

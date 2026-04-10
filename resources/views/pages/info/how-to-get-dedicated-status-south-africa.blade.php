@@ -27,7 +27,7 @@
         </li>
         <li>
             <strong>Stay active and documented</strong>
-            <p>Dedicated status typically depends on continued lawful activity. Use NRAPA's tools to log events, targets, and scores as required — see <a href="{{ route('info.dedicated-procedure') }}">dedicated procedure</a> for operational detail.</p>
+            <p>Dedicated status typically depends on continued lawful activity. Use the member portal to log qualifying activities — see <a href="{{ route('info.dedicated-procedure') }}">dedicated procedure</a> for operational detail.</p>
         </li>
     </ol>
 
