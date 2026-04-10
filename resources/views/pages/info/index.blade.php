@@ -91,8 +91,8 @@
         </a>
     </div>
 
-    {{-- Training & activities --}}
-    <h2>Training &amp; activities</h2>
+    {{-- Shooting activities --}}
+    <h2>Shooting activities</h2>
     <div class="not-prose grid gap-4 sm:grid-cols-2">
         <a href="{{ route('info.shooting-exercises') }}" class="group flex items-start gap-4 rounded-xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:border-nrapa-blue/30 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-nrapa-blue/50">
             <span class="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg bg-nrapa-orange/10 text-nrapa-orange">
@@ -146,7 +146,7 @@
             </span>
             <div>
                 <p class="font-semibold text-zinc-900 group-hover:text-nrapa-orange dark:text-white dark:group-hover:text-nrapa-orange transition">Ranyati Storage <span class="ml-1 text-zinc-400 dark:text-zinc-500">&rarr;</span></p>
-                <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Secure, compliant firearm storage in Centurion, Pretoria.</p>
+                <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Secure firearm storage in Pretoria (Ranyati Storage).</p>
             </div>
         </a>
     </div>

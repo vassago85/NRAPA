@@ -15,7 +15,7 @@
     <p>NRAPA is accredited for dedicated allocations. <a href="{{ route('register') }}">Register</a>, select the appropriate membership, and complete verification steps described in the portal.</p>
 
     <h2>3. Meet competency and statutory requirements</h2>
-    <p>Obtain and maintain the relevant competency certificates, renew on time, and ensure your safe meets applicable standards. NRAPA does not issue SAPS competency—members arrange this through accredited training providers.</p>
+    <p>Obtain and maintain the relevant SAPS competency certificates, renew on time, and ensure your safe meets applicable standards. NRAPA does not provide firearm competency training or issue SAPS competency certificates—members arrange competency through accredited firearm training providers.</p>
 
     <h2>4. Prepare your SAPS paperwork</h2>
     <p>Applications and renewals require motivations and supporting documents. Many members use <a href="https://motivations.ranyati.co.za">Ranyati Motivations</a> for professionally structured motivations alongside NRAPA membership evidence.</p>

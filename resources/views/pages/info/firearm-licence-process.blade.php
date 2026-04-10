@@ -10,12 +10,13 @@
     <p>The Firearms Control Act, 2000 (Act No 60 of 2000) aims at ensuring a person is competent to possess a firearm. Before any person may possess a firearm, one must obtain a firearm licence from the SAPS. No generic type licences exist — a firearm licence is firearm and serial number specific.</p>
 
     <h2>Competency Process</h2>
+    <p><strong>Note:</strong> NRAPA does not provide SAPS competency training or issue competency certificates. The steps below describe the general SAPS process; practical and theory assessments are completed through an accredited firearm training provider.</p>
     <ul>
-        <li>Must undergo prescribed tests: Knowledge of FCA (Unit Standard 117705), plus practicals (Handgun 119649, Rifle 119651, Self-loading 119650, Shotgun 119652) at accredited institution</li>
-        <li>Get proficiency training certificate from PFTC/SASSETA</li>
+        <li>Must undergo prescribed tests: Knowledge of FCA (Unit Standard 117705), plus practicals (Handgun 119649, Rifle 119651, Self-loading 119650, Shotgun 119652) at an accredited firearm training provider</li>
+        <li>Obtain the proficiency certificates and Statement of Results issued by that provider</li>
         <li><strong>Step 1:</strong> Complete SAPS 517 Application for Competency (black pen only)</li>
         <li><strong>Step 2:</strong> Complete 3× SAPS Annexure 86 forms (references)</li>
-        <li><strong>Supporting documents:</strong> 3 certified ID copies, 2 certified training certificates + Statement of Results, 2 passport photos (neutral background, not older than 3 months)</li>
+        <li><strong>Supporting documents:</strong> 3 certified ID copies, 2 certified copies of certificates from your accredited firearm training provider plus Statement of Results, 2 passport photos (neutral background, not older than 3 months)</li>
     </ul>
 
     <h2>Licensing Process</h2>
@@ -29,7 +30,7 @@
                 <li>Dealer stock return (if from dealer)</li>
                 <li>Certified proof of residence (water &amp; lights bill, or rental agreement)</li>
                 <li>Pictures of safe confirming installation</li>
-                <li>2 certified training certificates + Statement of Results</li>
+                <li>Certified competency certificate (and any further documents SAPS requires for your category)</li>
                 <li>Detailed motivation with references, membership, dedicated status, shooting activities, endorsements, calendars, hunt confirmations</li>
             </ul>
         </li>
