@@ -4,6 +4,7 @@ use App\Mail\PaymentInstructions;
 use App\Models\Membership;
 use App\Models\MembershipType;
 use App\Models\SystemSetting;
+use App\Services\NtfyService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Attributes\Computed;
@@ -179,6 +180,19 @@ new #[Title('Apply for Membership')] class extends Component {
 
         // Send payment instructions email
         $this->sendPaymentInstructionsEmail($membership);
+
+        // Notify admins of new application
+        try {
+            $typeName = $membership->type?->name ?? 'Unknown';
+            app(NtfyService::class)->notifyAdmins(
+                'new_member',
+                'New Membership Application',
+                "{$this->user->name} applied for {$typeName}.",
+                'default'
+            );
+        } catch (\Exception $e) {
+            // Non-critical — don't block the application
+        }
 
         session()->flash('success', 'Your membership application has been submitted! Payment instructions have been sent to your email.');
 

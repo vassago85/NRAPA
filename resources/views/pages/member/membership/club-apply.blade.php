@@ -6,6 +6,7 @@ use App\Models\AffiliatedClubInvite;
 use App\Models\Membership;
 use App\Models\MembershipType;
 use App\Models\SystemSetting;
+use App\Services\NtfyService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Attributes\Computed;
@@ -109,6 +110,18 @@ new #[Title('Club Membership Application')] class extends Component {
 
         // Send payment instructions email
         $this->sendPaymentInstructionsEmail($membership);
+
+        // Notify admins of new application
+        try {
+            app(NtfyService::class)->notifyAdmins(
+                'new_member',
+                'New Club Membership Application',
+                "{$this->user->name} applied via {$this->club->name}.",
+                'default'
+            );
+        } catch (\Exception $e) {
+            // Non-critical
+        }
 
         session()->flash('success', 'Your club membership application has been submitted! Payment instructions have been sent to your email.');
 

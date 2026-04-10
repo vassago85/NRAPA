@@ -72,8 +72,19 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Requests - Admin')] cl
 
 <div>
     <x-slot name="header">
-        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Endorsements</h1>
-        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Review and manage endorsement requests</p>
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Endorsements</h1>
+                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Review and manage endorsement requests</p>
+            </div>
+            <a href="{{ route('admin.endorsements.create') }}" wire:navigate
+                class="inline-flex items-center gap-2 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors text-sm font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Create Endorsement
+            </a>
+        </div>
     </x-slot>
 
     {{-- Stats Cards --}}

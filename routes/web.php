@@ -1050,6 +1050,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 
     // Endorsement Requests Management
     Route::livewire('endorsements', 'pages::admin.endorsements.index')->name('endorsements.index');
+    Route::livewire('endorsements/create', 'pages::admin.endorsements.create')->name('endorsements.create');
     Route::livewire('endorsements/{request}', 'pages::admin.endorsements.show')->name('endorsements.show');
 
     // Admin endorsement letter preview (renders template)

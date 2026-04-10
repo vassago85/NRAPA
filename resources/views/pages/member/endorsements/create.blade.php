@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Endorsements\AutoVerifyEndorsementDocuments;
 use App\Models\EndorsementComponent;
 use App\Models\EndorsementDocument;
 use App\Models\EndorsementFirearm;
@@ -993,125 +994,13 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         }
 
         // Auto-create system-verified documents from existing member documents
-        $this->autoVerifyDocumentsFromMemberDocs($request, $user);
+        app(AutoVerifyEndorsementDocuments::class)->execute($request, $user);
         
         // Refresh to ensure documents are loaded
         $request->refresh();
         $request->load(['firearm', 'documents']);
 
         return $request;
-    }
-
-    protected function autoVerifyDocumentsFromMemberDocs(EndorsementRequest $request, User $user): void
-    {
-        $requiredDocTypes = EndorsementRequest::getRequiredDocumentTypes($request->request_type);
-        
-        foreach ($requiredDocTypes as $docType) {
-            // Check if document already exists for this request
-            $existing = $request->documents()->where('document_type', $docType)->first();
-            if ($existing) {
-                continue;
-            }
-
-            // Map endorsement document types to member document type slugs
-            $memberDocSlug = match($docType) {
-                'sa_id' => 'id-document',
-                'proof_of_address' => 'proof-of-address',
-                'dedicated_status_certificate' => null, // Check certificates instead
-                'membership_proof' => null, // System verified from membership
-                'activity_proof' => null, // System verified from activities
-                'competency_certificate' => 'competency-certificate',
-                default => null,
-            };
-
-            $memberDoc = null;
-            if ($memberDocSlug) {
-                $docTypeModel = \App\Models\DocumentType::where('slug', $memberDocSlug)->first();
-                if ($docTypeModel) {
-                    $memberDoc = \App\Models\MemberDocument::where('user_id', $user->id)
-                        ->where('document_type_id', $docTypeModel->id)
-                        ->where('status', 'verified')
-                        ->where(function ($q) {
-                            $q->whereNull('expires_at')
-                                ->orWhere('expires_at', '>', now());
-                        })
-                        ->latest('verified_at')
-                        ->first();
-                }
-            }
-
-            // For dedicated status certificate, check certificates
-            if ($docType === 'dedicated_status_certificate') {
-                $certType = \App\Models\CertificateType::where('slug', 'dedicated-status-certificate')->first();
-                if ($certType) {
-                    $cert = \App\Models\Certificate::where('user_id', $user->id)
-                        ->where('certificate_type_id', $certType->id)
-                        ->whereNull('revoked_at')
-                        ->where(function ($q) {
-                            $q->whereNull('valid_until')
-                                ->orWhere('valid_until', '>', now());
-                        })
-                        ->latest('issued_at')
-                        ->first();
-                    
-                    if ($cert) {
-                        // Create system-verified document
-                        EndorsementDocument::create([
-                            'uuid' => \Illuminate\Support\Str::uuid()->toString(),
-                            'endorsement_request_id' => $request->id,
-                            'document_type' => $docType,
-                            'status' => 'system_verified',
-                            'metadata' => ['certificate_id' => $cert->id],
-                        ]);
-                        continue;
-                    }
-                }
-            }
-
-            // For membership proof, auto-verify if active membership exists
-            if ($docType === 'membership_proof') {
-                if ($user->activeMembership) {
-                    EndorsementDocument::create([
-                        'uuid' => \Illuminate\Support\Str::uuid()->toString(),
-                        'endorsement_request_id' => $request->id,
-                        'document_type' => $docType,
-                        'status' => 'system_verified',
-                        'metadata' => ['membership_id' => $user->activeMembership->id],
-                    ]);
-                    continue;
-                }
-            }
-
-            // For activity proof, auto-verify if user has approved activities
-            if ($docType === 'activity_proof') {
-                $activityCheck = EndorsementRequest::checkActivityRequirements($user);
-                if ($activityCheck['met']) {
-                    EndorsementDocument::create([
-                        'uuid' => \Illuminate\Support\Str::uuid()->toString(),
-                        'endorsement_request_id' => $request->id,
-                        'document_type' => $docType,
-                        'status' => 'system_verified',
-                        'metadata' => [
-                            'approved_count' => $activityCheck['approved_count'],
-                            'required' => $activityCheck['required'],
-                        ],
-                    ]);
-                    continue;
-                }
-            }
-
-            // If member document exists, create system-verified endorsement document
-            if ($memberDoc) {
-                EndorsementDocument::create([
-                    'uuid' => \Illuminate\Support\Str::uuid()->toString(),
-                    'endorsement_request_id' => $request->id,
-                    'document_type' => $docType,
-                    'status' => 'system_verified',
-                    'member_document_id' => $memberDoc->id,
-                    'metadata' => ['auto_verified' => true],
-                ]);
-            }
-        }
     }
 
     protected function getDeclarationText(): string

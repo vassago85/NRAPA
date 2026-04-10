@@ -4,6 +4,7 @@ use App\Mail\PaymentInstructions;
 use App\Models\Membership;
 use App\Models\MembershipType;
 use App\Models\SystemSetting;
+use App\Services\NtfyService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Attributes\Computed;
@@ -210,6 +211,19 @@ new #[Title('My Membership')] class extends Component {
         // Send payment instructions email
         $this->sendRenewalPaymentEmail($renewal);
 
+        // Notify admins of renewal
+        try {
+            $typeName = $renewal->type?->name ?? 'Unknown';
+            app(NtfyService::class)->notifyAdmins(
+                'new_member',
+                'Membership Renewal Submitted',
+                "{$this->user->name} submitted a renewal for {$typeName}.",
+                'default'
+            );
+        } catch (\Exception $e) {
+            // Non-critical
+        }
+
         $this->showRenewalModal = false;
         session()->flash('success', 'Your renewal has been submitted! Please complete your payment using the details below.');
 
@@ -271,6 +285,18 @@ new #[Title('My Membership')] class extends Component {
             'notes' => "Type change request from {$this->activeMembership->type->name} to {$newType->name}.\n\nReason: {$this->changeReason}",
             'source' => 'web',
         ]);
+
+        // Notify admins of type change request
+        try {
+            app(NtfyService::class)->notifyAdmins(
+                'new_member',
+                'Membership Type Change Request',
+                "{$this->user->name} requested change from {$this->activeMembership->type->name} to {$newType->name}.",
+                'default'
+            );
+        } catch (\Exception $e) {
+            // Non-critical
+        }
 
         $this->showChangeModal = false;
         session()->flash('success', 'Your membership change request has been submitted for review.');
