@@ -329,7 +329,12 @@ new #[Title('Member Details - Admin')] class extends Component {
 
     public function toggleAdmin(): void
     {
-        $this->user->update(['is_admin' => !$this->user->is_admin]);
+        $isCurrentlyAdmin = $this->user->hasRoleLevel(User::ROLE_ADMIN);
+
+        $this->user->update([
+            'role' => $isCurrentlyAdmin ? User::ROLE_MEMBER : User::ROLE_ADMIN,
+            'is_admin' => !$isCurrentlyAdmin,
+        ]);
         $this->user->refresh();
     }
 
@@ -954,7 +959,7 @@ new #[Title('Member Details - Admin')] class extends Component {
             </div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-            @if($this->user->is_admin)
+            @if($this->user->isAdmin())
             <span class="inline-flex items-center rounded-full bg-purple-100 px-3 py-1 text-sm font-medium text-purple-800 dark:bg-purple-900 dark:text-purple-200">
                 Admin
             </span>

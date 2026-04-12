@@ -13,6 +13,7 @@ use App\Models\ShootingActivity;
 use App\Models\UserFirearm;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -80,8 +81,8 @@ new class extends Component {
         }
 
         if ($this->firearm_source === 'armoury') {
-            $rules['user_firearm_id'] = ['required', 'exists:user_firearms,id'];
-            $rules['load_data_id'] = ['nullable', 'exists:load_data,id'];
+            $rules['user_firearm_id'] = ['required', Rule::exists('user_firearms', 'id')->where('user_id', auth()->id())];
+            $rules['load_data_id'] = ['nullable', Rule::exists('load_data', 'id')->where('user_id', auth()->id())];
         } else {
             $rules['firearm_type_id'] = ['required', 'exists:firearm_types,id'];
             $rules['calibre_id'] = ['required', 'exists:firearm_calibres,id'];
@@ -190,7 +191,9 @@ new class extends Component {
         $loadDataId = null;
 
         if ($this->firearm_source === 'armoury' && $this->user_firearm_id) {
-            $userFirearm = UserFirearm::find($this->user_firearm_id);
+            $userFirearm = UserFirearm::where('id', $this->user_firearm_id)
+                ->where('user_id', auth()->id())
+                ->firstOrFail();
             $firearmTypeId = $userFirearm->firearm_type_id;
             $calibreId = $userFirearm->firearm_calibre_id ?? $userFirearm->calibre_id;
             if ($calibreId) {

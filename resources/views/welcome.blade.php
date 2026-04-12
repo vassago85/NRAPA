@@ -45,8 +45,8 @@
             }
         }
         </script>
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=inter:300,400,500,600,700,800,900" rel="stylesheet" />
+        <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
+        <link href="https://fonts.bunny.net/css?family=inter:300,400,500,600,700,800,900" rel="stylesheet" crossorigin="anonymous" />
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <style>
             body { font-family: 'Inter', system-ui, sans-serif; background: #020810; }

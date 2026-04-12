@@ -85,7 +85,7 @@ new #[Title('Members - Admin')] class extends Component {
     public function stats()
     {
         return [
-            'total' => User::where('is_admin', false)->count(),
+            'total' => User::where('role', User::ROLE_MEMBER)->count(),
             'active' => User::whereHas('memberships', fn ($q) => $q->where('status', 'active')->where(fn ($sq) => $sq->whereNull('expires_at')->orWhere('expires_at', '>', now())))->count(),
             'pending' => User::whereHas('memberships', fn ($q) => $q->where('status', 'applied'))->count(),
             'expired' => User::where(function ($q) {

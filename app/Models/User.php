@@ -171,7 +171,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function isAdmin(): bool
     {
-        return $this->role === self::ROLE_ADMIN || $this->is_admin;
+        return $this->hasRoleLevel(self::ROLE_ADMIN);
     }
 
     /**

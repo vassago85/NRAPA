@@ -16,8 +16,8 @@
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="theme-color" content="#18181b">
         
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
+        <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
+        <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" crossorigin="anonymous" />
         
         {{-- Alpine.js cloak style --}}
         <style>[x-cloak] { display: none !important; }</style>

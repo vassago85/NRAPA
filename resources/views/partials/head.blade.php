@@ -9,8 +9,8 @@
 <link rel="icon" href="/nrapa-icon.png" type="image/png">
 <link rel="apple-touch-icon" href="/nrapa-icon.png">
 
-<link rel="preconnect" href="https://fonts.bunny.net">
-<link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
+<link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
+<link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" crossorigin="anonymous" />
 
 {{-- Alpine.js cloak style to prevent flash of unstyled content --}}
 <style>[x-cloak] { display: none !important; }</style>

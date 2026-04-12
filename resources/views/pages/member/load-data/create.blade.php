@@ -4,6 +4,7 @@ use App\Models\LoadData;
 use App\Models\UserFirearm;
 use App\Models\FirearmCalibre;
 use App\Models\ReloadingInventory;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 
 new class extends Component {
@@ -98,7 +99,7 @@ new class extends Component {
     public function updatedUserFirearmId($value): void
     {
         if ($value) {
-            $firearm = UserFirearm::find($value);
+            $firearm = UserFirearm::where('id', $value)->where('user_id', auth()->id())->first();
             if ($firearm && $firearm->firearm_calibre_id) {
                 $this->calibre_id = $firearm->firearm_calibre_id;
             }
@@ -224,7 +225,7 @@ new class extends Component {
     {
         $this->validate([
             'name' => ['required', 'string', 'max:255'],
-            'user_firearm_id' => ['nullable', 'exists:user_firearms,id'],
+            'user_firearm_id' => ['nullable', Rule::exists('user_firearms', 'id')->where('user_id', auth()->id())],
             'calibre_id' => ['nullable', 'exists:firearm_calibres,id'],
             'status' => ['required', 'in:development,tested,approved,retired'],
             'bullet_weight' => ['nullable', 'numeric', 'min:0'],
@@ -236,6 +237,10 @@ new class extends Component {
             'velocity_sd' => ['nullable', 'numeric', 'min:0'],
             'group_size' => ['nullable', 'numeric', 'min:0'],
             'tested_date' => ['nullable', 'date'],
+            'powder_inventory_id' => ['nullable', Rule::exists('reloading_inventories', 'id')->where('user_id', auth()->id())],
+            'primer_inventory_id' => ['nullable', Rule::exists('reloading_inventories', 'id')->where('user_id', auth()->id())],
+            'bullet_inventory_id' => ['nullable', Rule::exists('reloading_inventories', 'id')->where('user_id', auth()->id())],
+            'brass_inventory_id' => ['nullable', Rule::exists('reloading_inventories', 'id')->where('user_id', auth()->id())],
         ]);
 
         // Convert display values to canonical units (grains, inches, fps) for storage

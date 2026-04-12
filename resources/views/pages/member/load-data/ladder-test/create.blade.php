@@ -6,6 +6,7 @@ use App\Models\LadderTestStep;
 use App\Models\LoadData;
 use App\Models\ReloadingInventory;
 use App\Models\UserFirearm;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 
 new class extends Component {
@@ -86,7 +87,7 @@ new class extends Component {
     public function updatedLoadDataId($value): void
     {
         if ($value) {
-            $load = LoadData::find($value);
+            $load = LoadData::where('id', $value)->where('user_id', auth()->id())->first();
             if ($load) {
                 $this->user_firearm_id = $load->user_firearm_id;
                 $this->calibre = $load->calibre_name ?? '';
@@ -130,6 +131,8 @@ new class extends Component {
     {
         $this->validate([
             'name' => ['required', 'string', 'max:255'],
+            'load_data_id' => ['nullable', Rule::exists('load_data', 'id')->where('user_id', auth()->id())],
+            'user_firearm_id' => ['nullable', Rule::exists('user_firearms', 'id')->where('user_id', auth()->id())],
             'test_type' => ['required', 'in:powder_charge,seating_depth'],
             'value_unit' => ['required', 'in:gr,mm,inches'],
             'start_charge' => ['required', 'numeric', 'min:0.001'],

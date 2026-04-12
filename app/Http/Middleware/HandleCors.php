@@ -13,22 +13,34 @@ class HandleCors
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Handle preflight OPTIONS request
         if ($request->isMethod('OPTIONS')) {
             $response = response('', 204);
         } else {
             $response = $next($request);
         }
 
-        // Add CORS headers
-        $origin = $request->header('Origin') ?? '*';
+        $origin = $request->header('Origin');
 
-        $response->headers->set('Access-Control-Allow-Origin', $origin);
-        $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-        $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-CSRF-TOKEN, X-Livewire');
-        $response->headers->set('Access-Control-Allow-Credentials', 'true');
-        $response->headers->set('Access-Control-Max-Age', '86400');
+        if ($origin && $this->isAllowedOrigin($origin)) {
+            $response->headers->set('Access-Control-Allow-Origin', $origin);
+            $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+            $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-CSRF-TOKEN, X-Livewire');
+            $response->headers->set('Access-Control-Allow-Credentials', 'true');
+            $response->headers->set('Access-Control-Max-Age', '86400');
+        }
 
         return $response;
+    }
+
+    protected function isAllowedOrigin(string $origin): bool
+    {
+        $appUrl = config('app.url');
+        $allowed = array_filter([
+            $appUrl,
+            str_replace('http://', 'https://', $appUrl),
+            str_replace('https://', 'http://', $appUrl),
+        ]);
+
+        return in_array($origin, $allowed, true);
     }
 }
