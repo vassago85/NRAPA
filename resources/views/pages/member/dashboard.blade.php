@@ -551,6 +551,34 @@ new #[Title('Dashboard')] class extends Component {
     </div>
     @endif
 
+    {{-- Missing Phone Number Prompt --}}
+    @if(empty($this->user->phone))
+    <div class="rounded-xl border-2 border-amber-300 dark:border-amber-600 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 p-6">
+        <div class="flex items-start gap-4">
+            <div class="flex size-14 flex-shrink-0 items-center justify-center rounded-xl bg-amber-200 dark:bg-amber-800">
+                <svg class="size-7 text-amber-700 dark:text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-lg font-bold text-amber-800 dark:text-amber-200">Phone Number Required</h3>
+                <p class="mt-1 text-sm text-amber-700 dark:text-amber-300">
+                    Please add your phone number to your profile. We need a contact number on file for all members.
+                </p>
+                <div class="mt-4">
+                    <a href="{{ route('profile.edit') }}" wire:navigate
+                        class="inline-flex items-center gap-2 rounded-lg bg-amber-600 hover:bg-amber-700 px-5 py-2.5 text-sm font-medium text-white transition-colors">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/>
+                        </svg>
+                        Update Profile
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     {{-- Expired Membership Alert --}}
     @if($this->expiredMembership)
     @php $expMembership = $this->expiredMembership; @endphp

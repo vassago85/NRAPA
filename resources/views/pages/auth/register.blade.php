@@ -52,6 +52,24 @@
                 @enderror
             </div>
 
+            <!-- Phone Number -->
+            <div>
+                <label for="phone" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Phone number') }}</label>
+                <input 
+                    type="tel" 
+                    name="phone" 
+                    id="phone"
+                    value="{{ old('phone') }}"
+                    required 
+                    autocomplete="tel"
+                    placeholder="e.g. 082 123 4567"
+                    class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-nrapa-blue focus:border-transparent"
+                />
+                @error('phone')
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                @enderror
+            </div>
+
             <!-- Password -->
             <div>
                 <label for="password" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Password') }}</label>
