@@ -106,9 +106,16 @@ new #[Title('Import Failures - Admin')] class extends Component {
         $result = $importer->importSingleMember($rowData);
 
         if ($result['success']) {
-            // Update the row_data with the edited values (for audit trail)
             $failure->update(['row_data' => $rowData]);
             $failure->markResolved();
+
+            try {
+                app(\App\Services\NtfyService::class)->notifyAdmins(
+                    'new_member',
+                    'Import Retry Successful',
+                    auth()->user()->name . " resolved import for {$this->editInitials} {$this->editSurname} ({$this->editEmail}).",
+                );
+            } catch (\Exception $e) {}
 
             $this->retrySuccess = "Successfully imported {$this->editInitials} {$this->editSurname}.";
             $this->retryError = null;

@@ -117,6 +117,16 @@ new #[Title('Add Member - Admin')] class extends Component {
             $msg = $isImport
                 ? "Member {$this->initials} {$this->surname} imported successfully.{$emailNote}"
                 : "Member {$this->initials} {$this->surname} created. They will be prompted to pay on first login.{$emailNote}";
+
+            try {
+                $action = $isImport ? 'imported' : 'created';
+                app(\App\Services\NtfyService::class)->notifyAdmins(
+                    'new_member',
+                    'Member Added by Admin',
+                    auth()->user()->name . " {$action} {$this->initials} {$this->surname} ({$this->email}).",
+                );
+            } catch (\Exception $e) {}
+
             session()->flash('success', $msg);
             $this->redirectRoute('admin.members.show', ['user' => $result['user']->uuid], navigate: true);
         } else {

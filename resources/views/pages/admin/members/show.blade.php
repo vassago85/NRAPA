@@ -232,6 +232,15 @@ new #[Title('Member Details - Admin')] class extends Component {
         $this->showResetPasswordModal = false;
         $this->resetNotes = '';
 
+        try {
+            app(\App\Services\NtfyService::class)->notifyAdmins(
+                'new_member',
+                'Password Reset Sent',
+                auth()->user()->name . " sent password reset to {$this->user->name} ({$this->user->email}).",
+                'low',
+            );
+        } catch (\Exception $e) {}
+
         if ($status === Password::RESET_LINK_SENT) {
             session()->flash('success', 'Password reset email has been sent to ' . $this->user->email);
         } else {
@@ -254,6 +263,16 @@ new #[Title('Member Details - Admin')] class extends Component {
                 $membership,
                 'Use the password provided during import',
             ));
+
+            try {
+                app(\App\Services\NtfyService::class)->notifyAdmins(
+                    'new_member',
+                    'Welcome Email Resent',
+                    auth()->user()->name . " resent welcome email to {$this->user->name} ({$this->user->email}).",
+                    'low',
+                );
+            } catch (\Exception $e) {}
+
             session()->flash('success', "Welcome email queued for {$this->user->name} ({$this->user->email}).");
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::warning('Failed to queue welcome email resend', [
@@ -324,6 +343,15 @@ new #[Title('Member Details - Admin')] class extends Component {
         $this->verificationPassed = false;
         $this->user->refresh();
 
+        try {
+            app(\App\Services\NtfyService::class)->notifyAdmins(
+                'new_member',
+                '2FA Reset',
+                auth()->user()->name . " reset 2FA for {$this->user->name} ({$this->user->email}).",
+                'high',
+            );
+        } catch (\Exception $e) {}
+
         session()->flash('success', '2FA has been reset for ' . $this->user->name . '. They will need to set it up again on their next login.');
     }
 
@@ -336,6 +364,16 @@ new #[Title('Member Details - Admin')] class extends Component {
             'is_admin' => !$isCurrentlyAdmin,
         ]);
         $this->user->refresh();
+
+        try {
+            $action = $isCurrentlyAdmin ? 'removed admin from' : 'granted admin to';
+            app(\App\Services\NtfyService::class)->notifyAdmins(
+                'new_member',
+                'Role Change',
+                auth()->user()->name . " {$action} {$this->user->name} ({$this->user->email}).",
+                'high',
+            );
+        } catch (\Exception $e) {}
     }
 
     public function deleteUser(): void
@@ -380,6 +418,15 @@ new #[Title('Member Details - Admin')] class extends Component {
 
         $this->user->forceDelete();
 
+        try {
+            app(\App\Services\NtfyService::class)->notifyAdmins(
+                'new_member',
+                'Member Deleted',
+                auth()->user()->name . " deleted member {$userName} ({$userEmail}). Reason: {$this->deleteReason}",
+                'high',
+            );
+        } catch (\Exception $e) {}
+
         session()->flash('success', "User {$userName} has been deleted.");
         $this->redirect(route('admin.members.index'), navigate: true);
     }
@@ -400,6 +447,15 @@ new #[Title('Member Details - Admin')] class extends Component {
             'requested_by' => auth()->id(),
             'reason' => $this->deleteReason,
         ]);
+
+        try {
+            app(\App\Services\NtfyService::class)->notifyAdmins(
+                'new_member',
+                'Deletion Request Submitted',
+                auth()->user()->name . " requested deletion of {$this->user->name} ({$this->user->email}). Reason: {$this->deleteReason}",
+                'high',
+            );
+        } catch (\Exception $e) {}
 
         $this->showRequestDeleteModal = false;
         $this->deleteReason = '';
@@ -845,6 +901,15 @@ new #[Title('Member Details - Admin')] class extends Component {
                 'error' => $e->getMessage(),
             ]);
         }
+
+        try {
+            app(\App\Services\NtfyService::class)->notifyAdmins(
+                'new_member',
+                'Approval Revoked',
+                "{$admin->name} revoked {$this->user->name}'s membership approval.",
+                'high',
+            );
+        } catch (\Exception $e) {}
 
         $this->showRevokeApprovalModal = false;
         $this->revokeApprovalMessage = '';

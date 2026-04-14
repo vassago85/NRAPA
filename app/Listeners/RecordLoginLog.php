@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Models\LoginLog;
+use App\Models\User;
 use Illuminate\Auth\Events\Login;
 
 class RecordLoginLog
@@ -18,8 +19,19 @@ class RecordLoginLog
                 $event->remember ?? false,
             );
         } catch (\Throwable $e) {
-            // Don't break login flow if logging fails (e.g. table not migrated yet)
             report($e);
         }
+
+        try {
+            $user = $event->user;
+            if ($user instanceof User && $user->hasRoleLevel(User::ROLE_ADMIN)) {
+                app(\App\Services\NtfyService::class)->notifyAdmins(
+                    'new_member',
+                    'Admin Login',
+                    "{$user->name} ({$user->role}) signed in.",
+                    'low',
+                );
+            }
+        } catch (\Throwable $e) {}
     }
 }

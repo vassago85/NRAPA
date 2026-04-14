@@ -436,6 +436,14 @@ new #[Title('All Approvals - Admin')] class extends Component {
             }
         }
 
+        try {
+            app(\App\Services\NtfyService::class)->notifyAdmins(
+                'new_member',
+                'Membership Approved',
+                "{$admin->name} approved {$membership->user->name}'s {$membership->type->name} membership.",
+            );
+        } catch (\Exception $e) {}
+
         AuditLog::log('membership_approved', $membership, ['status' => 'applied'], ['status' => 'active'], $admin);
         SyncMembershipToSage::dispatch($membership)->afterCommit();
 
