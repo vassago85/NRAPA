@@ -185,6 +185,13 @@
     <p class="tx" style="color: #374151; margin: 24px 0 0 0; text-align: center; font-size: 15px;">
         Welcome aboard!<br><strong class="hd" style="color: #0B4EA2;">The NRAPA Team</strong>
     </p>
+
+    {{-- Account deletion notice --}}
+    <div style="margin: 28px 0 0 0; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+        <p class="tx" style="color: #6b7280; margin: 0; font-size: 12px; text-align: center; line-height: 1.6;">
+            If you no longer wish to be a member, you can delete your account at any time from your profile settings after signing in. All your personal data will be permanently removed.
+        </p>
+    </div>
 @endsection
 
 @section('footer')
