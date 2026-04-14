@@ -1,7 +1,7 @@
 @extends('layouts.info')
 
-@section('title', 'NRAPA FAQ | Membership & Dedicated Status')
-@section('description', 'Frequently asked questions about NRAPA membership, dedicated sport shooter and hunter status, and how the association works within Ranyati Group.')
+@section('title', 'FAQ | Membership, Dedicated Status & Common Questions')
+@section('description', 'Answers to common questions about NRAPA membership, dedicated sport shooter and hunter status, endorsements, activity requirements, and how the association works in South Africa.')
 @section('heading', 'Frequently asked questions')
 @section('breadcrumb', 'FAQ')
 

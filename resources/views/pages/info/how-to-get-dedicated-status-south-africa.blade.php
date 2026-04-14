@@ -1,7 +1,7 @@
 @extends('layouts.info')
 
-@section('title', 'How to Get Dedicated Status in South Africa | NRAPA')
-@section('description', 'A practical overview of dedicated sport shooter or dedicated hunter status: accredited association membership, competency, SAPS applications, and ongoing compliance—NRAPA under Ranyati Group.')
+@section('title', 'How to Get Dedicated Status in South Africa | Requirements & Process')
+@section('description', 'Step-by-step guide to getting dedicated sport shooter or hunter status in South Africa. Covers accredited membership, competency requirements, SAPS applications, and what you need to stay compliant.')
 @section('heading', 'How to get dedicated status in South Africa')
 @section('breadcrumb', 'How to get dedicated status')
 

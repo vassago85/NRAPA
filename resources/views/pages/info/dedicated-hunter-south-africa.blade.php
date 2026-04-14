@@ -1,7 +1,7 @@
 @extends('layouts.info')
 
-@section('title', 'Dedicated Hunter South Africa | NRAPA')
-@section('description', 'Dedicated hunter status in South Africa: SAPS-accredited association membership through NRAPA, lawful hunting activity, and compliance with the Firearms Control Act.')
+@section('title', 'Dedicated Hunter South Africa | Requirements & How to Apply')
+@section('description', 'How dedicated hunter status works in South Africa — requirements, accredited association membership, proof of hunting activity, and how NRAPA helps you stay compliant with the Firearms Control Act.')
 @section('heading', 'Dedicated hunter in South Africa')
 @section('breadcrumb', 'Dedicated hunter')
 

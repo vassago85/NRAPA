@@ -6,8 +6,8 @@
         <meta name="google-site-verification" content="ofpn02fgz8G9-u_lZnCwMckrIFkddbLv68ZdBOMEMu8">
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-JV2NSWMYTQ"></script>
         <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-JV2NSWMYTQ');</script>
-        <title>NRAPA — SAPS Accredited Membership for Dedicated Sport &amp; Hunter Status</title>
-        <meta name="description" content="NRAPA is a SAPS-accredited association serving members across South Africa—dedicated sport shooter and hunter status, endorsements, and compliance support under the Firearms Control Act.">
+        <title>NRAPA | Dedicated Sport Shooter & Hunter Status South Africa</title>
+        <meta name="description" content="SAPS-accredited association for dedicated sport shooter and hunter status in South Africa. NRAPA provides membership, activity recording, endorsements, and compliance support under the Firearms Control Act.">
         <link rel="canonical" href="{{ url('/') }}">
         <meta property="og:type" content="website">
         <meta property="og:site_name" content="NRAPA">

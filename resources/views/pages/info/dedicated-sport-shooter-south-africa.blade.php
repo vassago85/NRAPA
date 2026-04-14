@@ -1,7 +1,7 @@
 @extends('layouts.info')
 
-@section('title', 'Dedicated Sport Shooter South Africa | NRAPA')
-@section('description', 'What dedicated sport shooter status means in South Africa, how SAPS-accredited associations like NRAPA fit in, and how to stay compliant with the Firearms Control Act.')
+@section('title', 'Dedicated Sport Shooter South Africa | Requirements & How It Works')
+@section('description', 'What dedicated sport shooter status means, how to qualify, what SAPS requires, and how accredited association membership through NRAPA supports your application and ongoing compliance.')
 @section('heading', 'Dedicated sport shooter in South Africa')
 @section('breadcrumb', 'Dedicated sport shooter')
 
