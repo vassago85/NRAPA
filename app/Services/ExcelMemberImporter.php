@@ -260,14 +260,14 @@ class ExcelMemberImporter
             'row_number' => $rowNumber,
             'row_data' => [
                 'date_joined' => trim($rawRow[0] ?? ''),
-                'initials' => trim($rawRow[1] ?? ''),
-                'surname' => trim($rawRow[2] ?? ''),
-                'id_number' => trim($rawRow[3] ?? ''),
-                'phone' => trim($rawRow[4] ?? ''),
-                'email' => trim($rawRow[5] ?? ''),
-                'membership_type' => trim($rawRow[6] ?? ''),
-                'renewal_date' => trim($rawRow[7] ?? ''),
-                'status' => trim($rawRow[8] ?? ''),
+                'initials' => trim($rawRow[2] ?? ''),
+                'surname' => trim($rawRow[3] ?? ''),
+                'id_number' => trim($rawRow[4] ?? ''),
+                'phone' => trim($rawRow[5] ?? ''),
+                'email' => trim($rawRow[6] ?? ''),
+                'membership_type' => trim($rawRow[7] ?? ''),
+                'renewal_date' => trim($rawRow[8] ?? ''),
+                'status' => trim($rawRow[9] ?? ''),
             ],
             'error_message' => Str::limit($error, 497),
             'imported_by' => auth()->id(),
@@ -378,29 +378,35 @@ class ExcelMemberImporter
     /**
      * Parse a row from Excel into member data array.
      *
-     * Expected columns:
+     * Expected columns (mirrors old DS spreadsheet for easy copy-paste):
      *  A: Date Joined (d/m/Y)
-     *  B: Initials
-     *  C: Surname
-     *  D: ID Number
-     *  E: Tel Number
-     *  F: Email
-     *  G: Membership Type (e.g. "Dedicated Hunting & Sport", "Regular Member", "Dedicated Life Membership")
-     *  H: Renewal Date (d/m/Y or "Life Member")
-     *  I: Status (e.g. "Active" or blank)
+     *  B: Member Number (ignored — NRAPA assigns new numbers)
+     *  C: Initials
+     *  D: Surname
+     *  E: ID Number
+     *  F: Tel Number
+     *  G: Email
+     *  H: Membership Type (e.g. "Dedicated Hunting & Sport", "Regular Member", "Dedicated Life Membership")
+     *  I: Renewal Date (d/m/Y or "Life Member")
+     *  J: Status (e.g. "Active" or blank)
+     *  K+: DS Activity columns (ignored)
      */
     protected function parseRow(array $row): array
     {
-        $initials = trim($row[1] ?? '');
-        $surname = trim($row[2] ?? '');
+        // Column layout mirrors the old DS spreadsheet for easy copy-paste:
+        // A=Date Joined, B=Member Number (ignored), C=Initials, D=Surname,
+        // E=ID Number, F=Tel Number, G=Email, H=Membership Type,
+        // I=Renewal Date, J=Status (Active/blank). Columns K+ ignored.
+        $initials = trim($row[2] ?? '');
+        $surname = trim($row[3] ?? '');
         $name = trim("{$initials} {$surname}");
 
-        $idNumber = trim($row[3] ?? '');
+        $idNumber = trim($row[4] ?? '');
         $dateOfBirth = $this->deriveDateOfBirthFromId($idNumber);
 
-        $membershipTypeRaw = trim($row[6] ?? '');
-        $renewalDateRaw = trim($row[7] ?? '');
-        $statusRaw = trim($row[8] ?? '');
+        $membershipTypeRaw = trim($row[7] ?? '');
+        $renewalDateRaw = trim($row[8] ?? '');
+        $statusRaw = trim($row[9] ?? '');
 
         $isLifeMember = stripos($renewalDateRaw, 'life') !== false
                      || stripos($membershipTypeRaw, 'life') !== false;
@@ -413,9 +419,9 @@ class ExcelMemberImporter
 
         return [
             'name' => $name,
-            'email' => trim(strtolower($row[5] ?? '')),
+            'email' => trim(strtolower($row[6] ?? '')),
             'id_number' => $idNumber,
-            'phone' => User::normalizePhone(trim($row[4] ?? '')),
+            'phone' => User::normalizePhone(trim($row[5] ?? '')),
             'date_of_birth' => $dateOfBirth,
             'physical_address' => null,
             'postal_address' => null,
@@ -744,9 +750,10 @@ class ExcelMemberImporter
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Member Import');
 
-        // Set headers — must match parseRow() column order
+        // Set headers — must match parseRow() column order (mirrors old DS spreadsheet)
         $headers = [
             'Date Joined (DD/MM/YYYY)',
+            'Member Number (ignored)',
             'Initials',
             'Surname',
             'ID Number',
@@ -761,9 +768,9 @@ class ExcelMemberImporter
 
         // Add sample rows demonstrating the various membership types
         $sampleRows = [
-            ['24/11/2025', 'SP', 'Basson', '0010165037085', '084 407 6112', 'spbasson123@example.com', 'Dedicated Life Membership', 'Life Member', 'Active'],
-            ['28/11/2025', 'TA', 'Tilbury', '9907201326086', '072 119 8026', 'tilbury@example.com', 'Regular Member', '27/11/2025', ''],
-            ['17/12/2025', 'PJ', 'Pretorius', '8705185113087', '071 586 7077', 'pretorius@example.com', 'Dedicated Hunting & Sport', '16/12/2026', 'Active'],
+            ['24/11/2025', '001', 'SP', 'Basson', '0010165037085', '084 407 6112', 'spbasson123@example.com', 'Dedicated Life Membership', 'Life Member', 'Active'],
+            ['28/11/2025', '002', 'TA', 'Tilbury', '9907201326086', '072 119 8026', 'tilbury@example.com', 'Regular Member', '27/11/2025', ''],
+            ['17/12/2025', '003', 'PJ', 'Pretorius', '8705185113087', '071 586 7077', 'pretorius@example.com', 'Dedicated Hunting & Sport', '16/12/2026', 'Active'],
         ];
 
         $rowNum = 2;
@@ -781,13 +788,16 @@ class ExcelMemberImporter
             ['Dedicated Hunter / Dedicated Hunting', 'Dedicated Hunter'],
             ['Dedicated Hunting & Sport / Dedicated Both', 'Dedicated Hunter & Sport Shooter'],
             ['Dedicated Life Membership / Lifetime / Life Member', 'Lifetime Membership'],
+            ['Dedicated Home', 'Dedicated Hunter'],
             ['Regular Member / Standard / Occasional', 'Standard Annual Membership'],
             ['Junior / Junior Member', 'Junior Annual Membership'],
             ['', ''],
-            ['Status column', '"Active" = member has an active membership'],
+            ['Member Number column (B)', 'Present for easy copy-paste from old sheet — ignored on import'],
+            ['Status column (J)', '"Active" = member has an active membership'],
             ['', 'Blank = member is not currently active (set to pending)'],
             ['', ''],
-            ['Note', 'New NRAPA member numbers will be assigned automatically'],
+            ['Note', 'New NRAPA member numbers are assigned automatically by NRAPA'],
+            ['', 'DS Activity columns beyond column J are ignored'],
         ];
         $r = 2;
         foreach ($notes as $note) {
@@ -800,19 +810,21 @@ class ExcelMemberImporter
 
         // Style header row on main sheet
         $spreadsheet->setActiveSheetIndex(0);
-        $sheet->getStyle('A1:I1')->getFont()->setBold(true);
-        $sheet->getStyle('A1:I1')->getFill()
+        $sheet->getStyle('A1:J1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:J1')->getFill()
             ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
             ->getStartColor()->setARGB('FFE2E8F0');
+        $sheet->getStyle('B1')->getFont()->getColor()->setARGB('FF9CA3AF');
         $sheet->getColumnDimension('A')->setWidth(22);
-        $sheet->getColumnDimension('B')->setWidth(12);
-        $sheet->getColumnDimension('C')->setWidth(20);
-        $sheet->getColumnDimension('D')->setWidth(18);
+        $sheet->getColumnDimension('B')->setWidth(22);
+        $sheet->getColumnDimension('C')->setWidth(12);
+        $sheet->getColumnDimension('D')->setWidth(20);
         $sheet->getColumnDimension('E')->setWidth(18);
-        $sheet->getColumnDimension('F')->setWidth(35);
+        $sheet->getColumnDimension('F')->setWidth(18);
         $sheet->getColumnDimension('G')->setWidth(35);
-        $sheet->getColumnDimension('H')->setWidth(25);
-        $sheet->getColumnDimension('I')->setWidth(18);
+        $sheet->getColumnDimension('H')->setWidth(35);
+        $sheet->getColumnDimension('I')->setWidth(25);
+        $sheet->getColumnDimension('J')->setWidth(18);
 
         // Save file
         $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');

@@ -427,10 +427,10 @@ new #[Title('Members - Admin')] class extends Component {
                     <div class="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
                         <p class="text-xs font-semibold text-blue-800 dark:text-blue-200 mb-1">Expected Excel columns (in order):</p>
                         <p class="text-xs text-blue-700 dark:text-blue-300">
-                            Date Joined &bull; Initials &bull; Surname &bull; ID Number &bull; Tel Number &bull; Email &bull; Membership Type &bull; Renewal Date &bull; Status (Active / blank)
+                            Date Joined &bull; Member Number <span class="text-blue-400">(ignored)</span> &bull; Initials &bull; Surname &bull; ID Number &bull; Tel Number &bull; Email &bull; Membership Type &bull; Renewal Date &bull; Status (Active / blank)
                         </p>
                         <p class="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                            New NRAPA member numbers are assigned automatically. Use the <strong>Download Template</strong> button for a sample file.
+                            Matches the old DS spreadsheet layout — copy-paste directly. Member Number &amp; DS Activity columns are ignored. New NRAPA numbers are assigned automatically.
                         </p>
                     </div>
 
