@@ -401,7 +401,7 @@ class ExcelMemberImporter
         $surname = trim($row[3] ?? '');
         $name = trim("{$initials} {$surname}");
 
-        $idNumber = trim($row[4] ?? '');
+        $idNumber = User::normalizeIdNumber(trim($row[4] ?? ''));
         $dateOfBirth = $this->deriveDateOfBirthFromId($idNumber);
 
         $membershipTypeRaw = trim($row[7] ?? '');

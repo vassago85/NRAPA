@@ -125,6 +125,44 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Normalize a South African ID number: strip non-digits, fix Excel
+     * scientific notation (8.20116E+12) and trailing .0 artifacts.
+     * Returns null for empty/unrecoverable input.
+     */
+    public static function normalizeIdNumber(?string $idNumber): ?string
+    {
+        if (empty($idNumber)) {
+            return null;
+        }
+
+        $idNumber = trim($idNumber);
+
+        if (stripos($idNumber, 'E+') !== false || stripos($idNumber, 'e+') !== false) {
+            $idNumber = number_format((float) $idNumber, 0, '', '');
+        }
+
+        $idNumber = strtok($idNumber, '.');
+
+        $digits = preg_replace('/\D/', '', $idNumber);
+
+        if (strlen($digits) !== 13) {
+            return $digits ?: null;
+        }
+
+        return $digits;
+    }
+
+    /**
+     * Auto-normalize SA ID numbers on set.
+     */
+    protected function idNumber(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            set: fn (?string $value) => static::normalizeIdNumber($value) ?? $value,
+        );
+    }
+
+    /**
      * Check if this user has a placeholder email (phone-based import).
      */
     public function hasPlaceholderEmail(): bool
