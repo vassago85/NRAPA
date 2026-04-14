@@ -37,8 +37,8 @@ class LogSentEmail
             break;
         }
 
-        // Try to find the user by email
-        $user = User::where('email', $toEmail)->first();
+        $user = User::where('email', $toEmail)->first()
+            ?? User::where('phone', $toEmail)->first();
 
         // Get the mailable class from the data if available
         $mailableClass = $event->data['__laravel_notification'] ??

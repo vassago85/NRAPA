@@ -205,6 +205,13 @@ class ExcelMemberImporter
                         'user_id' => $member['user']->id,
                         'error' => $e->getMessage(),
                     ]);
+                    \App\Listeners\LogFailedEmail::logFailure(
+                        $member['send_to_email'],
+                        'Welcome to NRAPA – Set Up Your Account',
+                        ImportWelcome::class,
+                        $e->getMessage(),
+                        $member['user']->id,
+                    );
                 }
             }
 
@@ -349,6 +356,13 @@ class ExcelMemberImporter
                         'email' => $user->email,
                         'error' => $e->getMessage(),
                     ]);
+                    \App\Listeners\LogFailedEmail::logFailure(
+                        $user->email,
+                        'Welcome to NRAPA – Set Up Your Account',
+                        ImportWelcome::class,
+                        $e->getMessage(),
+                        $user->id,
+                    );
                 }
             }
 
