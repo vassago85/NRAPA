@@ -17,7 +17,7 @@ trait ProfileValidationRules
         return [
             'name' => $this->nameRules(),
             'email' => $this->emailRules($userId),
-            'phone' => $this->phoneRules(),
+            'phone' => $this->phoneRules($userId),
         ];
     }
 
@@ -54,8 +54,15 @@ trait ProfileValidationRules
      *
      * @return array<int, \Illuminate\Contracts\Validation\Rule|array<mixed>|string>
      */
-    protected function phoneRules(): array
+    protected function phoneRules(?int $userId = null): array
     {
-        return ['required', 'string', 'max:20'];
+        return [
+            'required',
+            'string',
+            'regex:/^0[1-9]\d{8}$/',
+            $userId === null
+                ? Rule::unique(User::class, 'phone')
+                : Rule::unique(User::class, 'phone')->ignore($userId),
+        ];
     }
 }

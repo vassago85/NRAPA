@@ -20,6 +20,8 @@ class CreateNewUser implements CreatesNewUsers
      */
     public function create(array $input): User
     {
+        $input['phone'] = User::normalizePhone($input['phone'] ?? '') ?? '';
+
         Validator::make($input, [
             ...$this->profileRules(),
             'password' => $this->passwordRules(),

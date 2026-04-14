@@ -15,7 +15,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, TwoFactorAuthenticatable;
+    use \App\Concerns\NormalizesPhone, HasFactory, Notifiable, TwoFactorAuthenticatable;
 
     /**
      * The attributes that are mass assignable.
@@ -112,6 +112,24 @@ class User extends Authenticatable implements MustVerifyEmail
             'last_2fa_reminder_at' => 'datetime',
             'welcome_letter_seen_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Auto-normalize phone numbers on set.
+     */
+    protected function phone(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            set: fn (?string $value) => static::normalizePhone($value) ?? $value,
+        );
+    }
+
+    /**
+     * Check if this user has a placeholder email (phone-based import).
+     */
+    public function hasPlaceholderEmail(): bool
+    {
+        return str_ends_with($this->email, '@phone.nrapa.co.za');
     }
 
     // ===== Member Number =====

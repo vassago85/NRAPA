@@ -89,16 +89,35 @@
                     <span class="tx" style="font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; color: #92400E;">Your Login Details</span>
                 </td>
             </tr>
+            @if($user->hasPlaceholderEmail() && $user->phone)
+            <tr>
+                <td class="tx" style="padding: 5px 0; color: #92400E; font-size: 14px;">Phone Number</td>
+                <td class="tx" style="padding: 5px 0; text-align: right; font-weight: 700; color: #92400E; font-family: 'Courier New', monospace; font-size: 15px;">{{ $user->phone }}</td>
+            </tr>
+            @else
             <tr>
                 <td class="tx" style="padding: 5px 0; color: #92400E; font-size: 14px;">Email</td>
                 <td class="tx" style="padding: 5px 0; text-align: right; font-weight: 700; color: #92400E; font-size: 14px;">{{ $user->email }}</td>
             </tr>
+            @if($user->phone)
+            <tr>
+                <td class="tx" style="padding: 5px 0; color: #92400E; font-size: 14px;">Phone Number</td>
+                <td class="tx" style="padding: 5px 0; text-align: right; font-weight: 700; color: #92400E; font-family: 'Courier New', monospace; font-size: 15px;">{{ $user->phone }}</td>
+            </tr>
+            @endif
+            @endif
             <tr>
                 <td class="tx" style="padding: 5px 0; color: #92400E; font-size: 14px;">Temporary Password</td>
                 <td class="tx" style="padding: 5px 0; text-align: right; font-weight: 700; color: #92400E; font-family: 'Courier New', monospace; font-size: 15px;">{{ $defaultPassword }}</td>
             </tr>
         </table>
-        <p class="tx" style="color: #92400E; margin: 14px 0 0 0; font-size: 12px; font-style: italic;">Please change your password immediately after your first sign-in.</p>
+        <p class="tx" style="color: #92400E; margin: 14px 0 0 0; font-size: 12px; font-style: italic;">
+            @if($user->hasPlaceholderEmail())
+                Sign in using your <strong>phone number</strong> and the password above. Please change your password immediately after your first sign-in.
+            @else
+                You can sign in using your <strong>email or phone number</strong>. Please change your password immediately after your first sign-in.
+            @endif
+        </p>
     </div>
 
     {{-- Getting started steps --}}
@@ -116,7 +135,7 @@
                 <div style="width: 28px; height: 28px; background-color: #0B4EA2; color: #ffffff; border-radius: 50%; text-align: center; line-height: 28px; font-size: 13px; font-weight: 700;">1</div>
             </td>
             <td class="tx" style="vertical-align: top; padding: 0 0 14px 0; color: #374151; font-size: 14px;">
-                <strong>Sign in</strong> with the email and password above.
+                <strong>Sign in</strong> with your {{ $user->hasPlaceholderEmail() ? 'phone number' : 'email or phone number' }} and password above.
             </td>
         </tr>
         <tr>

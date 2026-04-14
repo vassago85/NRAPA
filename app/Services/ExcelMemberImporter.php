@@ -76,7 +76,6 @@ class ExcelMemberImporter
         $autoActivate = $options['auto_activate'] ?? false;
         $sendWelcomeEmail = $options['send_welcome_email'] ?? true;
         $autoPassTests = $options['auto_pass_knowledge_tests'] ?? true;
-        $autoActivities = $options['auto_create_activities'] ?? false;
 
         $batchId = (string) Str::uuid();
         $imported = 0;
@@ -110,16 +109,8 @@ class ExcelMemberImporter
                     // Parse row data
                     $memberData = $this->parseRow($row);
 
-                    // Skip empty rows (need at least surname and email)
-                    if (empty($memberData['name']) || empty($memberData['email'])) {
-                        continue;
-                    }
-
-                    // Check for duplicate email
-                    if ($skipDuplicates && User::where('email', $memberData['email'])->exists()) {
-                        $skipped++;
-                        $this->recordFailure($batchId, $rowNumber, $row, "User with email '{$memberData['email']}' already exists");
-
+                    // Skip empty rows (need at least surname and email or phone)
+                    if (empty($memberData['name']) || (empty($memberData['email']) && empty($memberData['phone']))) {
                         continue;
                     }
 
@@ -128,6 +119,31 @@ class ExcelMemberImporter
                         $skipped++;
                         $this->recordFailure($batchId, $rowNumber, $row, "User with ID number '{$memberData['id_number']}' already exists");
 
+                        continue;
+                    }
+
+                    // Handle duplicate email — fall back to phone-based account
+                    $usePhoneLogin = false;
+                    if (! empty($memberData['email']) && $skipDuplicates && User::where('email', $memberData['email'])->exists()) {
+                        if (empty($memberData['phone'])) {
+                            $skipped++;
+                            $this->recordFailure($batchId, $rowNumber, $row, "Duplicate email '{$memberData['email']}' and no phone number to fall back on");
+                            continue;
+                        }
+                        if (User::where('phone', $memberData['phone'])->exists()) {
+                            $skipped++;
+                            $this->recordFailure($batchId, $rowNumber, $row, "Duplicate email '{$memberData['email']}' and phone '{$memberData['phone']}' also already exists");
+                            continue;
+                        }
+                        $memberData['original_email'] = $memberData['email'];
+                        $memberData['email'] = $memberData['phone'] . '@phone.nrapa.co.za';
+                        $usePhoneLogin = true;
+                    }
+
+                    // Check for duplicate phone
+                    if (! empty($memberData['phone']) && $skipDuplicates && User::where('phone', $memberData['phone'])->exists()) {
+                        $skipped++;
+                        $this->recordFailure($batchId, $rowNumber, $row, "User with phone '{$memberData['phone']}' already exists");
                         continue;
                     }
 
@@ -149,20 +165,17 @@ class ExcelMemberImporter
 
                     $membership = $this->createMembership($user, $memberData, $membershipType, $autoApprove, $autoActivate, 'import');
 
-                    $rowPassTests = $memberData['knowledge_test'] ?? null;
-                    $shouldPassTests = $rowPassTests !== null ? $rowPassTests : $autoPassTests;
-                    if ($shouldPassTests) {
+                    if ($autoPassTests) {
                         $this->autoPassKnowledgeTests($user, $membershipType);
                     }
 
-                    $rowActivities = $memberData['activities'] ?? null;
-                    $shouldCreateActivities = $rowActivities !== null ? $rowActivities : $autoActivities;
-                    if ($shouldCreateActivities) {
-                        $this->autoCreateActivities($user, $membershipType);
-                    }
-
                     if ($sendWelcomeEmail && $membership) {
-                        $importedMembers[] = ['user' => $user, 'membership' => $membership];
+                        $importedMembers[] = [
+                            'user' => $user,
+                            'membership' => $membership,
+                            'use_phone_login' => $usePhoneLogin,
+                            'send_to_email' => $memberData['original_email'] ?? $memberData['email'],
+                        ];
                     }
 
                     $imported++;
@@ -181,7 +194,7 @@ class ExcelMemberImporter
             // Queue welcome emails after successful commit
             foreach ($importedMembers as $member) {
                 try {
-                    Mail::to($member['user']->email)->queue(new ImportWelcome(
+                    Mail::to($member['send_to_email'])->queue(new ImportWelcome(
                         $member['user'],
                         $member['membership'],
                         $defaultPassword,
@@ -248,8 +261,6 @@ class ExcelMemberImporter
                 'membership_type' => trim($rawRow[6] ?? ''),
                 'renewal_date' => trim($rawRow[7] ?? ''),
                 'status' => trim($rawRow[8] ?? ''),
-                'knowledge_test' => trim($rawRow[9] ?? ''),
-                'activities' => trim($rawRow[10] ?? ''),
             ],
             'error_message' => Str::limit($error, 497),
             'imported_by' => auth()->id(),
@@ -272,7 +283,6 @@ class ExcelMemberImporter
         $sendWelcomeEmail = $options['send_welcome_email'] ?? true;
         $source = $options['source'] ?? 'import';
         $autoPassTests = $options['auto_pass_knowledge_tests'] ?? ($source === 'import');
-        $autoActivities = $options['auto_create_activities'] ?? false;
 
         try {
             // Rebuild into the array format parseRow expects (column-indexed)
@@ -325,9 +335,6 @@ class ExcelMemberImporter
             if ($autoPassTests) {
                 $this->autoPassKnowledgeTests($user, $membershipType);
             }
-            if ($autoActivities) {
-                $this->autoCreateActivities($user, $membershipType);
-            }
 
             DB::commit();
 
@@ -366,7 +373,7 @@ class ExcelMemberImporter
      *  F: Email
      *  G: Membership Type (e.g. "Dedicated Hunting & Sport", "Regular Member", "Dedicated Life Membership")
      *  H: Renewal Date (d/m/Y or "Life Member")
-     *  I: Activities / Status (e.g. "Active" or blank)
+     *  I: Status (e.g. "Active" or blank)
      */
     protected function parseRow(array $row): array
     {
@@ -379,43 +386,31 @@ class ExcelMemberImporter
 
         $membershipTypeRaw = trim($row[6] ?? '');
         $renewalDateRaw = trim($row[7] ?? '');
-        $activitiesRaw = trim($row[8] ?? '');
+        $statusRaw = trim($row[8] ?? '');
 
         $isLifeMember = stripos($renewalDateRaw, 'life') !== false
                      || stripos($membershipTypeRaw, 'life') !== false;
 
-        // Determine renewal date (null for life members)
         $renewalDate = $isLifeMember ? null : $this->parseDate($renewalDateRaw);
 
-        // Determine if member should be active:
-        //  - "Active" in DS Activities column, OR
-        //  - Life member, OR
-        //  - Renewal date is in the future (still valid)
-        $isActive = (! empty($activitiesRaw) && stripos($activitiesRaw, 'active') !== false)
+        $isActive = (! empty($statusRaw) && stripos($statusRaw, 'active') !== false)
                   || $isLifeMember
                   || ($renewalDate && $renewalDate >= date('Y-m-d'));
-
-        $knowledgeTestRaw = strtolower(trim($row[9] ?? ''));
-        $activitiesRaw2 = strtolower(trim($row[10] ?? ''));
 
         return [
             'name' => $name,
             'email' => trim(strtolower($row[5] ?? '')),
             'id_number' => $idNumber,
-            'phone' => trim($row[4] ?? ''),
+            'phone' => User::normalizePhone(trim($row[4] ?? '')),
             'date_of_birth' => $dateOfBirth,
             'physical_address' => null,
             'postal_address' => null,
-            'membership_number' => '', // auto-generated
+            'membership_number' => '',
             'membership_type_raw' => $membershipTypeRaw,
             'status' => $isActive ? 'active' : 'applied',
             'date_joined' => $this->parseDate($row[0] ?? null),
             'renewal_date' => $renewalDate,
             'is_life_member' => $isLifeMember,
-            'knowledge_test' => in_array($knowledgeTestRaw, ['yes', 'y', '1', 'true']) ? true
-                                : (in_array($knowledgeTestRaw, ['no', 'n', '0', 'false']) ? false : null),
-            'activities' => in_array($activitiesRaw2, ['yes', 'y', '1', 'true']) ? true
-                            : (in_array($activitiesRaw2, ['no', 'n', '0', 'false']) ? false : null),
         ];
     }
 
@@ -746,17 +741,15 @@ class ExcelMemberImporter
             'Membership Type',
             'Renewal Date (DD/MM/YYYY)',
             'Status (Active / blank)',
-            'Knowledge Test (Yes / No)',
-            'Activities (Yes / No)',
         ];
 
         $sheet->fromArray([$headers], null, 'A1');
 
         // Add sample rows demonstrating the various membership types
         $sampleRows = [
-            ['24/11/2025', 'SP', 'Basson', '0010165037085', '084 407 6112', 'spbasson123@example.com', 'Dedicated Life Membership', 'Life Member', 'Active', 'Yes', 'Yes'],
-            ['28/11/2025', 'TA', 'Tilbury', '9907201326086', '072 119 8026', 'tilbury@example.com', 'Regular Member', '27/11/2025', '', 'No', 'No'],
-            ['17/12/2025', 'PJ', 'Pretorius', '8705185113087', '071 586 7077', 'pretorius@example.com', 'Dedicated Hunting & Sport', '16/12/2026', 'Active', 'Yes', 'Yes'],
+            ['24/11/2025', 'SP', 'Basson', '0010165037085', '084 407 6112', 'spbasson123@example.com', 'Dedicated Life Membership', 'Life Member', 'Active'],
+            ['28/11/2025', 'TA', 'Tilbury', '9907201326086', '072 119 8026', 'tilbury@example.com', 'Regular Member', '27/11/2025', ''],
+            ['17/12/2025', 'PJ', 'Pretorius', '8705185113087', '071 586 7077', 'pretorius@example.com', 'Dedicated Hunting & Sport', '16/12/2026', 'Active'],
         ];
 
         $rowNum = 2;
@@ -777,13 +770,10 @@ class ExcelMemberImporter
             ['Regular Member / Standard / Occasional', 'Standard Annual Membership'],
             ['Junior / Junior Member', 'Junior Annual Membership'],
             ['', ''],
-            ['Knowledge Test column', 'Yes = auto-pass knowledge test for this member'],
-            ['', 'No = skip knowledge test for this member'],
-            ['', 'Blank = use the default setting from the import form'],
+            ['Status column', '"Active" = member has an active membership'],
+            ['', 'Blank = member is not currently active (set to pending)'],
             ['', ''],
-            ['Activities column', 'Yes = auto-create required activities for this member'],
-            ['', 'No = skip activities for this member'],
-            ['', 'Blank = use the default setting from the import form'],
+            ['Note', 'New NRAPA member numbers will be assigned automatically'],
         ];
         $r = 2;
         foreach ($notes as $note) {
@@ -796,8 +786,8 @@ class ExcelMemberImporter
 
         // Style header row on main sheet
         $spreadsheet->setActiveSheetIndex(0);
-        $sheet->getStyle('A1:K1')->getFont()->setBold(true);
-        $sheet->getStyle('A1:K1')->getFill()
+        $sheet->getStyle('A1:I1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:I1')->getFill()
             ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
             ->getStartColor()->setARGB('FFE2E8F0');
         $sheet->getColumnDimension('A')->setWidth(22);
@@ -809,8 +799,6 @@ class ExcelMemberImporter
         $sheet->getColumnDimension('G')->setWidth(35);
         $sheet->getColumnDimension('H')->setWidth(25);
         $sheet->getColumnDimension('I')->setWidth(18);
-        $sheet->getColumnDimension('J')->setWidth(24);
-        $sheet->getColumnDimension('K')->setWidth(22);
 
         // Save file
         $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');

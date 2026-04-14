@@ -1,6 +1,7 @@
 <?php
 
 use App\Concerns\ProfileValidationRules;
+use App\Concerns\NormalizesPhone;
 use App\Models\User;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Support\Facades\Auth;
@@ -26,6 +27,8 @@ new class extends Component {
     public function updateProfileInformation(): void
     {
         $user = Auth::user();
+
+        $this->phone = User::normalizePhone($this->phone) ?? $this->phone;
 
         $validated = $this->validate($this->profileRules($user->id));
 

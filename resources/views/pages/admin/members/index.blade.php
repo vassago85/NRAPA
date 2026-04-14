@@ -33,8 +33,6 @@ new #[Title('Members - Admin')] class extends Component {
     public bool $autoApprove = true;
     public bool $autoActivate = true;
     public bool $sendWelcomeEmail = true;
-    public bool $knowledgeTestCompleted = true;
-    public bool $activitiesUpToDate = false;
     public ?array $importResults = null;
 
     public function updatedSearch(): void
@@ -134,7 +132,7 @@ new #[Title('Members - Admin')] class extends Component {
     public function closeImportModal(): void
     {
         $this->showImportModal = false;
-        $this->reset(['excelFile', 'importResults', 'defaultPassword', 'defaultMembershipType', 'skipDuplicates', 'autoApprove', 'autoActivate', 'sendWelcomeEmail', 'knowledgeTestCompleted', 'activitiesUpToDate']);
+        $this->reset(['excelFile', 'importResults', 'defaultPassword', 'defaultMembershipType', 'skipDuplicates', 'autoApprove', 'autoActivate', 'sendWelcomeEmail']);
     }
     
     // Template download is handled by a dedicated route: admin.members.download-template
@@ -158,8 +156,6 @@ new #[Title('Members - Admin')] class extends Component {
                 'auto_approve' => $this->autoApprove,
                 'auto_activate' => $this->autoActivate,
                 'send_welcome_email' => $this->sendWelcomeEmail,
-                'auto_pass_knowledge_tests' => $this->knowledgeTestCompleted,
-                'auto_create_activities' => $this->activitiesUpToDate,
             ];
             
             $this->importResults = $importer->importFromExcel($fullPath, $options);
@@ -431,10 +427,10 @@ new #[Title('Members - Admin')] class extends Component {
                     <div class="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
                         <p class="text-xs font-semibold text-blue-800 dark:text-blue-200 mb-1">Expected Excel columns (in order):</p>
                         <p class="text-xs text-blue-700 dark:text-blue-300">
-                            Date Joined &bull; Initials &bull; Surname &bull; ID Number &bull; Tel Number &bull; Email &bull; Membership Type &bull; Renewal Date &bull; Status &bull; Knowledge Test (Yes/No) &bull; Activities (Yes/No)
+                            Date Joined &bull; Initials &bull; Surname &bull; ID Number &bull; Tel Number &bull; Email &bull; Membership Type &bull; Renewal Date &bull; Status (Active / blank)
                         </p>
                         <p class="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                            The last two columns are per-member. Leave blank to use the defaults below. Use the <strong>Download Template</strong> button for a sample file.
+                            New NRAPA member numbers are assigned automatically. Use the <strong>Download Template</strong> button for a sample file.
                         </p>
                     </div>
 
@@ -506,20 +502,6 @@ new #[Title('Members - Admin')] class extends Component {
                                 </label>
                             </div>
 
-                            <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20">
-                                <p class="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-2">Compliance Defaults</p>
-                                <p class="text-xs text-amber-700 dark:text-amber-400 mb-2">Applied when the Excel row's Knowledge Test / Activities column is blank.</p>
-                                <div class="space-y-2">
-                                    <label class="flex items-center gap-2 cursor-pointer">
-                                        <input type="checkbox" wire:model="knowledgeTestCompleted" class="rounded border-zinc-300 text-amber-600 focus:ring-amber-500">
-                                        <span class="text-sm text-zinc-700 dark:text-zinc-300">Knowledge test completed (default)</span>
-                                    </label>
-                                    <label class="flex items-center gap-2 cursor-pointer">
-                                        <input type="checkbox" wire:model="activitiesUpToDate" class="rounded border-zinc-300 text-amber-600 focus:ring-amber-500">
-                                        <span class="text-sm text-zinc-700 dark:text-zinc-300">Activities up to date (default)</span>
-                                    </label>
-                                </div>
-                            </div>
                         </div>
                         
                         {{-- Import Results --}}
