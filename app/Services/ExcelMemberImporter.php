@@ -629,6 +629,12 @@ class ExcelMemberImporter
             $status = 'applied';
         }
 
+        if ($autoActivate) {
+            $status = 'active';
+        } elseif ($autoApprove && $status === 'applied') {
+            $status = 'approved';
+        }
+
         // Use date_joined for applied_at if available, otherwise now
         $appliedAt = ! empty($memberData['date_joined'])
             ? \Carbon\Carbon::parse($memberData['date_joined'])
