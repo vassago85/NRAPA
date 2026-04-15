@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Mail\ImportWelcome;
+use App\Mail\SharedEmailNotice;
 use App\Models\ActivityType;
 use App\Models\EndorsementRequest;
 use App\Models\ImportFailure;
@@ -32,6 +33,7 @@ class ExcelMemberImporter
         'dedicated sport shooter' => 'dedicated-sport',
         'dedicated hunter' => 'dedicated-hunter',
         'dedicated hunting' => 'dedicated-hunter',
+        'dedicated hunt & sport' => 'dedicated-both',
         'dedicated hunting & sport' => 'dedicated-both',
         'dedicated hunter & sport' => 'dedicated-both',
         'dedicated hunter & sport shooter' => 'dedicated-both',
@@ -311,13 +313,22 @@ class ExcelMemberImporter
 
             $memberData = $this->parseRow($row);
 
-            if (empty($memberData['name']) || empty($memberData['email'])) {
-                return ['success' => false, 'error' => 'Name (initials + surname) and email are required.'];
+            if (empty($memberData['name']) || (empty($memberData['email']) && empty($memberData['phone']))) {
+                return ['success' => false, 'error' => 'Name (initials + surname) and email or phone are required.'];
             }
 
-            // Check for duplicate email
-            if (User::where('email', $memberData['email'])->exists()) {
-                return ['success' => false, 'error' => "User with email '{$memberData['email']}' already exists."];
+            // Handle duplicate or missing email — fall back to phone-based account
+            if (empty($memberData['email']) || User::where('email', $memberData['email'])->exists()) {
+                if (empty($memberData['phone'])) {
+                    $reason = empty($memberData['email']) ? 'No email provided' : "Duplicate email '{$memberData['email']}'";
+                    return ['success' => false, 'error' => "{$reason} and no phone number to fall back on."];
+                }
+                $phonePlaceholder = $memberData['phone'].'@phone.nrapa.co.za';
+                if (User::where('email', $phonePlaceholder)->exists()) {
+                    return ['success' => false, 'error' => "Duplicate email '{$memberData['email']}' and phone account '{$phonePlaceholder}' also already exists."];
+                }
+                $memberData['original_email'] = $memberData['email'];
+                $memberData['email'] = $phonePlaceholder;
             }
 
             // Check for duplicate ID number
@@ -350,27 +361,44 @@ class ExcelMemberImporter
             DB::commit();
 
             $emailSent = false;
+            $phoneFallback = ! empty($memberData['original_email']);
+            $originalEmail = $memberData['original_email'] ?? null;
+
             if ($sendWelcomeEmail && $membership) {
                 try {
-                    Mail::to($user->email)->send(new ImportWelcome($user, $membership, $defaultPassword));
+                    if ($phoneFallback && $originalEmail) {
+                        Mail::to($originalEmail)->send(new SharedEmailNotice($user, $membership, $originalEmail, $defaultPassword));
+                    } else {
+                        Mail::to($user->email)->send(new ImportWelcome($user, $membership, $defaultPassword));
+                    }
                     $emailSent = true;
                 } catch (Exception $e) {
-                    Log::warning('Failed to send import welcome email', [
+                    $recipient = $phoneFallback ? $originalEmail : $user->email;
+                    $mailClass = $phoneFallback ? SharedEmailNotice::class : ImportWelcome::class;
+                    Log::warning('Failed to send import email', [
                         'user_id' => $user->id,
-                        'email' => $user->email,
+                        'email' => $recipient,
+                        'phone_fallback' => $phoneFallback,
                         'error' => $e->getMessage(),
                     ]);
                     \App\Listeners\LogFailedEmail::logFailure(
-                        $user->email,
-                        'Welcome to NRAPA – Set Up Your Account',
-                        ImportWelcome::class,
+                        $recipient,
+                        $phoneFallback ? 'NRAPA – Your Login Details ('.$user->name.')' : 'Welcome to NRAPA – Set Up Your Account',
+                        $mailClass,
                         $e->getMessage(),
                         $user->id,
                     );
                 }
             }
 
-            return ['success' => true, 'error' => null, 'user' => $user, 'email_sent' => $emailSent];
+            return [
+                'success' => true,
+                'error' => null,
+                'user' => $user,
+                'email_sent' => $emailSent,
+                'phone_fallback' => $phoneFallback,
+                'original_email' => $originalEmail,
+            ];
 
         } catch (Exception $e) {
             DB::rollBack();
@@ -486,7 +514,7 @@ class ExcelMemberImporter
     protected function resolveMembershipType(?string $rawType, ?MembershipType $default): ?MembershipType
     {
         if (! empty($rawType)) {
-            $normalised = strtolower(trim($rawType));
+            $normalised = preg_replace('/\s+/', ' ', strtolower(trim($rawType)));
 
             // Check our mapping table first
             if (isset($this->membershipTypeMap[$normalised])) {
