@@ -292,9 +292,13 @@ class ExcelMemberImporter
         $autoPassTests = $options['auto_pass_knowledge_tests'] ?? ($source === 'import');
 
         try {
-            // Rebuild into the array format parseRow expects (column-indexed)
+            // Rebuild into the array format parseRow expects (column-indexed):
+            // A=Date Joined, B=Member Number, C=Initials, D=Surname,
+            // E=ID Number, F=Tel Number, G=Email, H=Membership Type,
+            // I=Renewal Date, J=Status
             $row = [
                 $rowData['date_joined'] ?? '',
+                '',
                 $rowData['initials'] ?? '',
                 $rowData['surname'] ?? '',
                 $rowData['id_number'] ?? '',
