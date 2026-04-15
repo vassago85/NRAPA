@@ -629,28 +629,27 @@ class ExcelMemberImporter
             $status = 'applied';
         }
 
-        if ($autoActivate) {
-            $status = 'active';
-        } elseif ($autoApprove && $status === 'applied') {
-            $status = 'approved';
-        }
-
         // Use date_joined for applied_at if available, otherwise now
         $appliedAt = ! empty($memberData['date_joined'])
             ? \Carbon\Carbon::parse($memberData['date_joined'])
             : now();
-
-        $approvedAt = ($status === 'approved' || $status === 'active') ? $appliedAt : null;
-        $activatedAt = ($status === 'active') ? $appliedAt : null;
 
         // Determine expiry date — 12 months from activation/join date unless specified
         $expiresAt = null;
         if (! empty($memberData['renewal_date'])) {
             $expiresAt = \Carbon\Carbon::parse($memberData['renewal_date']);
         } elseif ($membershipType->requires_renewal && $membershipType->duration_months) {
-            $baseDate = $activatedAt ?? $appliedAt;
-            $expiresAt = $baseDate->copy()->addMonths($membershipType->duration_months);
+            $expiresAt = $appliedAt->copy()->addMonths($membershipType->duration_months);
         }
+
+        if ($autoActivate) {
+            $status = ($expiresAt && $expiresAt->isPast()) ? 'expired' : 'active';
+        } elseif ($autoApprove && $status === 'applied') {
+            $status = 'approved';
+        }
+
+        $approvedAt = ($status === 'approved' || $status === 'active' || $status === 'expired') ? $appliedAt : null;
+        $activatedAt = ($status === 'active' || $status === 'expired') ? $appliedAt : null;
 
         return Membership::create([
             'uuid' => Str::uuid(),
