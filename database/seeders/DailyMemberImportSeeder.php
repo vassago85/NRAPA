@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Services\ExcelMemberImporter;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * Reads public/dailyupload.csv and imports members as existing/imported members.
@@ -127,22 +128,23 @@ class DailyMemberImportSeeder extends Seeder
 
             if ($result['success']) {
                 $imported++;
-                $label = $knowledgeTest ? ' [tests passed]' : '';
-                $label .= $activities ? ' [activities]' : '';
-                $this->command->info("Row {$rowNumber}: Imported {$row[2]} {$row[3]} ({$email}){$label}");
+                $status = ($result['phone_fallback'] ?? false) ? 'phone login' : 'ok';
+                $this->command->info("✓ {$row[2]} {$row[3]} — {$status}");
             } else {
                 $failed++;
-                $failures[] = "Row {$rowNumber}: {$row[2]} {$row[3]} — {$result['error']}";
-                $this->command->error("Row {$rowNumber}: FAILED {$row[2]} {$row[3]} — {$result['error']}");
+                $reason = Str::before($result['error'], '(Connection:');
+                $reason = Str::limit(trim($reason), 80, '…');
+                $failures[] = "{$row[2]} {$row[3]} — {$reason}";
+                $this->command->error("✗ {$row[2]} {$row[3]} — {$reason}");
             }
         }
 
         $this->command->newLine();
-        $this->command->info("Import complete: {$imported} imported, {$skipped} skipped, {$failed} failed.");
+        $this->command->info("Done: {$imported} imported, {$skipped} skipped, {$failed} failed.");
 
         if (! empty($failures)) {
             $this->command->newLine();
-            $this->command->warn('Failures:');
+            $this->command->warn('Failed:');
             foreach ($failures as $f) {
                 $this->command->warn("  • {$f}");
             }
