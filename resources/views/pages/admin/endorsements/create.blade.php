@@ -206,8 +206,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
         <div class="lg:col-span-2 space-y-6">
 
             {{-- Step 1: Select Member --}}
-            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
-                <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">1. Select Member</h2>
                 </div>
                 <div class="p-6">
@@ -241,10 +241,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
                         </div>
 
                         @if($this->searchResults->isNotEmpty())
-                            <div class="mt-2 border border-zinc-200 dark:border-zinc-700 rounded-lg divide-y divide-zinc-200 dark:divide-zinc-700 max-h-64 overflow-y-auto">
+                            <div class="mt-2 border border-zinc-200 dark:border-zinc-800 rounded-lg divide-y divide-zinc-200 dark:divide-zinc-800 max-h-64 overflow-y-auto">
                                 @foreach($this->searchResults as $user)
                                     <button wire:click="selectMember({{ $user->id }})"
-                                        class="w-full flex items-center gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors text-left">
+                                        class="w-full flex items-center gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors text-left">
                                         <div class="flex items-center justify-center w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-700 text-sm font-semibold text-zinc-600 dark:text-zinc-300">
                                             {{ $user->initials() }}
                                         </div>
@@ -267,8 +267,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
             </div>
 
             {{-- Step 2: Request Type & Firearm --}}
-            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
-                <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">2. Endorsement Details</h2>
                 </div>
                 <div class="p-6 space-y-5">
@@ -389,7 +389,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
 
             {{-- Eligibility Warnings --}}
             @if($this->selectedUser)
-                <div class="bg-white dark:bg-zinc-800 rounded-xl border {{ ($this->eligibility['eligible'] ?? false) ? 'border-emerald-300 dark:border-emerald-700' : 'border-amber-300 dark:border-amber-700' }} overflow-hidden">
+                <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border {{ ($this->eligibility['eligible'] ?? false) ? 'border-emerald-300 dark:border-emerald-700' : 'border-amber-300 dark:border-amber-700' }} overflow-hidden">
                     <div class="px-6 py-4 border-b {{ ($this->eligibility['eligible'] ?? false) ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20' : 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20' }}">
                         <h3 class="font-semibold {{ ($this->eligibility['eligible'] ?? false) ? 'text-emerald-800 dark:text-emerald-200' : 'text-amber-800 dark:text-amber-200' }}">
                             Member Eligibility
@@ -455,7 +455,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
             @endif
 
             {{-- Create Button --}}
-            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
                 <div class="p-6">
                     @if($this->selectedUser && !($this->eligibility['eligible'] ?? false))
                         <div class="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">

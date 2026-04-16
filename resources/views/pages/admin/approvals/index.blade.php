@@ -290,13 +290,13 @@ new #[Title('All Approvals - Admin')] class extends Component {
     public function getTypeBadgeClass(string $type): string
     {
         return match($type) {
-            'document' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-            'membership' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
+            'document' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
+            'membership' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200',
             'change_request' => 'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200',
             'change_payment' => 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
             'activity' => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
             'calibre' => 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-            'endorsement' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+            'endorsement' => 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200',
             default => 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200',
         };
     }
@@ -629,23 +629,23 @@ new #[Title('All Approvals - Admin')] class extends Component {
 
     {{-- Stats --}}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Total Outstanding</p>
             <p class="mt-1 text-2xl font-bold text-amber-600 dark:text-amber-400">{{ $this->stats['total'] }}</p>
         </div>
-        <div class="rounded-xl border border-nrapa-blue/30 bg-nrapa-blue/5 p-4 dark:border-nrapa-blue/40 dark:bg-nrapa-blue/10">
+        <div class="rounded-2xl shadow-sm border border-nrapa-blue/30 bg-nrapa-blue/5 p-4 dark:border-nrapa-blue/40 dark:bg-nrapa-blue/10">
             <p class="text-sm text-nrapa-blue dark:text-blue-300">Pending Approvals</p>
             <p class="mt-1 text-2xl font-bold text-nrapa-blue dark:text-blue-400">{{ $this->stats['pending_approvals'] }}</p>
             <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                 {{ $this->stats['documents'] }} docs, {{ $this->stats['memberships'] }} memberships, {{ $this->stats['activities'] }} activities, {{ $this->stats['calibres'] }} calibres, {{ $this->stats['endorsements'] }} endorsements
             </p>
         </div>
-        <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-700 dark:bg-amber-900/20">
+        <div class="rounded-2xl shadow-sm border border-amber-200 bg-amber-50 p-4 dark:border-amber-700 dark:bg-amber-900/20">
             <p class="text-sm text-amber-700 dark:text-amber-300">Awaiting Payment</p>
             <p class="mt-1 text-2xl font-bold text-amber-600 dark:text-amber-400">{{ $this->stats['awaiting_payment'] }}</p>
             <p class="mt-1 text-xs text-amber-600 dark:text-amber-400">Blocked on member payment</p>
         </div>
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800 flex items-center justify-center">
+        <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900 flex items-center justify-center">
             @if($this->stats['pending_approvals'] > 0)
             <button wire:click="clearAllApprovals"
                     wire:confirm="Are you sure you want to approve all items in Pending Approvals? Items awaiting payment will not be affected. This action cannot be undone."
@@ -664,8 +664,8 @@ new #[Title('All Approvals - Admin')] class extends Component {
     {{-- ============================================ --}}
     {{-- SECTION 1: PENDING APPROVALS                --}}
     {{-- ============================================ --}}
-    <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
-        <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
+    <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+        <div class="border-b border-zinc-200 p-6 dark:border-zinc-800">
             <div class="flex items-center gap-3">
                 <div class="flex size-8 items-center justify-center rounded-lg bg-nrapa-blue/10 dark:bg-nrapa-blue/20">
                     <svg class="size-5 text-nrapa-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -685,7 +685,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
         </div>
 
         @if($this->pendingApprovals->count() > 0)
-        <div class="divide-y divide-zinc-200 dark:divide-zinc-700">
+        <div class="divide-y divide-zinc-200 dark:divide-zinc-800">
             @foreach($this->pendingApprovals as $approval)
             <div class="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
                 <div class="flex items-center gap-4 flex-1">
@@ -699,7 +699,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
                                 {{ $this->getTypeLabel($approval['type']) }}
                             </span>
                             @if(isset($approval['status']))
-                            <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                            <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
                                 {{ ucfirst(str_replace('_', ' ', $approval['status'])) }}
                             </span>
                             @endif
@@ -739,7 +739,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
     {{-- ============================================ --}}
     {{-- SECTION 2: AWAITING PAYMENT                 --}}
     {{-- ============================================ --}}
-    <div class="rounded-xl border border-amber-200 bg-white dark:border-amber-800/50 dark:bg-zinc-800">
+    <div class="rounded-2xl shadow-sm border border-amber-200 bg-white dark:border-amber-800/50 dark:bg-zinc-900">
         <div class="border-b border-amber-200 dark:border-amber-800/50 p-6 bg-amber-50/50 dark:bg-amber-900/10">
             <div class="flex items-center gap-3">
                 <div class="flex size-8 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30">
@@ -760,7 +760,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
         </div>
 
         @if($this->awaitingPayment->count() > 0)
-        <div class="divide-y divide-zinc-200 dark:divide-zinc-700">
+        <div class="divide-y divide-zinc-200 dark:divide-zinc-800">
             @foreach($this->awaitingPayment as $item)
             <div class="flex flex-col gap-4 p-6 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
                 <div class="flex items-center gap-4 flex-1">

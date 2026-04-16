@@ -203,7 +203,7 @@ new #[Title('Import Bullets - Admin')] class extends Component {
 
     <div class="max-w-4xl space-y-6">
         {{-- Upload --}}
-        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+        <div class="rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Upload File</h2>
             <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div>
@@ -238,7 +238,7 @@ new #[Title('Import Bullets - Admin')] class extends Component {
         </div>
 
         {{-- Format Reference --}}
-        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+        <div class="rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-3">CSV Format Reference</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
@@ -309,7 +309,7 @@ new #[Title('Import Bullets - Admin')] class extends Component {
 
         {{-- Preview --}}
         @if(count($preview) > 0)
-        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+        <div class="rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Preview ({{ count($preview) }} rows)</h2>
                 <button wire:click="import" wire:confirm="Import {{ count($preview) }} bullets? Existing matches will be updated."
@@ -318,7 +318,7 @@ new #[Title('Import Bullets - Admin')] class extends Component {
                 </button>
             </div>
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700 text-xs">
+                <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-800 text-xs">
                     <thead>
                         <tr>
                             <th class="px-2 py-1 text-left font-medium text-zinc-500">Manufacturer</th>
@@ -333,7 +333,7 @@ new #[Title('Import Bullets - Admin')] class extends Component {
                             <th class="px-2 py-1 text-left font-medium text-zinc-500">Use</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-zinc-100 dark:divide-zinc-700/50">
+                    <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/50">
                         @foreach($preview as $row)
                         <tr>
                             <td class="px-2 py-1 text-zinc-900 dark:text-white">{{ $row['manufacturer'] ?? '' }}</td>

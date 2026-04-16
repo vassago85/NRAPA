@@ -598,7 +598,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
         <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Review endorsement request details</p>
     </x-slot>
 
-    <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-4">
             <a href="{{ route('admin.endorsements.index') }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
                 <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -631,8 +631,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
         {{-- Main Content --}}
         <div class="lg:col-span-2 space-y-6">
             {{-- Member Info --}}
-            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
-                <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Member Information</h2>
                 </div>
                 <div class="p-6">
@@ -663,7 +663,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             </div>
 
             {{-- Compliance Status Card --}}
-            <div class="bg-white dark:bg-zinc-800 rounded-xl border {{ $this->isFullyCompliant ? 'border-emerald-300 dark:border-emerald-700' : 'border-amber-300 dark:border-amber-700' }} overflow-hidden">
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border {{ $this->isFullyCompliant ? 'border-emerald-300 dark:border-emerald-700' : 'border-amber-300 dark:border-amber-700' }} overflow-hidden">
                 <div class="px-6 py-4 border-b {{ $this->isFullyCompliant ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20' : 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20' }}">
                     <div class="flex items-center justify-between">
                         <h2 class="text-lg font-semibold {{ $this->isFullyCompliant ? 'text-emerald-800 dark:text-emerald-200' : 'text-amber-800 dark:text-amber-200' }}">
@@ -781,8 +781,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             </div>
 
             {{-- Request Details --}}
-            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
-                <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Request Details</h2>
                 </div>
                 <div class="p-6">
@@ -835,7 +835,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                         </div>
                     </dl>
                     @if($request->member_notes)
-                        <div class="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                        <div class="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
                             <dt class="text-sm text-zinc-500 mb-1">Member Notes</dt>
                             <dd class="text-sm text-zinc-900 dark:text-white">{{ $request->member_notes }}</dd>
                         </div>
@@ -845,8 +845,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
 
             {{-- Firearm Details --}}
             @if($request->firearm)
-                <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
-                    <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+                <div class="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
                         <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">
                             {{ \App\Models\EndorsementFirearm::isComponentCategory($request->firearm->firearm_category) ? 'Component Details' : 'Firearm Details' }}
                         </h2>
@@ -924,11 +924,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
 
             {{-- Components --}}
             @if($request->components->count() > 0)
-                <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
-                    <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+                <div class="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
                         <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Component Endorsements</h2>
                     </div>
-                    <div class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                    <div class="divide-y divide-zinc-200 dark:divide-zinc-800">
                         @foreach($request->components as $component)
                             <div class="p-4">
                                 <div class="flex items-center gap-3">
@@ -971,11 +971,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             @endif
 
             {{-- Documents --}}
-            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
-                <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Documents</h2>
                 </div>
-                <div class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                <div class="divide-y divide-zinc-200 dark:divide-zinc-800">
                     @foreach($request->documents as $doc)
                         <div class="p-4">
                             <div class="flex items-center justify-between">
@@ -1043,8 +1043,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
         {{-- Sidebar - Actions --}}
         <div class="space-y-6">
             {{-- Actions Card --}}
-            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
-                <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
                     <h3 class="font-semibold text-zinc-900 dark:text-white">Actions</h3>
                 </div>
                 <div class="p-6 space-y-4">
@@ -1139,7 +1139,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                         @endif
 
                         {{-- Delete button (always available for admin) --}}
-                        <div class="border-t border-zinc-200 dark:border-zinc-700 mt-4 pt-4">
+                        <div class="border-t border-zinc-200 dark:border-zinc-800 mt-4 pt-4">
                             <button wire:click="$set('showDeleteModal', true)"
                                 class="w-full px-4 py-2 border border-red-500 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center justify-center gap-2">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1152,7 +1152,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
 
                     {{-- Show approved status (letter not yet generated) --}}
                     @if($request->isApproved() && !$request->isIssued())
-                        <div class="text-center py-4 border-t border-zinc-200 dark:border-zinc-700 mt-4">
+                        <div class="text-center py-4 border-t border-zinc-200 dark:border-zinc-800 mt-4">
                             <div class="w-16 h-16 mx-auto bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-4">
                                 <svg class="w-8 h-8 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
@@ -1251,8 +1251,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
 
             {{-- Request Info --}}
             @if($request->letter_reference || $request->reviewer || $request->issuer)
-                <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
-                    <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+                <div class="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
                         <h3 class="font-semibold text-zinc-900 dark:text-white">Processing Info</h3>
                     </div>
                     <div class="p-6 space-y-3 text-sm">
@@ -1490,7 +1490,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                     </div>
                 </div>
 
-                <div class="flex gap-3 justify-end mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                <div class="flex gap-3 justify-end mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-800">
                     <button wire:click="$set('showEditFirearmModal', false)" class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors text-sm">
                         Cancel
                     </button>

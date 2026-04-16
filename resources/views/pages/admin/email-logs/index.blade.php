@@ -58,7 +58,7 @@ new class extends Component {
 
     <!-- Stats -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-4">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-4">
             <div class="flex items-center gap-3">
                 <div class="p-2 bg-emerald-100 dark:bg-emerald-900/40 rounded-lg">
                     <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -69,7 +69,7 @@ new class extends Component {
                 </div>
             </div>
         </div>
-        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-4">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-4">
             <div class="flex items-center gap-3">
                 <div class="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
                     <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -80,7 +80,7 @@ new class extends Component {
                 </div>
             </div>
         </div>
-        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-4">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-4">
             <div class="flex items-center gap-3">
                 <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                     <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
@@ -109,10 +109,10 @@ new class extends Component {
     </div>
 
     <!-- Logs Table -->
-    <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+    <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full">
-                <thead class="bg-zinc-50 dark:bg-zinc-700/50">
+                <thead class="bg-zinc-50 dark:bg-zinc-900/50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Date</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Recipient</th>
@@ -122,9 +122,9 @@ new class extends Component {
                         <th class="px-6 py-3 text-right text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                     @forelse($logs as $log)
-                        <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/30">
+                        <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-zinc-600 dark:text-zinc-300">
                                 {{ $log->sent_at?->format('d M Y H:i') ?? $log->created_at->format('d M Y H:i') }}
                             </td>
@@ -148,7 +148,7 @@ new class extends Component {
                                         Failed
                                     </span>
                                 @else
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300">
                                         {{ ucfirst($log->status) }}
                                     </span>
                                 @endif
@@ -171,7 +171,7 @@ new class extends Component {
         </div>
 
         @if($logs->hasPages())
-            <div class="px-6 py-4 border-t border-zinc-200 dark:border-zinc-700">
+            <div class="px-6 py-4 border-t border-zinc-200 dark:border-zinc-800">
                 {{ $logs->links() }}
             </div>
         @endif
@@ -234,7 +234,7 @@ new class extends Component {
                                             <iframe
                                                 srcdoc="{!! htmlspecialchars($log->body, ENT_QUOTES, 'UTF-8') !!}"
                                                 sandbox="allow-same-origin"
-                                                class="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white"
+                                                class="w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white"
                                                 style="min-height: 500px;"
                                                 onload="try{this.style.height=(this.contentDocument.body.scrollHeight+40)+'px'}catch(e){}"
                                             ></iframe>

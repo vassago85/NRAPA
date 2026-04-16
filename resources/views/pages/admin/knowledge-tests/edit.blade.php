@@ -106,7 +106,7 @@ new #[Title('Edit Knowledge Test - Admin')] class extends Component {
 
     {{-- Form --}}
     <form wire:submit="save" class="max-w-2xl space-y-6">
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
             <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Test Details</h2>
 
             <div class="space-y-4">
@@ -194,7 +194,7 @@ new #[Title('Edit Knowledge Test - Admin')] class extends Component {
             </div>
         </div>
 
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
             <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Dedicated Status Type</h2>
 
             <div>
@@ -208,7 +208,7 @@ new #[Title('Edit Knowledge Test - Admin')] class extends Component {
             </div>
         </div>
 
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
             <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Test Configuration</h2>
 
             <div class="grid gap-4 sm:grid-cols-3">

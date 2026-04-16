@@ -59,7 +59,7 @@ new class extends Component {
         <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Review member activity submission</p>
     </x-slot>
     
-    <div class="mb-8">
+    <div class="mb-6">
         <a href="{{ route('admin.activities.index') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-zinc-600 dark:text-zinc-400 hover:text-emerald-600 transition-colors">
             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             Back to Activities
@@ -71,7 +71,7 @@ new class extends Component {
                     Approved
                 </span>
             @elseif($activity->status === 'pending')
-                <span class="inline-flex items-center gap-1 rounded-full bg-yellow-100 dark:bg-yellow-900/30 px-3 py-1 text-sm font-medium text-yellow-800 dark:text-yellow-400">
+                <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/30 px-3 py-1 text-sm font-medium text-amber-700 dark:text-amber-400">
                     <svg class="size-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
                     Pending Review
                 </span>
@@ -85,13 +85,13 @@ new class extends Component {
     </div>
 
     @if(session('success'))
-        <div class="mb-6 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 text-emerald-700 dark:text-emerald-300">
+        <div class="mb-6 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 text-emerald-700 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
 
     @if($activity->status === 'rejected' && $activity->rejection_reason)
-        <div class="mb-6 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4">
+        <div class="mb-6 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4">
             <div class="flex items-start gap-3">
                 <svg class="size-5 text-red-600 dark:text-red-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                 <div>
@@ -106,7 +106,7 @@ new class extends Component {
         <!-- Main Content -->
         <div class="lg:col-span-2 space-y-6">
             <!-- Member Information -->
-            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Member Information</h2>
 
                 <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -128,7 +128,7 @@ new class extends Component {
             </div>
 
             <!-- Activity Information -->
-            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Activity Information</h2>
 
                 <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -171,7 +171,7 @@ new class extends Component {
             </div>
 
             <!-- Location -->
-            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Location</h2>
 
                 <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -198,7 +198,7 @@ new class extends Component {
             </div>
 
             <!-- Firearm/Calibre -->
-            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Firearm / Calibre</h2>
 
                 <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -224,7 +224,7 @@ new class extends Component {
 
             <!-- Additional Information -->
             @if($activity->description)
-                <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+                <div class="rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Additional Information</h2>
                     <p class="text-sm text-zinc-700 dark:text-zinc-300">{{ $activity->description }}</p>
                 </div>
@@ -234,7 +234,7 @@ new class extends Component {
         <!-- Sidebar -->
         <div class="space-y-6">
             <!-- Supporting Documents -->
-            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Supporting Documents</h2>
 
                 <div class="space-y-3">
@@ -293,7 +293,7 @@ new class extends Component {
 
             <!-- Verification Details -->
             @if($activity->verified_at)
-                <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+                <div class="rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Verification Details</h2>
 
                     <dl class="space-y-3">
@@ -312,7 +312,7 @@ new class extends Component {
 
             <!-- Actions -->
             @if($activity->status === 'pending')
-                <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+                <div class="rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Actions</h2>
 
                     <div class="space-y-4">

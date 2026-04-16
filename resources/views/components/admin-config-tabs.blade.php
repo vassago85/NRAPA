@@ -13,8 +13,8 @@
     ];
 @endphp
 
-<div class="mb-6 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 overflow-hidden">
-    <div class="px-4 py-2 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-700">
+<div class="mb-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
+    <div class="px-4 py-2 bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800">
         <span class="text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Configuration</span>
     </div>
     <nav class="flex overflow-x-auto scrollbar-none">

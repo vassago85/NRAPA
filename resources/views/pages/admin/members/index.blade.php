@@ -98,7 +98,7 @@ new #[Title('Members - Admin')] class extends Component {
         $activeMembership = $user->activeMembership;
         if ($activeMembership) {
             if ($activeMembership->expires_at && $activeMembership->expires_at->isPast()) {
-                return ['status' => 'Expired', 'class' => 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'];
+                return ['status' => 'Expired', 'class' => 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'];
             }
             return ['status' => 'Active', 'class' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'];
         }
@@ -114,11 +114,11 @@ new #[Title('Members - Admin')] class extends Component {
         }
 
         return match($displayStatus) {
-            'applied' => ['status' => 'Pending', 'class' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'],
+            'applied' => ['status' => 'Pending', 'class' => 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300'],
             'approved' => ['status' => 'Approved', 'class' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'],
             'suspended' => ['status' => 'Suspended', 'class' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'],
             'revoked' => ['status' => 'Revoked', 'class' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'],
-            'expired' => ['status' => 'Expired', 'class' => 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'],
+            'expired' => ['status' => 'Expired', 'class' => 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'],
             default => ['status' => ucfirst($latestMembership->status), 'class' => 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200'],
         };
     }
@@ -265,32 +265,32 @@ new #[Title('Members - Admin')] class extends Component {
     </div>
     
     @if(session('success'))
-        <div class="p-4 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+        <div class="p-4 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-xl">
             <p class="text-emerald-700 dark:text-emerald-300">{{ session('success') }}</p>
         </div>
     @endif
     
     @if(session('error'))
-        <div class="p-4 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
+        <div class="p-4 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl">
             <p class="text-red-700 dark:text-red-300">{{ session('error') }}</p>
         </div>
     @endif
 
     {{-- Stats Cards --}}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Total Users</p>
             <p class="mt-1 text-2xl font-bold text-zinc-900 dark:text-white">{{ $this->stats['total'] }}</p>
         </div>
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Active Members</p>
             <p class="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ $this->stats['active'] }}</p>
         </div>
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Pending Approval</p>
-            <p class="mt-1 text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ $this->stats['pending'] }}</p>
+            <p class="mt-1 text-2xl font-bold text-amber-600 dark:text-amber-400">{{ $this->stats['pending'] }}</p>
         </div>
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Expired</p>
             <p class="mt-1 text-2xl font-bold text-orange-600 dark:text-orange-400">{{ $this->stats['expired'] }}</p>
         </div>
@@ -321,10 +321,10 @@ new #[Title('Members - Admin')] class extends Component {
     </div>
 
     {{-- Members Table --}}
-    <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
         <div class="overflow-x-auto">
             <table class="w-full">
-                <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
+                <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Member</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Membership</th>
@@ -333,7 +333,7 @@ new #[Title('Members - Admin')] class extends Component {
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400"></th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                     @forelse($this->members as $user)
                     @php
                         $membershipStatus = $this->getMembershipStatus($user);
@@ -402,7 +402,7 @@ new #[Title('Members - Admin')] class extends Component {
         </div>
 
         @if($this->members->hasPages())
-        <div class="border-t border-zinc-200 px-6 py-4 dark:border-zinc-700">
+        <div class="border-t border-zinc-200 px-6 py-4 dark:border-zinc-800">
             {{ $this->members->links() }}
         </div>
         @endif
@@ -415,7 +415,7 @@ new #[Title('Members - Admin')] class extends Component {
             <div class="fixed inset-0 bg-black/50 transition-opacity" @click="show = false"></div>
             
             <div class="relative w-full max-w-3xl rounded-xl bg-white shadow-xl dark:bg-zinc-800">
-                <div class="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-700">
+                <div class="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Import Members from Excel</h2>
                     <button wire:click="closeImportModal" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -460,7 +460,7 @@ new #[Title('Members - Admin')] class extends Component {
                         </div>
                         
                         {{-- Import Options --}}
-                        <div class="space-y-4 border-t border-zinc-200 pt-4 dark:border-zinc-700">
+                        <div class="space-y-4 border-t border-zinc-200 pt-4 dark:border-zinc-800">
                             <h3 class="text-sm font-semibold text-zinc-900 dark:text-white">Import Options</h3>
                             
                             <div>
@@ -506,7 +506,7 @@ new #[Title('Members - Admin')] class extends Component {
                         
                         {{-- Import Results --}}
                         @if($importResults)
-                        <div class="border-t border-zinc-200 pt-4 dark:border-zinc-700">
+                        <div class="border-t border-zinc-200 pt-4 dark:border-zinc-800">
                             <div class="rounded-lg p-4 {{ $importResults['success'] ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-red-50 dark:bg-red-900/20' }}">
                                 <div class="flex items-start gap-3">
                                     @if($importResults['success'])
@@ -553,7 +553,7 @@ new #[Title('Members - Admin')] class extends Component {
                         </div>
                         @endif
                         
-                        <div class="flex justify-end gap-3 border-t border-zinc-200 pt-4 dark:border-zinc-700">
+                        <div class="flex justify-end gap-3 border-t border-zinc-200 pt-4 dark:border-zinc-800">
                             <button type="button" wire:click="closeImportModal" class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 dark:hover:bg-zinc-600 transition-colors">
                                 Cancel
                             </button>

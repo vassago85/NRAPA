@@ -2,14 +2,14 @@
     $currentRoute = request()->route()?->getName() ?? '';
     $active = 'border-nrapa-blue text-nrapa-blue dark:text-blue-400 dark:border-blue-400';
     $inactive = 'border-transparent text-zinc-500 hover:text-zinc-900 hover:border-zinc-300 dark:text-zinc-400 dark:hover:text-zinc-200';
-    $separator = 'border-l border-zinc-200 dark:border-zinc-700 mx-1 self-stretch';
+    $separator = 'border-l border-zinc-200 dark:border-zinc-800 mx-1 self-stretch';
 
     $configRoutes = ['admin.membership-types.', 'admin.affiliated-clubs.', 'admin.activity-config.', 'admin.calibre-requests.', 'admin.firearm-settings.', 'admin.firearm-reference.', 'admin.bullet-database.'];
     $isConfigRoute = collect($configRoutes)->contains(fn($prefix) => str_starts_with($currentRoute, $prefix));
     $isLearningRoute = str_starts_with($currentRoute, 'admin.learning.') || str_starts_with($currentRoute, 'admin.knowledge-tests.');
 @endphp
 
-<div class="bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 px-4 sm:px-6 lg:px-8">
+<div class="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-4 sm:px-6 lg:px-8">
     <div class="max-w-7xl mx-auto">
         <nav class="flex flex-wrap gap-x-0.5 -mb-px overflow-x-auto scrollbar-none">
             {{-- Administration --}}

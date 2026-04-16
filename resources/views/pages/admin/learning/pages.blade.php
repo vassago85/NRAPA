@@ -202,7 +202,7 @@ new #[Title('Manage Pages - Learning Center')] class extends Component {
 
     {{-- Page Form --}}
     @if($editingPageId !== null)
-    <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
         <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">
             {{ $editingPageId ? 'Edit Page' : 'Add New Page' }}
         </h2>
@@ -300,7 +300,7 @@ new #[Title('Manage Pages - Learning Center')] class extends Component {
     {{-- Pages List --}}
     <div class="space-y-4">
         @forelse($this->pages as $index => $page)
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
             <div class="flex items-start justify-between gap-4">
                 <div class="flex items-start gap-4">
                     <div class="flex flex-col gap-1">
@@ -315,7 +315,7 @@ new #[Title('Manage Pages - Learning Center')] class extends Component {
                             </svg>
                         </button>
                     </div>
-                    <div class="flex size-10 items-center justify-center rounded-full bg-emerald-100 text-lg font-bold text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
+                    <div class="flex size-10 items-center justify-center rounded-full bg-emerald-100 text-lg font-bold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
                         {{ $page->page_number }}
                     </div>
                     <div class="flex-1">
@@ -348,7 +348,7 @@ new #[Title('Manage Pages - Learning Center')] class extends Component {
             </div>
         </div>
         @empty
-        <div class="rounded-xl border border-zinc-200 bg-white p-12 text-center dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl border border-zinc-200 bg-white p-12 text-center dark:border-zinc-800 dark:bg-zinc-900">
             <svg class="mx-auto size-12 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
             </svg>

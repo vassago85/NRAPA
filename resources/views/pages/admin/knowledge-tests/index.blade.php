@@ -96,7 +96,7 @@ new #[Title('Knowledge Tests - Admin')] class extends Component {
                 </svg>
                 Marking Queue
                 @if($this->stats['pending_marking'] > 0)
-                <span class="inline-flex items-center justify-center rounded-full bg-yellow-500 px-2 py-0.5 text-xs font-bold text-white">
+                <span class="inline-flex items-center justify-center rounded-full bg-amber-500 px-2 py-0.5 text-xs font-bold text-white">
                     {{ $this->stats['pending_marking'] }}
                 </span>
                 @endif
@@ -124,23 +124,23 @@ new #[Title('Knowledge Tests - Admin')] class extends Component {
 
     {{-- Stats --}}
     <div class="grid gap-4 sm:grid-cols-5">
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Total Tests</p>
             <p class="mt-1 text-2xl font-bold text-zinc-900 dark:text-white">{{ $this->stats['total_tests'] }}</p>
         </div>
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Active Tests</p>
             <p class="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ $this->stats['active_tests'] }}</p>
         </div>
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Pending Marking</p>
-            <p class="mt-1 text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ $this->stats['pending_marking'] }}</p>
+            <p class="mt-1 text-2xl font-bold text-amber-600 dark:text-amber-400">{{ $this->stats['pending_marking'] }}</p>
         </div>
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Total Attempts</p>
             <p class="mt-1 text-2xl font-bold text-zinc-900 dark:text-white">{{ $this->stats['total_attempts'] }}</p>
         </div>
-        <button wire:click="toggleShowArchived" class="rounded-xl border border-zinc-200 bg-white p-4 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-left">
+        <button wire:click="toggleShowArchived" class="rounded-xl border border-zinc-200 bg-white p-4 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:bg-zinc-700 text-left">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Archived Tests</p>
             <p class="mt-1 text-2xl font-bold text-zinc-500 dark:text-zinc-400">{{ $this->stats['archived_tests'] }}</p>
             <p class="text-xs text-blue-600 dark:text-blue-400 mt-1">{{ $showArchived ? 'View Active' : 'View Archived' }}</p>
@@ -148,9 +148,9 @@ new #[Title('Knowledge Tests - Admin')] class extends Component {
     </div>
 
     {{-- Tests List --}}
-    <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
         @if($showArchived)
-        <div class="border-b border-zinc-200 bg-amber-50 px-6 py-3 dark:border-zinc-700 dark:bg-amber-900/20">
+        <div class="border-b border-zinc-200 bg-amber-50 px-6 py-3 dark:border-zinc-800 dark:bg-amber-900/20">
             <p class="text-sm font-medium text-amber-800 dark:text-amber-200">
                 <svg class="inline-block size-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0-3-3m3 3 3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
@@ -161,7 +161,7 @@ new #[Title('Knowledge Tests - Admin')] class extends Component {
         @endif
         <div class="overflow-x-auto">
             <table class="w-full">
-                <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
+                <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Test</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">For</th>
@@ -172,7 +172,7 @@ new #[Title('Knowledge Tests - Admin')] class extends Component {
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400"></th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                     @forelse($this->tests as $test)
                     <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
                         <td class="whitespace-nowrap px-6 py-4">
@@ -181,14 +181,14 @@ new #[Title('Knowledge Tests - Admin')] class extends Component {
                         </td>
                         <td class="whitespace-nowrap px-6 py-4">
                             @if($test->dedicated_type === 'hunter')
-                            <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Hunter</span>
-                            <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700 dark:bg-red-900 dark:text-red-300 ml-1">Required</span>
+                            <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">Hunter</span>
+                            <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700 dark:bg-red-900/40 dark:text-red-300 ml-1">Required</span>
                             @elseif($test->dedicated_type === 'sport' || $test->dedicated_type === 'sport_shooter')
-                            <span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">Sport</span>
-                            <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700 dark:bg-red-900 dark:text-red-300 ml-1">Required</span>
+                            <span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/40 dark:text-blue-200">Sport</span>
+                            <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700 dark:bg-red-900/40 dark:text-red-300 ml-1">Required</span>
                             @elseif($test->dedicated_type === 'both')
-                            <span class="inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800 dark:bg-purple-900 dark:text-purple-200">Both</span>
-                            <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700 dark:bg-red-900 dark:text-red-300 ml-1">Required</span>
+                            <span class="inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800 dark:bg-purple-900/40 dark:text-purple-200">Both</span>
+                            <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700 dark:bg-red-900/40 dark:text-red-300 ml-1">Required</span>
                             @else
                             <span class="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200">All Members</span>
                             <span class="inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-xs text-sky-700 dark:bg-sky-900 dark:text-sky-300 ml-1">Optional</span>
@@ -206,7 +206,7 @@ new #[Title('Knowledge Tests - Admin')] class extends Component {
                         </td>
                         <td class="whitespace-nowrap px-6 py-4">
                             @if($test->isArchived())
-                            <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Archived</span>
+                            <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">Archived</span>
                             @elseif($test->is_active)
                             <button wire:click="toggleActive({{ $test->id }})">
                                 <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Active</span>

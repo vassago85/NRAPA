@@ -397,7 +397,7 @@ new class extends Component {
         <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Financial overview and membership statistics</p>
     </x-slot>
 
-    <div class="mb-8 flex items-center justify-end">
+    <div class="mb-6 flex items-center justify-end">
         <a href="{{ route('admin.dashboard') }}" wire:navigate class="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors">
             ← Back to Dashboard
         </a>
@@ -416,7 +416,7 @@ new class extends Component {
         </div>
     @endif
 
-    <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6 mb-6">
+    <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6 mb-6">
         <div class="flex flex-col sm:flex-row sm:items-center gap-4">
             <div class="flex items-center gap-3">
                 <label class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Period:</label>
@@ -445,7 +445,7 @@ new class extends Component {
 
     {{-- Stats for Selected Period --}}
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
             <div class="flex items-center gap-4">
                 <div class="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
                     <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -459,7 +459,7 @@ new class extends Component {
                 </div>
             </div>
         </div>
-        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
             <div class="flex items-center gap-4">
                 <div class="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                     <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -473,7 +473,7 @@ new class extends Component {
                 </div>
             </div>
         </div>
-        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
             <div class="flex items-center gap-4">
                 <div class="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
                     <svg class="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -492,7 +492,7 @@ new class extends Component {
     {{-- Month-on-Month & Year-on-Year Comparisons --}}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         {{-- Month-on-Month --}}
-        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
             <div class="flex items-center gap-2 mb-4">
                 <svg class="w-5 h-5 text-zinc-500 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
@@ -524,7 +524,7 @@ new class extends Component {
         </div>
 
         {{-- Year-on-Year --}}
-        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
             <div class="flex items-center gap-2 mb-4">
                 <svg class="w-5 h-5 text-zinc-500 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
@@ -557,12 +557,12 @@ new class extends Component {
     </div>
 
     {{-- Annual Summary --}}
-    <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6 mb-6">
+    <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6 mb-6">
         <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">{{ $selectedYear }} Annual Summary</h2>
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
-                    <tr class="border-b border-zinc-200 dark:border-zinc-700">
+                    <tr class="border-b border-zinc-200 dark:border-zinc-800">
                         <th class="text-left py-2 px-3 font-medium text-zinc-600 dark:text-zinc-400">Month</th>
                         <th class="text-right py-2 px-3 font-medium text-zinc-600 dark:text-zinc-400">New</th>
                         <th class="text-right py-2 px-3 font-medium text-zinc-600 dark:text-zinc-400">Renewals</th>
@@ -578,7 +578,7 @@ new class extends Component {
                             $yearlyTotal += $data['total'];
                             $isCurrentSelection = $month == $selectedMonth;
                         @endphp
-                        <tr class="border-b border-zinc-100 dark:border-zinc-700/50 {{ $isCurrentSelection ? 'bg-indigo-50 dark:bg-indigo-900/20' : '' }}">
+                        <tr class="border-b border-zinc-100 dark:border-zinc-800/50 {{ $isCurrentSelection ? 'bg-indigo-50 dark:bg-indigo-900/20' : '' }}">
                             <td class="py-2 px-3 {{ $isCurrentSelection ? 'font-medium text-indigo-700 dark:text-indigo-300' : 'text-zinc-700 dark:text-zinc-300' }}">
                                 {{ date('F', mktime(0, 0, 0, $month, 1)) }}
                             </td>
@@ -600,7 +600,7 @@ new class extends Component {
 
     {{-- Bulk Action Bar --}}
     @if(count($selected) > 0)
-    <div class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 mb-4 flex flex-col sm:flex-row sm:items-center gap-4">
+    <div class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-2xl p-4 mb-4 flex flex-col sm:flex-row sm:items-center gap-4">
         <div class="flex items-center gap-2 text-sm font-medium text-indigo-800 dark:text-indigo-200">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -633,13 +633,13 @@ new class extends Component {
     @endif
 
     {{-- Detailed List --}}
-    <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
-        <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700 flex items-center justify-between">
+    <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+        <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Billable Memberships - {{ $months[$selectedMonth] }} {{ $selectedYear }}</h2>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full">
-                <thead class="bg-zinc-50 dark:bg-zinc-700/50">
+                <thead class="bg-zinc-50 dark:bg-zinc-900/50">
                     <tr>
                         <th class="px-4 py-3 text-left">
                             <input type="checkbox" wire:model.live="selectAll"
@@ -654,9 +654,9 @@ new class extends Component {
                         <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Source</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                     @forelse($memberships as $membership)
-                        <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/30 {{ in_array((string) $membership->id, $selected) ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : '' }}">
+                        <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 {{ in_array((string) $membership->id, $selected) ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : '' }}">
                             <td class="px-4 py-4">
                                 <input type="checkbox" wire:model.live="selected" value="{{ $membership->id }}"
                                     class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500 dark:border-zinc-600 dark:bg-zinc-700">
@@ -725,15 +725,15 @@ new class extends Component {
         </div>
 
         @if($memberships->hasPages())
-            <div class="px-6 py-4 border-t border-zinc-200 dark:border-zinc-700">
+            <div class="px-6 py-4 border-t border-zinc-200 dark:border-zinc-800">
                 {{ $memberships->links() }}
             </div>
         @endif
     </div>
 
     {{-- Restore to Billing --}}
-    <div class="mt-8 bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
-        <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+    <div class="mt-8 bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+        <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
             <div class="flex items-center gap-3">
                 <div class="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
                     <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -777,7 +777,7 @@ new class extends Component {
 
                     <div class="mt-4 overflow-x-auto">
                         <table class="w-full text-sm">
-                            <thead class="bg-zinc-50 dark:bg-zinc-700/50">
+                            <thead class="bg-zinc-50 dark:bg-zinc-900/50">
                                 <tr>
                                     <th class="px-4 py-2 text-left w-10">
                                         <span class="sr-only">Select</span>
@@ -789,9 +789,9 @@ new class extends Component {
                                     <th class="px-4 py-2 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">Status</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                            <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                                 @foreach($this->removedMemberships as $m)
-                                <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/30 {{ in_array((string) $m->id, $removedSelected) ? 'bg-emerald-50/50 dark:bg-emerald-900/10' : '' }}">
+                                <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 {{ in_array((string) $m->id, $removedSelected) ? 'bg-emerald-50/50 dark:bg-emerald-900/10' : '' }}">
                                     <td class="px-4 py-3">
                                         <input type="checkbox" wire:model.live="removedSelected" value="{{ $m->id }}"
                                             class="w-4 h-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700">
@@ -822,7 +822,7 @@ new class extends Component {
     </div>
 
     {{-- Note about imports --}}
-    <div class="mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+    <div class="mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl">
         <div class="flex items-start gap-3">
             <svg class="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>

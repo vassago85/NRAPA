@@ -160,10 +160,10 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             </button>
         </div>
 
-        <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
             <div class="overflow-x-auto">
                 <table class="w-full">
-                    <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
+                    <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-medium uppercase text-zinc-500 dark:text-zinc-400">Version</th>
                             <th class="px-4 py-3 text-left text-xs font-medium uppercase text-zinc-500 dark:text-zinc-400">Title</th>
@@ -172,7 +172,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                             <th class="px-4 py-3 text-right text-xs font-medium uppercase text-zinc-500 dark:text-zinc-400">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                    <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                         @forelse($versions as $version)
                             <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
                                 <td class="px-4 py-3 text-sm font-medium text-zinc-900 dark:text-white">{{ $version->version }}</td>
@@ -229,7 +229,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             </div>
         </div>
     @else
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
             <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">
                 {{ $editingVersion ? 'Edit Terms Version' : 'Create New Terms Version' }}
             </h2>

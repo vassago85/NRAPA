@@ -655,19 +655,19 @@ new #[Title('Learning Center - Admin')] class extends Component {
 
     {{-- Stats --}}
     <div class="grid gap-4 sm:grid-cols-4">
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Categories</p>
             <p class="mt-1 text-2xl font-bold text-zinc-900 dark:text-white">{{ $this->stats['categories'] }}</p>
         </div>
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Total Articles</p>
             <p class="mt-1 text-2xl font-bold text-zinc-900 dark:text-white">{{ $this->stats['articles'] }}</p>
         </div>
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Published</p>
             <p class="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ $this->stats['published'] }}</p>
         </div>
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Featured</p>
             <p class="mt-1 text-2xl font-bold text-amber-600 dark:text-amber-400">{{ $this->stats['featured'] }}</p>
         </div>
@@ -687,7 +687,7 @@ new #[Title('Learning Center - Admin')] class extends Component {
 
     {{-- Category Form --}}
     @if($editingCategoryId !== null)
-    <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
         <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">
             {{ $editingCategoryId ? 'Edit Category' : 'New Category' }}
         </h2>
@@ -773,7 +773,7 @@ new #[Title('Learning Center - Admin')] class extends Component {
 
     {{-- Article Form --}}
     @if($editingArticleId !== null)
-    <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
         <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">
             {{ $editingArticleId ? 'Edit Article' : 'New Article' }}
         </h2>
@@ -954,7 +954,7 @@ new #[Title('Learning Center - Admin')] class extends Component {
     @endif
 
     {{-- Tabs --}}
-    <div class="border-b border-zinc-200 dark:border-zinc-700">
+    <div class="border-b border-zinc-200 dark:border-zinc-800">
         <nav class="-mb-px flex gap-4">
             <button wire:click="$set('tab', 'categories')" class="border-b-2 px-1 py-3 text-sm font-medium {{ $tab === 'categories' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300' }}">
                 Categories ({{ $this->stats['categories'] }})
@@ -969,7 +969,7 @@ new #[Title('Learning Center - Admin')] class extends Component {
     @if($tab === 'categories')
     <div class="space-y-4">
         @forelse($this->categories as $category)
-        <div class="rounded-xl border {{ $category->is_active ? 'border-zinc-200 dark:border-zinc-700' : 'border-zinc-100 dark:border-zinc-800 opacity-60' }} bg-white p-6 dark:bg-zinc-800">
+        <div class="rounded-2xl border {{ $category->is_active ? 'border-zinc-200 dark:border-zinc-800' : 'border-zinc-100 dark:border-zinc-800 opacity-60' }} bg-white p-6 dark:bg-zinc-900">
             <div class="flex items-start justify-between gap-4">
                 <div class="flex items-start gap-4">
                     @if($category->hasImage())
@@ -1051,7 +1051,7 @@ new #[Title('Learning Center - Admin')] class extends Component {
             </div>
         </div>
         @empty
-        <div class="rounded-xl border border-zinc-200 bg-white p-12 text-center dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl border border-zinc-200 bg-white p-12 text-center dark:border-zinc-800 dark:bg-zinc-900">
             <svg class="mx-auto size-12 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
             </svg>
@@ -1072,7 +1072,7 @@ new #[Title('Learning Center - Admin')] class extends Component {
     @if($tab === 'articles')
     <div class="space-y-4">
         @forelse($this->articles as $article)
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
             <div class="flex items-start justify-between gap-4">
                 <div class="flex items-start gap-4">
                     @if($article->hasFeaturedImage())
@@ -1093,7 +1093,7 @@ new #[Title('Learning Center - Admin')] class extends Component {
                             <span class="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400">Draft</span>
                             @endif
                             @if($article->is_featured)
-                            <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Featured</span>
+                            <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">Featured</span>
                             @endif
                         </div>
                         <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
@@ -1145,7 +1145,7 @@ new #[Title('Learning Center - Admin')] class extends Component {
             </div>
         </div>
         @empty
-        <div class="rounded-xl border border-zinc-200 bg-white p-12 text-center dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl border border-zinc-200 bg-white p-12 text-center dark:border-zinc-800 dark:bg-zinc-900">
             <svg class="mx-auto size-12 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
             </svg>

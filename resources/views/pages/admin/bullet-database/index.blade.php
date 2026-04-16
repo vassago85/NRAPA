@@ -171,7 +171,7 @@ new #[Title('Bullet Database - Admin')] class extends Component {
     @endif
 
     {{-- Filters --}}
-    <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-4" x-data="{ showFilters: false }">
+    <div class="rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4" x-data="{ showFilters: false }">
         <div class="flex items-center gap-4">
             <div class="flex-1">
                 <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search bullets, SKUs, manufacturers..."
@@ -271,9 +271,9 @@ new #[Title('Bullet Database - Admin')] class extends Component {
     </div>
 
     {{-- Table --}}
-    <div class="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800">
-        <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
-            <thead class="bg-zinc-50 dark:bg-zinc-800/50 sticky top-0">
+    <div class="overflow-x-auto rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+        <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-800">
+            <thead class="bg-zinc-50 dark:bg-zinc-900/50 sticky top-0">
                 <tr>
                     @php
                         $cols = [
@@ -303,7 +303,7 @@ new #[Title('Bullet Database - Admin')] class extends Component {
                     <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">Actions</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-zinc-100 dark:divide-zinc-700/50">
+            <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/50">
                 @forelse($bullets as $bullet)
                 <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800/30">
                     <td class="px-4 py-3 text-sm font-medium text-zinc-900 dark:text-white whitespace-nowrap">{{ $bullet->manufacturer }}</td>

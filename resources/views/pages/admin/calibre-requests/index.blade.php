@@ -130,7 +130,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Calibre Requests')] class extends 
 
     <x-admin-config-tabs current="calibres" />
 
-    <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Calibre Requests</h1>
             <p class="mt-2 text-zinc-600 dark:text-zinc-400">Review and approve member requests for new calibres.</p>
@@ -140,17 +140,17 @@ new #[Layout('layouts.app.sidebar')] #[Title('Calibre Requests')] class extends 
     {{-- Stats --}}
     <div class="grid grid-cols-3 gap-4 mb-6">
         <button wire:click="$set('statusFilter', 'pending')"
-            class="p-4 rounded-xl border {{ $statusFilter === 'pending' ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800' }} text-left transition-colors">
+            class="p-4 rounded-2xl border {{ $statusFilter === 'pending' ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20' : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900' }} text-left transition-colors">
             <p class="text-2xl font-bold {{ $statusFilter === 'pending' ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-900 dark:text-white' }}">{{ $this->stats['pending'] }}</p>
             <p class="text-sm text-zinc-600 dark:text-zinc-400">Pending</p>
         </button>
         <button wire:click="$set('statusFilter', 'approved')"
-            class="p-4 rounded-xl border {{ $statusFilter === 'approved' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800' }} text-left transition-colors">
+            class="p-4 rounded-2xl border {{ $statusFilter === 'approved' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900' }} text-left transition-colors">
             <p class="text-2xl font-bold {{ $statusFilter === 'approved' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-900 dark:text-white' }}">{{ $this->stats['approved'] }}</p>
             <p class="text-sm text-zinc-600 dark:text-zinc-400">Approved</p>
         </button>
         <button wire:click="$set('statusFilter', 'rejected')"
-            class="p-4 rounded-xl border {{ $statusFilter === 'rejected' ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800' }} text-left transition-colors">
+            class="p-4 rounded-2xl border {{ $statusFilter === 'rejected' ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900' }} text-left transition-colors">
             <p class="text-2xl font-bold {{ $statusFilter === 'rejected' ? 'text-red-600 dark:text-red-400' : 'text-zinc-900 dark:text-white' }}">{{ $this->stats['rejected'] }}</p>
             <p class="text-sm text-zinc-600 dark:text-zinc-400">Rejected</p>
         </button>
@@ -171,8 +171,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Calibre Requests')] class extends 
 
     {{-- Requests List --}}
     @if($this->requests->count() > 0)
-        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
-            <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+            <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-800">
                 <thead class="bg-zinc-50 dark:bg-zinc-900/50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase">Calibre</th>
@@ -183,9 +183,9 @@ new #[Layout('layouts.app.sidebar')] #[Title('Calibre Requests')] class extends 
                         <th class="px-6 py-3 text-right text-xs font-medium text-zinc-500 uppercase">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                     @foreach($this->requests as $request)
-                        <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
+                        <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
                             <td class="px-6 py-4">
                                 <div class="font-medium text-zinc-900 dark:text-white">{{ $request->name }}</div>
                                 @if($request->saps_code)
@@ -229,7 +229,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Calibre Requests')] class extends 
             </table>
         </div>
     @else
-        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-12 text-center">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-12 text-center">
             <svg class="mx-auto h-12 w-12 text-zinc-300 dark:text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
             </svg>
@@ -251,7 +251,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Calibre Requests')] class extends 
             <div class="fixed inset-0 bg-zinc-500/75 dark:bg-zinc-900/75 transition-opacity" wire:click="cancelEdit"></div>
 
             <div class="inline-block align-bottom bg-white dark:bg-zinc-800 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-xl sm:w-full">
-                <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+                <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
                     <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">
                         {{ $editingRequest->status === 'pending' ? 'Review Calibre Request' : 'View Calibre Request' }}
                     </h3>
@@ -368,7 +368,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Calibre Requests')] class extends 
                     @endif
                 </div>
 
-                <div class="px-6 py-4 bg-zinc-50 dark:bg-zinc-900/50 border-t border-zinc-200 dark:border-zinc-700 flex justify-between">
+                <div class="px-6 py-4 bg-zinc-50 dark:bg-zinc-900/50 border-t border-zinc-200 dark:border-zinc-800 flex justify-between">
                     <button type="button" wire:click="cancelEdit"
                         class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
                         Close

@@ -88,8 +88,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Requests - Admin')] cl
     </x-slot>
 
     {{-- Stats Cards --}}
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div class="bg-white dark:bg-zinc-800 rounded-xl p-6 border border-zinc-200 dark:border-zinc-700">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl p-6 border border-zinc-200 dark:border-zinc-800 shadow-sm">
             <div class="flex items-center gap-4">
                 <div class="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
                     <svg class="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -102,7 +102,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Requests - Admin')] cl
                 </div>
             </div>
         </div>
-        <div class="bg-white dark:bg-zinc-800 rounded-xl p-6 border border-zinc-200 dark:border-zinc-700">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl p-6 border border-zinc-200 dark:border-zinc-800 shadow-sm">
             <div class="flex items-center gap-4">
                 <div class="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
                     <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -115,7 +115,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Requests - Admin')] cl
                 </div>
             </div>
         </div>
-        <div class="bg-white dark:bg-zinc-800 rounded-xl p-6 border border-zinc-200 dark:border-zinc-700">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl p-6 border border-zinc-200 dark:border-zinc-800 shadow-sm">
             <div class="flex items-center gap-4">
                 <div class="p-3 bg-emerald-100 dark:bg-emerald-900/40 rounded-lg">
                     <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -128,7 +128,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Requests - Admin')] cl
                 </div>
             </div>
         </div>
-        <div class="bg-white dark:bg-zinc-800 rounded-xl p-6 border border-zinc-200 dark:border-zinc-700">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl p-6 border border-zinc-200 dark:border-zinc-800 shadow-sm">
             <div class="flex items-center gap-4">
                 <div class="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                     <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -144,7 +144,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Requests - Admin')] cl
     </div>
 
     {{-- Filters --}}
-    <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-4 mb-6">
+    <div class="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm p-4 mb-6">
         <div class="flex flex-col md:flex-row gap-4">
             <div class="flex-1">
                 <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search by name, email, or ID number..."
@@ -170,7 +170,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Requests - Admin')] cl
     </div>
 
     {{-- Requests Table --}}
-    <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+    <div class="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full">
                 <thead class="bg-zinc-50 dark:bg-zinc-900/50">
@@ -183,9 +183,9 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Requests - Admin')] cl
                         <th class="px-6 py-3 text-right text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                     @forelse($this->requests as $request)
-                        <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/30">
+                        <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
                                     <div class="flex items-center justify-center w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-semibold">
@@ -251,7 +251,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Requests - Admin')] cl
         </div>
 
         @if($this->requests->hasPages())
-            <div class="px-6 py-4 border-t border-zinc-200 dark:border-zinc-700">
+            <div class="px-6 py-4 border-t border-zinc-200 dark:border-zinc-800">
                 {{ $this->requests->links() }}
             </div>
         @endif

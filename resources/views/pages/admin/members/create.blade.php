@@ -164,8 +164,8 @@ new #[Title('Add Member - Admin')] class extends Component {
 
         <form wire:submit="addMember" class="space-y-6">
             {{-- Member Type Toggle --}}
-            <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
-                <div class="border-b border-zinc-200 px-6 py-4 dark:border-zinc-700">
+            <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+                <div class="border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Member Type</h2>
                 </div>
                 <div class="p-6">
@@ -203,8 +203,8 @@ new #[Title('Add Member - Admin')] class extends Component {
             </div>
 
             {{-- Personal Information --}}
-            <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
-                <div class="border-b border-zinc-200 px-6 py-4 dark:border-zinc-700">
+            <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+                <div class="border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Personal Information</h2>
                 </div>
                 <div class="p-6 space-y-4">
@@ -267,8 +267,8 @@ new #[Title('Add Member - Admin')] class extends Component {
             </div>
 
             {{-- Membership Details --}}
-            <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
-                <div class="border-b border-zinc-200 px-6 py-4 dark:border-zinc-700">
+            <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+                <div class="border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Membership Details</h2>
                 </div>
                 <div class="p-6 space-y-4">
@@ -322,8 +322,8 @@ new #[Title('Add Member - Admin')] class extends Component {
             </div>
 
             {{-- Account Settings --}}
-            <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
-                <div class="border-b border-zinc-200 px-6 py-4 dark:border-zinc-700">
+            <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+                <div class="border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Account Settings</h2>
                 </div>
                 <div class="p-6 space-y-4">
@@ -344,7 +344,7 @@ new #[Title('Add Member - Admin')] class extends Component {
 
             {{-- Import Compliance Options --}}
             @if($memberMode === 'import')
-            <div class="rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
+            <div class="rounded-2xl border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
                 <div class="border-b border-amber-200 px-6 py-4 dark:border-amber-700">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Compliance Carry-Over</h2>
                     <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Tick the items this member has already completed in their previous system</p>

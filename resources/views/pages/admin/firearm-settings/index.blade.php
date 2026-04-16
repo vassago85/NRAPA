@@ -123,7 +123,7 @@ new #[Title('Firearm Settings')] class extends Component {
 
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-4">
             {{-- Form --}}
-            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
                 <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">{{ $editingFirearmTypeId ? 'Edit' : 'Add' }} Firearm Type</h3>
                 <form wire:submit="saveFirearmType" class="space-y-4">
                     <div>
@@ -181,8 +181,8 @@ new #[Title('Firearm Settings')] class extends Component {
             </div>
 
             {{-- List --}}
-            <div class="xl:col-span-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 overflow-hidden">
-                <div class="px-4 py-3 border-b border-zinc-200 dark:border-zinc-700 flex flex-wrap items-center gap-3">
+            <div class="xl:col-span-3 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
+                <div class="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center gap-3">
                     <select wire:model.live="categoryFilter" class="rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-1.5 text-sm text-zinc-900 dark:text-white">
                         <option value="">All Categories</option>
                         <option value="handgun">Handgun</option>
@@ -199,8 +199,8 @@ new #[Title('Firearm Settings')] class extends Component {
                     @endif
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
-                        <thead class="bg-zinc-50 dark:bg-zinc-800/50">
+                    <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-800">
+                        <thead class="bg-zinc-50 dark:bg-zinc-900/50">
                             <tr>
                                 <th class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Name</th>
                                 <th class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Category</th>
@@ -210,7 +210,7 @@ new #[Title('Firearm Settings')] class extends Component {
                                 <th class="px-3 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                        <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                             @forelse($firearmTypes as $type)
                                 <tr class="{{ !$type->is_active ? 'opacity-50' : '' }}">
                                     <td class="px-3 py-2.5 text-sm text-zinc-900 dark:text-white">
@@ -221,9 +221,9 @@ new #[Title('Firearm Settings')] class extends Component {
                                     </td>
                                     <td class="px-3 py-2.5">
                                         <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium 
-                                            {{ $type->category === 'handgun' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : '' }}
-                                            {{ $type->category === 'rifle' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200' : '' }}
-                                            {{ $type->category === 'shotgun' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' : '' }}">
+                                            {{ $type->category === 'handgun' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200' : '' }}
+                                            {{ $type->category === 'rifle' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200' : '' }}
+                                            {{ $type->category === 'shotgun' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200' : '' }}">
                                             {{ ucfirst($type->category) }}
                                         </span>
                                     </td>

@@ -168,7 +168,7 @@ new class extends Component {
         </div>
     @endif
 
-    <div class="mb-8 flex items-center justify-between">
+    <div class="mb-6 flex items-center justify-between">
         <div class="flex items-center gap-3">
             <button 
                 wire:click="refresh"
@@ -195,9 +195,9 @@ new class extends Component {
     </div>
 
     {{-- Stats Grid --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         {{-- Total Members --}}
-        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
             <div class="flex items-center gap-4">
                 <div class="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                     <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -215,7 +215,7 @@ new class extends Component {
         </div>
 
         {{-- Active Members --}}
-        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
             <div class="flex items-center gap-4">
                 <div class="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
                     <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -238,7 +238,7 @@ new class extends Component {
         </div>
 
         {{-- Outstanding Approvals --}}
-        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
             <div class="flex items-center gap-4">
                 <div class="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
                     <svg class="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -261,7 +261,7 @@ new class extends Component {
         </div>
 
         {{-- Pending Breakdown (clickable) --}}
-        <a href="{{ route('admin.approvals.index') }}" wire:navigate class="block bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6 hover:border-purple-300 dark:hover:border-purple-600 hover:shadow-md transition-all group">
+        <a href="{{ route('admin.approvals.index') }}" wire:navigate class="block bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6 hover:border-purple-300 dark:hover:border-purple-600 hover:shadow-md transition-all group">
             <div class="flex items-center gap-4">
                 <div class="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg group-hover:bg-purple-200 dark:group-hover:bg-purple-900/50 transition-colors">
                     <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -283,7 +283,7 @@ new class extends Component {
                             <div class="flex justify-between"><span>Endorsements:</span><span class="text-zinc-900 dark:text-white">{{ $pendingEndorsements }}</span></div>
                         </div>
                         @if($awaitingPaymentCount > 0)
-                        <div class="flex justify-between font-semibold pt-1 border-t border-zinc-200 dark:border-zinc-700">
+                        <div class="flex justify-between font-semibold pt-1 border-t border-zinc-200 dark:border-zinc-800">
                             <span class="text-amber-600 dark:text-amber-400">Awaiting Payment:</span>
                             <span class="text-amber-600 dark:text-amber-400">{{ $awaitingPaymentCount }}</span>
                         </div>
@@ -299,7 +299,7 @@ new class extends Component {
 
     {{-- Inactive Imported Members Alert --}}
     @if($this->inactiveImports->isNotEmpty())
-    <div class="mb-8 rounded-xl border-2 border-rose-300 dark:border-rose-700 bg-white dark:bg-zinc-800 overflow-hidden">
+    <div class="mb-6 rounded-2xl border-2 border-rose-300 dark:border-rose-700 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
         <div class="bg-rose-50 dark:bg-rose-900/20 px-6 py-4 flex items-center justify-between border-b border-rose-200 dark:border-rose-800">
             <div class="flex items-center gap-3">
                 <div class="p-2 bg-rose-100 dark:bg-rose-900/50 rounded-lg">
@@ -315,10 +315,10 @@ new class extends Component {
             <span class="px-3 py-1 text-sm font-bold text-white bg-rose-600 rounded-full">{{ $this->inactiveImports->count() }}</span>
         </div>
 
-        <div class="divide-y divide-zinc-100 dark:divide-zinc-700 max-h-80 overflow-y-auto">
+        <div class="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-80 overflow-y-auto">
             @foreach($this->inactiveImports as $inactiveUser)
                 @php $importMembership = $inactiveUser->memberships->first(); @endphp
-                <div class="px-6 py-3 flex items-center justify-between gap-4 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors">
+                <div class="px-6 py-3 flex items-center justify-between gap-4 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
                     <div class="flex items-center gap-4 min-w-0 flex-1">
                         <div class="flex-shrink-0 w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
                             <span class="text-sm font-bold text-rose-600 dark:text-rose-400">{{ strtoupper(substr($inactiveUser->name, 0, 2)) }}</span>
@@ -370,8 +370,8 @@ new class extends Component {
     @endif
 
     {{-- Quick Actions --}}
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Quick Actions</h2>
             <div class="space-y-3">
                 <a href="{{ route('admin.approvals.index') }}" wire:navigate
@@ -427,7 +427,7 @@ new class extends Component {
             </div>
         </div>
 
-        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Approval Summary</h2>
             <div class="space-y-4">
                 <a href="{{ route('admin.documents.index') }}" wire:navigate
@@ -501,7 +501,7 @@ new class extends Component {
 
     {{-- Alert for Outstanding Approvals --}}
     @if($totalOutstandingApprovals > 0)
-    <div class="mb-8 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
+    <div class="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <div class="p-2 bg-amber-100 dark:bg-amber-900/50 rounded-lg">

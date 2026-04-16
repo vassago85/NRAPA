@@ -397,7 +397,7 @@ new #[Title('Settings - Admin')] class extends Component {
     @endif
 
     {{-- Tabs --}}
-    <div class="border-b border-zinc-200 dark:border-zinc-700">
+    <div class="border-b border-zinc-200 dark:border-zinc-800">
         <nav class="-mb-px flex gap-6 overflow-x-auto">
             <button
                 wire:click="$set('activeTab', 'renewal-policy')"
@@ -429,7 +429,7 @@ new #[Title('Settings - Admin')] class extends Component {
     {{-- Renewal Policy Tab --}}
     @if($activeTab === 'renewal-policy')
     <div class="space-y-6">
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
             <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-1">Renewal Policy</h3>
             <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
                 Configure when members can renew their membership and what happens when they expire.
@@ -438,7 +438,7 @@ new #[Title('Settings - Admin')] class extends Component {
             <form wire:submit="saveRenewalPolicy" class="space-y-6">
                 <div class="grid gap-6 md:grid-cols-2">
                     {{-- Renewal Window --}}
-                    <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 p-5">
+                    <div class="rounded-lg border border-zinc-200 dark:border-zinc-800 p-5">
                         <div class="flex items-center gap-3 mb-3">
                             <div class="flex size-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
                                 <svg class="size-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -462,7 +462,7 @@ new #[Title('Settings - Admin')] class extends Component {
                     </div>
 
                     {{-- Grace Period --}}
-                    <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 p-5">
+                    <div class="rounded-lg border border-zinc-200 dark:border-zinc-800 p-5">
                         <div class="flex items-center gap-3 mb-3">
                             <div class="flex size-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30">
                                 <svg class="size-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -522,7 +522,7 @@ new #[Title('Settings - Admin')] class extends Component {
                 </div>
 
                 {{-- Visual Timeline --}}
-                <div class="rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 p-5">
+                <div class="rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-5">
                     <h4 class="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">How it works</h4>
                     <div class="flex items-center gap-2 text-xs overflow-x-auto pb-2">
                         <div class="flex items-center gap-1.5 shrink-0">
@@ -567,7 +567,7 @@ new #[Title('Settings - Admin')] class extends Component {
     <div class="space-y-6">
         {{-- Edit/Create Form --}}
         @if($editingDocumentTypeId !== null)
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
             <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">
                 {{ $editingDocumentTypeId ? 'Edit Document Type' : 'Create Document Type' }}
             </h3>
@@ -640,15 +640,15 @@ new #[Title('Settings - Admin')] class extends Component {
         @endif
 
         {{-- Document Types List --}}
-        <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
-            <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
+        <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+            <div class="border-b border-zinc-200 p-6 dark:border-zinc-800">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Document Types</h2>
                 <p class="text-sm text-zinc-500 dark:text-zinc-400">Configure required documents for membership applications.</p>
             </div>
 
             <div class="overflow-x-auto">
                 <table class="w-full">
-                    <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
+                    <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/50">
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Name</th>
                             <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Expiry</th>
@@ -657,7 +657,7 @@ new #[Title('Settings - Admin')] class extends Component {
                             <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400"></th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                    <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                         @forelse($this->documentTypes as $type)
                         <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
                             <td class="whitespace-nowrap px-6 py-4">
@@ -709,7 +709,7 @@ new #[Title('Settings - Admin')] class extends Component {
         {{-- Configure Document Requirements Modal/Form --}}
         @if($configuringMembershipTypeId !== null)
         @php $membershipType = $this->membershipTypes->firstWhere('id', $configuringMembershipTypeId); @endphp
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
             <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">
                 Document Requirements for: {{ $membershipType?->name }}
             </h3>
@@ -720,7 +720,7 @@ new #[Title('Settings - Admin')] class extends Component {
             <form wire:submit="saveDocumentRequirements" class="space-y-4">
                 <div class="grid gap-4 md:grid-cols-2">
                     @foreach($this->documentTypes as $docType)
-                    <div class="flex items-center justify-between rounded-lg border border-zinc-200 p-4 dark:border-zinc-700 {{ isset($selectedDocumentTypes[$docType->id]) ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700' : '' }}">
+                    <div class="flex items-center justify-between rounded-lg border border-zinc-200 p-4 dark:border-zinc-800 {{ isset($selectedDocumentTypes[$docType->id]) ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700' : '' }}">
                         <div class="flex items-center gap-3">
                             <input
                                 type="checkbox"
@@ -755,7 +755,7 @@ new #[Title('Settings - Admin')] class extends Component {
                 </div>
 
                 @if($this->documentTypes->isEmpty())
-                <div class="rounded-lg border border-zinc-200 p-8 text-center dark:border-zinc-700">
+                <div class="rounded-lg border border-zinc-200 p-8 text-center dark:border-zinc-800">
                     <p class="text-zinc-500 dark:text-zinc-400">No document types available. Create document types first.</p>
                 </div>
                 @endif
@@ -781,13 +781,13 @@ new #[Title('Settings - Admin')] class extends Component {
         @endif
 
         {{-- Membership Types with Document Requirements --}}
-        <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
-            <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
+        <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+            <div class="border-b border-zinc-200 p-6 dark:border-zinc-800">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Document Requirements by Membership Type</h2>
                 <p class="text-sm text-zinc-500 dark:text-zinc-400">Configure which documents are required for each membership type.</p>
             </div>
 
-            <div class="divide-y divide-zinc-200 dark:divide-zinc-700">
+            <div class="divide-y divide-zinc-200 dark:divide-zinc-800">
                 @foreach($this->membershipTypes as $type)
                 <div class="p-6">
                     <div class="flex items-start justify-between">
@@ -798,7 +798,7 @@ new #[Title('Settings - Admin')] class extends Component {
                             @if($type->documentTypes->isNotEmpty())
                             <div class="mt-3 flex flex-wrap gap-2">
                                 @foreach($type->documentTypes as $doc)
-                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $doc->pivot->is_required ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' : 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200' }}">
+                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $doc->pivot->is_required ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200' : 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200' }}">
                                     {{ $doc->name }}
                                     @if($doc->pivot->is_required)
                                     <span class="ml-1 text-amber-600">*</span>
@@ -822,10 +822,10 @@ new #[Title('Settings - Admin')] class extends Component {
             </div>
         </div>
 
-        <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/50">
+        <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
             <p class="text-sm text-zinc-600 dark:text-zinc-400">
                 <span class="font-medium">Legend:</span>
-                <span class="ml-3 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Required *</span>
+                <span class="ml-3 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">Required *</span>
                 <span class="ml-2 inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200">Optional</span>
             </p>
         </div>
@@ -834,8 +834,8 @@ new #[Title('Settings - Admin')] class extends Component {
 
     {{-- Certificate Types Tab --}}
     @if($activeTab === 'certificate-types')
-    <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
-        <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
+    <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+        <div class="border-b border-zinc-200 p-6 dark:border-zinc-800">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Certificate Types</h2>
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Configure certificate templates for members.</p>
         </div>
@@ -844,7 +844,7 @@ new #[Title('Settings - Admin')] class extends Component {
         @if($editingCertificateTypeId)
             @php $editingCertType = \App\Models\CertificateType::find($editingCertificateTypeId); @endphp
             @if($editingCertType)
-            <div class="border-b border-zinc-200 bg-amber-50 p-6 dark:border-zinc-700 dark:bg-amber-900/10">
+            <div class="border-b border-zinc-200 bg-amber-50 p-6 dark:border-zinc-800 dark:bg-amber-900/10">
                 <h3 class="mb-4 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
                     Editing: {{ $editingCertType->name }}
                 </h3>
@@ -884,7 +884,7 @@ new #[Title('Settings - Admin')] class extends Component {
 
         <div class="overflow-x-auto">
             <table class="w-full">
-                <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
+                <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Name</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Validity</th>
@@ -892,7 +892,7 @@ new #[Title('Settings - Admin')] class extends Component {
                         <th class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400"></th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                     @forelse($this->certificateTypes as $type)
                     <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 {{ $editingCertificateTypeId === $type->id ? 'bg-amber-50/50 dark:bg-amber-900/5' : '' }}">
                         <td class="whitespace-nowrap px-6 py-4">

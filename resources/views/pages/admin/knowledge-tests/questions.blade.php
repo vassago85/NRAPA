@@ -699,7 +699,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
 
     {{-- Question Form --}}
     @if($editingQuestionId !== null)
-    <div id="question-form" class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
+    <div id="question-form" class="rounded-2xl shadow-sm border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
         <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">
             {{ $editingQuestionId ? 'Edit Question' : 'Add Question' }}
         </h2>
@@ -911,7 +911,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
 
                 {{-- Correct match per item --}}
                 @if(count($matchingItems) > 0 && count(array_filter($matchingAnswerPool)) > 0)
-                <div class="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                <div class="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-800">
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Correct match for each item</label>
                     <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">Select which answer from the pool is the correct match for each item.</p>
                     <div class="mt-3 space-y-3">
@@ -961,7 +961,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
     {{-- Questions List --}}
     <div class="space-y-4">
         @forelse($this->questions as $index => $question)
-        <div class="rounded-xl border {{ $question->is_active ? 'border-zinc-200 dark:border-zinc-700' : 'border-zinc-100 dark:border-zinc-800 opacity-60' }} bg-white p-6 dark:bg-zinc-800">
+        <div class="rounded-2xl border {{ $question->is_active ? 'border-zinc-200 dark:border-zinc-800' : 'border-zinc-100 dark:border-zinc-800 opacity-60' }} bg-white p-6 dark:bg-zinc-900">
             <div class="flex items-start justify-between gap-4">
                 <div class="flex items-start gap-4">
                     <div class="flex flex-col gap-1">
@@ -983,11 +983,11 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                         <div class="flex items-center gap-2">
                             @php
                                 $typeColors = [
-                                    'multiple_choice' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+                                    'multiple_choice' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
                                     'multiple_select' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
-                                    'priority_order' => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+                                    'priority_order' => 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-200',
                                     'matching' => 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200',
-                                    'written' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+                                    'written' => 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200',
                                 ];
                                 $typeLabels = [
                                     'multiple_choice' => 'Multiple Choice',
@@ -1079,7 +1079,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
             </div>
         </div>
         @empty
-        <div class="rounded-xl border border-zinc-200 bg-white p-12 text-center dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl border border-zinc-200 bg-white p-12 text-center dark:border-zinc-800 dark:bg-zinc-900">
             <svg class="mx-auto size-12 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />
             </svg>

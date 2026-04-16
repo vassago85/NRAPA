@@ -1,5 +1,5 @@
 {{-- Identity --}}
-<div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+<div class="rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Identity</h2>
     <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div>
@@ -57,7 +57,7 @@
 </div>
 
 {{-- Dimensions --}}
-<div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+<div class="rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-1">Dimensions</h2>
     <p class="text-xs text-zinc-500 mb-4">Enter one unit and the other auto-calculates (1 in = 25.4 mm)</p>
     <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -87,7 +87,7 @@
 </div>
 
 {{-- Ballistics --}}
-<div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+<div class="rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-1">Ballistic Coefficients</h2>
     <p class="text-xs text-zinc-500 mb-4">Only enter published values from official sources</p>
     <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -110,7 +110,7 @@
 </div>
 
 {{-- Classification --}}
-<div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+<div class="rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Classification & Source</h2>
     <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div>

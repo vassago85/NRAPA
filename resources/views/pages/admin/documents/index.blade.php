@@ -145,35 +145,35 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
 
     {{-- Flash Messages --}}
     @if(session('success'))
-        <div class="mb-6 p-4 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 rounded-lg text-emerald-800 dark:text-emerald-200">
+        <div class="mb-6 p-4 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 rounded-xl text-emerald-800 dark:text-emerald-200">
             {{ session('success') }}
         </div>
     @endif
     @if(session('info'))
-        <div class="mb-6 p-4 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded-lg text-blue-800 dark:text-blue-200">
+        <div class="mb-6 p-4 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded-xl text-blue-800 dark:text-blue-200">
             {{ session('info') }}
         </div>
     @endif
 
     {{-- Stats --}}
     <div class="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl p-4 border border-zinc-200 dark:border-zinc-800 shadow-sm">
             <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Pending Review</p>
             <p class="text-2xl font-bold text-amber-600 dark:text-amber-400">{{ $pendingCount }}</p>
         </div>
-        <div class="bg-white dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl p-4 border border-zinc-200 dark:border-zinc-800 shadow-sm">
             <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Verified Today</p>
             <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                 {{ \App\Models\MemberDocument::where('status', 'verified')->whereDate('verified_at', today())->count() }}
             </p>
         </div>
-        <div class="bg-white dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl p-4 border border-zinc-200 dark:border-zinc-800 shadow-sm">
             <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Rejected Today</p>
             <p class="text-2xl font-bold text-red-600 dark:text-red-400">
                 {{ \App\Models\MemberDocument::where('status', 'rejected')->whereDate('verified_at', today())->count() }}
             </p>
         </div>
-        <div class="bg-white dark:bg-zinc-800 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl p-4 border border-zinc-200 dark:border-zinc-800 shadow-sm">
             <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Total Documents</p>
             <p class="text-2xl font-bold text-zinc-900 dark:text-white">
                 {{ \App\Models\MemberDocument::count() }}
@@ -205,9 +205,9 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     </div>
 
     {{-- Documents Table --}}
-    <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+    <div class="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
         <table class="w-full">
-            <thead class="bg-zinc-50 dark:bg-zinc-700/50">
+            <thead class="bg-zinc-50 dark:bg-zinc-900/50">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Member</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Document Type</th>
@@ -217,9 +217,9 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                     <th class="px-6 py-3 text-right text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Actions</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+            <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                 @forelse($documents as $document)
-                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/30">
+                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
                                 <div class="h-10 w-10 flex-shrink-0 bg-zinc-200 dark:bg-zinc-700 rounded-full flex items-center justify-center">
@@ -274,7 +274,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         </table>
 
         @if($documents->hasPages())
-            <div class="px-6 py-4 border-t border-zinc-200 dark:border-zinc-700">
+            <div class="px-6 py-4 border-t border-zinc-200 dark:border-zinc-800">
                 {{ $documents->links() }}
             </div>
         @endif
@@ -504,7 +504,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                             @endif
                             
                             @if($reviewingDocument->isPending())
-                                <div class="border-t border-zinc-200 dark:border-zinc-700 pt-4">
+                                <div class="border-t border-zinc-200 dark:border-zinc-800 pt-4">
                                     <div class="mb-4">
                                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                                             Rejection Reason (required if rejecting)

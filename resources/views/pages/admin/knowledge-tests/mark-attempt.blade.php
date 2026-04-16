@@ -118,10 +118,10 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
 
     <div class="grid gap-6 lg:grid-cols-3">
         {{-- Member Info --}}
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
+        <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
             <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Member</h2>
             <div class="flex items-center gap-4">
-                <div class="flex size-14 items-center justify-center rounded-full bg-emerald-100 text-lg font-semibold text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
+                <div class="flex size-14 items-center justify-center rounded-full bg-emerald-100 text-lg font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
                     {{ $attempt->user->initials() }}
                 </div>
                 <div>
@@ -150,7 +150,7 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
         </div>
 
         {{-- Score Summary --}}
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800 lg:col-span-2">
+        <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 lg:col-span-2">
             <h2 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Score Summary</h2>
             <div class="grid gap-4 sm:grid-cols-3">
                 <div class="rounded-lg bg-blue-50 p-4 dark:bg-blue-900/20">
@@ -173,22 +173,22 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
 
     {{-- Auto-Marked Answers (Multiple Choice, Multiple Select, Priority Order) --}}
     @if($this->autoMarkedAnswers->count() > 0)
-    <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
-        <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
+    <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+        <div class="border-b border-zinc-200 p-6 dark:border-zinc-800">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Auto-Marked Answers</h2>
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Multiple choice, multi-select, and priority order questions</p>
         </div>
 
-        <div class="divide-y divide-zinc-200 dark:divide-zinc-700">
+        <div class="divide-y divide-zinc-200 dark:divide-zinc-800">
             @foreach($this->autoMarkedAnswers as $answer)
             @php
                 $qType = $answer->question->question_type;
                 $typeColors = [
-                    'multiple_choice' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+                    'multiple_choice' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
                     'multiple_select' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
-                    'priority_order' => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+                    'priority_order' => 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-200',
                     'matching' => 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200',
-                    'written' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+                    'written' => 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200',
                 ];
                 $typeLabels = [
                     'multiple_choice' => 'Single Answer',
@@ -281,7 +281,7 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
                                 @endphp
                                 <div class="flex items-start gap-2 rounded-lg border p-2 text-sm
                                     {{ $isCorrect && $isSelected ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/40' : '' }}
-                                    {{ $isCorrect && !$isSelected ? 'border-yellow-300 bg-yellow-50 dark:border-yellow-700 dark:bg-yellow-900/30' : '' }}
+                                    {{ $isCorrect && !$isSelected ? 'border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/30' : '' }}
                                     {{ $isSelected && !$isCorrect ? 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/30' : '' }}
                                     {{ !$isSelected && !$isCorrect ? 'border-zinc-200 dark:border-zinc-700' : '' }}">
                                     <input type="checkbox" disabled {{ $isSelected ? 'checked' : '' }} class="mt-0.5 size-4 rounded border-zinc-300">
@@ -290,7 +290,7 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
                                         @if($isCorrect && $isSelected)
                                         <span class="ml-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">(Correct!)</span>
                                         @elseif($isCorrect)
-                                        <span class="ml-1 text-xs font-semibold text-yellow-600 dark:text-yellow-400">(Missed)</span>
+                                        <span class="ml-1 text-xs font-semibold text-amber-600 dark:text-amber-400">(Missed)</span>
                                         @elseif($isSelected)
                                         <span class="ml-1 text-xs font-semibold text-red-600 dark:text-red-400">(Wrong)</span>
                                         @endif
@@ -391,19 +391,19 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
     {{-- Written Answers --}}
     @if($this->writtenAnswers->count() > 0)
     <form wire:submit="saveMarking">
-        <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
-            <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
+        <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+            <div class="border-b border-zinc-200 p-6 dark:border-zinc-800">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Written Answers</h2>
                 <p class="text-sm text-zinc-500 dark:text-zinc-400">Review and score each written answer</p>
             </div>
 
-            <div class="divide-y divide-zinc-200 dark:divide-zinc-700">
+            <div class="divide-y divide-zinc-200 dark:divide-zinc-800">
                 @foreach($this->writtenAnswers as $answer)
                 <div class="p-6">
                     <div class="flex items-start justify-between gap-4">
                         <div class="flex-1">
                             <div class="flex items-center gap-2">
-                                <span class="inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800 dark:bg-purple-900 dark:text-purple-200">Written</span>
+                                <span class="inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800 dark:bg-purple-900/40 dark:text-purple-200">Written</span>
                                 <span class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Max {{ $answer->question->points }} {{ Str::plural('point', $answer->question->points) }}</span>
                             </div>
                             <p class="mt-2 font-medium text-zinc-900 dark:text-white">{{ $answer->question->question_text }}</p>
@@ -446,7 +446,7 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
                 @endforeach
             </div>
 
-            <div class="border-t border-zinc-200 p-6 dark:border-zinc-700">
+            <div class="border-t border-zinc-200 p-6 dark:border-zinc-800">
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Marker Notes (internal only)</label>
                     <textarea wire:model="markerNotes" rows="2" class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white" placeholder="Optional notes about this marking..."></textarea>

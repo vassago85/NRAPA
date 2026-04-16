@@ -50,17 +50,17 @@ new class extends Component {
     </x-slot>
 
     @if(session('success'))
-        <div class="mb-6 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 text-emerald-700 dark:text-emerald-300">
+        <div class="mb-6 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 text-emerald-700 dark:text-emerald-300">
             {{ session('success') }}
         </div>
     @endif
 
     <!-- Stats Grid -->
-    <div class="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <button wire:click="$set('statusFilter', 'pending')" class="rounded-lg border p-4 text-left transition-colors {{ $statusFilter === 'pending' ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700' : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-yellow-300' }}">
+    <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <button wire:click="$set('statusFilter', 'pending')" class="rounded-lg border p-4 text-left transition-colors {{ $statusFilter === 'pending' ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-amber-300' }}">
             <div class="flex items-center gap-3">
-                <div class="rounded-full bg-yellow-100 dark:bg-yellow-900/30 p-2">
-                    <svg class="size-5 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <div class="rounded-full bg-amber-100 dark:bg-amber-900/30 p-2">
+                    <svg class="size-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
                 <div>
                     <p class="text-2xl font-bold text-zinc-900 dark:text-white">{{ $pendingCount }}</p>
@@ -69,7 +69,7 @@ new class extends Component {
             </div>
         </button>
 
-        <button wire:click="$set('statusFilter', 'approved')" class="rounded-lg border p-4 text-left transition-colors {{ $statusFilter === 'approved' ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700' : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-emerald-300' }}">
+        <button wire:click="$set('statusFilter', 'approved')" class="rounded-lg border p-4 text-left transition-colors {{ $statusFilter === 'approved' ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-emerald-300' }}">
             <div class="flex items-center gap-3">
                 <div class="rounded-full bg-emerald-100 dark:bg-emerald-900/30 p-2">
                     <svg class="size-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -81,7 +81,7 @@ new class extends Component {
             </div>
         </button>
 
-        <button wire:click="$set('statusFilter', 'rejected')" class="rounded-lg border p-4 text-left transition-colors {{ $statusFilter === 'rejected' ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-red-300' }}">
+        <button wire:click="$set('statusFilter', 'rejected')" class="rounded-lg border p-4 text-left transition-colors {{ $statusFilter === 'rejected' ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-red-300' }}">
             <div class="flex items-center gap-3">
                 <div class="rounded-full bg-red-100 dark:bg-red-900/30 p-2">
                     <svg class="size-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -103,7 +103,7 @@ new class extends Component {
     </div>
 
     <!-- Activities List -->
-    <div class="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800">
+    <div class="overflow-hidden rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
         @if($activities->isEmpty())
             <div class="p-8 text-center">
                 <svg class="mx-auto size-12 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -111,8 +111,8 @@ new class extends Component {
             </div>
         @else
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
-                    <thead class="bg-zinc-50 dark:bg-zinc-800/50">
+                <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-800">
+                    <thead class="bg-zinc-50 dark:bg-zinc-900/50">
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Member</th>
                             <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Date</th>
@@ -122,9 +122,9 @@ new class extends Component {
                             <th class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                    <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                         @foreach($activities as $activity)
-                            <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
+                            <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
                                 <td class="whitespace-nowrap px-6 py-4">
                                     @if($activity->user)
                                         <a href="{{ route('admin.members.show', $activity->user) }}" wire:navigate class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">{{ $activity->user->name }}</a>
@@ -160,7 +160,7 @@ new class extends Component {
                                     @if($activity->status === 'approved')
                                         <span class="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:text-emerald-400">Approved</span>
                                     @elseif($activity->status === 'pending')
-                                        <span class="inline-flex items-center rounded-full bg-yellow-100 dark:bg-yellow-900/30 px-2.5 py-0.5 text-xs font-medium text-yellow-800 dark:text-yellow-400">Pending</span>
+                                        <span class="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/30 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">Pending</span>
                                     @else
                                         <span class="inline-flex items-center rounded-full bg-red-100 dark:bg-red-900/30 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:text-red-400">Rejected</span>
                                     @endif
@@ -176,7 +176,7 @@ new class extends Component {
                     </tbody>
                 </table>
             </div>
-            <div class="border-t border-zinc-200 dark:border-zinc-700 px-6 py-4">
+            <div class="border-t border-zinc-200 dark:border-zinc-800 px-6 py-4">
                 {{ $activities->links() }}
             </div>
         @endif

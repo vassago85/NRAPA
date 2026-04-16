@@ -297,10 +297,10 @@ new #[Title('Membership Types - Admin')] class extends Component {
     @endif
 
     {{-- Membership Types Table --}}
-    <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
         <div class="overflow-x-auto">
             <table class="w-full">
-                <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
+                <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/50">
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Order</th>
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Name</th>
@@ -313,7 +313,7 @@ new #[Title('Membership Types - Admin')] class extends Component {
                         <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                     @foreach($this->membershipTypes as $type)
                     <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 {{ !$type->is_active ? 'opacity-50' : '' }}">
                         <td class="whitespace-nowrap px-4 py-3">
@@ -351,7 +351,7 @@ new #[Title('Membership Types - Admin')] class extends Component {
                         </td>
                         <td class="whitespace-nowrap px-4 py-3">
                             @if($type->dedicated_type)
-                            <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium {{ $type->dedicated_type === 'both' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' : ($type->dedicated_type === 'hunter' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200') }}">
+                            <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium {{ $type->dedicated_type === 'both' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-200' : ($type->dedicated_type === 'hunter' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200' : 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200') }}">
                                 {{ ucfirst($type->dedicated_type) }}
                             </span>
                             @else
@@ -500,7 +500,7 @@ new #[Title('Membership Types - Admin')] class extends Component {
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" wire:model="is_active" class="rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700">
                             <span class="text-sm text-zinc-700 dark:text-zinc-300">Active</span>
@@ -579,7 +579,7 @@ new #[Title('Membership Types - Admin')] class extends Component {
                         <label class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors
                             {{ in_array($test->id, $selectedTestIds) 
                                 ? 'border-purple-500 bg-purple-50 dark:border-purple-400 dark:bg-purple-900/20' 
-                                : 'border-zinc-200 hover:border-zinc-300 dark:border-zinc-700 dark:hover:border-zinc-600' }}">
+                                : 'border-zinc-200 hover:border-zinc-300 dark:border-zinc-800 dark:hover:border-zinc-600' }}">
                             <input type="checkbox" 
                                    wire:model="selectedTestIds" 
                                    value="{{ $test->id }}" 
@@ -589,9 +589,9 @@ new #[Title('Membership Types - Admin')] class extends Component {
                                     <span class="font-medium text-zinc-900 dark:text-white">{{ $test->name }}</span>
                                     @if($test->dedicated_type)
                                         <span class="text-xs px-1.5 py-0.5 rounded-full 
-                                            {{ $test->dedicated_type === 'hunter' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' : '' }}
-                                            {{ $test->dedicated_type === 'sport_shooter' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : '' }}
-                                            {{ $test->dedicated_type === 'both' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' : '' }}">
+                                            {{ $test->dedicated_type === 'hunter' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200' : '' }}
+                                            {{ $test->dedicated_type === 'sport_shooter' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200' : '' }}
+                                            {{ $test->dedicated_type === 'both' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-200' : '' }}">
                                             {{ $test->dedicated_type === 'sport_shooter' ? 'Sport' : ucfirst($test->dedicated_type) }}
                                         </span>
                                     @else

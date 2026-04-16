@@ -390,7 +390,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
         </div>
     @endif
 
-    <div class="mb-8">
+    <div class="mb-6">
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Firearm Reference Data</h1>
@@ -453,7 +453,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
     @endif
 
     {{-- Tabs --}}
-    <div class="border-b border-zinc-200 dark:border-zinc-700 mb-6">
+    <div class="border-b border-zinc-200 dark:border-zinc-800 mb-6">
         <nav class="-mb-px flex space-x-8">
             <button
                 wire:click="switchTab('calibres')"
@@ -475,15 +475,15 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
     {{-- Calibres Tab --}}
     @if($activeTab === 'calibres')
         @if(!$this->tablesExist)
-            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-8 text-center">
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-8 text-center">
                 <p class="text-zinc-600 dark:text-zinc-400">Please run migrations to create the firearm reference tables.</p>
             </div>
         @elseif($calibres->count() === 0)
-            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-8 text-center">
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-8 text-center">
                 <p class="text-zinc-600 dark:text-zinc-400">No calibres found. Import reference data using the "Upload CSV" button.</p>
             </div>
         @else
-            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full">
                         <thead class="bg-zinc-50 dark:bg-zinc-900">
@@ -497,7 +497,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
                                 <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">Status</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                        <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                             @foreach($calibres as $calibre)
                             <tr class="{{ !$calibre->is_active ? 'opacity-40' : '' }}">
                                 <td class="px-4 py-4 whitespace-nowrap text-xs font-mono text-zinc-400 dark:text-zinc-500">
@@ -511,7 +511,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">
                                     @if($calibre->ignition)
-                                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {{ $calibre->ignition === 'rimfire' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' }}">
+                                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {{ $calibre->ignition === 'rimfire' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200' : 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-200' }}">
                                             {{ $calibre->ignition_label }}
                                         </span>
                                     @else
@@ -548,7 +548,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
                     </table>
                 </div>
                 @if($calibres->hasPages())
-                    <div class="px-6 py-4 border-t border-zinc-200 dark:border-zinc-700">
+                    <div class="px-6 py-4 border-t border-zinc-200 dark:border-zinc-800">
                         {{ $calibres->links() }}
                     </div>
                 @endif
@@ -559,15 +559,15 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
     {{-- Makes Tab --}}
     @if($activeTab === 'makes')
         @if(!$this->tablesExist)
-            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-8 text-center">
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-8 text-center">
                 <p class="text-zinc-600 dark:text-zinc-400">Please run migrations to create the firearm reference tables.</p>
             </div>
         @elseif($makes->count() === 0)
-            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-8 text-center">
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-8 text-center">
                 <p class="text-zinc-600 dark:text-zinc-400">No makes found. Import reference data using the "Upload CSV" button.</p>
             </div>
         @else
-            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full">
                         <thead class="bg-zinc-50 dark:bg-zinc-900">
@@ -579,7 +579,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
                                 <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">Status</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                        <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                             @foreach($makes as $make)
                             <tr class="{{ !$make->is_active ? 'opacity-40' : '' }}">
                                 <td class="px-4 py-4 whitespace-nowrap text-xs font-mono text-zinc-400 dark:text-zinc-500">
@@ -607,7 +607,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
                     </table>
                 </div>
                 @if($makes->hasPages())
-                    <div class="px-6 py-4 border-t border-zinc-200 dark:border-zinc-700">
+                    <div class="px-6 py-4 border-t border-zinc-200 dark:border-zinc-800">
                         {{ $makes->links() }}
                     </div>
                 @endif
@@ -737,7 +737,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
                             </label>
                         </div>
 
-                        <div class="flex gap-3 justify-end pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                        <div class="flex gap-3 justify-end pt-4 border-t border-zinc-200 dark:border-zinc-800">
                             <button type="button" wire:click="closeAddCalibreModal" class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                                 Cancel
                             </button>
@@ -779,7 +779,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
                             </label>
                         </div>
 
-                        <div class="flex gap-3 justify-end pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                        <div class="flex gap-3 justify-end pt-4 border-t border-zinc-200 dark:border-zinc-800">
                             <button type="button" wire:click="closeAddMakeModal" class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                                 Cancel
                             </button>
@@ -832,7 +832,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Firearm Reference Data')] class ex
                             </label>
                         </div>
 
-                        <div class="flex gap-3 justify-end pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                        <div class="flex gap-3 justify-end pt-4 border-t border-zinc-200 dark:border-zinc-800">
                             <button type="button" wire:click="closeAddModelModal" class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                                 Cancel
                             </button>

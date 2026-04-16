@@ -576,7 +576,7 @@ new #[Title('Review Application - Admin')] class extends Component {
             {{ match($this->membership->status) {
                 'pending_change' => 'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200',
                 'pending_payment' => 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
-                default => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+                default => 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300',
             } }}">
             {{ match($this->membership->status) {
                 'pending_change' => 'Type Change Request',
@@ -610,7 +610,7 @@ new #[Title('Review Application - Admin')] class extends Component {
 
     {{-- Deleted user: show dismiss option --}}
     @if(!$this->membership->user)
-    <div class="rounded-xl border-2 border-red-300 bg-red-50 p-8 dark:border-red-700 dark:bg-red-900/20">
+    <div class="rounded-2xl shadow-sm border-2 border-red-300 bg-red-50 p-8 dark:border-red-700 dark:bg-red-900/20">
         <div class="flex flex-col items-center gap-4 text-center">
             <div class="flex size-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
                 <svg class="size-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -644,8 +644,8 @@ new #[Title('Review Application - Admin')] class extends Component {
 
     <div class="grid gap-6 lg:grid-cols-2">
         {{-- Applicant Information --}}
-        <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
-            <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
+        <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+            <div class="border-b border-zinc-200 p-6 dark:border-zinc-800">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Applicant Information</h2>
             </div>
             <div class="p-6">
@@ -707,8 +707,8 @@ new #[Title('Review Application - Admin')] class extends Component {
         </div>
 
         {{-- Membership Details --}}
-        <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
-            <div class="border-b border-zinc-200 p-6 dark:border-zinc-700">
+        <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+            <div class="border-b border-zinc-200 p-6 dark:border-zinc-800">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Membership Details</h2>
             </div>
             <div class="p-6">
@@ -718,7 +718,7 @@ new #[Title('Review Application - Admin')] class extends Component {
                         <dd class="mt-1">
                             <span class="text-lg font-semibold text-zinc-900 dark:text-white">{{ $this->membership->type->name }}</span>
                             @if($this->membership->type->isLifetime())
-                            <span class="ml-2 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">Lifetime</span>
+                            <span class="ml-2 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">Lifetime</span>
                             @endif
                         </dd>
                     </div>
@@ -727,7 +727,7 @@ new #[Title('Review Application - Admin')] class extends Component {
                         <dt class="text-sm font-medium text-purple-800 dark:text-purple-200">Affiliated Club</dt>
                         <dd class="mt-1">
                             <span class="font-semibold text-purple-900 dark:text-purple-100">{{ $this->membership->affiliatedClub->name }}</span>
-                            <span class="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {{ $this->membership->affiliatedClub->dedicated_type === 'both' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' : ($this->membership->affiliatedClub->dedicated_type === 'hunter' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200') }}">
+                            <span class="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {{ $this->membership->affiliatedClub->dedicated_type === 'both' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' : ($this->membership->affiliatedClub->dedicated_type === 'hunter' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200' : 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200') }}">
                                 {{ $this->membership->affiliatedClub->dedicated_type_label }}
                             </span>
                         </dd>
@@ -770,7 +770,7 @@ new #[Title('Review Application - Admin')] class extends Component {
                             <dt class="text-sm text-zinc-500 dark:text-zinc-400">Dedicated Status</dt>
                             <dd class="mt-1">
                                 @if($this->membership->type->allows_dedicated_status)
-                                    <span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">Eligible</span>
+                                    <span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/40 dark:text-blue-200">Eligible</span>
                                 @else
                                     <span class="text-zinc-500">Not Available</span>
                                 @endif
@@ -796,7 +796,7 @@ new #[Title('Review Application - Admin')] class extends Component {
 
     {{-- Payment Reference Card --}}
     @if($this->membership->payment_reference)
-    <div class="rounded-xl border-2 border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20">
+    <div class="rounded-2xl shadow-sm border-2 border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20">
         <div class="p-6">
             <div class="flex items-center gap-3 mb-4">
                 <div class="flex size-10 items-center justify-center rounded-lg bg-amber-200 dark:bg-amber-800">
@@ -810,7 +810,7 @@ new #[Title('Review Application - Admin')] class extends Component {
                 </div>
             </div>
             
-            <div class="flex items-center justify-between gap-4 p-4 bg-white dark:bg-zinc-800 rounded-lg border-2 border-dashed border-amber-400 dark:border-amber-600">
+            <div class="flex items-center justify-between gap-4 p-4 bg-white dark:bg-zinc-900 rounded-lg border-2 border-dashed border-amber-400 dark:border-amber-600">
                 <span class="text-2xl font-mono font-bold text-zinc-900 dark:text-white tracking-wider">{{ $this->membership->payment_reference }}</span>
                 <button 
                     type="button"
@@ -863,7 +863,7 @@ new #[Title('Review Application - Admin')] class extends Component {
 
     {{-- Proof of Payment --}}
     @if($this->membership->proof_of_payment_path)
-    <div class="rounded-xl border border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20">
+    <div class="rounded-2xl shadow-sm border border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20">
         <div class="p-6">
             <div class="flex items-center gap-3 mb-4">
                 <div class="flex size-10 items-center justify-center rounded-lg bg-emerald-200 dark:bg-emerald-800">
@@ -914,7 +914,7 @@ new #[Title('Review Application - Admin')] class extends Component {
 
     {{-- Mark as Paid (for awaiting-payment memberships) --}}
     @if($this->isAwaitingPayment)
-    <div class="rounded-xl border border-amber-200 bg-amber-50 p-6 dark:border-amber-700 dark:bg-amber-900/20">
+    <div class="rounded-2xl shadow-sm border border-amber-200 bg-amber-50 p-6 dark:border-amber-700 dark:bg-amber-900/20">
         <div class="flex items-start gap-4">
             <div class="flex size-10 items-center justify-center rounded-lg bg-amber-200 dark:bg-amber-800 flex-shrink-0">
                 <svg class="size-5 text-amber-700 dark:text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -945,7 +945,7 @@ new #[Title('Review Application - Admin')] class extends Component {
 
     {{-- Payment Confirmed indicator --}}
     @if($this->membership->payment_confirmed_at && !$this->membership->proof_of_payment_path)
-    <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
+    <div class="rounded-2xl shadow-sm border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
         <div class="flex items-center gap-3">
             <svg class="size-5 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m4.5 12.75 6 6 9-13.5" />
@@ -959,7 +959,7 @@ new #[Title('Review Application - Admin')] class extends Component {
 
     {{-- Action Buttons --}}
     @if($this->membership->status === 'applied')
-    <div class="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
         <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Decision</h3>
 
         @if(!$showRejectModal)
@@ -1023,7 +1023,7 @@ new #[Title('Review Application - Admin')] class extends Component {
 
     {{-- Change Request Actions --}}
     @if($this->membership->status === 'pending_change')
-    <div class="rounded-xl border border-violet-200 bg-white p-6 dark:border-violet-700 dark:bg-zinc-800">
+    <div class="rounded-2xl shadow-sm border border-violet-200 bg-white p-6 dark:border-violet-700 dark:bg-zinc-900">
         <h3 class="mb-2 text-lg font-semibold text-zinc-900 dark:text-white">Type Change Request</h3>
         <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4">This member has requested to change their membership type. Set the amount they must pay to proceed.</p>
 
@@ -1042,7 +1042,7 @@ new #[Title('Review Application - Admin')] class extends Component {
         @endif
 
         @if($this->membership->notes)
-        <div class="mb-4 p-3 rounded-lg border border-zinc-200 dark:border-zinc-700">
+        <div class="mb-4 p-3 rounded-lg border border-zinc-200 dark:border-zinc-800">
             <p class="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Member's Reason</p>
             <p class="text-sm text-zinc-900 dark:text-white whitespace-pre-line">{{ $this->membership->notes }}</p>
         </div>
@@ -1094,7 +1094,7 @@ new #[Title('Review Application - Admin')] class extends Component {
 
     {{-- Pending Payment: Approve after POP --}}
     @if($this->membership->status === 'pending_payment')
-    <div class="rounded-xl border border-indigo-200 bg-white p-6 dark:border-indigo-700 dark:bg-zinc-800">
+    <div class="rounded-2xl shadow-sm border border-indigo-200 bg-white p-6 dark:border-indigo-700 dark:bg-zinc-900">
         <h3 class="mb-2 text-lg font-semibold text-zinc-900 dark:text-white">Type Change - Awaiting Payment</h3>
         <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
             Amount set to <strong class="text-zinc-900 dark:text-white">R{{ number_format($this->membership->change_amount ?? 0, 2) }}</strong>.
@@ -1117,8 +1117,8 @@ new #[Title('Review Application - Admin')] class extends Component {
 
         {{-- POP Preview --}}
         @if($this->proofOfPaymentUrl)
-        <div class="mb-4 rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden">
-            <div class="bg-zinc-50 dark:bg-zinc-900/50 px-4 py-2 border-b border-zinc-200 dark:border-zinc-700">
+        <div class="mb-4 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+                <div class="bg-zinc-50 dark:bg-zinc-900/50 px-4 py-2 border-b border-zinc-200 dark:border-zinc-800">
                 <p class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Proof of Payment</p>
             </div>
             <div class="p-4">
@@ -1134,7 +1134,7 @@ new #[Title('Review Application - Admin')] class extends Component {
             </div>
         </div>
         @else
-        <div class="mb-4 p-4 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
+        <div class="mb-4 p-4 rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
             <p class="text-sm text-amber-700 dark:text-amber-300">No proof of payment uploaded yet. The member has been notified to make payment.</p>
             @if(!$this->membership->payment_confirmed_at)
             <div class="mt-3">

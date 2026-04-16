@@ -376,10 +376,10 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
     @endif
 
     {{-- Clubs Table --}}
-    <div class="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
+    <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
         <div class="overflow-x-auto">
             <table class="w-full">
-                <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
+                <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/50">
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Club</th>
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Type</th>
@@ -389,7 +389,7 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
                         <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                     @forelse($this->clubs as $club)
                     <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 {{ !$club->is_active ? 'opacity-50' : '' }}">
                         <td class="px-4 py-3">
@@ -399,7 +399,7 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
                             </div>
                         </td>
                         <td class="whitespace-nowrap px-4 py-3">
-                            <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium {{ $club->dedicated_type === 'both' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' : ($club->dedicated_type === 'hunter' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200') }}">
+                            <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium {{ $club->dedicated_type === 'both' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-200' : ($club->dedicated_type === 'hunter' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200' : 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200') }}">
                                 {{ $club->dedicated_type === 'both' ? 'Hunter & Sport' : ucfirst($club->dedicated_type) }}
                             </span>
                         </td>
@@ -489,7 +489,7 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
                     </div>
 
                     {{-- Fee Schedule --}}
-                    <div class="pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                    <div class="pt-4 border-t border-zinc-200 dark:border-zinc-800">
                         <h3 class="text-sm font-semibold text-zinc-900 dark:text-white mb-3">Fee Schedule</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
@@ -509,7 +509,7 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
                     </div>
 
                     {{-- Requirements --}}
-                    <div class="pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                    <div class="pt-4 border-t border-zinc-200 dark:border-zinc-800">
                         <h3 class="text-sm font-semibold text-zinc-900 dark:text-white mb-3">Requirements</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <label class="flex items-center gap-2 cursor-pointer">
@@ -527,7 +527,7 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
                     </div>
 
                     {{-- Contact Info --}}
-                    <div class="pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                    <div class="pt-4 border-t border-zinc-200 dark:border-zinc-800">
                         <h3 class="text-sm font-semibold text-zinc-900 dark:text-white mb-3">Contact Information</h3>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
@@ -546,7 +546,7 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
                     </div>
 
                     {{-- Status --}}
-                    <div class="grid grid-cols-2 gap-4 pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                    <div class="grid grid-cols-2 gap-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" wire:model="is_active" class="rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700">
                             <span class="text-sm text-zinc-700 dark:text-zinc-300">Active</span>
@@ -630,7 +630,7 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
                     </div>
 
                     @if(strlen($memberSearch) >= 2)
-                    <div class="max-h-48 overflow-y-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
+                    <div class="max-h-48 overflow-y-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
                         @forelse($this->searchResults as $user)
                         <button type="button" wire:click="selectMember({{ $user->id }})"
                             class="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors {{ $selectedMemberId === $user->id ? 'bg-amber-50 dark:bg-amber-900/20' : '' }}">
@@ -689,14 +689,14 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
                 @if($this->clubInvites->count() > 0)
                 <div class="mb-6">
                     <h3 class="text-sm font-semibold text-zinc-900 dark:text-white mb-2">Pending Invites</h3>
-                    <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 divide-y divide-zinc-200 dark:divide-zinc-700">
+                    <div class="rounded-lg border border-zinc-200 dark:border-zinc-800 divide-y divide-zinc-200 dark:divide-zinc-800">
                         @foreach($this->clubInvites as $invite)
                         <div class="flex items-center justify-between px-3 py-2">
                             <div>
                                 <p class="text-sm text-zinc-900 dark:text-white">{{ $invite->email }}</p>
                                 <p class="text-xs text-zinc-500 dark:text-zinc-400">Sent {{ $invite->created_at->diffForHumans() }} &middot; Expires {{ $invite->expires_at->format('d M Y') }}</p>
                             </div>
-                            <span class="inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Pending</span>
+                            <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">Pending</span>
                         </div>
                         @endforeach
                     </div>
@@ -705,14 +705,14 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
 
                 {{-- Current Members --}}
                 @if($this->clubMembers->count() > 0)
-                <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 divide-y divide-zinc-200 dark:divide-zinc-700">
+                <div class="rounded-lg border border-zinc-200 dark:border-zinc-800 divide-y divide-zinc-200 dark:divide-zinc-800">
                     @foreach($this->clubMembers as $membership)
                     <div class="flex items-center justify-between px-4 py-3">
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2">
                                 <p class="text-sm font-medium text-zinc-900 dark:text-white truncate">{{ $membership->user->name }}</p>
                                 <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
-                                    {{ $membership->status === 'active' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300' : ($membership->status === 'approved' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200') }}">
+                                    {{ $membership->status === 'active' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300' : ($membership->status === 'approved' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200' : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200') }}">
                                     {{ ucfirst($membership->status) }}
                                 </span>
                             </div>

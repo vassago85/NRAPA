@@ -183,7 +183,7 @@ new #[Title('Import Failures - Admin')] class extends Component {
 
     {{-- Flash Messages --}}
     @if(session('success'))
-    <div class="p-4 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+    <div class="p-4 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-xl">
         <p class="text-emerald-700 dark:text-emerald-300">{{ session('success') }}</p>
     </div>
     @endif
@@ -214,10 +214,10 @@ new #[Title('Import Failures - Admin')] class extends Component {
         </a>
     </div>
     @else
-    <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+    <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
-                <thead class="bg-zinc-50 dark:bg-zinc-700/50">
+                <thead class="bg-zinc-50 dark:bg-zinc-900/50">
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">Row</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">Name</th>
@@ -228,10 +228,10 @@ new #[Title('Import Failures - Admin')] class extends Component {
                         <th class="px-4 py-3 text-right text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                     @foreach($failures as $failure)
                     @php $data = $failure->row_data; @endphp
-                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/30">
+                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
                         <td class="px-4 py-3 text-zinc-500 dark:text-zinc-400 font-mono text-xs">{{ $failure->row_number }}</td>
                         <td class="px-4 py-3 font-medium text-zinc-900 dark:text-white">
                             {{ trim(($data['initials'] ?? '') . ' ' . ($data['surname'] ?? '')) ?: '—' }}
@@ -261,7 +261,7 @@ new #[Title('Import Failures - Admin')] class extends Component {
         </div>
 
         @if($failures->hasPages())
-        <div class="px-4 py-3 border-t border-zinc-200 dark:border-zinc-700">
+        <div class="px-4 py-3 border-t border-zinc-200 dark:border-zinc-800">
             {{ $failures->links() }}
         </div>
         @endif
@@ -275,7 +275,7 @@ new #[Title('Import Failures - Admin')] class extends Component {
             <div wire:click="closeEdit" class="fixed inset-0 bg-black/50 transition-opacity"></div>
 
             <div class="relative w-full max-w-2xl rounded-xl bg-white shadow-xl dark:bg-zinc-800">
-                <div class="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-700">
+                <div class="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Edit & Retry Import</h2>
                     <button wire:click="closeEdit" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -362,7 +362,7 @@ new #[Title('Import Failures - Admin')] class extends Component {
                             </select>
                         </div>
 
-                        <div class="flex justify-end gap-3 pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                        <div class="flex justify-end gap-3 pt-4 border-t border-zinc-200 dark:border-zinc-800">
                             <button type="button" wire:click="closeEdit"
                                 class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 dark:hover:bg-zinc-600 transition-colors">
                                 Cancel

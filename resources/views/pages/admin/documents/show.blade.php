@@ -207,7 +207,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Review member document submission</p>
     </x-slot>
     
-    <div class="mb-8 flex items-center justify-between">
+    <div class="mb-6 flex items-center justify-between">
         <div>
             <a href="{{ route('admin.documents.index') }}" class="text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 flex items-center gap-1 mb-2 transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
@@ -232,7 +232,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         {{-- Document Preview --}}
-        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6 flex flex-col h-full">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm p-6 flex flex-col h-full">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Preview</h2>
             <div class="bg-zinc-100 dark:bg-zinc-900 rounded-lg overflow-hidden flex-1 flex items-center justify-center" style="min-height: 500px;">
                 @php $previewUrl = $this->getPreviewUrl(); @endphp
@@ -271,7 +271,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         </div>
 
         {{-- Document Details & Actions --}}
-        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6 flex flex-col h-full">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm p-6 flex flex-col h-full">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Details</h2>
             
             <dl class="space-y-4 flex-1">
@@ -464,7 +464,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
 
             {{-- Admin Actions --}}
             @if($document->isPending())
-                <div class="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-700 space-y-4">
+                <div class="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-800 space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Rejection Reason (if rejecting)</label>
                         <textarea wire:model="rejectionReason" 
