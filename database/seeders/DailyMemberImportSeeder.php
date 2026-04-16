@@ -52,6 +52,18 @@ class DailyMemberImportSeeder extends Seeder
             $statusRaw = trim($row[9] ?? '');
             $email = trim($row[6] ?? '');
 
+            // Take only the first email if multiple are separated by ; or ,
+            if (str_contains($email, ';')) {
+                $email = trim(explode(';', $email)[0]);
+            } elseif (str_contains($email, ',')) {
+                $email = trim(explode(',', $email)[0]);
+            }
+
+            $phone = trim($row[5] ?? '');
+            if (strtolower($phone) === 'tbc' || $phone === '`') {
+                $phone = '';
+            }
+
             if ($this->shouldSkip($membershipTypeRaw) || $this->shouldSkip($statusRaw)) {
                 $skipped++;
                 $this->command->warn("Row {$rowNumber}: Skipped (cancelled/deceased) — {$row[2]} {$row[3]}");
@@ -59,9 +71,12 @@ class DailyMemberImportSeeder extends Seeder
             }
 
             if (empty($email) || strtolower($email) === 'tbc' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $skipped++;
-                $this->command->warn("Row {$rowNumber}: Skipped (no valid email) — {$row[2]} {$row[3]}");
-                continue;
+                if (empty($phone)) {
+                    $skipped++;
+                    $this->command->warn("Row {$rowNumber}: Skipped (no valid email or phone) — {$row[2]} {$row[3]}");
+                    continue;
+                }
+                $email = '';
             }
 
             $knowledgeTest = strtolower(trim($row[10] ?? '')) === 'yes';
@@ -72,7 +87,7 @@ class DailyMemberImportSeeder extends Seeder
                 'initials'        => trim($row[2] ?? ''),
                 'surname'         => trim($row[3] ?? ''),
                 'id_number'       => trim($row[4] ?? ''),
-                'phone'           => trim($row[5] ?? ''),
+                'phone'           => $phone,
                 'email'           => $email,
                 'membership_type' => $membershipTypeRaw,
                 'renewal_date'    => trim($row[8] ?? ''),
