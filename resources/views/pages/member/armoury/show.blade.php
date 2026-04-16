@@ -103,26 +103,27 @@ new class extends Component {
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                     </svg>
                 </a>
-                <div>
-                    <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">{{ $firearm->display_name }}</h1>
-                    <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{{ $firearm->full_description }}</p>
-                </div>
+                <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">{{ $firearm->display_name }}</h1>
             </div>
-            <div class="flex items-center gap-2">
-                <a href="{{ route('armoury.edit', $firearm) }}" wire:navigate
-                   class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                    </svg>
-                    Edit
+            <div class="flex items-center gap-1">
+                <a href="{{ route('armoury.edit', $firearm) }}" wire:navigate title="Edit"
+                   class="inline-flex items-center justify-center rounded-lg p-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                 </a>
-                <button wire:click="deleteFirearm" wire:confirm="Are you sure you want to remove this firearm from your armoury?"
-                        class="inline-flex items-center gap-2 rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors">
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                    </svg>
-                    Remove
+                <button wire:click="deleteFirearm" wire:confirm="Are you sure you want to remove this firearm from your armoury?" title="Remove"
+                        class="inline-flex items-center justify-center rounded-lg p-2 text-zinc-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 </button>
+                <a href="{{ route('activities.submit') }}?firearm={{ $firearm->uuid }}" wire:navigate title="Log activity"
+                   class="inline-flex items-center justify-center rounded-lg p-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </a>
+                @if($firearm->license_document_path)
+                    <a href="{{ Storage::url($firearm->license_document_path) }}" target="_blank" title="Download license"
+                       class="inline-flex items-center justify-center rounded-lg p-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    </a>
+                @endif
             </div>
         </div>
     </x-slot>
@@ -154,44 +155,111 @@ new class extends Component {
         </div>
     @endif
 
+    <!-- Hero Image -->
+    @if($firearm->image_path)
+        <div class="mb-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
+            <img src="{{ Storage::url($firearm->image_path) }}" alt="{{ $firearm->display_name }}" class="w-full max-h-72 object-cover">
+        </div>
+    @endif
+
+    <!-- Summary Strip -->
+    @php $badge = $firearm->license_status_badge; @endphp
+    <div class="mb-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-4">
+        <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <div>
+                <span class="text-xs uppercase tracking-wider text-zinc-500">Make / Model</span>
+                <p class="text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ $firearm->make_display ?? $firearm->make ?? '—' }} {{ $firearm->model_display ?? $firearm->model ?? '' }}</p>
+            </div>
+            <div>
+                <span class="text-xs uppercase tracking-wider text-zinc-500">Calibre</span>
+                <p class="text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ $firearm->calibre_display ?? '—' }}</p>
+            </div>
+            <div>
+                <span class="text-xs uppercase tracking-wider text-zinc-500">Action</span>
+                <p class="text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ $firearm->action_label ?? '—' }}</p>
+            </div>
+            <div>
+                <span class="text-xs uppercase tracking-wider text-zinc-500">Status</span>
+                <p class="mt-0.5">
+                    <span class="text-xs px-2 py-1 rounded-full font-medium
+                        @if($badge['color'] === 'green') bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300
+                        @elseif($badge['color'] === 'red') bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300
+                        @elseif($badge['color'] === 'amber') bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300
+                        @else bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 @endif">
+                        {{ $badge['text'] }}
+                    </span>
+                </p>
+            </div>
+            @if($firearm->license_expiry_date)
+                <div>
+                    <span class="text-xs uppercase tracking-wider text-zinc-500">Expires</span>
+                    <p class="text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ $firearm->license_expiry_date->format('d M Y') }}</p>
+                </div>
+            @endif
+        </div>
+    </div>
+
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <!-- Main Details -->
         <div class="lg:col-span-2 space-y-6">
             <!-- Basic Information -->
-            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-6">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Basic Information</h2>
                 <dl class="grid grid-cols-2 gap-4">
                     <div>
-                        <dt class="text-sm text-zinc-500">Make</dt>
-                        <dd class="font-medium text-zinc-900 dark:text-white">{{ $firearm->make_display ?? $firearm->make ?? 'Not specified' }}</dd>
+                        <dt class="text-xs uppercase tracking-wider text-zinc-500">Make</dt>
+                        <dd class="text-sm text-zinc-800 dark:text-zinc-200">{{ $firearm->make_display ?? $firearm->make ?? 'Not specified' }}</dd>
                     </div>
                     <div>
-                        <dt class="text-sm text-zinc-500">Model</dt>
-                        <dd class="font-medium text-zinc-900 dark:text-white">{{ $firearm->model_display ?? $firearm->model ?? 'Not specified' }}</dd>
+                        <dt class="text-xs uppercase tracking-wider text-zinc-500">Model</dt>
+                        <dd class="text-sm text-zinc-800 dark:text-zinc-200">{{ $firearm->model_display ?? $firearm->model ?? 'Not specified' }}</dd>
                     </div>
                     <div>
-                        <dt class="text-sm text-zinc-500">Serial Number</dt>
-                        <dd class="font-medium text-zinc-900 dark:text-white">{{ $firearm->serial_number ?? 'Not specified' }}</dd>
+                        <dt class="text-xs uppercase tracking-wider text-zinc-500">Type</dt>
+                        <dd class="text-sm text-zinc-800 dark:text-zinc-200">
+                            {{ $firearm->firearm_type_label ?? $firearm->firearmType?->name ?? 'Not specified' }}@if($firearm->action_label) ({{ $firearm->action_label }})@endif
+                        </dd>
                     </div>
                     <div>
-                        <dt class="text-sm text-zinc-500">Firearm Type</dt>
-                        <dd class="font-medium text-zinc-900 dark:text-white">{{ $firearm->firearmType?->name ?? 'Not specified' }}</dd>
+                        <dt class="text-xs uppercase tracking-wider text-zinc-500">Calibre</dt>
+                        <dd class="text-sm text-zinc-800 dark:text-zinc-200">{{ $firearm->calibre_display ?? 'Not specified' }}</dd>
                     </div>
                     <div>
-                        <dt class="text-sm text-zinc-500">Calibre</dt>
-                        <dd class="font-medium text-zinc-900 dark:text-white">{{ $firearm->calibre_display ?? 'Not specified' }}</dd>
+                        <dt class="text-xs uppercase tracking-wider text-zinc-500">Serial Number</dt>
+                        <dd class="text-sm text-zinc-800 dark:text-zinc-200">{{ $firearm->primary_serial ?? 'Not specified' }}</dd>
                     </div>
                 </dl>
             </div>
 
+            <!-- Component Serials (SAPS 271) -->
+            @php $components = $firearm->components()->get(); @endphp
+            @if($components->count() > 0)
+                <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-6">
+                    <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Component Serials</h2>
+                    <dl class="grid grid-cols-2 gap-4">
+                        @foreach($components as $component)
+                            @if($component->serial)
+                                <div>
+                                    <dt class="text-xs uppercase tracking-wider text-zinc-500">{{ ucfirst($component->type) }}</dt>
+                                    <dd class="text-sm text-zinc-800 dark:text-zinc-200">
+                                        {{ $component->serial }}
+                                        @if($component->make) <span class="text-zinc-400">({{ $component->make }})</span> @endif
+                                    </dd>
+                                </div>
+                            @endif
+                        @endforeach
+                    </dl>
+                </div>
+            @endif
+
             <!-- Barrel & Stock -->
             @if($firearm->barrel_length || $firearm->barrel_twist || $firearm->barrel_profile || $firearm->stock_type || $firearm->stock_make)
-                <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+                <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-6">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Barrel & Stock</h2>
                     <dl class="grid grid-cols-2 gap-4">
                         @if($firearm->barrel_length)
                             <div>
-                                <dt class="text-sm text-zinc-500">Barrel Length</dt>
+                                <dt class="text-xs uppercase tracking-wider text-zinc-500">Barrel Length</dt>
                                 <dd class="font-medium text-zinc-900 dark:text-white">{{ $firearm->barrel_length }}</dd>
                             </div>
                         @endif
@@ -225,7 +293,7 @@ new class extends Component {
 
             <!-- Optics -->
             @if($firearm->scope_make || $firearm->scope_model || $firearm->scope_magnification)
-                <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+                <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-6">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Optics</h2>
                     <dl class="grid grid-cols-2 gap-4">
                         @if($firearm->scope_make)
@@ -251,7 +319,7 @@ new class extends Component {
             @endif
 
             <!-- Load Data -->
-            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-6">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Load Data</h2>
                     <a href="{{ route('load-data.create') }}?firearm={{ $firearm->uuid }}" wire:navigate
@@ -269,14 +337,14 @@ new class extends Component {
                                         <p class="font-medium text-zinc-900 dark:text-white">{{ $load->name }}</p>
                                         <p class="text-sm text-zinc-500">{{ $load->bullet_description }}</p>
                                     </div>
-                                    @php $badge = $load->status_badge; @endphp
+                                    @php $loadBadge = $load->status_badge; @endphp
                                     <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
-                                        @if($badge['color'] === 'green') bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300
-                                        @elseif($badge['color'] === 'blue') bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
-                                        @elseif($badge['color'] === 'amber') bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200
+                                        @if($loadBadge['color'] === 'green') bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300
+                                        @elseif($loadBadge['color'] === 'blue') bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                        @elseif($loadBadge['color'] === 'amber') bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200
                                         @else bg-zinc-100 text-zinc-800 dark:bg-zinc-900 dark:text-zinc-200
                                         @endif">
-                                        {{ $badge['text'] }}
+                                        {{ $loadBadge['text'] }}
                                     </span>
                                 </div>
                             </a>
@@ -289,7 +357,7 @@ new class extends Component {
 
             <!-- Notes -->
             @if($firearm->notes)
-                <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+                <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-6">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Notes</h2>
                     <p class="text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap">{{ $firearm->notes }}</p>
                 </div>
@@ -299,16 +367,14 @@ new class extends Component {
         <!-- Sidebar -->
         <div class="space-y-6">
             <!-- License Status Card -->
-            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-6">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">License Status</h2>
-                @php $badge = $firearm->license_status_badge; @endphp
                 <div class="text-center mb-4">
-                    <span class="inline-flex items-center rounded-full px-4 py-2 text-sm font-medium
+                    <span class="text-xs px-3 py-1.5 rounded-full font-medium
                         @if($badge['color'] === 'green') bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300
-                        @elseif($badge['color'] === 'red') bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
-                        @elseif($badge['color'] === 'amber') bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200
-                        @else bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
-                        @endif">
+                        @elseif($badge['color'] === 'red') bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300
+                        @elseif($badge['color'] === 'amber') bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300
+                        @else bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 @endif">
                         {{ $badge['text'] }}
                     </span>
                 </div>
@@ -341,7 +407,7 @@ new class extends Component {
             </div>
 
             <!-- Barrel Life -->
-            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-6">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Barrel Life</h2>
                 <div class="text-center">
                     <p class="text-3xl font-extrabold text-nrapa-blue">{{ number_format($this->totalRoundsFired) }}</p>
@@ -398,7 +464,7 @@ new class extends Component {
 
             <!-- Recent Round Logs -->
             @if($this->recentRoundLogs->count() > 0)
-                <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+                <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-6">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Recent Round Logs</h2>
                     <div class="space-y-2">
                         @foreach($this->recentRoundLogs as $log)
@@ -419,15 +485,8 @@ new class extends Component {
                 </div>
             @endif
 
-            <!-- Firearm Image -->
-            @if($firearm->image_path)
-                <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 overflow-hidden">
-                    <img src="{{ Storage::url($firearm->image_path) }}" alt="{{ $firearm->display_name }}" class="w-full">
-                </div>
-            @endif
-
             <!-- Quick Actions -->
-            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
+            <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-6">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Quick Actions</h2>
                 <div class="space-y-2">
                     <a href="{{ route('activities.submit') }}?firearm={{ $firearm->uuid }}" wire:navigate

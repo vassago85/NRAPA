@@ -240,6 +240,42 @@ new #[Title('Dashboard')] class extends Component {
     }
 
     #[Computed]
+    public function firearmCounts(): array
+    {
+        $userId = $this->user->id;
+        $expired = \App\Models\UserFirearm::forUser($userId)->expired()->count();
+        $expiring = \App\Models\UserFirearm::forUser($userId)->expiringSoon(90)->count();
+        $renewal = \App\Models\UserFirearm::forUser($userId)->where('license_status', 'renewal_pending')->count();
+        $total = \App\Models\UserFirearm::forUser($userId)->count();
+
+        return [
+            'expired' => $expired,
+            'expiring' => $expiring,
+            'renewal' => $renewal,
+            'active' => max(0, $total - $expired - $expiring - $renewal),
+            'total' => $total,
+            'attention' => $expired + $expiring > 0,
+        ];
+    }
+
+    #[Computed]
+    public function activityCompliance(): array
+    {
+        $user = $this->user;
+        $required = 2;
+        $approved = ShootingActivity::where('user_id', $user->id)
+            ->withinActivityYear($user)
+            ->where('status', 'approved')
+            ->count();
+
+        return [
+            'approved' => $approved,
+            'required' => $required,
+            'met' => $approved >= $required,
+        ];
+    }
+
+    #[Computed]
     public function endorsementEligibility()
     {
         // Only show endorsement eligibility for active members with dedicated status
@@ -1350,6 +1386,182 @@ new #[Title('Dashboard')] class extends Component {
             @endif
         </div>
         @endif
+    </div>
+    @endif
+
+    {{-- Status Summary Row --}}
+    @if($this->activeMembership)
+    @php
+        $fc = $this->firearmCounts;
+        $ac = $this->activityCompliance;
+        $memberPaidUp = $this->activeMembership && (!$this->activeMembership->expires_at || $this->activeMembership->expires_at->isFuture());
+    @endphp
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <!-- Membership Status -->
+        <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-5">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-xs uppercase tracking-wider font-semibold text-zinc-500">Membership Status</h3>
+                <span class="text-xs px-2 py-1 rounded-full font-medium {{ $memberPaidUp ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' }}">
+                    {{ $memberPaidUp ? 'Paid-up' : 'Expired' }}
+                </span>
+            </div>
+            <div class="space-y-2">
+                <div>
+                    <span class="text-xs uppercase tracking-wider text-zinc-500">Paid-up till</span>
+                    <p class="text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ $this->activeMembership->expires_at?->format('M d, Y') ?? 'Lifetime' }}</p>
+                </div>
+                <div>
+                    <span class="text-xs uppercase tracking-wider text-zinc-500">Member since</span>
+                    <p class="text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ $this->activeMembership->approved_at?->format('M d, Y') ?? $this->activeMembership->created_at->format('M d, Y') }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Firearm Status -->
+        <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-5">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-xs uppercase tracking-wider font-semibold text-zinc-500">Firearm Status</h3>
+                @if($fc['attention'])
+                    <span class="text-xs px-2 py-1 rounded-full font-medium bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">Attention</span>
+                @endif
+            </div>
+            <div class="grid grid-cols-4 gap-2 text-center">
+                <div>
+                    <p class="text-lg font-bold text-red-600 dark:text-red-400">{{ $fc['expired'] }}</p>
+                    <p class="text-[10px] uppercase tracking-wider text-zinc-500">Expired</p>
+                </div>
+                <div>
+                    <p class="text-lg font-bold text-amber-600 dark:text-amber-400">{{ $fc['expiring'] }}</p>
+                    <p class="text-[10px] uppercase tracking-wider text-zinc-500">Expiring</p>
+                </div>
+                <div>
+                    <p class="text-lg font-bold text-blue-600 dark:text-blue-400">{{ $fc['renewal'] }}</p>
+                    <p class="text-[10px] uppercase tracking-wider text-zinc-500">Renewal</p>
+                </div>
+                <div>
+                    <p class="text-lg font-bold text-emerald-600 dark:text-emerald-400">{{ $fc['active'] }}</p>
+                    <p class="text-[10px] uppercase tracking-wider text-zinc-500">Active</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compliance Status -->
+        @if($this->hasDedicatedMembership)
+        <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-5">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-xs uppercase tracking-wider font-semibold text-zinc-500">Compliance Status</h3>
+                <span class="text-xs px-2 py-1 rounded-full font-medium {{ $ac['met'] ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' }}">
+                    {{ $ac['met'] ? 'Complete' : 'Incomplete' }}
+                </span>
+            </div>
+            <div class="text-center">
+                <p class="text-2xl font-bold {{ $ac['met'] ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}">{{ $ac['approved'] }} / {{ $ac['required'] }}</p>
+                <p class="text-xs uppercase tracking-wider text-zinc-500 mt-1">Sport Activities OCT {{ now()->year }}</p>
+            </div>
+        </div>
+        @else
+        <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-5">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-xs uppercase tracking-wider font-semibold text-zinc-500">Quick Stats</h3>
+            </div>
+            <div class="text-center">
+                <p class="text-2xl font-bold text-nrapa-blue dark:text-nrapa-blue-light">{{ $fc['total'] }}</p>
+                <p class="text-xs uppercase tracking-wider text-zinc-500 mt-1">Firearms in Safe</p>
+            </div>
+        </div>
+        @endif
+    </div>
+    @endif
+
+    {{-- Quick Links --}}
+    @if($this->activeMembership)
+    <div>
+        <h2 class="text-xs uppercase tracking-wider font-semibold text-zinc-500 mb-3">Quick Links</h2>
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <a href="{{ route('certificates.index') }}" wire:navigate
+               class="group rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md hover:border-nrapa-blue/30 dark:hover:border-nrapa-blue/30 transition p-4 text-center">
+                <div class="mx-auto mb-2 flex size-10 items-center justify-center rounded-xl bg-nrapa-blue/10 dark:bg-nrapa-blue/20 group-hover:bg-nrapa-blue/20 transition">
+                    <svg class="w-5 h-5 text-nrapa-blue dark:text-nrapa-blue-light" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/></svg>
+                </div>
+                <span class="text-xs font-medium text-zinc-700 dark:text-zinc-300">Membership Card</span>
+            </a>
+
+            <a href="{{ route('profile.edit') }}" wire:navigate
+               class="group relative rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md hover:border-nrapa-blue/30 dark:hover:border-nrapa-blue/30 transition p-4 text-center">
+                @if(empty($this->user->phone))
+                    <span class="absolute -top-1 -right-1 flex size-3"><span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span><span class="relative inline-flex size-3 rounded-full bg-amber-500"></span></span>
+                @endif
+                <div class="mx-auto mb-2 flex size-10 items-center justify-center rounded-xl bg-nrapa-blue/10 dark:bg-nrapa-blue/20 group-hover:bg-nrapa-blue/20 transition">
+                    <svg class="w-5 h-5 text-nrapa-blue dark:text-nrapa-blue-light" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                </div>
+                <span class="text-xs font-medium text-zinc-700 dark:text-zinc-300">My Profile</span>
+            </a>
+
+            <a href="{{ route('armoury.index') }}" wire:navigate
+               class="group relative rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md hover:border-nrapa-blue/30 dark:hover:border-nrapa-blue/30 transition p-4 text-center">
+                @if($this->firearmCounts['total'] > 0)
+                    <span class="absolute -top-1.5 -right-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-nrapa-blue text-white">{{ $this->firearmCounts['total'] }}</span>
+                @endif
+                <div class="mx-auto mb-2 flex size-10 items-center justify-center rounded-xl bg-nrapa-blue/10 dark:bg-nrapa-blue/20 group-hover:bg-nrapa-blue/20 transition">
+                    <svg class="w-5 h-5 text-nrapa-blue dark:text-nrapa-blue-light" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                </div>
+                <span class="text-xs font-medium text-zinc-700 dark:text-zinc-300">Virtual Safe</span>
+            </a>
+
+            @if($this->hasDedicatedMembership)
+            <a href="{{ route('activities.index') }}" wire:navigate
+               class="group relative rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md hover:border-nrapa-blue/30 dark:hover:border-nrapa-blue/30 transition p-4 text-center">
+                <span class="absolute -top-1.5 -right-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full {{ $this->activityCompliance['met'] ? 'bg-emerald-500' : 'bg-amber-500' }} text-white">{{ $this->activityCompliance['approved'] }}/{{ $this->activityCompliance['required'] }}</span>
+                <div class="mx-auto mb-2 flex size-10 items-center justify-center rounded-xl bg-nrapa-blue/10 dark:bg-nrapa-blue/20 group-hover:bg-nrapa-blue/20 transition">
+                    <svg class="w-5 h-5 text-nrapa-blue dark:text-nrapa-blue-light" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </div>
+                <span class="text-xs font-medium text-zinc-700 dark:text-zinc-300">Activities</span>
+            </a>
+
+            <a href="{{ route('member.endorsements.index') }}" wire:navigate
+               class="group rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md hover:border-nrapa-blue/30 dark:hover:border-nrapa-blue/30 transition p-4 text-center">
+                <div class="mx-auto mb-2 flex size-10 items-center justify-center rounded-xl bg-nrapa-blue/10 dark:bg-nrapa-blue/20 group-hover:bg-nrapa-blue/20 transition">
+                    <svg class="w-5 h-5 text-nrapa-blue dark:text-nrapa-blue-light" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                </div>
+                <span class="text-xs font-medium text-zinc-700 dark:text-zinc-300">Endorsements</span>
+            </a>
+            @endif
+
+            <a href="{{ route('documents.index') }}" wire:navigate
+               class="group rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md hover:border-nrapa-blue/30 dark:hover:border-nrapa-blue/30 transition p-4 text-center">
+                <div class="mx-auto mb-2 flex size-10 items-center justify-center rounded-xl bg-nrapa-blue/10 dark:bg-nrapa-blue/20 group-hover:bg-nrapa-blue/20 transition">
+                    <svg class="w-5 h-5 text-nrapa-blue dark:text-nrapa-blue-light" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                </div>
+                <span class="text-xs font-medium text-zinc-700 dark:text-zinc-300">Documents</span>
+            </a>
+
+            <a href="{{ route('learning.index') }}" wire:navigate
+               class="group rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md hover:border-nrapa-blue/30 dark:hover:border-nrapa-blue/30 transition p-4 text-center">
+                <div class="mx-auto mb-2 flex size-10 items-center justify-center rounded-xl bg-nrapa-blue/10 dark:bg-nrapa-blue/20 group-hover:bg-nrapa-blue/20 transition">
+                    <svg class="w-5 h-5 text-nrapa-blue dark:text-nrapa-blue-light" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                </div>
+                <span class="text-xs font-medium text-zinc-700 dark:text-zinc-300">Learning Center</span>
+            </a>
+
+            <a href="{{ route('certificates.index') }}" wire:navigate
+               class="group relative rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md hover:border-nrapa-blue/30 dark:hover:border-nrapa-blue/30 transition p-4 text-center">
+                @if($this->certificates->count() > 0)
+                    <span class="absolute -top-1.5 -right-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500 text-white">{{ $this->certificates->count() }}</span>
+                @endif
+                <div class="mx-auto mb-2 flex size-10 items-center justify-center rounded-xl bg-nrapa-blue/10 dark:bg-nrapa-blue/20 group-hover:bg-nrapa-blue/20 transition">
+                    <svg class="w-5 h-5 text-nrapa-blue dark:text-nrapa-blue-light" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.125 2.25h-4.5c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125v-9M10.125 2.25h.375a9 9 0 019 9v.375M10.125 2.25A3.375 3.375 0 0113.5 5.625v1.5c0 .621.504 1.125 1.125 1.125h1.5a3.375 3.375 0 013.375 3.375M9 15l2.25 2.25L15 12"/></svg>
+                </div>
+                <span class="text-xs font-medium text-zinc-700 dark:text-zinc-300">Certificates</span>
+            </a>
+
+            <a href="{{ route('membership.index') }}" wire:navigate
+               class="group rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md hover:border-nrapa-blue/30 dark:hover:border-nrapa-blue/30 transition p-4 text-center">
+                <div class="mx-auto mb-2 flex size-10 items-center justify-center rounded-xl bg-nrapa-blue/10 dark:bg-nrapa-blue/20 group-hover:bg-nrapa-blue/20 transition">
+                    <svg class="w-5 h-5 text-nrapa-blue dark:text-nrapa-blue-light" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                </div>
+                <span class="text-xs font-medium text-zinc-700 dark:text-zinc-300">Payments</span>
+            </a>
+        </div>
     </div>
     @endif
 

@@ -69,6 +69,8 @@ new class extends Component {
             $query->expired();
         } elseif ($this->filterStatus === 'expiring') {
             $query->expiringSoon(90);
+        } elseif ($this->filterStatus === 'renewal') {
+            $query->where('license_status', 'renewal_pending');
         } elseif ($this->filterStatus === 'valid') {
             $query->where(function ($q) {
                 $q->whereNull('license_expiry_date')
@@ -80,11 +82,19 @@ new class extends Component {
             $query->where('firearm_type_id', $this->filterType);
         }
 
+        $userId = auth()->id();
+        $expiredCount = UserFirearm::forUser($userId)->expired()->count();
+        $expiringCount = UserFirearm::forUser($userId)->expiringSoon(90)->count();
+        $renewalCount = UserFirearm::forUser($userId)->where('license_status', 'renewal_pending')->count();
+        $totalCount = UserFirearm::forUser($userId)->count();
+
         return [
             'firearms' => $query->orderBy('created_at', 'desc')->paginate(12),
             'firearmTypes' => \App\Models\FirearmType::where('is_active', true)->orderBy('name')->get(),
-            'expiringCount' => UserFirearm::forUser(auth()->id())->expiringSoon(90)->count(),
-            'expiredCount' => UserFirearm::forUser(auth()->id())->expired()->count(),
+            'expiredCount' => $expiredCount,
+            'expiringCount' => $expiringCount,
+            'renewalCount' => $renewalCount,
+            'activeCount' => max(0, $totalCount - $expiredCount - $expiringCount - $renewalCount),
         ];
     }
 }; ?>
@@ -147,34 +157,37 @@ new class extends Component {
         </div>
     @endif
 
-    <!-- Alert banners for expiring licenses -->
-    @if($expiredCount > 0)
-        <div class="mb-6 rounded-xl border border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800 p-4">
-            <div class="flex items-center gap-3">
-                <svg class="h-6 w-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                </svg>
-                <div>
-                    <p class="font-medium text-red-800 dark:text-red-200">{{ $expiredCount }} firearm license(s) have expired!</p>
-                    <p class="text-sm text-red-600 dark:text-red-400">Please renew your licenses immediately to remain compliant.</p>
-                </div>
-            </div>
+    <!-- Firearm Status Summary -->
+    <div class="mb-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
+        <div class="flex items-center justify-between px-5 pt-4 pb-2">
+            <h2 class="text-xs uppercase tracking-wider font-semibold text-zinc-500">Firearm Status</h2>
+            @if($expiredCount > 0 || $expiringCount > 0)
+                <span class="text-xs px-2 py-1 rounded-full font-medium bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">Attention</span>
+            @endif
         </div>
-    @endif
-
-    @if($expiringCount > 0)
-        <div class="mb-6 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 p-4">
-            <div class="flex items-center gap-3">
-                <svg class="h-6 w-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <div>
-                    <p class="font-medium text-amber-800 dark:text-amber-200">{{ $expiringCount }} firearm license(s) expiring within 90 days</p>
-                    <p class="text-sm text-amber-600 dark:text-amber-400">Start your renewal process early to avoid any issues.</p>
-                </div>
-            </div>
+        <div class="grid grid-cols-4 gap-3 p-5 pt-2">
+            <button wire:click="$set('filterStatus', '{{ $filterStatus === 'expired' ? '' : 'expired' }}')" type="button"
+                    class="rounded-xl p-3 text-center transition {{ $filterStatus === 'expired' ? 'ring-2 ring-red-500 bg-red-50 dark:bg-red-900/20' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800' }}">
+                <p class="text-2xl font-bold text-red-600 dark:text-red-400">{{ $expiredCount }}</p>
+                <p class="text-xs uppercase tracking-wider text-zinc-500 mt-1">Expired</p>
+            </button>
+            <button wire:click="$set('filterStatus', '{{ $filterStatus === 'expiring' ? '' : 'expiring' }}')" type="button"
+                    class="rounded-xl p-3 text-center transition {{ $filterStatus === 'expiring' ? 'ring-2 ring-amber-500 bg-amber-50 dark:bg-amber-900/20' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800' }}">
+                <p class="text-2xl font-bold text-amber-600 dark:text-amber-400">{{ $expiringCount }}</p>
+                <p class="text-xs uppercase tracking-wider text-zinc-500 mt-1">Expiring</p>
+            </button>
+            <button wire:click="$set('filterStatus', '{{ $filterStatus === 'renewal' ? '' : 'renewal' }}')" type="button"
+                    class="rounded-xl p-3 text-center transition {{ $filterStatus === 'renewal' ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800' }}">
+                <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $renewalCount }}</p>
+                <p class="text-xs uppercase tracking-wider text-zinc-500 mt-1">Renewal</p>
+            </button>
+            <button wire:click="$set('filterStatus', '{{ $filterStatus === 'valid' ? '' : 'valid' }}')" type="button"
+                    class="rounded-xl p-3 text-center transition {{ $filterStatus === 'valid' ? 'ring-2 ring-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800' }}">
+                <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ $activeCount }}</p>
+                <p class="text-xs uppercase tracking-wider text-zinc-500 mt-1">Active</p>
+            </button>
         </div>
-    @endif
+    </div>
 
     <!-- Filters -->
     <div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -186,9 +199,10 @@ new class extends Component {
             <select wire:model.live="filterStatus"
                     class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
                 <option value="">All License Statuses</option>
-                <option value="valid">Valid (90+ days)</option>
-                <option value="expiring">Expiring Soon (within 90 days)</option>
+                <option value="valid">Active (90+ days)</option>
+                <option value="expiring">Expiring Soon (90 days)</option>
                 <option value="expired">Expired</option>
+                <option value="renewal">Renewal Pending</option>
             </select>
         </div>
         <div>
@@ -206,59 +220,84 @@ new class extends Component {
     @if($firearms->count() > 0)
         <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             @foreach($firearms as $firearm)
-                <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 overflow-hidden">
-                    <!-- Firearm Image or Placeholder -->
-                    <div class="h-40 bg-zinc-100 dark:bg-zinc-700 flex items-center justify-center">
+                @php $badge = $firearm->license_status_badge; @endphp
+                <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md transition overflow-hidden">
+                    <div class="relative h-40 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
                         @if($firearm->image_path)
                             <img src="{{ Storage::url($firearm->image_path) }}" alt="{{ $firearm->display_name }}" class="h-full w-full object-cover">
                         @else
-                            <svg class="h-16 w-16 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="h-16 w-16 text-zinc-300 dark:text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                             </svg>
                         @endif
+                        <span class="absolute top-3 left-3 text-xs px-2 py-1 rounded-full font-medium
+                            @if($badge['color'] === 'green') bg-emerald-100 text-emerald-800 dark:bg-emerald-900/80 dark:text-emerald-300
+                            @elseif($badge['color'] === 'red') bg-red-100 text-red-800 dark:bg-red-900/80 dark:text-red-300
+                            @elseif($badge['color'] === 'amber') bg-amber-100 text-amber-800 dark:bg-amber-900/80 dark:text-amber-300
+                            @else bg-amber-100 text-amber-800 dark:bg-amber-900/80 dark:text-amber-300 @endif">
+                            {{ $badge['text'] }}
+                        </span>
+                        @if($firearm->license_expiry_date)
+                            <span class="absolute top-3 right-3 text-xs px-2 py-1 rounded-full font-medium bg-white/90 dark:bg-zinc-900/90 text-zinc-600 dark:text-zinc-400">
+                                Expires: {{ $firearm->license_expiry_date->format('d M Y') }}
+                            </span>
+                        @endif
                     </div>
 
-                    <!-- Firearm Details -->
-                    <div class="p-4">
-                        <div class="flex items-start justify-between mb-2">
-                            <div>
-                                <h3 class="font-semibold text-zinc-900 dark:text-white">{{ $firearm->display_name }}</h3>
-                                <p class="text-sm text-zinc-500">{{ $firearm->make }} {{ $firearm->model }}</p>
-                            </div>
-                            @php $badge = $firearm->license_status_badge; @endphp
-                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
-                                @if($badge['color'] === 'green') bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300
-                                @elseif($badge['color'] === 'red') bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300
-                                @elseif($badge['color'] === 'amber') bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300
-                                @else bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300
-                                @endif">
-                                {{ $badge['text'] }}
-                            </span>
-                        </div>
+                    <div class="p-5">
+                        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-3">{{ $firearm->display_name }}</h3>
 
-                        <div class="space-y-1 text-sm text-zinc-600 dark:text-zinc-400 mb-4">
-                            @if($firearm->calibre_display)
-                                <p><span class="font-medium">Calibre:</span> {{ $firearm->calibre_display }}</p>
-                            @endif
-                            @if($firearm->firearmType)
-                                <p><span class="font-medium">Type:</span> {{ $firearm->firearmType->name }}</p>
-                            @endif
+                        <dl class="space-y-2 mb-4">
+                            <div>
+                                <dt class="text-xs uppercase tracking-wider text-zinc-500">Type</dt>
+                                <dd class="text-sm text-zinc-800 dark:text-zinc-200">
+                                    {{ $firearm->firearm_type_label ?? $firearm->firearmType?->name ?? 'Not specified' }}@if($firearm->action_label) ({{ $firearm->action_label }})@endif
+                                </dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs uppercase tracking-wider text-zinc-500">Calibre</dt>
+                                <dd class="text-sm text-zinc-800 dark:text-zinc-200">{{ $firearm->calibre_display ?? 'Not specified' }}</dd>
+                            </div>
                             @if($firearm->license_number)
-                                <p><span class="font-medium">License:</span> {{ $firearm->license_number }}</p>
+                                <div>
+                                    <dt class="text-xs uppercase tracking-wider text-zinc-500">Application No.</dt>
+                                    <dd class="text-sm text-zinc-800 dark:text-zinc-200">{{ $firearm->license_number }}</dd>
+                                </div>
                             @endif
                             @if($firearm->license_expiry_date)
-                                <p><span class="font-medium">Expires:</span> {{ $firearm->license_expiry_date->format('d M Y') }}</p>
+                                @php
+                                    $renewBy = $firearm->license_expiry_date->copy()->subMonths(6);
+                                    $renewDays = (int) now()->startOfDay()->diffInDays($renewBy, false);
+                                @endphp
+                                <div>
+                                    <dt class="text-xs uppercase tracking-wider text-zinc-500">Renew by</dt>
+                                    <dd class="text-sm {{ $renewDays < 0 ? 'text-red-600 dark:text-red-400 font-medium' : 'text-zinc-800 dark:text-zinc-200' }}">
+                                        {{ $renewBy->format('d M Y') }}
+                                        <span class="text-xs {{ $renewDays < 0 ? 'text-red-500 dark:text-red-500' : 'text-zinc-400 dark:text-zinc-500' }}">
+                                            ({{ $renewDays < 0 ? abs($renewDays) . 'd overdue' : $renewDays . ' days' }})
+                                        </span>
+                                    </dd>
+                                </div>
                             @endif
-                        </div>
+                        </dl>
 
-                        <div class="flex items-center gap-2">
-                            <a href="{{ route('armoury.show', $firearm) }}" wire:navigate
-                               class="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-600 px-3 py-2 text-center text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
-                                View
+                        <div class="flex items-center gap-1 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                            <a href="{{ route('armoury.show', $firearm) }}" wire:navigate title="View details"
+                               class="inline-flex items-center justify-center rounded-lg p-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 transition">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                             </a>
-                            <a href="{{ route('armoury.edit', $firearm) }}" wire:navigate
-                               class="flex-1 rounded-lg bg-nrapa-blue px-3 py-2 text-center text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
-                                Edit
+                            <a href="{{ route('armoury.edit', $firearm) }}" wire:navigate title="Edit"
+                               class="inline-flex items-center justify-center rounded-lg p-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 transition">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            </a>
+                            <button wire:click="deleteFirearm({{ $firearm->id }})" wire:confirm="Remove this firearm from your Virtual Safe?" title="Remove"
+                                    class="inline-flex items-center justify-center rounded-lg p-2 text-zinc-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            </button>
+                            <div class="flex-1"></div>
+                            <a href="{{ route('activities.submit') }}?firearm={{ $firearm->uuid }}" wire:navigate title="Log activity"
+                               class="inline-flex items-center justify-center rounded-lg p-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 transition">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                             </a>
                         </div>
                     </div>
@@ -270,12 +309,12 @@ new class extends Component {
             {{ $firearms->links() }}
         </div>
     @else
-        <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-12 text-center">
-            <svg class="mx-auto h-16 w-16 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-12 text-center">
+            <svg class="mx-auto h-16 w-16 text-zinc-300 dark:text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
             </svg>
             <h3 class="mt-4 text-lg font-semibold text-zinc-900 dark:text-white">Your Virtual Safe is empty</h3>
-            <p class="mt-2 text-zinc-600 dark:text-zinc-400">Add your first firearm to start tracking licenses, expiry dates, and managing your collection.</p>
+            <p class="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Add your first firearm to start tracking licenses, expiry dates, and managing your collection.</p>
             <a href="{{ route('armoury.create') }}" wire:navigate
                class="mt-6 inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
