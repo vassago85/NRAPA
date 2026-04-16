@@ -158,7 +158,7 @@ new class extends Component {
     <!-- Hero Image -->
     @if($firearm->image_path)
         <div class="mb-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
-            <img src="{{ Storage::url($firearm->image_path) }}" alt="{{ $firearm->display_name }}" class="w-full max-h-72 object-cover">
+            <img src="{{ Storage::disk('public')->url($firearm->image_path) }}" alt="{{ $firearm->display_name }}" class="w-full max-h-72 object-cover">
         </div>
     @endif
 

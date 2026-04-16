@@ -224,7 +224,7 @@ new class extends Component {
                 <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md transition overflow-hidden">
                     <div class="relative h-40 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
                         @if($firearm->image_path)
-                            <img src="{{ Storage::url($firearm->image_path) }}" alt="{{ $firearm->display_name }}" class="h-full w-full object-cover">
+                            <img src="{{ Storage::disk('public')->url($firearm->image_path) }}" alt="{{ $firearm->display_name }}" class="h-full w-full object-cover">
                         @else
                             <svg class="h-16 w-16 text-zinc-300 dark:text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
