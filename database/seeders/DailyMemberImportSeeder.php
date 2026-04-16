@@ -23,6 +23,10 @@ class DailyMemberImportSeeder extends Seeder
         'removed',
     ];
 
+    protected array $excludedIdNumbers = [
+        '4806065094183', // F. Lang — deceased
+    ];
+
     public function run(): void
     {
         $path = public_path('dailyupload.csv');
@@ -45,6 +49,13 @@ class DailyMemberImportSeeder extends Seeder
             $rowNumber = $index + 2;
 
             if (count($row) < 8 || empty(trim($row[3] ?? ''))) {
+                continue;
+            }
+
+            $idNumber = trim($row[4] ?? '');
+            if (in_array($idNumber, $this->excludedIdNumbers)) {
+                $skipped++;
+                $this->command->warn("Row {$rowNumber}: Skipped (excluded) — {$row[2]} {$row[3]}");
                 continue;
             }
 
