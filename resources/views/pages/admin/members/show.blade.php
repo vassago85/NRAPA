@@ -802,10 +802,13 @@ new #[Title('Member Details - Admin')] class extends Component {
             $membership = Membership::findOrFail($this->editMembershipId);
             $oldStatus = $membership->status;
 
+            $membershipType = MembershipType::findOrFail($this->editMembershipTypeId);
+            $expiresAt = $membershipType->isLifetime() ? null : ($this->editMembershipExpiresAt ?: null);
+
             $membership->update([
                 'membership_type_id' => $this->editMembershipTypeId,
                 'status' => $this->editMembershipStatus,
-                'expires_at' => $this->editMembershipExpiresAt ?: null,
+                'expires_at' => $expiresAt,
                 'activated_at' => $this->editMembershipActivatedAt ?: null,
                 'notes' => $this->editMembershipNotes ?: null,
             ]);
@@ -819,12 +822,12 @@ new #[Title('Member Details - Admin')] class extends Component {
 
             $message = 'Membership updated successfully.';
         } else {
-            $membershipType = MembershipType::findOrFail($this->editMembershipTypeId);
+            $newMembershipType = MembershipType::findOrFail($this->editMembershipTypeId);
 
-            $expiresAt = $this->editMembershipExpiresAt ?: null;
-            if (!$expiresAt && $membershipType->requires_renewal && $membershipType->duration_months) {
+            $newExpiresAt = $newMembershipType->isLifetime() ? null : ($this->editMembershipExpiresAt ?: null);
+            if (!$newExpiresAt && !$newMembershipType->isLifetime() && $newMembershipType->requires_renewal && $newMembershipType->duration_months) {
                 $activatedAt = $this->editMembershipActivatedAt ? \Carbon\Carbon::parse($this->editMembershipActivatedAt) : now();
-                $expiresAt = $activatedAt->copy()->addMonths($membershipType->duration_months)->format('Y-m-d');
+                $newExpiresAt = $activatedAt->copy()->addMonths($newMembershipType->duration_months)->format('Y-m-d');
             }
 
             Membership::create([
@@ -837,7 +840,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                 'approved_at' => in_array($this->editMembershipStatus, ['approved', 'active']) ? now() : null,
                 'approved_by' => in_array($this->editMembershipStatus, ['approved', 'active']) ? auth()->id() : null,
                 'activated_at' => $this->editMembershipActivatedAt ?: null,
-                'expires_at' => $expiresAt,
+                'expires_at' => $newExpiresAt,
                 'notes' => $this->editMembershipNotes ?: null,
                 'source' => 'admin',
             ]);

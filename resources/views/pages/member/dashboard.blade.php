@@ -109,7 +109,7 @@ new #[Title('Dashboard')] class extends Component {
     public function expiredMembership(): ?Membership
     {
         $m = $this->activeMembership;
-        if (! $m || ! $m->expires_at) {
+        if (! $m || ! $m->expires_at || $m->type->isLifetime()) {
             return null;
         }
 
@@ -1394,7 +1394,8 @@ new #[Title('Dashboard')] class extends Component {
     @php
         $fc = $this->firearmCounts;
         $ac = $this->activityCompliance;
-        $memberPaidUp = $this->activeMembership && (!$this->activeMembership->expires_at || $this->activeMembership->expires_at->isFuture());
+        $isLifetime = $this->activeMembership->type->isLifetime();
+        $memberPaidUp = $this->activeMembership && ($isLifetime || !$this->activeMembership->expires_at || $this->activeMembership->expires_at->isFuture());
     @endphp
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <!-- Membership Status -->
@@ -1408,7 +1409,7 @@ new #[Title('Dashboard')] class extends Component {
             <div class="space-y-2">
                 <div>
                     <span class="text-xs uppercase tracking-wider text-zinc-500">Paid-up till</span>
-                    <p class="text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ $this->activeMembership->expires_at?->format('M d, Y') ?? 'Lifetime' }}</p>
+                    <p class="text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ $isLifetime ? 'Lifetime' : ($this->activeMembership->expires_at?->format('M d, Y') ?? 'N/A') }}</p>
                 </div>
                 <div>
                     <span class="text-xs uppercase tracking-wider text-zinc-500">Member since</span>
@@ -1630,7 +1631,12 @@ new #[Title('Dashboard')] class extends Component {
                     <span class="text-sm text-zinc-500 dark:text-zinc-400">Member #</span>
                     <span class="font-mono text-sm font-semibold text-zinc-900 dark:text-white">{{ $this->activeMembership->membership_number }}</span>
                 </div>
-                @if($this->activeMembership->expires_at)
+                @if($this->activeMembership->type->isLifetime())
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-zinc-500 dark:text-zinc-400">Expires</span>
+                    <span class="text-sm font-medium text-emerald-600 dark:text-emerald-400">Never (Lifetime)</span>
+                </div>
+                @elseif($this->activeMembership->expires_at)
                 <div class="flex items-center justify-between">
                     <span class="text-sm text-zinc-500 dark:text-zinc-400">Expires</span>
                     <span class="text-sm text-zinc-900 dark:text-white">{{ $this->activeMembership->expires_at->format('d M Y') }}</span>
@@ -1705,7 +1711,7 @@ new #[Title('Dashboard')] class extends Component {
                     </div>
                     <div class="mb-3">
                         <div class="text-[10px] font-semibold uppercase tracking-wider text-[#0B4EA2]">Valid Until</div>
-                        @if($this->activeMembership->type->is_lifetime ?? false)
+                        @if($this->activeMembership->type->isLifetime())
                             <div class="text-xs font-bold text-[#0B4EA2]">Lifetime</div>
                         @else
                             <div class="text-xs font-semibold text-zinc-800">{{ $this->activeMembership->expires_at?->format('d M Y') ?? 'N/A' }}</div>

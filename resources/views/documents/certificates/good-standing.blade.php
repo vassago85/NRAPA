@@ -27,7 +27,20 @@
                         <tr><td class="kv-label">Full Name</td><td class="kv-value">{{ $certificate->user->getIdName() }}</td></tr>
                         <tr><td class="kv-label">ID / Passport</td><td class="kv-value">{{ $certificate->user->getIdNumber() ?? 'N/A' }}</td></tr>
                         <tr><td class="kv-label">Membership No.</td><td class="kv-value">{{ $certificate->membership->membership_number ?? 'N/A' }}</td></tr>
-                        <tr><td class="kv-label">Membership Type</td><td class="kv-value">{{ $certificate->membership->type->name ?? 'N/A' }}</td></tr>
+                        <tr><td class="kv-label">Membership Type</td><td class="kv-value">
+                            {{ $certificate->membership->type->name ?? 'N/A' }}
+                            @if($certificate->membership->type->dedicated_type)
+                                <br/><span style="font-size:9px; color:#6a6a6a;">
+                                    @if($certificate->membership->type->dedicated_type === 'both')
+                                        (Dedicated Hunter &amp; Sport Shooter)
+                                    @elseif($certificate->membership->type->dedicated_type === 'hunter')
+                                        (Dedicated Hunter)
+                                    @else
+                                        (Dedicated Sport Shooter)
+                                    @endif
+                                </span>
+                            @endif
+                        </td></tr>
                     </table>
                 </div>
             </td>

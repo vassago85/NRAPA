@@ -42,7 +42,7 @@ new #[Title('My Membership')] class extends Component {
     {
         $membership = $this->activeMembership;
         
-        if (!$membership || !$membership->expires_at) {
+        if (!$membership || !$membership->expires_at || $membership->type->isLifetime()) {
             return [
                 'days_to_expiry' => null,
                 'expiring_soon' => false,
@@ -304,7 +304,7 @@ new #[Title('My Membership')] class extends Component {
 
     public function getDisplayStatus(Membership $membership): string
     {
-        if ($membership->status === 'active' && $membership->expires_at?->isPast()) {
+        if ($membership->status === 'active' && !$membership->type->isLifetime() && $membership->expires_at?->isPast()) {
             return 'expired';
         }
 
@@ -661,10 +661,12 @@ new #[Title('My Membership')] class extends Component {
                             </td>
                             <td class="px-6 py-3 text-zinc-500 dark:text-zinc-400">{{ $membership->applied_at->format('d M Y') }}</td>
                             <td class="px-6 py-3 text-zinc-500 dark:text-zinc-400">
-                                @if($membership->expires_at)
+                                @if($membership->type->isLifetime())
+                                    <span class="text-amber-600 dark:text-amber-400">Lifetime</span>
+                                @elseif($membership->expires_at)
                                     {{ $membership->expires_at->format('d M Y') }}
                                 @else
-                                    <span class="text-amber-600 dark:text-amber-400">Lifetime</span>
+                                    N/A
                                 @endif
                             </td>
                             <td class="px-6 py-3 text-right">

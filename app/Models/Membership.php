@@ -366,11 +366,14 @@ class Membership extends Model
      */
     public function isExpired(): bool
     {
+        if ($this->type && $this->type->isLifetime()) {
+            return false;
+        }
+
         if ($this->status === 'expired') {
             return true;
         }
 
-        // Check expiry date if set (attribute-driven)
         if ($this->expires_at && $this->expires_at->isPast()) {
             return true;
         }
@@ -443,7 +446,10 @@ class Membership extends Model
      */
     public function isInRenewalWindow(): bool
     {
-        // No expiry date means not in a renewal window
+        if ($this->type && $this->type->isLifetime()) {
+            return false;
+        }
+
         if (! $this->expires_at) {
             return false;
         }
@@ -465,6 +471,10 @@ class Membership extends Model
      */
     public function isExpiredBeyondGracePeriod(): bool
     {
+        if ($this->type && $this->type->isLifetime()) {
+            return false;
+        }
+
         if (! $this->expires_at) {
             return false;
         }
