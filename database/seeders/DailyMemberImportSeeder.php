@@ -90,6 +90,17 @@ class DailyMemberImportSeeder extends Seeder
                 $email = '';
             }
 
+            // Skip members already in the system (by email, phone, or ID number)
+            $idNumber = \App\Models\User::normalizeIdNumber(trim($row[4] ?? ''));
+            $normalizedPhone = \App\Models\User::normalizePhone($phone);
+            if (
+                (! empty($email) && \App\Models\User::where('email', strtolower($email))->exists()) ||
+                (! empty($normalizedPhone) && \App\Models\User::where('phone', $normalizedPhone)->exists()) ||
+                (! empty($idNumber) && strlen($idNumber) === 13 && \App\Models\User::where('id_number', $idNumber)->exists())
+            ) {
+                continue;
+            }
+
             $knowledgeTest = strtolower(trim($row[10] ?? '')) === 'yes';
             $activities = strtolower(trim($row[11] ?? '')) === 'yes';
 
