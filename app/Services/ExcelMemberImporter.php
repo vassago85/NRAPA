@@ -333,7 +333,12 @@ class ExcelMemberImporter
 
             // Check for duplicate ID number
             if (! empty($memberData['id_number']) && User::where('id_number', $memberData['id_number'])->exists()) {
-                return ['success' => false, 'error' => "User with ID number '{$memberData['id_number']}' already exists."];
+                return ['success' => false, 'error' => "Skipped — ID number '{$memberData['id_number']}' already exists."];
+            }
+
+            // Check for duplicate phone
+            if (! empty($memberData['phone']) && User::where('phone', $memberData['phone'])->exists()) {
+                return ['success' => false, 'error' => "Skipped — phone '{$memberData['phone']}' already exists."];
             }
 
             $defaultMembershipType = $defaultMembershipTypeSlug
@@ -449,9 +454,11 @@ class ExcelMemberImporter
                   || $isLifeMember
                   || ($renewalDate && $renewalDate >= date('Y-m-d'));
 
+        $isExpired = ! $isActive && $renewalDate && $renewalDate < date('Y-m-d');
+
         return [
             'name' => $name,
-            'email' => trim(strtolower($row[6] ?? '')),
+            'email' => trim(strtolower(preg_split('/[;,]/', $row[6] ?? '')[0])),
             'id_number' => $idNumber,
             'phone' => User::normalizePhone(trim($row[5] ?? '')),
             'date_of_birth' => $dateOfBirth,
@@ -459,7 +466,7 @@ class ExcelMemberImporter
             'postal_address' => null,
             'membership_number' => '',
             'membership_type_raw' => $membershipTypeRaw,
-            'status' => $isActive ? 'active' : 'applied',
+            'status' => $isActive ? 'active' : ($isExpired ? 'expired' : 'applied'),
             'date_joined' => $this->parseDate($row[0] ?? null),
             'renewal_date' => $renewalDate,
             'is_life_member' => $isLifeMember,
