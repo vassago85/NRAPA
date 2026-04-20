@@ -1,10 +1,13 @@
 <?php
 
 use App\Mail\ImportWelcome;
+use App\Mail\MemberMessageMail;
 use App\Models\ImportFailure;
+use App\Models\MemberMessage;
 use App\Models\User;
 use App\Models\MembershipType;
 use App\Services\ExcelMemberImporter;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Attributes\Computed;
@@ -34,6 +37,111 @@ new #[Title('Members - Admin')] class extends Component {
     public bool $autoActivate = true;
     public bool $sendWelcomeEmail = true;
     public ?array $importResults = null;
+
+    // Bulk message to selected members
+    public array $selectedUserIds = [];
+    public bool $showBulkMessageModal = false;
+    public string $bulkMessageSubject = '';
+    public string $bulkMessageBody = '';
+
+    public function toggleSelectAll(bool $checked): void
+    {
+        if ($checked) {
+            $this->selectedUserIds = $this->members->pluck('id')->map(fn ($id) => (int) $id)->toArray();
+        } else {
+            $this->selectedUserIds = [];
+        }
+    }
+
+    public function clearSelection(): void
+    {
+        $this->selectedUserIds = [];
+    }
+
+    public function openBulkMessage(): void
+    {
+        if (empty($this->selectedUserIds)) {
+            session()->flash('error', 'Select at least one member first.');
+            return;
+        }
+        $this->bulkMessageSubject = '';
+        $this->bulkMessageBody = '';
+        $this->showBulkMessageModal = true;
+    }
+
+    public function closeBulkMessage(): void
+    {
+        $this->showBulkMessageModal = false;
+        $this->bulkMessageSubject = '';
+        $this->bulkMessageBody = '';
+    }
+
+    public function sendBulkMessage(): void
+    {
+        $this->validate([
+            'bulkMessageSubject' => 'required|string|max:255',
+            'bulkMessageBody' => 'required|string|max:5000',
+        ]);
+
+        $recipients = User::whereIn('id', $this->selectedUserIds)->get();
+        if ($recipients->isEmpty()) {
+            session()->flash('error', 'No recipients selected.');
+            $this->closeBulkMessage();
+            return;
+        }
+
+        $sent = 0;
+        $emailed = 0;
+        $failed = 0;
+
+        foreach ($recipients as $recipient) {
+            try {
+                $message = MemberMessage::create([
+                    'user_id' => $recipient->id,
+                    'sent_by_user_id' => Auth::id(),
+                    'subject' => trim($this->bulkMessageSubject),
+                    'body' => trim($this->bulkMessageBody),
+                ]);
+                $sent++;
+
+                if ($recipient->email) {
+                    try {
+                        Mail::to($recipient->email)->queue(new MemberMessageMail($message));
+                        $message->update(['email_sent_at' => now()]);
+                        $emailed++;
+                    } catch (\Throwable $e) {
+                        Log::warning('Failed to queue bulk member message email', [
+                            'user_id' => $recipient->id,
+                            'message_id' => $message->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            } catch (\Throwable $e) {
+                $failed++;
+                Log::warning('Failed to create bulk member message', [
+                    'user_id' => $recipient->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        try {
+            app(\App\Services\NtfyService::class)->notifyAdmins(
+                'new_member',
+                'Bulk Message Sent',
+                Auth::user()->name . " sent \"{$this->bulkMessageSubject}\" to {$sent} member(s). {$emailed} emails queued.",
+                'low',
+            );
+        } catch (\Exception $e) {}
+
+        $this->closeBulkMessage();
+        $this->selectedUserIds = [];
+
+        $parts = ["{$sent} sent", "{$emailed} emailed"];
+        if ($failed > 0) $parts[] = "{$failed} failed";
+        session()->flash('success', 'Bulk message: ' . implode(', ', $parts) . '.');
+    }
 
     public function updatedSearch(): void
     {
@@ -320,12 +428,38 @@ new #[Title('Members - Admin')] class extends Component {
         </div>
     </div>
 
+    {{-- Bulk Actions Bar (visible when rows are selected) --}}
+    @if(count($selectedUserIds) > 0)
+    <div class="flex items-center justify-between rounded-2xl border border-blue-300 bg-blue-50 px-4 py-3 dark:border-blue-700 dark:bg-blue-900/20">
+        <p class="text-sm text-blue-800 dark:text-blue-200">
+            <strong>{{ count($selectedUserIds) }}</strong> member(s) selected
+        </p>
+        <div class="flex items-center gap-2">
+            <button wire:click="openBulkMessage"
+                class="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors">
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                Send Message to Selected
+            </button>
+            <button wire:click="clearSelection"
+                class="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 transition-colors">
+                Clear
+            </button>
+        </div>
+    </div>
+    @endif
+
     {{-- Members Table --}}
     <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
         <div class="overflow-x-auto">
             <table class="w-full">
                 <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/50">
                     <tr>
+                        <th class="w-10 px-4 py-3">
+                            <input type="checkbox"
+                                @checked(count($selectedUserIds) > 0 && count($selectedUserIds) === $this->members->count())
+                                wire:click="toggleSelectAll($event.target.checked)"
+                                class="rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700">
+                        </th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Member</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Membership</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Status</th>
@@ -338,7 +472,11 @@ new #[Title('Members - Admin')] class extends Component {
                     @php
                         $membershipStatus = $this->getMembershipStatus($user);
                     @endphp
-                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
+                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 {{ in_array($user->id, $selectedUserIds) ? 'bg-blue-50 dark:bg-blue-900/10' : '' }}">
+                        <td class="w-10 px-4 py-4">
+                            <input type="checkbox" value="{{ $user->id }}" wire:model.live="selectedUserIds"
+                                class="rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700">
+                        </td>
                         <td class="whitespace-nowrap px-6 py-4">
                             <div class="flex items-center gap-3">
                                 <div class="flex size-10 items-center justify-center rounded-full bg-emerald-100 text-sm font-semibold text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
@@ -566,6 +704,50 @@ new #[Title('Members - Admin')] class extends Component {
                         </div>
                     </form>
                 </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Bulk Message Modal --}}
+    @if($showBulkMessageModal)
+    <div class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div wire:click="closeBulkMessage" class="fixed inset-0 bg-black/50"></div>
+            <div class="relative w-full max-w-lg rounded-xl bg-white shadow-xl dark:bg-zinc-800">
+                <div class="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
+                    <div>
+                        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Send Message</h3>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">To {{ count($selectedUserIds) }} selected member(s)</p>
+                    </div>
+                    <button wire:click="closeBulkMessage" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <form wire:submit="sendBulkMessage" class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Subject <span class="text-red-500">*</span></label>
+                        <input type="text" wire:model="bulkMessageSubject" maxlength="255"
+                            class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                        @error('bulkMessageSubject') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Message <span class="text-red-500">*</span></label>
+                        <textarea wire:model="bulkMessageBody" rows="6" maxlength="5000" placeholder="Each selected member will get their own copy in their inbox and by email."
+                            class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white"></textarea>
+                        @error('bulkMessageBody') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div class="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20">
+                        <p class="text-xs text-amber-800 dark:text-amber-200">
+                            This will create <strong>{{ count($selectedUserIds) }}</strong> individual messages and queue an email for each member with an address on file.
+                        </p>
+                    </div>
+                    <div class="flex justify-end gap-3 pt-2 border-t border-zinc-200 dark:border-zinc-800">
+                        <button type="button" wire:click="closeBulkMessage" class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 transition-colors">Cancel</button>
+                        <button type="submit" wire:confirm="Send this message to {{ count($selectedUserIds) }} member(s)?"
+                            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">Send to {{ count($selectedUserIds) }}</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

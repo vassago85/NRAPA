@@ -189,6 +189,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::livewire('dashboard', 'pages::member.dashboard')->name('dashboard');
 
+    // Messages inbox (available to all verified users, including expired members)
+    Route::livewire('messages', 'pages::member.messages.index')->name('messages.index');
+    Route::livewire('messages/{message}', 'pages::member.messages.show')->name('messages.show');
+
     // Membership - Always accessible (so free members can choose/pay for packages)
     Route::livewire('membership/select-package', 'pages::member.membership.select-package')->name('membership.select-package');
     Route::livewire('membership/payment/{membership}', 'pages::member.membership.payment')->name('membership.payment');

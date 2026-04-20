@@ -12,6 +12,8 @@ use App\Models\KnowledgeTest;
 use App\Models\KnowledgeTestAttempt;
 use App\Mail\AccountDeleted;
 use App\Mail\ImportWelcome;
+use App\Mail\MemberMessageMail;
+use App\Models\MemberMessage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
@@ -44,6 +46,11 @@ new #[Title('Member Details - Admin')] class extends Component {
     public array $securityAnswers = [];
     public bool $verificationPassed = false;
     public ?string $verificationError = null;
+
+    // Send message to member
+    public bool $showSendMessageModal = false;
+    public string $messageSubject = '';
+    public string $messageBody = '';
 
     // Edit profile properties
     public bool $showEditProfileModal = false;
@@ -246,6 +253,68 @@ new #[Title('Member Details - Admin')] class extends Component {
         } else {
             session()->flash('warning', 'Password reset initiated. The user should check their email.');
         }
+    }
+
+    public function openSendMessage(): void
+    {
+        $this->messageSubject = '';
+        $this->messageBody = '';
+        $this->showSendMessageModal = true;
+    }
+
+    public function closeSendMessage(): void
+    {
+        $this->showSendMessageModal = false;
+        $this->messageSubject = '';
+        $this->messageBody = '';
+    }
+
+    public function sendMessage(): void
+    {
+        $this->validate([
+            'messageSubject' => 'required|string|max:255',
+            'messageBody' => 'required|string|max:5000',
+        ]);
+
+        $message = MemberMessage::create([
+            'user_id' => $this->user->id,
+            'sent_by_user_id' => Auth::id(),
+            'subject' => trim($this->messageSubject),
+            'body' => trim($this->messageBody),
+        ]);
+
+        if ($this->user->email) {
+            try {
+                Mail::to($this->user->email)->queue(new MemberMessageMail($message));
+                $message->update(['email_sent_at' => now()]);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Failed to queue member message email', [
+                    'user_id' => $this->user->id,
+                    'message_id' => $message->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        try {
+            app(\App\Services\NtfyService::class)->notifyAdmins(
+                'new_member',
+                'Member Message Sent',
+                Auth::user()->name . " sent \"{$message->subject}\" to {$this->user->name} ({$this->user->email}).",
+                'low',
+            );
+        } catch (\Exception $e) {}
+
+        $this->closeSendMessage();
+        $this->user->refresh();
+        session()->flash('success', "Message sent to {$this->user->name}.");
+    }
+
+    public function deleteMessage(int $id): void
+    {
+        $message = MemberMessage::where('user_id', $this->user->id)->findOrFail($id);
+        $message->delete();
+        session()->flash('success', 'Message deleted.');
     }
 
     public function resendWelcomeEmail(): void
@@ -1064,6 +1133,12 @@ new #[Title('Member Details - Admin')] class extends Component {
             </button>
             @endif
 
+            <button wire:click="openSendMessage"
+                class="inline-flex items-center gap-1 rounded-lg border border-blue-300 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-700 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50 transition-colors">
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                Send Message
+            </button>
+
             <button wire:click="resendWelcomeEmail"
                 wire:confirm="Send welcome email to {{ $this->user->name }} ({{ $this->user->email }})?"
                 class="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 dark:hover:bg-emerald-900/50 transition-colors">
@@ -1646,6 +1721,69 @@ new #[Title('Member Details - Admin')] class extends Component {
         </div>
     </div>
     @endif
+
+    {{-- Messages --}}
+    <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+        <div class="flex items-center justify-between border-b border-zinc-200 p-6 dark:border-zinc-800">
+            <div>
+                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Messages</h2>
+                @php $unreadCount = $this->user->messages->whereNull('read_at')->count(); @endphp
+                <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                    {{ $this->user->messages->count() }} total
+                    @if($unreadCount > 0)
+                        &middot; <span class="font-semibold text-amber-600 dark:text-amber-400">{{ $unreadCount }} unread by member</span>
+                    @endif
+                </p>
+            </div>
+            <button wire:click="openSendMessage"
+                class="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors">
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"/></svg>
+                Send Message
+            </button>
+        </div>
+        <div class="p-6">
+            @if($this->user->messages->count() === 0)
+                <p class="text-sm text-zinc-500 dark:text-zinc-400">No messages sent to this member yet.</p>
+            @else
+                <div class="space-y-3">
+                    @foreach($this->user->messages as $msg)
+                    <div class="rounded-lg border {{ $msg->read_at ? 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-800/50' : 'border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20' }} p-4">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h3 class="font-medium text-zinc-900 dark:text-white">{{ $msg->subject }}</h3>
+                                    @if($msg->read_at)
+                                        <span class="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                                            Read {{ $msg->read_at->diffForHumans() }}
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">
+                                            Unread
+                                        </span>
+                                    @endif
+                                    @if($msg->email_sent_at)
+                                        <span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                                            Emailed
+                                        </span>
+                                    @endif
+                                </div>
+                                <p class="mt-2 whitespace-pre-wrap text-sm text-zinc-700 dark:text-zinc-300">{{ $msg->body }}</p>
+                                <p class="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                                    Sent {{ $msg->created_at->format('d M Y H:i') }}
+                                    @if($msg->sender) &middot; by {{ $msg->sender->name }} @endif
+                                </p>
+                            </div>
+                            <button wire:click="deleteMessage({{ $msg->id }})" wire:confirm="Delete this message? The member will no longer see it in their inbox."
+                                class="shrink-0 rounded-md p-1.5 text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400 transition-colors" title="Delete message">
+                                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+    </div>
 
     {{-- Certificates & Endorsement Requests --}}
     @if($this->user->certificates->count() > 0 || $this->endorsementRequests->count() > 0)
@@ -2495,6 +2633,49 @@ new #[Title('Member Details - Admin')] class extends Component {
                     <div class="flex justify-end gap-3 pt-2 border-t border-zinc-200 dark:border-zinc-800">
                         <button type="button" wire:click="$set('showAddActivityModal', false)" class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 transition-colors">Cancel</button>
                         <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">Add Activity</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Send Message Modal --}}
+    @if($showSendMessageModal)
+    <div class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div wire:click="closeSendMessage" class="fixed inset-0 bg-black/50"></div>
+            <div class="relative w-full max-w-lg rounded-xl bg-white shadow-xl dark:bg-zinc-800">
+                <div class="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
+                    <div>
+                        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Send Message</h3>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">To {{ $this->user->name }} &lt;{{ $this->user->email ?: 'no email on file' }}&gt;</p>
+                    </div>
+                    <button wire:click="closeSendMessage" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <form wire:submit="sendMessage" class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Subject <span class="text-red-500">*</span></label>
+                        <input type="text" wire:model="messageSubject" maxlength="255" placeholder="e.g. Please upload your ID document"
+                            class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                        @error('messageSubject') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Message <span class="text-red-500">*</span></label>
+                        <textarea wire:model="messageBody" rows="6" maxlength="5000" placeholder="The member will see this in their inbox and also receive a copy by email."
+                            class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white"></textarea>
+                        @error('messageBody') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div class="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
+                        <p class="text-xs text-blue-700 dark:text-blue-300">
+                            The member will see this in their inbox bell @if($this->user->email) and get an email at <strong>{{ $this->user->email }}</strong>@endif. Plain text only; line breaks are preserved.
+                        </p>
+                    </div>
+                    <div class="flex justify-end gap-3 pt-2 border-t border-zinc-200 dark:border-zinc-800">
+                        <button type="button" wire:click="closeSendMessage" class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 transition-colors">Cancel</button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">Send</button>
                     </div>
                 </form>
             </div>

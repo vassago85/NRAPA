@@ -454,6 +454,16 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Membership::class);
     }
 
+    public function messages(): HasMany
+    {
+        return $this->hasMany(MemberMessage::class)->latest();
+    }
+
+    public function unreadMessages(): HasMany
+    {
+        return $this->hasMany(MemberMessage::class)->whereNull('read_at');
+    }
+
     /**
      * Get the active membership for the user.
      * Prefers a non-expired active membership over an expired one.
