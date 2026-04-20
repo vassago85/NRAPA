@@ -90,7 +90,9 @@ new class extends Component {
     {
         $this->firearm->delete();
         session()->flash('success', 'Firearm removed from your armoury.');
-        $this->redirect(route('armoury.index'), navigate: true);
+        // Full page reload (no navigate: true) so the soft-deleted firearm's
+        // Livewire/SPA state is fully discarded before landing on the index.
+        $this->redirect(route('armoury.index'));
     }
 }; ?>
 
