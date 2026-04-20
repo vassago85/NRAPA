@@ -232,6 +232,65 @@ new #[Title('Import Failures - Admin')] class extends Component {
         session()->flash('success', "Row #{$failure->row_number} dismissed.");
     }
 
+    /**
+     * Bulk-resolve every unresolved failure (optionally filtered to the current batch)
+     * that auto-matches an existing user by ID > email > phone. Unmatched rows and
+     * rows whose update fails are left in place for manual handling.
+     */
+    public function resolveAllMatches(): void
+    {
+        $query = ImportFailure::unresolved();
+        if ($this->filterBatch) {
+            $query->forBatch($this->filterBatch);
+        }
+
+        $importer = new ExcelMemberImporter();
+        $updated = 0;
+        $skipped = 0;
+        $failed = 0;
+        $failedRows = [];
+
+        foreach ($query->get() as $failure) {
+            $data = $failure->row_data ?? [];
+
+            $match = $importer->findExistingUser([
+                'id_number' => $data['id_number'] ?? '',
+                'email'     => $data['email'] ?? '',
+                'phone'     => $data['phone'] ?? '',
+            ]);
+
+            if (! $match['user']) {
+                $skipped++;
+                continue;
+            }
+
+            $result = $importer->updateExistingMember($match['user'], $data);
+
+            if ($result['success']) {
+                $failure->markResolved();
+                $updated++;
+            } else {
+                $failed++;
+                $label = trim(($data['initials'] ?? '') . ' ' . ($data['surname'] ?? ''));
+                $failedRows[] = $label ?: "Row #{$failure->row_number}";
+            }
+        }
+
+        try {
+            app(\App\Services\NtfyService::class)->notifyAdmins(
+                'new_member',
+                'Bulk Import Resolution',
+                auth()->user()->name . " auto-resolved {$updated} import failure(s) by matching existing members.",
+            );
+        } catch (\Exception $e) {}
+
+        $parts = ["{$updated} updated"];
+        if ($skipped > 0) $parts[] = "{$skipped} with no match left";
+        if ($failed > 0) $parts[] = "{$failed} failed" . ($failedRows ? ' (' . implode(', ', array_slice($failedRows, 0, 5)) . (count($failedRows) > 5 ? '…' : '') . ')' : '');
+
+        session()->flash('success', 'Bulk resolve complete: ' . implode(', ', $parts) . '.');
+    }
+
     public function dismissAll(): void
     {
         $query = ImportFailure::unresolved();
@@ -268,6 +327,10 @@ new #[Title('Import Failures - Admin')] class extends Component {
         </div>
         <div class="flex gap-2">
             @if($failures->total() > 0)
+            <button wire:click="resolveAllMatches" wire:confirm="For every failure{{ $filterBatch ? ' in this batch' : '' }} that matches an existing member by ID, email, or phone, overwrite that member's details, membership, and dedicated status with the spreadsheet values. Continue?"
+                class="px-4 py-2 text-sm font-medium text-amber-800 bg-amber-50 border border-amber-300 rounded-lg hover:bg-amber-100 dark:text-amber-200 dark:bg-amber-900/30 dark:border-amber-700 dark:hover:bg-amber-900/50 transition-colors">
+                Resolve All Matches
+            </button>
             <button wire:click="dismissAll" wire:confirm="Are you sure you want to dismiss all unresolved failures{{ $filterBatch ? ' in this batch' : '' }}?"
                 class="px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-300 rounded-lg hover:bg-red-100 dark:text-red-300 dark:bg-red-900/30 dark:border-red-700 dark:hover:bg-red-900/50 transition-colors">
                 Dismiss All
