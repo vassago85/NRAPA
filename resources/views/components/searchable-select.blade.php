@@ -4,7 +4,7 @@
     'wireModelCustom' => null, // Optional Livewire property for the free-text fallback value
     'placeholder' => 'Search...',
     'disabled' => false,
-    'live' => false,        // Whether to use wire:model.live on the hidden id input
+    'live' => false,        // When true, selecting an option triggers a Livewire re-render
     'allowCustom' => null,  // If null, auto-enabled when wireModelCustom is provided
 ])
 
@@ -14,29 +14,29 @@
         'name' => is_array($o) ? $o['name'] : $o->name,
     ])->values()->toArray();
 
-    $idAttr = $live ? 'wire:model.live' : 'wire:model';
     $allowCustom = $allowCustom ?? ($wireModelCustom !== null);
 
     $componentId = 'sel_' . substr(md5($wireModel . '|' . ($wireModelCustom ?? '')), 0, 8);
 @endphp
 
-<div
+{{-- Items JSON lives OUTSIDE wire:ignore so Livewire can update it when the source collection changes --}}
+<div>
+    <script type="application/json" data-searchable-items="{{ $componentId }}">{!! json_encode($items) !!}</script>
+
+<div wire:ignore
     x-data="searchableSelect({
-        items: @js($items),
-        hasCustom: {{ $wireModelCustom ? 'true' : 'false' }},
+        componentId: @js($componentId),
         allowCustom: @js((bool) $allowCustom),
         disabled: @js((bool) $disabled),
+        hasCustom: {{ $wireModelCustom ? 'true' : 'false' }},
+        wireModel: @js($wireModel),
+        wireModelCustom: @js($wireModelCustom),
+        liveUpdate: @js((bool) $live),
     })"
     x-on:click.outside="handleClickOutside()"
     class="relative"
     id="{{ $componentId }}"
 >
-    {{-- Hidden inputs carry the Livewire bindings --}}
-    <input type="hidden" x-ref="hiddenId" {{ $idAttr }}="{{ $wireModel }}" />
-    @if($wireModelCustom)
-        <input type="hidden" x-ref="hiddenCustom" wire:model="{{ $wireModelCustom }}" />
-    @endif
-
     <div class="relative">
         <input
             x-ref="input"
@@ -84,7 +84,8 @@
         <template x-for="(item, idx) in filtered" :key="'item-' + item.id">
             <button
                 type="button"
-                x-on:mousedown.prevent="selectItem(item)"
+                x-on:click="selectItem(item)"
+                x-on:mousedown.prevent
                 x-on:mouseenter="highlightIndex = idx"
                 :data-highlighted="highlightIndex === idx ? '' : undefined"
                 :class="{
@@ -108,7 +109,8 @@
         <template x-if="allowCustom && showCustomOption">
             <button
                 type="button"
-                x-on:mousedown.prevent="commitCustom()"
+                x-on:click="commitCustom()"
+                x-on:mousedown.prevent
                 :class="{ 'bg-nrapa-blue/10 dark:bg-nrapa-blue/20': highlightIndex === filtered.length }"
                 x-on:mouseenter="highlightIndex = filtered.length"
                 class="w-full text-left px-4 py-2 text-sm text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2 border-t border-zinc-100 dark:border-zinc-700"
@@ -126,15 +128,20 @@
         </div>
     </div>
 </div>
+</div>
 
 @once
 <script>
 document.addEventListener('alpine:init', () => {
     Alpine.data('searchableSelect', (config) => ({
-        items: config.items || [],
+        componentId: config.componentId,
+        items: [],
         allowCustom: config.allowCustom,
         disabled: config.disabled,
         hasCustom: !!config.hasCustom,
+        wireModel: config.wireModel,
+        wireModelCustom: config.wireModelCustom,
+        liveUpdate: !!config.liveUpdate,
 
         search: '',
         open: false,
@@ -142,27 +149,88 @@ document.addEventListener('alpine:init', () => {
         selectedId: null,
         customValue: '',
 
-        get idRef()     { return this.$refs.hiddenId || null; },
-        get customRef() { return this.hasCustom ? (this.$refs.hiddenCustom || null) : null; },
-
         init() {
-            // Hydrate from the hidden inputs (Livewire source of truth)
-            this.selectedId = this.idRef?.value ? String(this.idRef.value) : null;
-            if (this.customRef) {
-                this.customValue = this.customRef.value ?? '';
-            }
-            this.search = this.currentLabel();
+            // Load items from the sibling <script> tag that Livewire CAN re-render
+            this.reloadItems();
 
-            // Watch the hidden id input for server-side changes (Livewire rerenders)
-            if (this.idRef) {
-                this._idObserver = new MutationObserver(() => {
-                    const v = this.idRef.value ? String(this.idRef.value) : null;
-                    if (v !== this.selectedId) {
-                        this.selectedId = v;
-                        if (!this.open) this.search = this.currentLabel();
-                    }
+            // Find the Livewire component that owns us
+            this._wire = this.findWire();
+
+            // Hydrate initial state from Livewire
+            this.syncFromWire();
+
+            // React to Livewire state changes (e.g. server-side updates, resets)
+            if (this._wire) {
+                this._wire.$watch(this.wireModel, () => {
+                    this.reloadItems();
+                    this.syncFromWire();
                 });
-                this._idObserver.observe(this.idRef, { attributes: true, attributeFilter: ['value'] });
+                if (this.hasCustom && this.wireModelCustom) {
+                    this._wire.$watch(this.wireModelCustom, () => this.syncFromWire());
+                }
+
+                // Livewire fires `morph.updated` after a server render; refresh items
+                // in case the source collection changed (e.g. calibres filtered by type).
+                document.addEventListener('livewire:morphed', () => this.reloadItems());
+            }
+        },
+
+        reloadItems() {
+            const node = document.querySelector('script[data-searchable-items="' + this.componentId + '"]');
+            if (!node) return;
+            try {
+                this.items = JSON.parse(node.textContent || '[]');
+            } catch (e) {
+                this.items = [];
+            }
+        },
+
+        findWire() {
+            let el = this.$root;
+            while (el) {
+                if (el.__livewire) return el.__livewire;
+                if (el.getAttribute && el.getAttribute('wire:id')) {
+                    return window.Livewire?.find(el.getAttribute('wire:id'));
+                }
+                el = el.parentElement;
+            }
+            return null;
+        },
+
+        getWireValue(prop) {
+            if (!this._wire || !prop) return null;
+            try {
+                return this._wire.get(prop);
+            } catch (e) {
+                return null;
+            }
+        },
+
+        setWireValue(prop, value, forceLive = null) {
+            if (!this._wire || !prop) return;
+            try {
+                // Pass `true` to trigger a Livewire re-render (used when this field
+                // drives dependent dropdowns like Make → Model). Otherwise update
+                // silently so other Alpine/Livewire state isn't disturbed.
+                const live = forceLive === null ? this.liveUpdate : forceLive;
+                this._wire.set(prop, value, live ? true : false);
+            } catch (e) {}
+        },
+
+        syncFromWire() {
+            const id = this.getWireValue(this.wireModel);
+            const newSelected = id ? String(id) : null;
+            const changed = newSelected !== this.selectedId;
+            this.selectedId = newSelected;
+
+            if (this.hasCustom) {
+                this.customValue = this.getWireValue(this.wireModelCustom) || '';
+            }
+
+            // Always rewrite the visible text to match committed state, unless the user is
+            // actively typing (dropdown open AND we just changed due to our own selectItem)
+            if (changed || !this.open) {
+                this.search = this.currentLabel();
             }
         },
 
@@ -172,14 +240,15 @@ document.addEventListener('alpine:init', () => {
 
         get filtered() {
             const s = (this.search || '').trim().toLowerCase();
-            if (!s) return this.items;
+            // If the search string matches the current selection label exactly, show everything
+            // (so the user can re-open and see the full list)
+            if (!s || s === (this.currentLabel() || '').toLowerCase()) return this.items;
             return this.items.filter(i => (i.name || '').toLowerCase().includes(s));
         },
 
         get showCustomOption() {
             const s = (this.search || '').trim();
             if (!s) return false;
-            // Only show if the search term isn't already an exact match
             return !this.items.some(i => (i.name || '').toLowerCase() === s.toLowerCase());
         },
 
@@ -196,7 +265,6 @@ document.addEventListener('alpine:init', () => {
             if (this.disabled) return;
             this.open = true;
             this.highlightIndex = -1;
-            // Select all so typing replaces
             this.$nextTick(() => this.$refs.input.select?.());
         },
 
@@ -205,7 +273,11 @@ document.addEventListener('alpine:init', () => {
             // Typing means the user is searching; clear the committed id so old label doesn't stick
             if (this.selectedId) {
                 this.selectedId = null;
-                this.writeId(null);
+                this.setWireValue(this.wireModel, null);
+            }
+            if (this.hasCustom && this.customValue) {
+                this.customValue = '';
+                this.setWireValue(this.wireModelCustom, '');
             }
             this.open = true;
             this.highlightIndex = -1;
@@ -255,14 +327,13 @@ document.addEventListener('alpine:init', () => {
             if (!this.open) return;
             this.open = false;
 
-            const typed = this.search.trim();
+            const typed = (this.search || '').trim();
             if (!typed) {
-                // Nothing typed — restore label from current selection
                 this.search = this.currentLabel();
                 return;
             }
 
-            // Exact match? Auto-select it.
+            // Exact match? Auto-select it
             const exact = this.items.find(i => (i.name || '').toLowerCase() === typed.toLowerCase());
             if (exact) {
                 this.selectItem(exact);
@@ -274,16 +345,15 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
-            // Otherwise restore to current label and throw away the typed text
             this.search = this.currentLabel();
         },
 
         selectItem(item) {
             this.selectedId = String(item.id);
-            this.writeId(item.id);
+            this.setWireValue(this.wireModel, item.id);
             if (this.allowCustom) {
                 this.customValue = '';
-                this.writeCustom('');
+                this.setWireValue(this.wireModelCustom, '');
             }
             this.search = item.name;
             this.open = false;
@@ -292,12 +362,12 @@ document.addEventListener('alpine:init', () => {
         },
 
         commitCustom() {
-            const typed = this.search.trim();
+            const typed = (this.search || '').trim();
             if (!typed || !this.allowCustom) return;
             this.selectedId = null;
-            this.writeId(null);
+            this.setWireValue(this.wireModel, null);
             this.customValue = typed;
-            this.writeCustom(typed);
+            this.setWireValue(this.wireModelCustom, typed);
             this.search = typed;
             this.open = false;
             this.highlightIndex = -1;
@@ -306,27 +376,13 @@ document.addEventListener('alpine:init', () => {
 
         clear() {
             this.selectedId = null;
-            this.writeId(null);
+            this.setWireValue(this.wireModel, null);
             if (this.allowCustom) {
                 this.customValue = '';
-                this.writeCustom('');
+                this.setWireValue(this.wireModelCustom, '');
             }
             this.search = '';
             this.$nextTick(() => this.$refs.input.focus?.());
-        },
-
-        writeId(value) {
-            if (!this.idRef) return;
-            this.idRef.value = value == null ? '' : String(value);
-            this.idRef.dispatchEvent(new Event('input', { bubbles: true }));
-            this.idRef.dispatchEvent(new Event('change', { bubbles: true }));
-        },
-
-        writeCustom(value) {
-            if (!this.customRef) return;
-            this.customRef.value = value ?? '';
-            this.customRef.dispatchEvent(new Event('input', { bubbles: true }));
-            this.customRef.dispatchEvent(new Event('change', { bubbles: true }));
         },
 
         scrollToHighlighted() {
