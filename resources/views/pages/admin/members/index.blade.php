@@ -356,6 +356,9 @@ new #[Title('Members - Admin')] class extends Component {
                                 <p class="font-mono text-sm text-zinc-500 dark:text-zinc-400">{{ $user->activeMembership->membership_number }}</p>
                             @elseif($user->memberships->first())
                                 <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ $user->memberships->first()->type->name ?? 'N/A' }}</p>
+                                @if($user->memberships->first()->membership_number)
+                                    <p class="font-mono text-sm text-zinc-400 dark:text-zinc-500">{{ $user->memberships->first()->membership_number }}</p>
+                                @endif
                             @else
                                 <p class="text-sm text-zinc-400 dark:text-zinc-500">—</p>
                             @endif
