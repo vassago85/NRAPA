@@ -127,6 +127,11 @@ class User extends Authenticatable implements MustVerifyEmail
     /**
      * Normalize a South African ID number: strip non-digits, fix Excel
      * scientific notation (8.20116E+12) and trailing .0 artifacts.
+     *
+     * Also recovers 12-digit numerics where a spreadsheet cell stored
+     * as a number has dropped a leading zero (e.g. 304235111081 -> 0304235111081),
+     * which is common when XLSX cells are typed as numeric instead of text.
+     *
      * Returns null for empty/unrecoverable input.
      */
     public static function normalizeIdNumber(?string $idNumber): ?string
@@ -144,6 +149,10 @@ class User extends Authenticatable implements MustVerifyEmail
         $idNumber = strtok($idNumber, '.');
 
         $digits = preg_replace('/\D/', '', $idNumber);
+
+        if (strlen($digits) === 12) {
+            $digits = '0' . $digits;
+        }
 
         if (strlen($digits) !== 13) {
             return $digits ?: null;

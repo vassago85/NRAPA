@@ -6,9 +6,11 @@ use App\Services\ExcelMemberImporter;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 /**
- * Reads public/dailyupload.csv and imports members as existing/imported members.
+ * Reads public/dailyupload.xlsx (preferred) or public/dailyupload.csv (fallback)
+ * and imports members as existing/imported members.
  * Skips rows marked as cancelled or deceased.
  *
  * Usage: php artisan db:seed --class=DailyMemberImportSeeder
@@ -30,15 +32,13 @@ class DailyMemberImportSeeder extends Seeder
 
     public function run(): void
     {
-        $path = public_path('dailyupload.csv');
+        $rows = $this->loadRows();
 
-        if (! file_exists($path)) {
-            $this->command->error('File not found: public/dailyupload.csv');
+        if ($rows === null) {
             return;
         }
 
-        $rows = array_map('str_getcsv', file($path));
-        $header = array_shift($rows);
+        array_shift($rows); // header
 
         $importer = new ExcelMemberImporter();
         $imported = 0;
@@ -49,72 +49,69 @@ class DailyMemberImportSeeder extends Seeder
         foreach ($rows as $index => $row) {
             $rowNumber = $index + 2;
 
-            if (count($row) < 8 || empty(trim($row[3] ?? ''))) {
+            if (count($row) < 8 || $this->cell($row, 3) === '') {
                 continue;
             }
 
-            $idNumber = trim($row[4] ?? '');
-            if (in_array($idNumber, $this->excludedIdNumbers)) {
+            $rawIdNumber = $this->cell($row, 4);
+            if (in_array($rawIdNumber, $this->excludedIdNumbers, true)) {
                 $skipped++;
-                $this->command->warn("Row {$rowNumber}: Skipped (excluded) — {$row[2]} {$row[3]}");
+                $this->command->warn("Row {$rowNumber}: Skipped (excluded) — {$this->cell($row, 2)} {$this->cell($row, 3)}");
                 continue;
             }
 
-            $membershipTypeRaw = trim($row[7] ?? '');
-            $statusRaw = trim($row[9] ?? '');
-            $email = trim($row[6] ?? '');
+            $membershipTypeRaw = $this->cell($row, 7);
+            $statusRaw = $this->cell($row, 9);
+            $email = strtolower($this->cell($row, 6));
 
-            // Take only the first email if multiple are separated by ; or ,
             if (str_contains($email, ';')) {
                 $email = trim(explode(';', $email)[0]);
             } elseif (str_contains($email, ',')) {
                 $email = trim(explode(',', $email)[0]);
             }
 
-            $phone = trim($row[5] ?? '');
+            $phone = $this->cell($row, 5);
             if (strtolower($phone) === 'tbc' || $phone === '`') {
                 $phone = '';
             }
 
             if ($this->shouldSkip($membershipTypeRaw) || $this->shouldSkip($statusRaw)) {
                 $skipped++;
-                $this->command->warn("Row {$rowNumber}: Skipped (cancelled/deceased) — {$row[2]} {$row[3]}");
+                $this->command->warn("Row {$rowNumber}: Skipped (cancelled/deceased) — {$this->cell($row, 2)} {$this->cell($row, 3)}");
                 continue;
             }
 
             if (empty($email) || strtolower($email) === 'tbc' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 if (empty($phone)) {
                     $skipped++;
-                    $this->command->warn("Row {$rowNumber}: Skipped (no valid email or phone) — {$row[2]} {$row[3]}");
+                    $this->command->warn("Row {$rowNumber}: Skipped (no valid email or phone) — {$this->cell($row, 2)} {$this->cell($row, 3)}");
                     continue;
                 }
                 $email = '';
             }
 
-            // Skip members already in the system (by email, phone, or ID number)
-            $idNumber = \App\Models\User::normalizeIdNumber(trim($row[4] ?? ''));
+            $idNumber = \App\Models\User::normalizeIdNumber($rawIdNumber);
             $normalizedPhone = \App\Models\User::normalizePhone($phone);
             if (
-                (! empty($email) && \App\Models\User::where('email', strtolower($email))->exists()) ||
+                (! empty($email) && \App\Models\User::where('email', $email)->exists()) ||
                 (! empty($normalizedPhone) && \App\Models\User::where('phone', $normalizedPhone)->exists()) ||
                 (! empty($idNumber) && strlen($idNumber) === 13 && \App\Models\User::where('id_number', $idNumber)->exists())
             ) {
                 continue;
             }
 
-            $knowledgeTest = strtolower(trim($row[10] ?? '')) === 'yes';
-            $activities = strtolower(trim($row[11] ?? '')) === 'yes';
+            $knowledgeTest = strtolower($this->cell($row, 10)) === 'yes';
 
             $rowData = [
-                'date_joined'     => trim($row[0] ?? ''),
-                'initials'        => trim($row[2] ?? ''),
-                'surname'         => trim($row[3] ?? ''),
-                'id_number'       => trim($row[4] ?? ''),
+                'date_joined'     => $this->cell($row, 0),
+                'initials'        => $this->cell($row, 2),
+                'surname'         => $this->cell($row, 3),
+                'id_number'       => $rawIdNumber,
                 'phone'           => $phone,
                 'email'           => $email,
                 'membership_type' => $membershipTypeRaw,
-                'renewal_date'    => trim($row[8] ?? ''),
-                'status'          => strtolower(trim($statusRaw)) === 'active' ? 'Active' : '',
+                'renewal_date'    => $this->cell($row, 8),
+                'status'          => strtolower($statusRaw) === 'active' ? 'Active' : '',
             ];
 
             $result = $importer->importSingleMember($rowData, [
@@ -126,16 +123,18 @@ class DailyMemberImportSeeder extends Seeder
                 'auto_pass_knowledge_tests' => $knowledgeTest,
             ]);
 
+            $label = $this->cell($row, 2) . ' ' . $this->cell($row, 3);
+
             if ($result['success']) {
                 $imported++;
                 $status = ($result['phone_fallback'] ?? false) ? 'phone login' : 'ok';
-                $this->command->info("✓ {$row[2]} {$row[3]} — {$status}");
+                $this->command->info("✓ {$label} — {$status}");
             } else {
                 $failed++;
                 $reason = Str::before($result['error'], '(Connection:');
                 $reason = Str::limit(trim($reason), 80, '…');
-                $failures[] = "{$row[2]} {$row[3]} — {$reason}";
-                $this->command->error("✗ {$row[2]} {$row[3]} — {$reason}");
+                $failures[] = "{$label} — {$reason}";
+                $this->command->error("✗ {$label} — {$reason}");
             }
         }
 
@@ -169,5 +168,48 @@ class DailyMemberImportSeeder extends Seeder
         }
 
         return false;
+    }
+
+    /**
+     * Load rows from public/dailyupload.xlsx (preferred) or .csv (fallback).
+     *
+     * XLSX is preferred because CSV exports re-format Excel date serials
+     * according to the saving machine's locale (e.g. en-ZA produces yyyy/mm/dd
+     * while en-GB produces dd/mm/yyyy). Reading XLSX directly lets
+     * ExcelMemberImporter::parseDate() see the raw Excel serials unambiguously.
+     */
+    protected function loadRows(): ?array
+    {
+        $xlsx = public_path('dailyupload.xlsx');
+        $csv = public_path('dailyupload.csv');
+
+        if (file_exists($xlsx)) {
+            $this->command->info('Reading: public/dailyupload.xlsx');
+            $spreadsheet = IOFactory::load($xlsx);
+            // toArray() preserves numeric Excel date serials so parseDate() can
+            // convert them via PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject().
+            return $spreadsheet->getActiveSheet()->toArray(null, true, true, false);
+        }
+
+        if (file_exists($csv)) {
+            $this->command->info('Reading: public/dailyupload.csv');
+            return array_map('str_getcsv', file($csv));
+        }
+
+        $this->command->error('File not found: public/dailyupload.xlsx or public/dailyupload.csv');
+        return null;
+    }
+
+    /**
+     * Read a cell and coerce it to a trimmed string (handles numeric Excel
+     * cells, nulls, and stray whitespace uniformly).
+     */
+    protected function cell(array $row, int $index): string
+    {
+        $value = $row[$index] ?? '';
+        if ($value === null) {
+            return '';
+        }
+        return trim((string) $value);
     }
 }

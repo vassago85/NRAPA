@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Mail\ImportWelcome;
 use App\Mail\SharedEmailNotice;
 use App\Models\ActivityType;
+use App\Models\DedicatedStatusApplication;
 use App\Models\EndorsementRequest;
 use App\Models\ImportFailure;
 use App\Models\KnowledgeTest;
@@ -25,21 +26,28 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 class ExcelMemberImporter
 {
     /**
-     * Map of common membership status names (from club spreadsheets) to system membership type slugs.
+     * Map of common membership type names (from club spreadsheets) to system
+     * membership type slugs that actually exist in the `membership_types` table.
+     *
+     * Note: dedicated sub-type (hunter / sport / both) is NOT a separate membership
+     * type — all three map to the single `dedicated-annual` type, and the sub-type
+     * is preserved separately via dedicatedTypeMap() so a matching
+     * DedicatedStatusApplication can be auto-created.
      */
     protected array $membershipTypeMap = [
-        // Dedicated types
-        'dedicated sport' => 'dedicated-sport',
-        'dedicated sport shooter' => 'dedicated-sport',
-        'dedicated hunter' => 'dedicated-hunter',
-        'dedicated hunting' => 'dedicated-hunter',
-        'dedicated hunt & sport' => 'dedicated-both',
-        'dedicated hunting & sport' => 'dedicated-both',
-        'dedicated hunter & sport' => 'dedicated-both',
-        'dedicated hunter & sport shooter' => 'dedicated-both',
-        'dedicated both' => 'dedicated-both',
+        'dedicated sport' => 'dedicated-annual',
+        'dedicated sport shooter' => 'dedicated-annual',
+        'dedicated hunter' => 'dedicated-annual',
+        'dedicated hunting' => 'dedicated-annual',
+        'dedicated hunt' => 'dedicated-annual',
+        'dedicated hunt & sport' => 'dedicated-annual',
+        'dedicated hunting & sport' => 'dedicated-annual',
+        'dedicated hunter & sport' => 'dedicated-annual',
+        'dedicated hunter & sport shooter' => 'dedicated-annual',
+        'dedicated both' => 'dedicated-annual',
+        'dedicated annual' => 'dedicated-annual',
+        'dedicated annual membership' => 'dedicated-annual',
 
-        // Lifetime / life membership
         'dedicated life membership' => 'lifetime',
         'dedicated lifetime' => 'lifetime',
         'life member' => 'lifetime',
@@ -47,7 +55,6 @@ class ExcelMemberImporter
         'lifetime' => 'lifetime',
         'lifetime membership' => 'lifetime',
 
-        // Standard / regular / occasional
         'regular member' => 'standard-annual',
         'regular' => 'standard-annual',
         'standard' => 'standard-annual',
@@ -56,10 +63,26 @@ class ExcelMemberImporter
         'occasional' => 'standard-annual',
         'occasional member' => 'standard-annual',
 
-        // Junior
         'junior' => 'junior-annual',
         'junior member' => 'junior-annual',
         'junior annual' => 'junior-annual',
+    ];
+
+    /**
+     * Map raw membership-type labels to the dedicated sub-type
+     * ('hunter' | 'sport' | 'both' | null) used by DedicatedStatusApplication.
+     */
+    protected array $dedicatedTypeMap = [
+        'dedicated sport' => 'sport',
+        'dedicated sport shooter' => 'sport',
+        'dedicated hunter' => 'hunter',
+        'dedicated hunting' => 'hunter',
+        'dedicated hunt' => 'hunter',
+        'dedicated hunt & sport' => 'both',
+        'dedicated hunting & sport' => 'both',
+        'dedicated hunter & sport' => 'both',
+        'dedicated hunter & sport shooter' => 'both',
+        'dedicated both' => 'both',
     ];
 
     /**
@@ -170,6 +193,8 @@ class ExcelMemberImporter
                     if ($autoPassTests) {
                         $this->autoPassKnowledgeTests($user, $membershipType);
                     }
+
+                    $this->createDedicatedStatusApplicationIfNeeded($user, $membership, $memberData);
 
                     if ($sendWelcomeEmail && $membership) {
                         $importedMembers[] = [
@@ -363,6 +388,8 @@ class ExcelMemberImporter
                 $this->autoPassKnowledgeTests($user, $membershipType);
             }
 
+            $this->createDedicatedStatusApplicationIfNeeded($user, $membership, $memberData);
+
             DB::commit();
 
             $emailSent = false;
@@ -413,6 +440,255 @@ class ExcelMemberImporter
     }
 
     /**
+     * Find an existing user matching the supplied row data.
+     *
+     * Match priority: normalised ID number > email > normalised phone.
+     * Returns an array describing the match: ['user' => User|null, 'matched_by' => 'id'|'email'|'phone'|null].
+     */
+    public function findExistingUser(array $rowData): array
+    {
+        $idNumber = User::normalizeIdNumber(trim((string) ($rowData['id_number'] ?? '')));
+        $email = strtolower(trim((string) ($rowData['email'] ?? '')));
+        $phone = User::normalizePhone(trim((string) ($rowData['phone'] ?? '')));
+
+        if ($idNumber && strlen($idNumber) === 13) {
+            $user = User::where('id_number', $idNumber)->first();
+            if ($user) {
+                return ['user' => $user, 'matched_by' => 'id'];
+            }
+        }
+
+        if ($email) {
+            $user = User::where('email', $email)->first();
+            if ($user) {
+                return ['user' => $user, 'matched_by' => 'email'];
+            }
+        }
+
+        if ($phone) {
+            $user = User::where('phone', $phone)->first();
+            if ($user) {
+                return ['user' => $user, 'matched_by' => 'phone'];
+            }
+        }
+
+        return ['user' => null, 'matched_by' => null];
+    }
+
+    /**
+     * Update an existing user + their membership to match a spreadsheet row.
+     *
+     * Used when an import row fails because the person already exists in the
+     * system — the admin reviews the row and chooses to apply the spreadsheet's
+     * details to the existing record instead of creating a duplicate.
+     *
+     * Rules:
+     *  - User fields are overwritten when the row provides a non-empty value;
+     *    blank row fields never clobber existing data.
+     *  - Uses the user's latest membership (or creates one if none exists).
+     *  - Membership type / expiry / status are rewritten from the row.
+     *  - Dedicated status: creates a DedicatedStatusApplication if missing;
+     *    updates dedicated_type + valid_until if one already exists.
+     */
+    public function updateExistingMember(User $user, array $rowData, array $options = []): array
+    {
+        $source = $options['source'] ?? 'import-update';
+        $autoPassTests = $options['auto_pass_knowledge_tests'] ?? true;
+
+        try {
+            $row = [
+                $rowData['date_joined'] ?? '',
+                '',
+                $rowData['initials'] ?? '',
+                $rowData['surname'] ?? '',
+                $rowData['id_number'] ?? '',
+                $rowData['phone'] ?? '',
+                $rowData['email'] ?? '',
+                $rowData['membership_type'] ?? '',
+                $rowData['renewal_date'] ?? '',
+                $rowData['status'] ?? '',
+            ];
+
+            $memberData = $this->parseRow($row);
+
+            $defaultMembershipTypeSlug = $options['default_membership_type'] ?? null;
+            $defaultMembershipType = $defaultMembershipTypeSlug
+                ? MembershipType::where('slug', $defaultMembershipTypeSlug)->first()
+                : null;
+
+            $membershipType = $this->resolveMembershipType($memberData['membership_type_raw'], $defaultMembershipType);
+            if (! $membershipType) {
+                $rawLabel = $memberData['membership_type_raw'] ?: '(empty)';
+                return ['success' => false, 'error' => "Could not resolve membership type '{$rawLabel}'."];
+            }
+
+            DB::beginTransaction();
+
+            $this->applyUserUpdatesFromRow($user, $memberData);
+
+            $membership = $this->upsertMembershipFromRow($user, $memberData, $membershipType, $source);
+
+            $this->upsertDedicatedStatusFromRow($user, $membership, $memberData);
+
+            if ($autoPassTests) {
+                $this->autoPassKnowledgeTests($user, $membershipType);
+            }
+
+            DB::commit();
+
+            return [
+                'success' => true,
+                'error' => null,
+                'user' => $user->fresh(),
+                'membership' => $membership->fresh(),
+                'mode' => 'updated',
+            ];
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            return ['success' => false, 'error' => $e->getMessage(), 'user' => $user];
+        }
+    }
+
+    /**
+     * Overwrite user fields with non-empty values from the parsed row.
+     * Blank spreadsheet fields never clobber existing data.
+     */
+    protected function applyUserUpdatesFromRow(User $user, array $memberData): void
+    {
+        $updates = array_filter([
+            'name' => $memberData['name'] ?? null,
+            'id_number' => $memberData['id_number'] ?? null,
+            'phone' => $memberData['phone'] ?? null,
+            'date_of_birth' => $memberData['date_of_birth'] ?? null,
+        ], fn ($v) => ! empty($v));
+
+        // Only overwrite a real email (not a placeholder) with a real one.
+        $rowEmail = $memberData['email'] ?? null;
+        if (! empty($rowEmail) && ! str_ends_with($rowEmail, '@phone.nrapa.co.za') && $rowEmail !== $user->email) {
+            if (! User::where('email', $rowEmail)->where('id', '!=', $user->id)->exists()) {
+                $updates['email'] = $rowEmail;
+            }
+        }
+
+        if (! empty($updates)) {
+            $user->fill($updates);
+            $user->save();
+        }
+    }
+
+    /**
+     * Find-or-create the user's current membership and rewrite it from the row.
+     */
+    protected function upsertMembershipFromRow(User $user, array $memberData, MembershipType $membershipType, string $source): Membership
+    {
+        $membership = Membership::where('user_id', $user->id)
+            ->orderByDesc('created_at')
+            ->first();
+
+        $appliedAt = ! empty($memberData['date_joined'])
+            ? \Carbon\Carbon::parse($memberData['date_joined'])
+            : ($membership?->applied_at ?? now());
+
+        $expiresAt = null;
+        if (! empty($memberData['renewal_date'])) {
+            $expiresAt = \Carbon\Carbon::parse($memberData['renewal_date']);
+        } elseif ($memberData['is_life_member'] ?? false) {
+            $expiresAt = null;
+        } elseif ($membershipType->requires_renewal && $membershipType->duration_months) {
+            $expiresAt = $appliedAt->copy()->addMonths($membershipType->duration_months);
+        }
+
+        $status = $memberData['status'] ?? 'applied';
+        if (! in_array($status, ['applied', 'approved', 'active', 'suspended', 'revoked', 'expired'])) {
+            $status = 'applied';
+        }
+        if ($expiresAt && $expiresAt->isPast()) {
+            $status = 'expired';
+        }
+
+        $attributes = [
+            'membership_type_id' => $membershipType->id,
+            'status' => $status,
+            'applied_at' => $appliedAt,
+            'approved_at' => $appliedAt,
+            'approved_by' => auth()->id(),
+            'activated_at' => in_array($status, ['active', 'expired']) ? $appliedAt : null,
+            'expires_at' => $expiresAt,
+            'source' => $source,
+        ];
+
+        if ($membership) {
+            $membership->fill($attributes);
+            $membership->save();
+            return $membership;
+        }
+
+        return Membership::create([
+            'uuid' => (string) Str::uuid(),
+            'user_id' => $user->id,
+            'membership_number' => $user->formatted_member_number,
+            ...$attributes,
+        ]);
+    }
+
+    /**
+     * Create or update DedicatedStatusApplication records to match the row.
+     *
+     * "both" expands to two records (hunter + sport) since the DB enum only
+     * allows one dedicated_type per row. Existing matching records are updated
+     * in place to preserve approval history; missing ones are created.
+     */
+    protected function upsertDedicatedStatusFromRow(User $user, Membership $membership, array $memberData): void
+    {
+        $dedicatedType = $memberData['dedicated_type'] ?? null;
+        if (! $dedicatedType) {
+            return;
+        }
+
+        $appliedAt = ! empty($memberData['date_joined'])
+            ? \Carbon\Carbon::parse($memberData['date_joined'])
+            : now();
+
+        $validUntil = ($memberData['is_life_member'] ?? false)
+            ? null
+            : (! empty($memberData['renewal_date']) ? \Carbon\Carbon::parse($memberData['renewal_date']) : null);
+
+        foreach ($this->expandDedicatedTypes($dedicatedType) as $type) {
+            $existing = DedicatedStatusApplication::where('user_id', $user->id)
+                ->where('dedicated_type', $type)
+                ->orderByDesc('created_at')
+                ->first();
+
+            if ($existing) {
+                $existing->update([
+                    'membership_id' => $membership->id,
+                    'status' => 'approved',
+                    'approved_at' => $existing->approved_at ?? $appliedAt,
+                    'approved_by' => $existing->approved_by ?? auth()->id(),
+                    'valid_from' => $existing->valid_from ?? $appliedAt->toDateString(),
+                    'valid_until' => $validUntil?->toDateString(),
+                ]);
+                continue;
+            }
+
+            DedicatedStatusApplication::create([
+                'uuid' => (string) Str::uuid(),
+                'user_id' => $user->id,
+                'membership_id' => $membership->id,
+                'dedicated_type' => $type,
+                'status' => 'approved',
+                'applied_at' => $appliedAt,
+                'approved_at' => $appliedAt,
+                'approved_by' => auth()->id(),
+                'valid_from' => $appliedAt->toDateString(),
+                'valid_until' => $validUntil?->toDateString(),
+                'notes' => 'Imported — prior dedicated status from previous system',
+            ]);
+        }
+    }
+
+    /**
      * Parse a row from Excel into member data array.
      *
      * Expected columns (mirrors old DS spreadsheet for easy copy-paste):
@@ -456,6 +732,9 @@ class ExcelMemberImporter
 
         $isExpired = ! $isActive && $renewalDate && $renewalDate < date('Y-m-d');
 
+        $normType = preg_replace('/\s+/', ' ', strtolower(trim($membershipTypeRaw)));
+        $dedicatedType = $this->dedicatedTypeMap[$normType] ?? null;
+
         return [
             'name' => $name,
             'email' => trim(strtolower(preg_split('/[;,]/', $row[6] ?? '')[0])),
@@ -466,6 +745,7 @@ class ExcelMemberImporter
             'postal_address' => null,
             'membership_number' => '',
             'membership_type_raw' => $membershipTypeRaw,
+            'dedicated_type' => $dedicatedType,
             'status' => $isActive ? 'active' : ($isExpired ? 'expired' : 'applied'),
             'date_joined' => $this->parseDate($row[0] ?? null),
             'renewal_date' => $renewalDate,
@@ -560,8 +840,13 @@ class ExcelMemberImporter
         }
 
         // Already ISO format (YYYY-MM-DD)
-        if (is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}/', $value)) {
+        if (is_string($value) && preg_match('/^\d{4}-\d{1,2}-\d{1,2}/', $value)) {
             return $value;
+        }
+
+        // Y/M/D — common when Excel exports CSV under en-ZA / en-GB locales
+        if (is_string($value) && preg_match('#^(\d{4})[/\-](\d{1,2})[/\-](\d{1,2})$#', $value, $m)) {
+            return sprintf('%04d-%02d-%02d', (int) $m[1], (int) $m[2], (int) $m[3]);
         }
 
         // d/m/Y or d-m-Y format
@@ -718,6 +1003,72 @@ class ExcelMemberImporter
                 'marker_notes' => 'Auto-passed: imported existing member',
             ]);
         }
+    }
+
+    /**
+     * Create approved DedicatedStatusApplication records for an imported member
+     * whose source row indicated a dedicated sub-type.
+     *
+     * The dedicated_status_applications table only supports a single dedicated_type
+     * per row (hunter | sport), so "both" is expanded into two records.
+     *
+     * Validity tracks the membership: valid_from = date_joined (or now),
+     * valid_until = renewal_date (or null for life members / no expiry).
+     * Idempotent — does nothing if any application already exists for this user.
+     */
+    protected function createDedicatedStatusApplicationIfNeeded(User $user, ?Membership $membership, array $memberData): void
+    {
+        if (! $membership) {
+            return;
+        }
+
+        $dedicatedType = $memberData['dedicated_type'] ?? null;
+        if (! $dedicatedType) {
+            return;
+        }
+
+        if (DedicatedStatusApplication::where('user_id', $user->id)->exists()) {
+            return;
+        }
+
+        $appliedAt = ! empty($memberData['date_joined'])
+            ? \Carbon\Carbon::parse($memberData['date_joined'])
+            : now();
+
+        $validUntil = ($memberData['is_life_member'] ?? false)
+            ? null
+            : (! empty($memberData['renewal_date']) ? \Carbon\Carbon::parse($memberData['renewal_date']) : null);
+
+        foreach ($this->expandDedicatedTypes($dedicatedType) as $type) {
+            DedicatedStatusApplication::create([
+                'uuid' => (string) Str::uuid(),
+                'user_id' => $user->id,
+                'membership_id' => $membership->id,
+                'dedicated_type' => $type,
+                'status' => 'approved',
+                'applied_at' => $appliedAt,
+                'approved_at' => $appliedAt,
+                'approved_by' => auth()->id(),
+                'valid_from' => $appliedAt->copy()->toDateString(),
+                'valid_until' => $validUntil?->toDateString(),
+                'notes' => 'Imported — prior dedicated status from previous system',
+            ]);
+        }
+    }
+
+    /**
+     * Expand a mapped dedicated type ('hunter' | 'sport' | 'both') into the
+     * individual DB-level types the dedicated_status_applications enum allows.
+     *
+     * @return array<int, 'hunter'|'sport'>
+     */
+    protected function expandDedicatedTypes(string $dedicatedType): array
+    {
+        return match ($dedicatedType) {
+            'both' => ['hunter', 'sport'],
+            'hunter', 'sport' => [$dedicatedType],
+            default => [],
+        };
     }
 
     /**

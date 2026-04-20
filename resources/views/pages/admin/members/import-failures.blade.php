@@ -2,6 +2,7 @@
 
 use App\Models\ImportFailure;
 use App\Models\MembershipType;
+use App\Models\User;
 use App\Services\ExcelMemberImporter;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -28,6 +29,10 @@ new #[Title('Import Failures - Admin')] class extends Component {
 
     public ?string $retryError = null;
     public ?string $retrySuccess = null;
+
+    // Existing-user match detected from the current form values
+    public ?int $matchedUserId = null;
+    public ?string $matchedBy = null;
 
     public function with(): array
     {
@@ -69,6 +74,7 @@ new #[Title('Import Failures - Admin')] class extends Component {
 
         $this->retryError = null;
         $this->retrySuccess = null;
+        $this->refreshMatch();
         $this->showEditModal = true;
     }
 
@@ -78,6 +84,33 @@ new #[Title('Import Failures - Admin')] class extends Component {
         $this->editingId = null;
         $this->retryError = null;
         $this->retrySuccess = null;
+        $this->matchedUserId = null;
+        $this->matchedBy = null;
+    }
+
+    /**
+     * Re-run the existing-user lookup whenever the admin edits identifying fields.
+     */
+    public function updatedEditIdNumber(): void { $this->refreshMatch(); }
+    public function updatedEditEmail(): void    { $this->refreshMatch(); }
+    public function updatedEditPhone(): void    { $this->refreshMatch(); }
+
+    protected function refreshMatch(): void
+    {
+        $result = (new ExcelMemberImporter)->findExistingUser([
+            'id_number' => $this->editIdNumber,
+            'email' => $this->editEmail,
+            'phone' => $this->editPhone,
+        ]);
+
+        $this->matchedUserId = $result['user']?->id;
+        $this->matchedBy = $result['matched_by'];
+    }
+
+    #[Computed]
+    public function matchedUser(): ?User
+    {
+        return $this->matchedUserId ? User::with(['activeMembership.type'])->find($this->matchedUserId) : null;
     }
 
     public function retryImport(): void
@@ -124,6 +157,68 @@ new #[Title('Import Failures - Admin')] class extends Component {
             $this->showEditModal = false;
             $this->editingId = null;
             session()->flash('success', $this->retrySuccess);
+        } else {
+            $this->retryError = $result['error'];
+            $this->retrySuccess = null;
+        }
+    }
+
+    /**
+     * Apply the row's data to the matched existing user instead of creating a new one.
+     * Updates user details, membership type/expiry/status, and dedicated status.
+     */
+    public function updateExistingMember(): void
+    {
+        $this->validate([
+            'editInitials' => 'required|string|max:10',
+            'editSurname' => 'required|string|max:255',
+            'editMembershipType' => 'required|string',
+        ]);
+
+        if (! $this->matchedUserId) {
+            $this->retryError = 'No matched user to update. Enter a known ID, email, or phone first.';
+            return;
+        }
+
+        $user = User::find($this->matchedUserId);
+        if (! $user) {
+            $this->retryError = 'Matched user no longer exists.';
+            return;
+        }
+
+        $failure = ImportFailure::findOrFail($this->editingId);
+
+        $rowData = [
+            'date_joined' => $this->editDateJoined,
+            'initials' => $this->editInitials,
+            'surname' => $this->editSurname,
+            'id_number' => $this->editIdNumber,
+            'phone' => $this->editPhone,
+            'email' => $this->editEmail,
+            'membership_type' => $this->editMembershipType,
+            'renewal_date' => $this->editRenewalDate,
+            'status' => $this->editStatus,
+        ];
+
+        $result = (new ExcelMemberImporter)->updateExistingMember($user, $rowData);
+
+        if ($result['success']) {
+            $failure->update(['row_data' => $rowData]);
+            $failure->markResolved();
+
+            try {
+                app(\App\Services\NtfyService::class)->notifyAdmins(
+                    'new_member',
+                    'Import: Existing Member Updated',
+                    auth()->user()->name . " updated {$user->name} ({$user->email}) from import row #{$failure->row_number}.",
+                );
+            } catch (\Exception $e) {}
+
+            session()->flash('success', "Updated existing member: {$user->name}.");
+            $this->showEditModal = false;
+            $this->editingId = null;
+            $this->matchedUserId = null;
+            $this->matchedBy = null;
         } else {
             $this->retryError = $result['error'];
             $this->retrySuccess = null;
@@ -289,6 +384,42 @@ new #[Title('Import Failures - Admin')] class extends Component {
                     </div>
                     @endif
 
+                    {{-- Existing member match banner --}}
+                    @if($this->matchedUser)
+                    @php
+                        $mu = $this->matchedUser;
+                        $activeMembership = $mu->activeMembership;
+                    @endphp
+                    <div class="mb-4 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                        <div class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-amber-900 dark:text-amber-200">
+                                    Existing member found — matched by {{ $matchedBy }}
+                                </p>
+                                <p class="mt-1 text-sm text-amber-800 dark:text-amber-300">
+                                    <b>{{ $mu->name }}</b> &lt;{{ $mu->email }}&gt;
+                                    @if($mu->phone) · {{ $mu->phone }}@endif
+                                    @if($mu->id_number) · ID {{ $mu->id_number }}@endif
+                                </p>
+                                <p class="mt-0.5 text-xs text-amber-700 dark:text-amber-400">
+                                    Current membership:
+                                    @if($activeMembership)
+                                        {{ $activeMembership->type->name ?? '—' }} ({{ $activeMembership->status }})@if($activeMembership->expires_at) — expires {{ $activeMembership->expires_at->format('d M Y') }}@endif
+                                    @else
+                                        none
+                                    @endif
+                                </p>
+                                <p class="mt-2 text-xs text-amber-700 dark:text-amber-400">
+                                    You can update this member's record with the spreadsheet values instead of creating a duplicate.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
                     <form wire:submit="retryImport" class="space-y-4">
                         <div class="grid grid-cols-2 gap-4">
                             <div>
@@ -313,7 +444,7 @@ new #[Title('Import Failures - Admin')] class extends Component {
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">ID Number</label>
-                                <input type="text" wire:model="editIdNumber" placeholder="SA ID (13 digits)"
+                                <input type="text" wire:model.live.debounce.500ms="editIdNumber" placeholder="SA ID (13 digits)"
                                     class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
                             </div>
                         </div>
@@ -321,12 +452,12 @@ new #[Title('Import Failures - Admin')] class extends Component {
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Phone</label>
-                                <input type="text" wire:model="editPhone"
+                                <input type="text" wire:model.live.debounce.500ms="editPhone"
                                     class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Email <span class="text-red-500">*</span></label>
-                                <input type="email" wire:model="editEmail"
+                                <input type="email" wire:model.live.debounce.500ms="editEmail"
                                     class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
                                 @error('editEmail') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                             </div>
@@ -362,15 +493,22 @@ new #[Title('Import Failures - Admin')] class extends Component {
                             </select>
                         </div>
 
-                        <div class="flex justify-end gap-3 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                        <div class="flex flex-wrap justify-end gap-3 pt-4 border-t border-zinc-200 dark:border-zinc-800">
                             <button type="button" wire:click="closeEdit"
                                 class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 dark:hover:bg-zinc-600 transition-colors">
                                 Cancel
                             </button>
                             <button type="submit"
-                                class="px-4 py-2 text-sm font-medium text-white bg-nrapa-blue rounded-lg hover:bg-nrapa-blue-dark transition-colors">
-                                Retry Import
+                                class="px-4 py-2 text-sm font-medium rounded-lg transition-colors {{ $this->matchedUser ? 'text-zinc-700 bg-white border border-zinc-300 hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 dark:hover:bg-zinc-600' : 'text-white bg-nrapa-blue hover:bg-nrapa-blue-dark' }}">
+                                Retry as New Member
                             </button>
+                            @if($this->matchedUser)
+                            <button type="button" wire:click="updateExistingMember"
+                                wire:confirm="Apply these spreadsheet values to the existing member {{ $this->matchedUser->name }}? This will overwrite their membership type, renewal date, and dedicated status."
+                                class="px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors">
+                                Update Existing Member
+                            </button>
+                            @endif
                         </div>
                     </form>
                 </div>
