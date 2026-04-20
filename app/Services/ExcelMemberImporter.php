@@ -491,7 +491,7 @@ class ExcelMemberImporter
      */
     public function updateExistingMember(User $user, array $rowData, array $options = []): array
     {
-        $source = $options['source'] ?? 'import-update';
+        $source = $options['source'] ?? 'import';
         $autoPassTests = $options['auto_pass_knowledge_tests'] ?? true;
 
         try {
