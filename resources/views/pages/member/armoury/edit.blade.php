@@ -431,9 +431,13 @@ new class extends Component {
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Photo <span class="text-zinc-400 font-normal">(optional)</span></label>
                     <input type="file" wire:model="firearm_image" accept="image/*"
                            class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-nrapa-blue-light file:text-nrapa-blue">
+
+                    <div wire:loading wire:target="firearm_image" class="mt-2 text-xs text-zinc-500">Uploading…</div>
+
                     @error('firearm_image') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                    @if($firearm_image && !is_string($firearm_image))
-                        <div class="mt-2">
+
+                    @if($firearm_image && !is_string($firearm_image) && method_exists($firearm_image, 'temporaryUrl'))
+                        <div class="mt-2" wire:loading.remove wire:target="firearm_image">
                             <img src="{{ $firearm_image->temporaryUrl() }}" alt="Preview" class="h-24 w-auto rounded-lg object-cover border border-zinc-200 dark:border-zinc-600">
                         </div>
                     @elseif($firearm->image_path)
