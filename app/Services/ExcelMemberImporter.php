@@ -29,24 +29,23 @@ class ExcelMemberImporter
      * Map of common membership type names (from club spreadsheets) to system
      * membership type slugs that actually exist in the `membership_types` table.
      *
-     * Note: dedicated sub-type (hunter / sport / both) is NOT a separate membership
-     * type — all three map to the single `dedicated-annual` type, and the sub-type
-     * is preserved separately via dedicatedTypeMap() so a matching
-     * DedicatedStatusApplication can be auto-created.
+     * Dedicated members get one of three distinct membership types —
+     * `dedicated-hunter`, `dedicated-sport`, or `dedicated-both` — and a matching
+     * DedicatedStatusApplication is auto-created via dedicatedTypeMap().
      */
     protected array $membershipTypeMap = [
-        'dedicated sport' => 'dedicated-annual',
-        'dedicated sport shooter' => 'dedicated-annual',
-        'dedicated hunter' => 'dedicated-annual',
-        'dedicated hunting' => 'dedicated-annual',
-        'dedicated hunt' => 'dedicated-annual',
-        'dedicated hunt & sport' => 'dedicated-annual',
-        'dedicated hunting & sport' => 'dedicated-annual',
-        'dedicated hunter & sport' => 'dedicated-annual',
-        'dedicated hunter & sport shooter' => 'dedicated-annual',
-        'dedicated both' => 'dedicated-annual',
-        'dedicated annual' => 'dedicated-annual',
-        'dedicated annual membership' => 'dedicated-annual',
+        'dedicated sport' => 'dedicated-sport',
+        'dedicated sport shooter' => 'dedicated-sport',
+        'dedicated hunter' => 'dedicated-hunter',
+        'dedicated hunting' => 'dedicated-hunter',
+        'dedicated hunt' => 'dedicated-hunter',
+        'dedicated hunt & sport' => 'dedicated-both',
+        'dedicated hunting & sport' => 'dedicated-both',
+        'dedicated hunter & sport' => 'dedicated-both',
+        'dedicated hunter & sport shooter' => 'dedicated-both',
+        'dedicated both' => 'dedicated-both',
+        'dedicated annual' => 'dedicated-both',
+        'dedicated annual membership' => 'dedicated-both',
 
         'dedicated life membership' => 'lifetime',
         'dedicated lifetime' => 'lifetime',
