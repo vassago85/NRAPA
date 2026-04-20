@@ -40,9 +40,14 @@ new class extends Component {
         $this->showNotificationBanner = false;
     }
 
-    public function deleteFirearm(UserFirearm $firearm): void
+    public function deleteFirearm(string $uuid): void
     {
-        if ($firearm->user_id !== auth()->id()) {
+        $firearm = UserFirearm::where('uuid', $uuid)
+            ->where('user_id', auth()->id())
+            ->first();
+
+        if (! $firearm) {
+            session()->flash('warning', 'Firearm not found or already removed.');
             return;
         }
 
