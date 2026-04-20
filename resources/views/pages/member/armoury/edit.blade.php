@@ -58,6 +58,11 @@ new class extends Component {
     public ?int $calibre_id = null;
     public ?int $firearm_type_id = null;
 
+    // Free-text overrides used when the user picks a value not in the reference lists
+    public string $calibre_custom = '';
+    public string $make_custom = '';
+    public string $model_custom = '';
+
     public function mount(UserFirearm $firearm): void
     {
         if ($firearm->user_id !== auth()->id()) {
@@ -115,6 +120,11 @@ new class extends Component {
         // Legacy
         $this->calibre_id = $firearm->calibre_id;
         $this->firearm_type_id = $firearm->firearm_type_id;
+
+        // Overrides
+        $this->calibre_custom = $firearm->calibre_text_override ?? '';
+        $this->make_custom = $firearm->make_text_override ?? '';
+        $this->model_custom = $firearm->model_text_override ?? '';
     }
 
     public function updatedFirearmMakeId($value): void
@@ -135,6 +145,9 @@ new class extends Component {
             'firearm_calibre_id' => ['nullable', 'exists:firearm_calibres,id'],
             'firearm_make_id' => ['nullable', 'exists:firearm_makes,id'],
             'firearm_model_id' => ['nullable', 'exists:firearm_models,id'],
+            'calibre_custom' => ['nullable', 'string', 'max:100'],
+            'make_custom' => ['nullable', 'string', 'max:100'],
+            'model_custom' => ['nullable', 'string', 'max:100'],
             'license_number' => ['nullable', 'string', 'max:100'],
             'license_expiry_date' => ['nullable', 'date'],
             // Advanced
@@ -167,6 +180,11 @@ new class extends Component {
         $make = $this->firearm_make_id ? FirearmMake::find($this->firearm_make_id) : null;
         $model = $this->firearm_model_id ? FirearmModel::find($this->firearm_model_id) : null;
 
+        // Prefer picked references, fall back to free-text overrides the user typed
+        $calibreOverride = $this->firearm_calibre_id ? null : (trim($this->calibre_custom) ?: null);
+        $makeOverride = $this->firearm_make_id ? null : (trim($this->make_custom) ?: null);
+        $modelOverride = $this->firearm_model_id ? null : (trim($this->model_custom) ?: null);
+
         $data = [
             'firearm_type' => $this->firearm_type,
             'action' => $this->action,
@@ -174,8 +192,11 @@ new class extends Component {
             'firearm_calibre_id' => $this->firearm_calibre_id,
             'firearm_make_id' => $this->firearm_make_id,
             'firearm_model_id' => $this->firearm_model_id,
-            'make' => $make?->name,
-            'model' => $model?->name,
+            'calibre_text_override' => $calibreOverride,
+            'make_text_override' => $makeOverride,
+            'model_text_override' => $modelOverride,
+            'make' => $make?->name ?? $makeOverride,
+            'model' => $model?->name ?? $modelOverride,
             'nickname' => $this->nickname ?: null,
             'receiver_serial_number' => $this->serial_number,
             'barrel_serial_number' => $this->barrel_serial ?: null,
@@ -354,7 +375,8 @@ new class extends Component {
                     <x-searchable-select
                         :options="$calibres"
                         wire-model="firearm_calibre_id"
-                        placeholder="Type to search calibres..."
+                        wire-model-custom="calibre_custom"
+                        placeholder="Type to search or enter your own..."
                     />
                 </div>
 
@@ -365,7 +387,8 @@ new class extends Component {
                         <x-searchable-select
                             :options="$makes"
                             wire-model="firearm_make_id"
-                            placeholder="Type to search makes..."
+                            wire-model-custom="make_custom"
+                            placeholder="Type to search or enter your own..."
                             :live="true"
                         />
                     </div>
@@ -374,8 +397,8 @@ new class extends Component {
                         <x-searchable-select
                             :options="$models"
                             wire-model="firearm_model_id"
-                            placeholder="{{ $models->isEmpty() ? 'Select a make first' : 'Type to search models...' }}"
-                            :disabled="$models->isEmpty()"
+                            wire-model-custom="model_custom"
+                            placeholder="{{ $firearm_make_id && $models->isEmpty() ? 'No catalog models — type your own' : 'Type to search or enter your own...' }}"
                         />
                     </div>
                 </div>
