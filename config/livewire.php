@@ -242,7 +242,7 @@ return [
     |
     */
 
-    'release_token' => env('LIVEWIRE_RELEASE_TOKEN', 'a'),
+    'release_token' => env('LIVEWIRE_RELEASE_TOKEN', '2026-04-20-c'),
 
     /*
     |---------------------------------------------------------------------------
