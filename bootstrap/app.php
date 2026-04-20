@@ -52,6 +52,28 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
+        $exceptions->report(function (\Illuminate\Session\TokenMismatchException $e) {
+            try {
+                $req = request();
+                $sess = $req->hasSession() ? $req->session() : null;
+                \Illuminate\Support\Facades\Log::warning('[CSRF_MISMATCH] '.$e->getMessage(), [
+                    'path' => $req->path(),
+                    'method' => $req->method(),
+                    'session_id' => $sess?->getId(),
+                    'session_token' => $sess?->token(),
+                    'header_X-XSRF-TOKEN_present' => (bool) $req->header('X-XSRF-TOKEN'),
+                    'header_X-CSRF-TOKEN_present' => (bool) $req->header('X-CSRF-TOKEN'),
+                    'input_token_present' => (bool) $req->input('_token'),
+                    'cookie_XSRF_TOKEN_present' => (bool) $req->cookie('XSRF-TOKEN'),
+                    'cookie_session_present' => (bool) $req->cookie(config('session.cookie')),
+                    'referer' => $req->header('referer'),
+                    'user_id' => auth()->id(),
+                ]);
+            } catch (\Throwable $inner) {
+                \Illuminate\Support\Facades\Log::warning('[CSRF_MISMATCH] reporter failed: '.$inner->getMessage());
+            }
+        });
+
         $exceptions->respond(function (Response $response) {
             $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
             $response->headers->set('X-Content-Type-Options', 'nosniff');
