@@ -41,6 +41,17 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->report(function (\Throwable $e) {
+            if (request()->is('livewire*') || str_contains((string) request()->path(), 'livewire')) {
+                \Illuminate\Support\Facades\Log::error('[LIVEWIRE_EXCEPTION] '.get_class($e).': '.$e->getMessage(), [
+                    'path' => request()->path(),
+                    'method' => request()->method(),
+                    'file' => $e->getFile().':'.$e->getLine(),
+                    'trace' => collect($e->getTrace())->take(5)->map(fn ($t) => ($t['file'] ?? '?').':'.($t['line'] ?? '?').' '.($t['class'] ?? '').($t['type'] ?? '').($t['function'] ?? ''))->all(),
+                ]);
+            }
+        });
+
         $exceptions->respond(function (Response $response) {
             $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
             $response->headers->set('X-Content-Type-Options', 'nosniff');

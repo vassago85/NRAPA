@@ -232,7 +232,7 @@ new class extends Component {
                 @php $badge = $firearm->license_status_badge; @endphp
                 <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md transition overflow-hidden">
                     <div class="relative h-40 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-                        @if($firearm->image_path)
+                        @if($firearm->image_path && Storage::disk('public')->exists($firearm->image_path))
                             <img src="{{ Storage::disk('public')->url($firearm->image_path) }}" alt="{{ $firearm->display_name }}" class="h-full w-full object-cover">
                         @else
                             <svg class="h-16 w-16 text-zinc-300 dark:text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
