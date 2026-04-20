@@ -38,17 +38,15 @@ new #[Title('Message')] class extends Component {
     }
 
     #[Computed]
-    public function messages()
+    public function threadMessages()
     {
-        $all = MemberMessage::with('sender:id,name,role')
+        return MemberMessage::with('sender:id,name,role')
             ->where(function ($q) {
                 $q->where('id', $this->thread->id)
                     ->orWhere('parent_id', $this->thread->id);
             })
             ->orderBy('created_at')
             ->get();
-
-        return $all;
     }
 
     public function sendReply(): void
@@ -98,7 +96,7 @@ new #[Title('Message')] class extends Component {
         } catch (\Throwable $e) {}
 
         $this->replyBody = '';
-        unset($this->messages);
+        unset($this->threadMessages);
         session()->flash('success', 'Your reply has been sent.');
     }
 }; ?>
@@ -114,7 +112,7 @@ new #[Title('Message')] class extends Component {
     <div class="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
         <h1 class="text-xl font-semibold text-zinc-900 dark:text-white">{{ $thread->subject }}</h1>
         <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            {{ $this->messages->count() }} {{ \Illuminate\Support\Str::plural('message', $this->messages->count()) }}
+            {{ $this->threadMessages->count() }} {{ \Illuminate\Support\Str::plural('message', $this->threadMessages->count()) }}
         </p>
     </div>
 
@@ -125,7 +123,7 @@ new #[Title('Message')] class extends Component {
     @endif
 
     <div class="space-y-3">
-        @foreach($this->messages as $msg)
+        @foreach($this->threadMessages as $msg)
             @php $mine = $msg->isFromMember(); @endphp
             <div class="flex {{ $mine ? 'justify-end' : 'justify-start' }}">
                 <div class="max-w-[85%] rounded-2xl border px-4 py-3 shadow-sm

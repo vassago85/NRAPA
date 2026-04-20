@@ -31,7 +31,7 @@ new #[Title('Conversation')] class extends Component {
     }
 
     #[Computed]
-    public function messages()
+    public function threadMessages()
     {
         return MemberMessage::with('sender:id,name,role')
             ->where(function ($q) {
@@ -73,7 +73,7 @@ new #[Title('Conversation')] class extends Component {
         }
 
         $this->replyBody = '';
-        unset($this->messages);
+        unset($this->threadMessages);
         session()->flash('success', 'Reply sent to the member.');
     }
 
@@ -91,7 +91,7 @@ new #[Title('Conversation')] class extends Component {
         }
 
         $msg->delete();
-        unset($this->messages);
+        unset($this->threadMessages);
         session()->flash('success', 'Message deleted.');
     }
 }; ?>
@@ -133,7 +133,7 @@ new #[Title('Conversation')] class extends Component {
         @endif
 
         <div class="space-y-3">
-            @foreach($this->messages as $msg)
+            @foreach($this->threadMessages as $msg)
                 @php $fromAdmin = $msg->isFromAdmin(); @endphp
                 <div class="flex {{ $fromAdmin ? 'justify-end' : 'justify-start' }}">
                     <div class="max-w-[85%] rounded-2xl border px-4 py-3 shadow-sm
