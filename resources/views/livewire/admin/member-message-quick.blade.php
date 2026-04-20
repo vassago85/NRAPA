@@ -37,7 +37,11 @@
                         </div>
                         <div class="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
                             <p class="text-xs text-blue-700 dark:text-blue-300">
-                                The member will see this in their inbox@if($userEmail) and get an email at <strong>{{ $userEmail }}</strong>@endif. Plain text only; line breaks are preserved.
+                                @if($userEmail)
+                                    The member will see this in their inbox and get an email at <strong>{{ $userEmail }}</strong>. Plain text only; line breaks are preserved.
+                                @else
+                                    The member will see this in their inbox. Plain text only; line breaks are preserved.
+                                @endif
                             </p>
                         </div>
                         <div class="flex justify-end gap-3 pt-2 border-t border-zinc-200 dark:border-zinc-800">
