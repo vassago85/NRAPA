@@ -40,7 +40,17 @@ class LogLivewireRequests
             }
         }
 
-        $response = $next($request);
+        try {
+            $response = $next($request);
+        } catch (\Throwable $e) {
+            if ($isLivewire) {
+                Log::error('[LW_REQ_THROW] '.get_class($e).': '.$e->getMessage(), [
+                    'file' => $e->getFile().':'.$e->getLine(),
+                    'trace' => collect($e->getTrace())->take(15)->map(fn ($t) => ($t['file'] ?? '?').':'.($t['line'] ?? '?').' '.($t['class'] ?? '').($t['type'] ?? '').($t['function'] ?? ''))->all(),
+                ]);
+            }
+            throw $e;
+        }
 
         if ($isLivewire) {
             try {
