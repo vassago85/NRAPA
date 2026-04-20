@@ -82,6 +82,15 @@ new #[Title('Member Details - Admin')] class extends Component {
     public string $addActivityDate = '';
     public string $addActivityDescription = '';
 
+    // Edit activity properties
+    public bool $showEditActivityModal = false;
+    public ?int $editActivityId = null;
+    public string $editActivityTrack = 'hunting';
+    public string $editActivityTypeId = '';
+    public string $editActivityDate = '';
+    public string $editActivityDescription = '';
+    public string $editActivityStatus = 'approved';
+
     public function mount(User $user): void
     {
         $this->user = $user->load([
@@ -139,16 +148,21 @@ new #[Title('Member Details - Admin')] class extends Component {
     public function activitySummary(): array
     {
         $period = ShootingActivity::getActivityPeriod($this->user);
-        $currentYear = ShootingActivity::where('user_id', $this->user->id)
-            ->approved()
-            ->withinActivityYear($this->user)
-            ->get();
+        $compliance = ShootingActivity::complianceSummary($this->user);
 
         return [
-            'total' => $currentYear->count(),
-            'hunting' => $currentYear->where('track', 'hunting')->count(),
-            'sport' => $currentYear->where('track', 'sport')->count(),
+            // Current (banking) year — what the "+ Add Activity" button adds to
+            'total' => $compliance['banking_year']['total'],
+            'hunting' => $compliance['banking_year']['hunting'],
+            'sport' => $compliance['banking_year']['sport'],
             'period_label' => $period['label'],
+            // Compliance context
+            'required' => $compliance['required'],
+            'qualifying_year' => $compliance['qualifying_year'],
+            'banking_year' => $compliance['banking_year'],
+            'is_compliant_now' => $compliance['is_compliant_now'],
+            'is_compliant_next_year' => $compliance['is_compliant_next_year'],
+            'explainer' => $compliance['explainer'],
         ];
     }
 
@@ -1045,6 +1059,66 @@ new #[Title('Member Details - Admin')] class extends Component {
         session()->flash('success', 'Activity added and approved.');
     }
 
+    public function openEditActivityModal(int $activityId): void
+    {
+        $activity = ShootingActivity::where('user_id', $this->user->id)->findOrFail($activityId);
+
+        $this->editActivityId = $activity->id;
+        $this->editActivityTrack = $activity->track ?? 'hunting';
+        $this->editActivityTypeId = (string) ($activity->activity_type_id ?? '');
+        $this->editActivityDate = optional($activity->activity_date)->format('Y-m-d') ?? '';
+        $this->editActivityDescription = $activity->description ?? '';
+        $this->editActivityStatus = $activity->status ?? 'approved';
+        $this->showEditActivityModal = true;
+    }
+
+    public function updateActivity(): void
+    {
+        $this->validate([
+            'editActivityId' => 'required|integer',
+            'editActivityTrack' => 'required|in:hunting,sport',
+            'editActivityTypeId' => 'nullable|exists:activity_types,id',
+            'editActivityDate' => 'required|date',
+            'editActivityDescription' => 'required|string|max:500',
+            'editActivityStatus' => 'required|in:pending,approved,rejected',
+        ]);
+
+        $activity = ShootingActivity::where('user_id', $this->user->id)->findOrFail($this->editActivityId);
+
+        $payload = [
+            'track' => $this->editActivityTrack,
+            'activity_type_id' => $this->editActivityTypeId ?: null,
+            'activity_date' => $this->editActivityDate,
+            'description' => $this->editActivityDescription,
+            'status' => $this->editActivityStatus,
+        ];
+
+        // When status changes, sync the verification metadata
+        if ($this->editActivityStatus === 'approved' && $activity->status !== 'approved') {
+            $payload['verified_at'] = now();
+            $payload['verified_by'] = auth()->id();
+        } elseif ($this->editActivityStatus !== 'approved') {
+            $payload['verified_at'] = null;
+            $payload['verified_by'] = null;
+        }
+
+        $activity->update($payload);
+
+        unset($this->memberActivities, $this->activitySummary);
+        $this->showEditActivityModal = false;
+        $this->editActivityId = null;
+        session()->flash('success', 'Activity updated.');
+    }
+
+    public function deleteActivity(int $activityId): void
+    {
+        $activity = ShootingActivity::where('user_id', $this->user->id)->findOrFail($activityId);
+        $activity->delete();
+
+        unset($this->memberActivities, $this->activitySummary);
+        session()->flash('success', 'Activity deleted.');
+    }
+
     public function getStatusClasses(string $status): string
     {
         return match($status) {
@@ -1433,25 +1507,55 @@ new #[Title('Member Details - Admin')] class extends Component {
 
         {{-- Activity Summary --}}
         <div class="border-b border-zinc-200 bg-zinc-50 px-6 py-3 dark:border-zinc-800 dark:bg-zinc-900/50">
-            <div class="flex flex-wrap items-center gap-4 text-sm">
-                @if($this->isLifetimeMember)
+            @if($this->isLifetimeMember)
+                <div class="flex items-center gap-4 text-sm">
                     <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                         Lifetime Member — Activities always up to date
                     </span>
-                @else
-                    <span class="text-zinc-600 dark:text-zinc-400">
-                        Approved this year: <strong class="text-zinc-900 dark:text-white">{{ $this->activitySummary['total'] }}</strong>
-                    </span>
-                    <span class="text-zinc-400 dark:text-zinc-600">|</span>
-                    <span class="text-zinc-600 dark:text-zinc-400">
-                        Hunting: <strong class="text-zinc-900 dark:text-white">{{ $this->activitySummary['hunting'] }}</strong>
-                    </span>
-                    <span class="text-zinc-600 dark:text-zinc-400">
-                        Sport: <strong class="text-zinc-900 dark:text-white">{{ $this->activitySummary['sport'] }}</strong>
-                    </span>
-                @endif
-            </div>
+                </div>
+            @else
+                @php
+                    $required = $this->activitySummary['required'];
+                    $qy = $this->activitySummary['qualifying_year'];
+                    $by = $this->activitySummary['banking_year'];
+                    $compliantNow = $this->activitySummary['is_compliant_now'];
+                    $compliantNext = $this->activitySummary['is_compliant_next_year'];
+                @endphp
+                <div class="grid gap-3 sm:grid-cols-2">
+                    {{-- Qualifying (previous) year --}}
+                    <div class="rounded-lg border {{ $compliantNow ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20' }} px-4 py-3">
+                        <div class="flex items-center justify-between text-xs font-medium uppercase tracking-wide {{ $compliantNow ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300' }}">
+                            <span>Compliance for {{ now()->year }}</span>
+                            <span>{{ $compliantNow ? 'Compliant' : 'Not Compliant' }}</span>
+                        </div>
+                        <div class="mt-1 text-sm text-zinc-800 dark:text-zinc-100">
+                            <strong>{{ $qy['total'] }}/{{ $required }}</strong>
+                            approved in {{ $qy['year'] }}
+                            <span class="text-zinc-500 dark:text-zinc-400">(H {{ $qy['hunting'] }} · S {{ $qy['sport'] }})</span>
+                        </div>
+                        <div class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                            {{ $qy['label'] }} — activities from this year qualify the member for {{ now()->year }}.
+                        </div>
+                    </div>
+
+                    {{-- Banking (current) year --}}
+                    <div class="rounded-lg border {{ $compliantNext ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900' }} px-4 py-3">
+                        <div class="flex items-center justify-between text-xs font-medium uppercase tracking-wide {{ $compliantNext ? 'text-emerald-700 dark:text-emerald-300' : 'text-zinc-600 dark:text-zinc-300' }}">
+                            <span>Banking for {{ now()->year + 1 }}</span>
+                            <span>{{ $compliantNext ? 'On Track' : 'In Progress' }}</span>
+                        </div>
+                        <div class="mt-1 text-sm text-zinc-800 dark:text-zinc-100">
+                            <strong>{{ $by['total'] }}/{{ $required }}</strong>
+                            approved in {{ $by['year'] }}
+                            <span class="text-zinc-500 dark:text-zinc-400">(H {{ $by['hunting'] }} · S {{ $by['sport'] }})</span>
+                        </div>
+                        <div class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                            {{ $by['label'] }} — these activities will qualify the member for {{ now()->year + 1 }}.
+                        </div>
+                    </div>
+                </div>
+            @endif
         </div>
 
         @if($this->memberActivities->count() > 0)
@@ -1492,18 +1596,24 @@ new #[Title('Member Details - Admin')] class extends Component {
                             @endif
                         </td>
                         <td class="whitespace-nowrap px-6 py-3 text-sm">
-                            @if($activity->status === 'pending')
                             <div class="flex items-center gap-2">
-                                <button wire:click="approveActivity({{ $activity->id }})" wire:confirm="Approve this activity?" class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors" title="Approve">
-                                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                @if($activity->status === 'pending')
+                                    <button wire:click="approveActivity({{ $activity->id }})" wire:confirm="Approve this activity?" class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors" title="Approve">
+                                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    </button>
+                                    <button wire:click="rejectActivity({{ $activity->id }})" wire:confirm="Reject this activity?" class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors" title="Reject">
+                                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    </button>
+                                @elseif($activity->verifier)
+                                    <span class="text-xs text-zinc-400 dark:text-zinc-500 mr-1">by {{ $activity->verifier->name }}</span>
+                                @endif
+                                <button wire:click="openEditActivityModal({{ $activity->id }})" class="text-zinc-500 hover:text-nrapa-blue dark:text-zinc-400 dark:hover:text-nrapa-blue transition-colors" title="Edit activity (fix date, type, etc.)">
+                                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                 </button>
-                                <button wire:click="rejectActivity({{ $activity->id }})" wire:confirm="Reject this activity?" class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors" title="Reject">
-                                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                <button wire:click="deleteActivity({{ $activity->id }})" wire:confirm="Delete this activity? This cannot be undone." class="text-zinc-400 hover:text-red-600 dark:text-zinc-500 dark:hover:text-red-400 transition-colors" title="Delete activity">
+                                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a2 2 0 012-2h2a2 2 0 012 2v3"/></svg>
                                 </button>
                             </div>
-                            @elseif($activity->verifier)
-                                <span class="text-xs text-zinc-400 dark:text-zinc-500">by {{ $activity->verifier->name }}</span>
-                            @endif
                         </td>
                     </tr>
                     @endforeach
@@ -2634,6 +2744,66 @@ new #[Title('Member Details - Admin')] class extends Component {
                     <div class="flex justify-end gap-3 pt-2 border-t border-zinc-200 dark:border-zinc-800">
                         <button type="button" wire:click="$set('showAddActivityModal', false)" class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 transition-colors">Cancel</button>
                         <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">Add Activity</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Edit Activity Modal --}}
+    @if($showEditActivityModal)
+    <div class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div wire:click="$set('showEditActivityModal', false)" class="fixed inset-0 bg-black/50"></div>
+            <div class="relative w-full max-w-lg rounded-xl bg-white shadow-xl dark:bg-zinc-800">
+                <div class="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
+                    <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Edit Activity</h3>
+                    <button wire:click="$set('showEditActivityModal', false)" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <form wire:submit="updateActivity" class="p-6 space-y-4">
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Track <span class="text-red-500">*</span></label>
+                            <select wire:model="editActivityTrack" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                                <option value="hunting">Hunting</option>
+                                <option value="sport">Sport Shooting</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Activity Date <span class="text-red-500">*</span></label>
+                            <input type="date" wire:model="editActivityDate" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                            @error('editActivityDate') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Correct the date here if it was imported incorrectly.</p>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Activity Type</label>
+                        <select wire:model="editActivityTypeId" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                            <option value="">— None —</option>
+                            @foreach($this->activityTypes as $type)
+                            <option value="{{ $type->id }}">{{ $type->name }} ({{ $type->track }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Description <span class="text-red-500">*</span></label>
+                        <textarea wire:model="editActivityDescription" rows="3" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white"></textarea>
+                        @error('editActivityDescription') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Status <span class="text-red-500">*</span></label>
+                        <select wire:model="editActivityStatus" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-end gap-3 pt-2 border-t border-zinc-200 dark:border-zinc-800">
+                        <button type="button" wire:click="$set('showEditActivityModal', false)" class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 transition-colors">Cancel</button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-nrapa-blue rounded-lg hover:bg-nrapa-blue-dark transition-colors">Save Changes</button>
                     </div>
                 </form>
             </div>

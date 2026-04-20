@@ -124,23 +124,24 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
         $user = auth()->user();
         $period = $this->activityPeriod;
 
-        // NRAPA rule: 2 approved activities total per year, regardless of track or dedicated type.
+        // NRAPA rule: 2 approved activities in the PREVIOUS activity year qualify the member
+        // for the CURRENT year. Current-year activities bank compliance for NEXT year.
         $required = 2;
+        $summary = ShootingActivity::complianceSummary($user, $required);
 
-        $approvedActivities = ShootingActivity::where('user_id', $user->id)
-            ->where('status', 'approved')
-            ->whereBetween('activity_date', [$period['start'], $period['end']])
-            ->count();
-
-        $isCompliant = $approvedActivities >= $required;
+        $approvedActivities = $summary['qualifying_year']['total'];
+        $bankingActivities = $summary['banking_year']['total'];
+        $isCompliant = $summary['is_compliant_now'];
 
         $daysUntilDeadline = (int) now()->diffInDays($period['nrapa_deadline'], false);
         $isPastDeadline = $daysUntilDeadline < 0;
 
         return [
             'approved_count' => $approvedActivities,
+            'banking_count' => $bankingActivities,
+            'qualifying_year' => $summary['qualifying_year']['year'],
+            'banking_year' => $summary['banking_year']['year'],
             'required' => $required,
-            // Kept for backwards compatibility with any view that still references these keys.
             'required_sport' => $required,
             'required_hunter' => $required,
             'sport_compliant' => $isCompliant,
@@ -293,8 +294,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                             <svg class="w-5 h-5 {{ $this->complianceStatus['is_compliant'] ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
                             </svg>
-                            <span class="font-semibold text-zinc-900 dark:text-white">Approved Activities</span>
-                            <span class="text-xs text-zinc-500 dark:text-zinc-400">(hunting or sport, any mix)</span>
+                            <span class="font-semibold text-zinc-900 dark:text-white">Approved Activities from {{ $this->complianceStatus['qualifying_year'] }}</span>
+                            <span class="text-xs text-zinc-500 dark:text-zinc-400">(qualify you for {{ now()->year }} — hunting or sport)</span>
                         </div>
                         @if($this->complianceStatus['is_compliant'])
                             <span class="text-sm font-medium text-emerald-600 dark:text-emerald-400">Complete</span>

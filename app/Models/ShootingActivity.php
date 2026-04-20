@@ -452,6 +452,62 @@ class ShootingActivity extends Model
     }
 
     /**
+     * Canonical compliance summary for a user.
+     *
+     * NRAPA rule: the previous activity year's approvals qualify the member
+     * for the current year. While the current window is open (Jan 1 - Oct 31)
+     * the activities being banked count toward NEXT year's compliance.
+     *
+     * Returns totals for:
+     *   - qualifying_year: the year whose activities qualify the member RIGHT NOW
+     *     (previous year by default, but if current year already has enough it can
+     *     be used instead so the UI shows "compliant").
+     *   - banking_year: the current activity year (what's being built for next year).
+     */
+    public static function complianceSummary(User $user, int $required = 2): array
+    {
+        $currentYear = now()->year;
+        $prevYear = $currentYear - 1;
+
+        $countForYear = function (int $year) use ($user) {
+            $start = Carbon::create($year, 1, 1)->startOfDay();
+            $end = Carbon::create($year, 10, 31)->endOfDay();
+
+            $rows = self::where('user_id', $user->id)
+                ->approved()
+                ->whereBetween('activity_date', [$start, $end])
+                ->get(['track']);
+
+            return [
+                'total' => $rows->count(),
+                'hunting' => $rows->where('track', 'hunting')->count(),
+                'sport' => $rows->where('track', 'sport')->count(),
+                'start' => $start,
+                'end' => $end,
+                'label' => $start->format('d M Y').' - '.$end->format('d M Y'),
+                'year' => $year,
+            ];
+        };
+
+        $current = $countForYear($currentYear);
+        $previous = $countForYear($prevYear);
+
+        $qualifies = $previous['total'] >= $required || $current['total'] >= $required;
+        $nextYearQualified = $current['total'] >= $required;
+
+        return [
+            'required' => $required,
+            'qualifying_year' => $previous,
+            'banking_year' => $current,
+            'is_compliant_now' => $qualifies,
+            'is_compliant_next_year' => $nextYearQualified,
+            'explainer' => $qualifies
+                ? "Compliant for {$currentYear} on the strength of {$prevYear}'s activities."
+                : "Not compliant for {$currentYear}: only {$previous['total']} approved activities in {$prevYear} (need {$required}).",
+        ];
+    }
+
+    /**
      * Get the full location string.
      */
     public function getFullLocationAttribute(): string

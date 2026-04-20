@@ -263,15 +263,18 @@ new #[Title('Dashboard')] class extends Component {
     {
         $user = $this->user;
         $required = 2;
-        $approved = ShootingActivity::where('user_id', $user->id)
-            ->withinActivityYear($user)
-            ->where('status', 'approved')
-            ->count();
+
+        // Compliance for the CURRENT year is proven by LAST year's approved activities.
+        // This year's activities bank compliance for NEXT year.
+        $summary = ShootingActivity::complianceSummary($user, $required);
 
         return [
-            'approved' => $approved,
+            'approved' => $summary['qualifying_year']['total'],
             'required' => $required,
-            'met' => $approved >= $required,
+            'met' => $summary['is_compliant_now'],
+            'banking' => $summary['banking_year']['total'],
+            'qualifying_year' => $summary['qualifying_year']['year'],
+            'banking_year' => $summary['banking_year']['year'],
         ];
     }
 

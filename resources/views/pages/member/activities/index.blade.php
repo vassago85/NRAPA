@@ -36,13 +36,15 @@ new class extends Component {
             ->orderBy('activity_date', 'desc')
             ->paginate(12);
 
-        $approvedCount = ShootingActivity::where('user_id', $user->id)
-            ->withinActivityYear($user)
-            ->where('status', 'approved')
-            ->count();
+        // Use the canonical compliance summary so the member sees:
+        //   - Compliance for THIS YEAR = activities approved LAST year (2 required)
+        //   - Banking for NEXT YEAR = activities approved THIS year
+        $compliance = ShootingActivity::complianceSummary($user, $requiredCount);
+        $approvedCount = $compliance['qualifying_year']['total']; // what proves compliance for THIS year
+        $bankingCount = $compliance['banking_year']['total'];     // what's being built for NEXT year
 
         $isPaidUp = $user->activeMembership && (!$user->activeMembership->expires_at || $user->activeMembership->expires_at->isFuture());
-        $complianceMet = $approvedCount >= $requiredCount;
+        $complianceMet = $compliance['is_compliant_now'];
 
         $complianceHistory = [];
         $currentYear = now()->year;
@@ -64,10 +66,12 @@ new class extends Component {
             'activities' => $activities,
             'activityPeriod' => $activityPeriod,
             'approvedCount' => $approvedCount,
+            'bankingCount' => $bankingCount,
             'requiredCount' => $requiredCount,
             'complianceMet' => $complianceMet,
             'isPaidUp' => $isPaidUp,
             'complianceHistory' => $complianceHistory,
+            'compliance' => $compliance,
         ];
     }
 }; ?>
@@ -91,18 +95,25 @@ new class extends Component {
         <!-- Compliance Card -->
         <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-5">
             <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xs uppercase tracking-wider font-semibold text-zinc-500">Compliance OCT {{ now()->year }}</h2>
+                <h2 class="text-xs uppercase tracking-wider font-semibold text-zinc-500">Compliance for {{ now()->year }}</h2>
                 <span class="text-xs px-2 py-1 rounded-full font-medium {{ $complianceMet ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' }}">
-                    {{ $complianceMet ? 'Completed' : 'Incomplete' }}
+                    {{ $complianceMet ? 'Compliant' : 'Incomplete' }}
                 </span>
             </div>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-3 gap-4">
                 <div class="text-center">
                     <p class="text-2xl font-bold {{ $complianceMet ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' }}">
                         {{ $approvedCount }} / {{ $requiredCount }}
                     </p>
-                    <p class="text-xs uppercase tracking-wider text-zinc-500 mt-1">Activities</p>
-                    <p class="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">hunting or sport</p>
+                    <p class="text-xs uppercase tracking-wider text-zinc-500 mt-1">{{ now()->year - 1 }} activities</p>
+                    <p class="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">qualify you for {{ now()->year }}</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold {{ $bankingCount >= $requiredCount ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-700 dark:text-zinc-300' }}">
+                        {{ $bankingCount }} / {{ $requiredCount }}
+                    </p>
+                    <p class="text-xs uppercase tracking-wider text-zinc-500 mt-1">{{ now()->year }} activities</p>
+                    <p class="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">banking for {{ now()->year + 1 }}</p>
                 </div>
                 <div class="text-center">
                     <p class="text-2xl font-bold {{ $isPaidUp ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' }}">
@@ -111,7 +122,7 @@ new class extends Component {
                     <p class="text-xs uppercase tracking-wider text-zinc-500 mt-1">Paid-up</p>
                 </div>
             </div>
-            <p class="text-xs text-zinc-400 mt-3 text-center">{{ $activityPeriod['label'] }}</p>
+            <p class="text-xs text-zinc-400 mt-3 text-center">Current window: {{ $activityPeriod['label'] }}</p>
         </div>
 
         <!-- Compliance History -->
