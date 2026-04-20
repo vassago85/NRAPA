@@ -19,6 +19,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Add CORS middleware globally for Livewire uploads
         $middleware->prepend(\App\Http\Middleware\HandleCors::class);
 
+        $middleware->prepend(\App\Http\Middleware\LogLivewireRequests::class);
+
         // Handle CORS for Livewire uploads
         $middleware->validateCsrfTokens(except: [
             'livewire/upload-file',
