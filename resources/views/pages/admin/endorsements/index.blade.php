@@ -4,14 +4,19 @@ use App\Models\EndorsementRequest;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Requests - Admin')] class extends Component {
     use WithPagination;
 
+    #[Url(nullable: true)]
     public string $status = '';
+
     public string $type = '';
+
+    #[Url(nullable: true)]
     public string $search = '';
 
     public function updatedSearch(): void

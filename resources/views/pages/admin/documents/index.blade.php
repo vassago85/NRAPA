@@ -6,14 +6,19 @@ use App\Models\ShootingActivity;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 new #[Layout('layouts.app.sidebar')] class extends Component {
     use WithPagination;
 
+    #[Url(nullable: true)]
     public string $statusFilter = 'pending';
+
     public string $typeFilter = '';
+
+    #[Url(nullable: true)]
     public string $search = '';
     
     public bool $showReviewModal = false;

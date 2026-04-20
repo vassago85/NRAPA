@@ -179,8 +179,15 @@
                 </div>
                 @endif
                 @auth
-                    @php $navRoute = request()->route()?->getName() ?? ''; @endphp
-                    @if(str_starts_with($navRoute, 'admin.'))
+                    @php
+                        $navRoute = request()->route()?->getName() ?? '';
+                        $memberContext = str_starts_with($navRoute, 'admin.')
+                            ? \App\Helpers\AdminMemberContext::resolve()
+                            : null;
+                    @endphp
+                    @if($memberContext)
+                        @include('partials.admin-member-context-nav', ['user' => $memberContext])
+                    @elseif(str_starts_with($navRoute, 'admin.'))
                         @include('partials.admin-nav-tabs')
                     @elseif(str_starts_with($navRoute, 'owner.'))
                         @include('partials.owner-nav-tabs')
@@ -188,6 +195,10 @@
                         @include('partials.developer-nav-tabs')
                     @else
                         @include('partials.member-nav-tabs')
+                    @endif
+
+                    @if($memberContext)
+                        <livewire:admin.member-message-quick />
                     @endif
                 @endauth
 
