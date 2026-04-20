@@ -42,16 +42,20 @@ new class extends Component {
 
     public function deleteFirearm(string $uuid): void
     {
+        \Log::info('Armoury deleteFirearm called', ['uuid' => $uuid, 'user_id' => auth()->id()]);
+
         $firearm = UserFirearm::where('uuid', $uuid)
             ->where('user_id', auth()->id())
             ->first();
 
         if (! $firearm) {
+            \Log::warning('Armoury deleteFirearm: firearm not found', ['uuid' => $uuid, 'user_id' => auth()->id()]);
             session()->flash('warning', 'Firearm not found or already removed.');
             return;
         }
 
         $firearm->delete();
+        \Log::info('Armoury deleteFirearm: deleted', ['uuid' => $uuid, 'firearm_id' => $firearm->id]);
         session()->flash('success', 'Firearm removed from your Virtual Safe.');
     }
 
