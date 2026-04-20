@@ -35,7 +35,8 @@
         $statusLabel = 'No Membership';
     }
 
-    $searchToken = $user->id_number ?: $user->email;
+    $memberUrl = route('admin.members.show', $user);
+    $onMemberPage = $currentRoute === 'admin.members.show';
 
     $actionClass = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 transition-colors';
     $primaryActionClass = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors';
@@ -90,40 +91,37 @@
                 Send Message
             </button>
 
-            @if($currentRoute !== 'admin.members.show')
-                <a href="{{ route('admin.members.show', $user) }}" wire:navigate class="{{ $actionClass }}">
+            @if(!$onMemberPage)
+                <a href="{{ $memberUrl }}" wire:navigate class="{{ $actionClass }}">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                     Profile
                 </a>
             @endif
 
-            @if($currentRoute !== 'admin.documents.show')
-                <a href="{{ route('admin.documents.index', ['search' => $searchToken, 'statusFilter' => '']) }}" wire:navigate class="{{ $actionClass }}">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    Documents
-                </a>
-            @endif
+            <a href="{{ $onMemberPage ? '#membership' : $memberUrl . '#membership' }}" @unless($onMemberPage) wire:navigate @endunless class="{{ $actionClass }}">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 7h18M3 12h18M3 17h18"/></svg>
+                Membership
+            </a>
 
-            @if($currentRoute !== 'admin.activities.show')
-                <a href="{{ route('admin.activities.index', ['search' => $searchToken, 'statusFilter' => '']) }}" wire:navigate class="{{ $actionClass }}">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
-                    Activities
-                </a>
-            @endif
+            <a href="{{ $onMemberPage ? '#documents' : $memberUrl . '#documents' }}" @unless($onMemberPage) wire:navigate @endunless class="{{ $actionClass }}">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Documents
+            </a>
 
-            @if($currentRoute !== 'admin.endorsements.show')
-                <a href="{{ route('admin.endorsements.index', ['search' => $searchToken, 'status' => '']) }}" wire:navigate class="{{ $actionClass }}">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
-                    Endorsements
-                </a>
-            @endif
+            <a href="{{ $onMemberPage ? '#activities' : $memberUrl . '#activities' }}" @unless($onMemberPage) wire:navigate @endunless class="{{ $actionClass }}">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                Activities
+            </a>
 
-            @if($currentRoute !== 'admin.approvals.show')
-                <a href="{{ route('admin.approvals.index', ['search' => $searchToken]) }}" wire:navigate class="{{ $actionClass }}">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Approvals
-                </a>
-            @endif
+            <a href="{{ $onMemberPage ? '#endorsements' : $memberUrl . '#endorsements' }}" @unless($onMemberPage) wire:navigate @endunless class="{{ $actionClass }}">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+                Endorsements
+            </a>
+
+            <a href="{{ $onMemberPage ? '#messages' : $memberUrl . '#messages' }}" @unless($onMemberPage) wire:navigate @endunless class="{{ $actionClass }}">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                Messages
+            </a>
 
             <a href="{{ route('admin.members.index') }}" wire:navigate
                class="ml-1 inline-flex items-center gap-1 px-2 py-1.5 text-xs text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-100 border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 rounded-lg transition-colors"

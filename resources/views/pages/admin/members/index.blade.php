@@ -99,6 +99,7 @@ new #[Title('Members - Admin')] class extends Component {
                 $message = MemberMessage::create([
                     'user_id' => $recipient->id,
                     'sent_by_user_id' => Auth::id(),
+                    'direction' => \App\Models\MemberMessage::DIRECTION_ADMIN_TO_MEMBER,
                     'subject' => trim($this->bulkMessageSubject),
                     'body' => trim($this->bulkMessageBody),
                 ]);

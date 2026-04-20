@@ -72,6 +72,7 @@ class MemberMessageQuick extends Component
         $message = MemberMessage::create([
             'user_id' => $user->id,
             'sent_by_user_id' => $actor->id,
+            'direction' => MemberMessage::DIRECTION_ADMIN_TO_MEMBER,
             'subject' => trim($this->subject),
             'body' => trim($this->body),
         ]);

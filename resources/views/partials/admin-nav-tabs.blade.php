@@ -21,6 +21,22 @@
                 Dashboard
             </a>
 
+            @php
+                $inboxUnread = \App\Models\MemberMessage::where('direction', \App\Models\MemberMessage::DIRECTION_MEMBER_TO_ADMIN)
+                    ->whereNull('read_at')
+                    ->count();
+            @endphp
+            <a href="{{ route('admin.messages.index') }}" wire:navigate
+               class="flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 {{ str_starts_with($currentRoute, 'admin.messages.') ? $active : $inactive }} transition-colors whitespace-nowrap">
+                <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.068.157 2.148.279 3.238.364.466.037.893.281 1.153.671L12 21l2.652-3.978c.26-.39.687-.634 1.153-.67 1.09-.086 2.17-.208 3.238-.365 1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"/>
+                </svg>
+                Inbox
+                @if($inboxUnread > 0)
+                    <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-semibold bg-amber-500 text-white">{{ $inboxUnread }}</span>
+                @endif
+            </a>
+
             <a href="{{ route('admin.members.index') }}" wire:navigate
                class="flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 {{ str_starts_with($currentRoute, 'admin.members.') ? $active : $inactive }} transition-colors whitespace-nowrap">
                 <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

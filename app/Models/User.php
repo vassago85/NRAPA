@@ -459,9 +459,14 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(MemberMessage::class)->latest();
     }
 
+    /**
+     * Messages the member has not yet opened (admin -> member only; outgoing ones aren't "unread").
+     */
     public function unreadMessages(): HasMany
     {
-        return $this->hasMany(MemberMessage::class)->whereNull('read_at');
+        return $this->hasMany(MemberMessage::class)
+            ->where('direction', MemberMessage::DIRECTION_ADMIN_TO_MEMBER)
+            ->whereNull('read_at');
     }
 
     /**

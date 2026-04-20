@@ -17,20 +17,32 @@ class MemberMessageMail extends Mailable
 
     public function envelope(): Envelope
     {
+        $subject = $this->message->parent_id ? 'Re: ' . $this->message->subject : $this->message->subject;
+
         return new Envelope(
-            subject: 'NRAPA: ' . $this->message->subject,
+            subject: 'NRAPA: ' . $subject,
         );
     }
 
     public function content(): Content
     {
+        $isFromAdmin = $this->message->isFromAdmin();
+        // Thread root id (use this message if it's a root, otherwise its parent)
+        $rootId = $this->message->parent_id ?? $this->message->id;
+
+        // Where the recipient should go to read the thread
+        $threadUrl = $isFromAdmin
+            ? url('/messages/' . $rootId)
+            : url('/admin/messages/' . $rootId);
+
         return new Content(
             view: 'emails.member-message',
             with: [
                 'memberMessage' => $this->message,
                 'user' => $this->message->user,
                 'sender' => $this->message->sender,
-                'inboxUrl' => url('/messages'),
+                'isFromAdmin' => $isFromAdmin,
+                'threadUrl' => $threadUrl,
             ],
         );
     }

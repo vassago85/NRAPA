@@ -191,6 +191,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Messages inbox (available to all verified users, including expired members)
     Route::livewire('messages', 'pages::member.messages.index')->name('messages.index');
+    Route::livewire('messages/new', 'pages::member.messages.create')->name('messages.create');
     Route::livewire('messages/{message}', 'pages::member.messages.show')->name('messages.show');
 
     // Membership - Always accessible (so free members can choose/pay for packages)
@@ -834,6 +835,11 @@ Route::middleware(['auth', 'verified', 'developer'])->prefix('developer')->name(
 // Admin Routes
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::livewire('dashboard', 'pages::admin.dashboard')->name('dashboard');
+
+    // Admin inbox (threads with members, incoming member enquiries)
+    Route::livewire('messages', 'pages::admin.messages.index')->name('messages.index');
+    Route::livewire('messages/{message}', 'pages::admin.messages.show')->name('messages.show');
+
     Route::livewire('members', 'pages::admin.members.index')->name('members.index');
     Route::livewire('members/create', 'pages::admin.members.create')->name('members.create');
     Route::livewire('members/import-failures', 'pages::admin.members.import-failures')->name('members.import-failures');

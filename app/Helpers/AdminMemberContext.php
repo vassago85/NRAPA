@@ -32,6 +32,7 @@ class AdminMemberContext
                 'admin.activities.show' => self::paramAsUser(optional($route->parameter('activity'))->user),
                 'admin.certificates.show' => self::paramAsUser(optional($route->parameter('certificate'))->user),
                 'admin.knowledge-tests.mark-attempt' => self::paramAsUser(optional($route->parameter('attempt'))->user),
+                'admin.messages.show' => self::paramAsUser(optional($route->parameter('message'))->user),
                 default => null,
             };
         } catch (\Throwable $e) {
@@ -55,6 +56,7 @@ class AdminMemberContext
             'admin.activities.show' => ['Activities', 'admin.activities.index', []],
             'admin.certificates.show' => ['Certificates', 'admin.certificates.index', []],
             'admin.knowledge-tests.mark-attempt' => ['Knowledge Tests', 'admin.knowledge-tests.index', []],
+            'admin.messages.show' => ['Inbox', 'admin.messages.index', []],
             default => null,
         };
     }

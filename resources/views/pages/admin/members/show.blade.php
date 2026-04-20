@@ -279,6 +279,7 @@ new #[Title('Member Details - Admin')] class extends Component {
         $message = MemberMessage::create([
             'user_id' => $this->user->id,
             'sent_by_user_id' => Auth::id(),
+            'direction' => \App\Models\MemberMessage::DIRECTION_ADMIN_TO_MEMBER,
             'subject' => trim($this->messageSubject),
             'body' => trim($this->messageBody),
         ]);
@@ -1236,7 +1237,7 @@ new #[Title('Member Details - Admin')] class extends Component {
         </div>
 
         {{-- Current Membership --}}
-        <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 lg:col-span-2">
+        <div id="membership" class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 lg:col-span-2 scroll-mt-24">
             <div class="flex items-center justify-between border-b border-zinc-200 p-6 dark:border-zinc-800">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Current Membership</h2>
                 @if($this->activeMembership)
@@ -1418,7 +1419,7 @@ new #[Title('Member Details - Admin')] class extends Component {
     </div>
 
     {{-- Activities --}}
-    <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <div id="activities" class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 scroll-mt-24">
         <div class="flex items-center justify-between border-b border-zinc-200 p-6 dark:border-zinc-800">
             <div>
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Activities</h2>
@@ -1517,7 +1518,7 @@ new #[Title('Member Details - Admin')] class extends Component {
     </div>
 
     {{-- Uploaded Documents --}}
-    <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <div id="documents" class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 scroll-mt-24">
         <div class="border-b border-zinc-200 p-6 dark:border-zinc-800">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Uploaded Documents</h2>
         </div>
@@ -1723,7 +1724,7 @@ new #[Title('Member Details - Admin')] class extends Component {
     @endif
 
     {{-- Messages --}}
-    <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <div id="messages" class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 scroll-mt-24">
         <div class="flex items-center justify-between border-b border-zinc-200 p-6 dark:border-zinc-800">
             <div>
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Messages</h2>
@@ -1787,7 +1788,7 @@ new #[Title('Member Details - Admin')] class extends Component {
 
     {{-- Certificates & Endorsement Requests --}}
     @if($this->user->certificates->count() > 0 || $this->endorsementRequests->count() > 0)
-    <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <div id="endorsements" class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 scroll-mt-24">
         <div class="border-b border-zinc-200 p-6 dark:border-zinc-800">
             <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Certificates & Endorsement Requests</h2>
         </div>

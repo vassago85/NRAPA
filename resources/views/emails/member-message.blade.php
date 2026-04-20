@@ -19,17 +19,28 @@
 <body>
 <div class="wrap">
     <div class="header">
-        <h1>NRAPA — Member Message</h1>
+        <h1>NRAPA — @if($isFromAdmin) Member Message @else Member Enquiry @endif</h1>
     </div>
     <div class="body">
-        <p>Hi {{ $user->name }},</p>
+        @if($isFromAdmin)
+            <p>Hi {{ $user->name }},</p>
+        @else
+            <p>A member has sent you a message via the NRAPA inbox.</p>
+            <p class="meta"><strong>From:</strong> {{ $user->name }} &lt;{{ $user->email }}&gt;</p>
+        @endif
+
         <h2>{{ $memberMessage->subject }}</h2>
         <div class="message">{{ $memberMessage->body }}</div>
-        @if($sender)
-            <p class="meta">From: {{ $sender->name }} ({{ $sender->role === 'admin' || $sender->role === 'owner' || $sender->role === 'developer' ? 'NRAPA Admin' : $sender->name }})</p>
+
+        @if($isFromAdmin && $sender)
+            <p class="meta">From: {{ $sender->name }} (NRAPA Admin)</p>
         @endif
-        <a href="{{ $inboxUrl }}" class="btn">View in your Inbox</a>
-        <p class="meta">You can reply to this message by contacting NRAPA directly &mdash; replies to this email address are not monitored.</p>
+
+        <a href="{{ $threadUrl }}" class="btn">
+            @if($isFromAdmin) Reply in your Inbox @else Open in Admin Inbox @endif
+        </a>
+
+        <p class="meta">Please reply inside the NRAPA inbox &mdash; direct replies to this email are not monitored.</p>
     </div>
     <div class="footer">
         National Rifle Association of South Africa &middot; nrapa.ranyati.co.za
