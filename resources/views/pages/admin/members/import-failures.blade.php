@@ -1,9 +1,13 @@
 <?php
 
+use App\Mail\ImportWelcome;
 use App\Models\ImportFailure;
+use App\Models\Membership;
 use App\Models\MembershipType;
 use App\Models\User;
 use App\Services\ExcelMemberImporter;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -206,6 +210,8 @@ new #[Title('Import Failures - Admin')] class extends Component {
             $failure->update(['row_data' => $rowData]);
             $failure->markResolved();
 
+            $emailQueued = $this->queueImportWelcome($result['user'] ?? $user, $result['membership'] ?? null);
+
             try {
                 app(\App\Services\NtfyService::class)->notifyAdmins(
                     'new_member',
@@ -214,7 +220,8 @@ new #[Title('Import Failures - Admin')] class extends Component {
                 );
             } catch (\Exception $e) {}
 
-            session()->flash('success', "Updated existing member: {$user->name}.");
+            $suffix = $emailQueued ? ' Welcome email queued.' : '';
+            session()->flash('success', "Updated existing member: {$user->name}.{$suffix}");
             $this->showEditModal = false;
             $this->editingId = null;
             $this->matchedUserId = null;
@@ -222,6 +229,33 @@ new #[Title('Import Failures - Admin')] class extends Component {
         } else {
             $this->retryError = $result['error'];
             $this->retrySuccess = null;
+        }
+    }
+
+    /**
+     * Queue the same "welcome / account setup" email the initial importer sends so
+     * members whose records were fixed up via the failures screen hear about it.
+     * Returns true if the email was successfully queued.
+     */
+    protected function queueImportWelcome(User $user, ?Membership $membership): bool
+    {
+        if (! $membership || empty($user->email)) {
+            return false;
+        }
+
+        try {
+            Mail::to($user->email)->queue(new ImportWelcome(
+                $user,
+                $membership,
+                'Use the password provided during import',
+            ));
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning('Failed to queue welcome email from import-failures resolution', [
+                'user_id' => $user->id,
+                'error'   => $e->getMessage(),
+            ]);
+            return false;
         }
     }
 
@@ -246,6 +280,7 @@ new #[Title('Import Failures - Admin')] class extends Component {
 
         $importer = new ExcelMemberImporter();
         $updated = 0;
+        $emailsQueued = 0;
         $skipped = 0;
         $failed = 0;
         $failedRows = [];
@@ -269,6 +304,10 @@ new #[Title('Import Failures - Admin')] class extends Component {
             if ($result['success']) {
                 $failure->markResolved();
                 $updated++;
+
+                if ($this->queueImportWelcome($result['user'] ?? $match['user'], $result['membership'] ?? null)) {
+                    $emailsQueued++;
+                }
             } else {
                 $failed++;
                 $label = trim(($data['initials'] ?? '') . ' ' . ($data['surname'] ?? ''));
@@ -280,11 +319,11 @@ new #[Title('Import Failures - Admin')] class extends Component {
             app(\App\Services\NtfyService::class)->notifyAdmins(
                 'new_member',
                 'Bulk Import Resolution',
-                auth()->user()->name . " auto-resolved {$updated} import failure(s) by matching existing members.",
+                auth()->user()->name . " auto-resolved {$updated} import failure(s) by matching existing members. {$emailsQueued} welcome emails queued.",
             );
         } catch (\Exception $e) {}
 
-        $parts = ["{$updated} updated"];
+        $parts = ["{$updated} updated", "{$emailsQueued} welcome emails queued"];
         if ($skipped > 0) $parts[] = "{$skipped} with no match left";
         if ($failed > 0) $parts[] = "{$failed} failed" . ($failedRows ? ' (' . implode(', ', array_slice($failedRows, 0, 5)) . (count($failedRows) > 5 ? '…' : '') . ')' : '');
 
