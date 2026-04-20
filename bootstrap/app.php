@@ -74,6 +74,34 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
+        $exceptions->report(function (\Livewire\Mechanisms\HandleComponents\CorruptComponentPayloadException $e) {
+            try {
+                $req = request();
+                \Illuminate\Support\Facades\Log::warning('[LIVEWIRE_CHECKSUM_FAIL] Corrupt component payload', [
+                    'path' => $req->path(),
+                    'method' => $req->method(),
+                    'referer' => $req->header('referer'),
+                    'user_id' => auth()->id(),
+                    'app_key_fp' => substr(hash('sha256', (string) config('app.key')), 0, 12),
+                    'app_env' => config('app.env'),
+                    'app_debug' => (bool) config('app.debug'),
+                    'request_components_count' => is_array($req->input('components')) ? count($req->input('components')) : null,
+                    'request_component_names' => collect($req->input('components', []))
+                        ->pluck('snapshot')
+                        ->map(function ($snap) {
+                            if (! is_string($snap)) return null;
+                            $decoded = json_decode($snap, true);
+                            return $decoded['memo']['name'] ?? null;
+                        })
+                        ->filter()
+                        ->values()
+                        ->all(),
+                ]);
+            } catch (\Throwable $inner) {
+                \Illuminate\Support\Facades\Log::warning('[LIVEWIRE_CHECKSUM_FAIL] reporter failed: '.$inner->getMessage());
+            }
+        });
+
         $exceptions->respond(function (Response $response) {
             $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
             $response->headers->set('X-Content-Type-Options', 'nosniff');
