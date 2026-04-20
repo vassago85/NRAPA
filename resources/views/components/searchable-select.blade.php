@@ -17,6 +17,20 @@
     $allowCustom = $allowCustom ?? ($wireModelCustom !== null);
 
     $componentId = 'sel_' . substr(md5($wireModel . '|' . ($wireModelCustom ?? '')), 0, 8);
+
+    // Precompute the Alpine config as a single JSON string. Building it inline inside
+    // an x-data='@json([...])' attribute causes Blade's directive compiler to miscount
+    // brackets when the array spans multiple lines, producing a ParseError at render.
+    $searchableSelectConfig = json_encode([
+        'componentId' => $componentId,
+        'allowCustom' => (bool) $allowCustom,
+        'disabled' => (bool) $disabled,
+        'hasCustom' => $wireModelCustom !== null,
+        'wireModel' => $wireModel,
+        'wireModelCustom' => $wireModelCustom,
+        'liveUpdate' => (bool) $live,
+        'initialItems' => $items,
+    ], JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES);
 @endphp
 
 {{-- Items JSON lives OUTSIDE wire:ignore so Livewire can update it when the source collection changes --}}
@@ -24,16 +38,7 @@
     <script type="application/json" data-searchable-items="{{ $componentId }}">@json($items)</script>
 
 <div wire:ignore
-    x-data='searchableSelect(@json([
-        "componentId" => $componentId,
-        "allowCustom" => (bool) $allowCustom,
-        "disabled" => (bool) $disabled,
-        "hasCustom" => $wireModelCustom !== null,
-        "wireModel" => $wireModel,
-        "wireModelCustom" => $wireModelCustom,
-        "liveUpdate" => (bool) $live,
-        "initialItems" => $items,
-    ]))'
+    x-data="searchableSelect({{ $searchableSelectConfig }})"
     x-on:click.outside="handleClickOutside()"
     class="relative"
     id="{{ $componentId }}"
