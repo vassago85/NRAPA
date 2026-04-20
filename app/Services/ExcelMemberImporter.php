@@ -1086,52 +1086,60 @@ class ExcelMemberImporter
             $dedicatedType = 'both';
         }
 
-        $tracks = match ($dedicatedType) {
-            'hunter' => [['track' => 'hunting', 'setting' => 'endorsement_min_activities_hunter', 'default' => EndorsementRequest::DEFAULT_MIN_ACTIVITIES_HUNTER]],
-            'sport', 'sport_shooter' => [['track' => 'sport', 'setting' => 'endorsement_min_activities_sport', 'default' => EndorsementRequest::DEFAULT_MIN_ACTIVITIES_SPORT]],
-            'both' => [
-                ['track' => 'hunting', 'setting' => 'endorsement_min_activities_hunter', 'default' => EndorsementRequest::DEFAULT_MIN_ACTIVITIES_HUNTER],
-                ['track' => 'sport', 'setting' => 'endorsement_min_activities_sport', 'default' => EndorsementRequest::DEFAULT_MIN_ACTIVITIES_SPORT],
-            ],
-            default => [],
-        };
+        // NRAPA rule: 2 approved activities per year total, regardless of dedicated type or track.
+        // For import back-fill we pick a representative track for each member so the created rows
+        // are tagged sensibly (hunter members get hunting rows, sport members get sport rows, "both" defaults
+        // to a mix of one of each).
+        if (! in_array($dedicatedType, ['hunter', 'sport', 'sport_shooter', 'both'], true)) {
+            return;
+        }
+
+        $required = (int) SystemSetting::get(
+            'endorsement_min_activities',
+            EndorsementRequest::DEFAULT_MIN_ACTIVITIES_SPORT,
+        );
 
         $currentYear = now()->year;
 
-        foreach ($tracks as $trackConfig) {
-            $required = SystemSetting::get($trackConfig['setting'], $trackConfig['default']);
+        $existingCount = ShootingActivity::where('user_id', $user->id)
+            ->where('status', 'approved')
+            ->whereBetween('activity_date', [
+                \Carbon\Carbon::create($currentYear, 1, 1)->startOfDay(),
+                \Carbon\Carbon::create($currentYear, 10, 31)->endOfDay(),
+            ])
+            ->count();
 
-            $existingCount = ShootingActivity::where('user_id', $user->id)
-                ->where('status', 'approved')
-                ->where('track', $trackConfig['track'])
-                ->whereBetween('activity_date', [
-                    \Carbon\Carbon::create($currentYear, 1, 1)->startOfDay(),
-                    \Carbon\Carbon::create($currentYear, 10, 31)->endOfDay(),
-                ])
-                ->count();
+        $needed = max(0, $required - $existingCount);
+        if ($needed === 0) {
+            return;
+        }
 
-            $needed = max(0, $required - $existingCount);
-            if ($needed === 0) {
-                continue;
-            }
+        // Distribute backfill rows across tracks that make sense for this dedicated type.
+        $tracks = match ($dedicatedType) {
+            'hunter' => ['hunting'],
+            'sport', 'sport_shooter' => ['sport'],
+            'both' => ['hunting', 'sport'],
+            default => ['sport'],
+        };
+
+        for ($i = 0; $i < $needed; $i++) {
+            $track = $tracks[$i % count($tracks)];
 
             $activityType = ActivityType::active()
-                ->forTrack($trackConfig['track'])
+                ->forTrack($track)
                 ->first() ?? ActivityType::active()->first();
 
-            for ($i = 0; $i < $needed; $i++) {
-                ShootingActivity::create([
-                    'uuid' => Str::uuid(),
-                    'user_id' => $user->id,
-                    'activity_type_id' => $activityType?->id,
-                    'track' => $trackConfig['track'],
-                    'activity_date' => now()->subDays($i + 1)->toDateString(),
-                    'description' => 'Imported — prior activities from previous system',
-                    'status' => 'approved',
-                    'verified_at' => now(),
-                    'verified_by' => auth()->id(),
-                ]);
-            }
+            ShootingActivity::create([
+                'uuid' => Str::uuid(),
+                'user_id' => $user->id,
+                'activity_type_id' => $activityType?->id,
+                'track' => $track,
+                'activity_date' => now()->subDays($i + 1)->toDateString(),
+                'description' => 'Imported — prior activities from previous system',
+                'status' => 'approved',
+                'verified_at' => now(),
+                'verified_by' => auth()->id(),
+            ]);
         }
     }
 

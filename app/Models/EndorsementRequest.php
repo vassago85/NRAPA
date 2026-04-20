@@ -302,11 +302,13 @@ class EndorsementRequest extends Model
             ];
         }
 
-        $minActivitiesSport = SystemSetting::get('endorsement_min_activities_sport', self::DEFAULT_MIN_ACTIVITIES_SPORT);
-        $minActivitiesHunter = SystemSetting::get('endorsement_min_activities_hunter', self::DEFAULT_MIN_ACTIVITIES_HUNTER);
-
-        $dedicatedType = $membership?->type?->dedicated_type;
-        $required = ($dedicatedType === 'hunter') ? $minActivitiesHunter : $minActivitiesSport;
+        // NRAPA rule: every dedicated-status member needs 2 approved activities per year in total,
+        // regardless of track (sport/hunting) or whether they are dedicated hunter, sport, or both.
+        // Kept as a single knob (endorsement_min_activities) to allow runtime override.
+        $required = (int) SystemSetting::get(
+            'endorsement_min_activities',
+            self::DEFAULT_MIN_ACTIVITIES_SPORT,
+        );
 
         $currentYear = now()->year;
         $currentYearStart = \Carbon\Carbon::create($currentYear, 1, 1)->startOfDay();

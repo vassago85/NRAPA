@@ -123,38 +123,28 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
     {
         $user = auth()->user();
         $period = $this->activityPeriod;
-        $dedicatedType = $this->dedicatedType;
 
-        // Get approved activities for this year's period
+        // NRAPA rule: 2 approved activities total per year, regardless of track or dedicated type.
+        $required = 2;
+
         $approvedActivities = ShootingActivity::where('user_id', $user->id)
             ->where('status', 'approved')
             ->whereBetween('activity_date', [$period['start'], $period['end']])
             ->count();
 
-        // Requirements based on dedicated type
-        $requiredSport = 2; // 2 activities for sport shooters
-        $requiredHunter = 2; // 2 activities for hunters (per 24 months, but tracked yearly)
+        $isCompliant = $approvedActivities >= $required;
 
-        $sportCompliant = $approvedActivities >= $requiredSport;
-        $hunterCompliant = $approvedActivities >= $requiredHunter;
-
-        $isCompliant = match($dedicatedType) {
-            MembershipType::DEDICATED_TYPE_SPORT => $sportCompliant,
-            MembershipType::DEDICATED_TYPE_HUNTER => $hunterCompliant,
-            MembershipType::DEDICATED_TYPE_BOTH => $sportCompliant && $hunterCompliant,
-            default => true,
-        };
-
-        // Days until NRAPA deadline (October 1)
         $daysUntilDeadline = (int) now()->diffInDays($period['nrapa_deadline'], false);
         $isPastDeadline = $daysUntilDeadline < 0;
 
         return [
             'approved_count' => $approvedActivities,
-            'required_sport' => $requiredSport,
-            'required_hunter' => $requiredHunter,
-            'sport_compliant' => $sportCompliant,
-            'hunter_compliant' => $hunterCompliant,
+            'required' => $required,
+            // Kept for backwards compatibility with any view that still references these keys.
+            'required_sport' => $required,
+            'required_hunter' => $required,
+            'sport_compliant' => $isCompliant,
+            'hunter_compliant' => $isCompliant,
             'is_compliant' => $isCompliant,
             'days_until_deadline' => max(0, $daysUntilDeadline),
             'is_past_deadline' => $isPastDeadline,
@@ -295,64 +285,32 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                 </div>
             </div>
 
-            {{-- Activity Progress --}}
+            {{-- Activity Progress (single total; NRAPA requires 2 approved activities per year regardless of category) --}}
             <div class="p-6">
-                <div class="grid gap-6 {{ $this->dedicatedType === 'both' ? 'md:grid-cols-2' : 'md:grid-cols-1' }}">
-                    {{-- Sport Shooter Activities --}}
-                    @if($this->dedicatedType === 'sport' || $this->dedicatedType === 'both')
-                    <div class="p-4 rounded-lg border {{ $this->complianceStatus['sport_compliant'] ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20' }}">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="flex items-center gap-2">
-                                <svg class="w-5 h-5 {{ $this->complianceStatus['sport_compliant'] ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                                </svg>
-                                <span class="font-semibold text-zinc-900 dark:text-white">Sport Shooting</span>
-                            </div>
-                            @if($this->complianceStatus['sport_compliant'])
-                                <span class="text-sm font-medium text-emerald-600 dark:text-emerald-400">Complete</span>
-                            @else
-                                <span class="text-sm font-medium text-amber-600 dark:text-amber-400">{{ $this->complianceStatus['required_sport'] - $this->complianceStatus['approved_count'] }} more needed</span>
-                            @endif
+                <div class="p-4 rounded-lg border {{ $this->complianceStatus['is_compliant'] ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20' }}">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 {{ $this->complianceStatus['is_compliant'] ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                            </svg>
+                            <span class="font-semibold text-zinc-900 dark:text-white">Approved Activities</span>
+                            <span class="text-xs text-zinc-500 dark:text-zinc-400">(hunting or sport, any mix)</span>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <div class="flex-1 bg-zinc-200 dark:bg-zinc-700 rounded-full h-3">
-                                <div class="h-3 rounded-full transition-all {{ $this->complianceStatus['sport_compliant'] ? 'bg-emerald-500' : 'bg-amber-500' }}" 
-                                    style="width: {{ min(100, ($this->complianceStatus['approved_count'] / $this->complianceStatus['required_sport']) * 100) }}%"></div>
-                            </div>
-                            <span class="text-sm font-bold {{ $this->complianceStatus['sport_compliant'] ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}">
-                                {{ $this->complianceStatus['approved_count'] }}/{{ $this->complianceStatus['required_sport'] }}
-                            </span>
-                        </div>
+                        @if($this->complianceStatus['is_compliant'])
+                            <span class="text-sm font-medium text-emerald-600 dark:text-emerald-400">Complete</span>
+                        @else
+                            <span class="text-sm font-medium text-amber-600 dark:text-amber-400">{{ max(0, $this->complianceStatus['required'] - $this->complianceStatus['approved_count']) }} more needed</span>
+                        @endif
                     </div>
-                    @endif
-
-                    {{-- Hunter Activities --}}
-                    @if($this->dedicatedType === 'hunter' || $this->dedicatedType === 'both')
-                    <div class="p-4 rounded-lg border {{ $this->complianceStatus['hunter_compliant'] ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20' }}">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="flex items-center gap-2">
-                                <svg class="w-5 h-5 {{ $this->complianceStatus['hunter_compliant'] ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                <span class="font-semibold text-zinc-900 dark:text-white">Hunting</span>
-                            </div>
-                            @if($this->complianceStatus['hunter_compliant'])
-                                <span class="text-sm font-medium text-emerald-600 dark:text-emerald-400">Complete</span>
-                            @else
-                                <span class="text-sm font-medium text-amber-600 dark:text-amber-400">{{ $this->complianceStatus['required_hunter'] - $this->complianceStatus['approved_count'] }} more needed</span>
-                            @endif
+                    <div class="flex items-center gap-3">
+                        <div class="flex-1 bg-zinc-200 dark:bg-zinc-700 rounded-full h-3">
+                            <div class="h-3 rounded-full transition-all {{ $this->complianceStatus['is_compliant'] ? 'bg-emerald-500' : 'bg-amber-500' }}"
+                                style="width: {{ min(100, ($this->complianceStatus['approved_count'] / max(1, $this->complianceStatus['required'])) * 100) }}%"></div>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <div class="flex-1 bg-zinc-200 dark:bg-zinc-700 rounded-full h-3">
-                                <div class="h-3 rounded-full transition-all {{ $this->complianceStatus['hunter_compliant'] ? 'bg-emerald-500' : 'bg-amber-500' }}" 
-                                    style="width: {{ min(100, ($this->complianceStatus['approved_count'] / $this->complianceStatus['required_hunter']) * 100) }}%"></div>
-                            </div>
-                            <span class="text-sm font-bold {{ $this->complianceStatus['hunter_compliant'] ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}">
-                                {{ $this->complianceStatus['approved_count'] }}/{{ $this->complianceStatus['required_hunter'] }}
-                            </span>
-                        </div>
+                        <span class="text-sm font-bold {{ $this->complianceStatus['is_compliant'] ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}">
+                            {{ $this->complianceStatus['approved_count'] }}/{{ $this->complianceStatus['required'] }}
+                        </span>
                     </div>
-                    @endif
                 </div>
 
                 {{-- Deadline Notice --}}

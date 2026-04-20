@@ -101,7 +101,8 @@ new class extends Component {
                     <p class="text-2xl font-bold {{ $complianceMet ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' }}">
                         {{ $approvedCount }} / {{ $requiredCount }}
                     </p>
-                    <p class="text-xs uppercase tracking-wider text-zinc-500 mt-1">Sport Activities</p>
+                    <p class="text-xs uppercase tracking-wider text-zinc-500 mt-1">Activities</p>
+                    <p class="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">hunting or sport</p>
                 </div>
                 <div class="text-center">
                     <p class="text-2xl font-bold {{ $isPaidUp ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' }}">
@@ -123,7 +124,7 @@ new class extends Component {
                             {{ $history['approved'] }}/{{ $history['required'] }}
                         </p>
                         <p class="text-xs text-zinc-500 mt-1">{{ $history['label'] }}</p>
-                        <p class="text-xs uppercase tracking-wider text-zinc-400">Sport</p>
+                        <p class="text-xs uppercase tracking-wider text-zinc-400">Total</p>
                     </div>
                 @endforeach
             </div>
