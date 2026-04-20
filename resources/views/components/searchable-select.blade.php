@@ -21,18 +21,19 @@
 
 {{-- Items JSON lives OUTSIDE wire:ignore so Livewire can update it when the source collection changes --}}
 <div>
-    <script type="application/json" data-searchable-items="{{ $componentId }}">{!! json_encode($items) !!}</script>
+    <script type="application/json" data-searchable-items="{{ $componentId }}">@json($items)</script>
 
 <div wire:ignore
-    x-data="searchableSelect({
-        componentId: @js($componentId),
-        allowCustom: @js((bool) $allowCustom),
-        disabled: @js((bool) $disabled),
-        hasCustom: {{ $wireModelCustom ? 'true' : 'false' }},
-        wireModel: @js($wireModel),
-        wireModelCustom: @js($wireModelCustom),
-        liveUpdate: @js((bool) $live),
-    })"
+    x-data='searchableSelect(@json([
+        "componentId" => $componentId,
+        "allowCustom" => (bool) $allowCustom,
+        "disabled" => (bool) $disabled,
+        "hasCustom" => $wireModelCustom !== null,
+        "wireModel" => $wireModel,
+        "wireModelCustom" => $wireModelCustom,
+        "liveUpdate" => (bool) $live,
+        "initialItems" => $items,
+    ]))'
     x-on:click.outside="handleClickOutside()"
     class="relative"
     id="{{ $componentId }}"
@@ -135,9 +136,9 @@
 document.addEventListener('alpine:init', () => {
     Alpine.data('searchableSelect', (config) => ({
         componentId: config.componentId,
-        items: [],
-        allowCustom: config.allowCustom,
-        disabled: config.disabled,
+        items: Array.isArray(config.initialItems) ? config.initialItems : [],
+        allowCustom: !!config.allowCustom,
+        disabled: !!config.disabled,
         hasCustom: !!config.hasCustom,
         wireModel: config.wireModel,
         wireModelCustom: config.wireModelCustom,
@@ -150,7 +151,7 @@ document.addEventListener('alpine:init', () => {
         customValue: '',
 
         init() {
-            // Load items from the sibling <script> tag that Livewire CAN re-render
+            // Try to refresh items from the sibling <script> tag (may be updated by Livewire morphs)
             this.reloadItems();
 
             // Find the Livewire component that owns us
@@ -161,17 +162,19 @@ document.addEventListener('alpine:init', () => {
 
             // React to Livewire state changes (e.g. server-side updates, resets)
             if (this._wire) {
-                this._wire.$watch(this.wireModel, () => {
+                try {
+                    this._wire.$watch(this.wireModel, () => this.syncFromWire());
+                    if (this.hasCustom && this.wireModelCustom) {
+                        this._wire.$watch(this.wireModelCustom, () => this.syncFromWire());
+                    }
+                } catch (e) {}
+
+                // Livewire fires `livewire:morphed` after a server render; refresh items
+                // in case the source collection changed (e.g. calibres filtered by type).
+                document.addEventListener('livewire:morphed', () => {
                     this.reloadItems();
                     this.syncFromWire();
                 });
-                if (this.hasCustom && this.wireModelCustom) {
-                    this._wire.$watch(this.wireModelCustom, () => this.syncFromWire());
-                }
-
-                // Livewire fires `morph.updated` after a server render; refresh items
-                // in case the source collection changed (e.g. calibres filtered by type).
-                document.addEventListener('livewire:morphed', () => this.reloadItems());
             }
         },
 
@@ -179,10 +182,9 @@ document.addEventListener('alpine:init', () => {
             const node = document.querySelector('script[data-searchable-items="' + this.componentId + '"]');
             if (!node) return;
             try {
-                this.items = JSON.parse(node.textContent || '[]');
-            } catch (e) {
-                this.items = [];
-            }
+                const parsed = JSON.parse(node.textContent || '[]');
+                if (Array.isArray(parsed)) this.items = parsed;
+            } catch (e) {}
         },
 
         findWire() {
