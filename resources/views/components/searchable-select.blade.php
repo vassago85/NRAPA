@@ -92,8 +92,7 @@
         <template x-for="(item, idx) in filtered" :key="'item-' + item.id">
             <button
                 type="button"
-                x-on:click="selectItem(item)"
-                x-on:mousedown.prevent
+                x-on:mousedown.prevent="selectItem(item)"
                 x-on:mouseenter="highlightIndex = idx"
                 :data-highlighted="highlightIndex === idx ? '' : undefined"
                 :class="{
@@ -117,8 +116,7 @@
         <template x-if="allowCustom && showCustomOption">
             <button
                 type="button"
-                x-on:click="commitCustom()"
-                x-on:mousedown.prevent
+                x-on:mousedown.prevent="commitCustom()"
                 :class="{ 'bg-nrapa-blue/10 dark:bg-nrapa-blue/20': highlightIndex === filtered.length }"
                 x-on:mouseenter="highlightIndex = filtered.length"
                 class="w-full text-left px-4 py-2 text-sm text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2 border-t border-zinc-100 dark:border-zinc-700"
