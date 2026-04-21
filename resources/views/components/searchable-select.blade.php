@@ -140,8 +140,14 @@
 
 @once
 <script>
-document.addEventListener('alpine:init', () => {
-    Alpine.data('searchableSelect', (config) => ({
+// Register the Alpine component factory. Using a helper that runs both immediately
+// (if Alpine is already booted — common after wire:navigate SPA transitions) and on
+// the `alpine:init` event (first page load, before Alpine has booted). `Alpine.data`
+// is idempotent, so double-registration is safe.
+(function () {
+    function registerSearchableSelect() {
+        if (!window.Alpine) return false;
+        Alpine.data('searchableSelect', (config) => ({
         componentId: config.componentId,
         items: Array.isArray(config.initialItems) ? config.initialItems : [],
         allowCustom: !!config.allowCustom,
@@ -400,7 +406,13 @@ document.addEventListener('alpine:init', () => {
                 if (el) el.scrollIntoView({ block: 'nearest' });
             });
         },
-    }));
-});
+        }));
+        return true;
+    }
+
+    if (!registerSearchableSelect()) {
+        document.addEventListener('alpine:init', registerSearchableSelect);
+    }
+})();
 </script>
 @endonce
