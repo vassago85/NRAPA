@@ -99,7 +99,7 @@
             $makeName = $firearm->make_display ?? '';
             $modelName = $firearm->model_display ?? '';
             $calibreName = $firearm->calibre_display ?? '';
-            $actionLabel = $firearm->action_type ? ucfirst(str_replace('_', ' ', $firearm->action_type)) : null;
+            $actionLabel = $firearm->action_type_label;
             $serialNumbers = $firearm->serial_numbers;
         @endphp
         <table class="fg-table">

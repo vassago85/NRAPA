@@ -90,7 +90,7 @@
         @if($request->firearm->action_type)
         <div class="doc-row" style="margin-top:6px;">
             <span class="doc-label">Action:</span>
-            <span class="doc-value">{{ ucfirst(str_replace('_', ' ', $request->firearm->action_type)) }}</span>
+            <span class="doc-value">{{ $request->firearm->action_type_label }}</span>
         </div>
         @endif
         @if(!empty($request->firearm->serial_numbers))

@@ -89,7 +89,7 @@
                 @if($firearm->action_type === 'other')
                     {{ $firearm->action_type_other }}
                 @else
-                    {{ ucfirst(str_replace('_', ' ', $firearm->action_type)) }}
+                    {{ $firearm->action_type_label }}
                 @endif
             </div>
         </div>

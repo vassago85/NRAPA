@@ -251,8 +251,10 @@ class EndorsementFirearm extends Model
         }
 
         if ($category === self::CATEGORY_HANDGUN) {
+            // Handguns use "Cylinder" as the action label for revolvers (per Riaan): the
+            // mechanical action of a revolver is the rotating cylinder, not "revolver" itself.
             return [
-                self::ACTION_REVOLVER => 'Revolver',
+                self::ACTION_REVOLVER => 'Cylinder',
                 self::ACTION_SEMI_AUTO => 'Semi-Automatic',
                 self::ACTION_SINGLE_SHOT => 'Single Shot',
                 self::ACTION_OTHER => 'Other',
@@ -401,6 +403,9 @@ class EndorsementFirearm extends Model
 
     /**
      * Get the action type label.
+     *
+     * Resolved against the firearm's category so category-specific labels apply —
+     * e.g. a handgun revolver is displayed as "Cylinder" rather than "Revolver".
      */
     public function getActionTypeLabelAttribute(): ?string
     {
@@ -408,7 +413,11 @@ class EndorsementFirearm extends Model
             return null;
         }
 
-        return self::getActionTypeOptions()[$this->action_type] ?? ucfirst(str_replace('_', ' ', $this->action_type));
+        $options = self::getActionTypeOptions($this->firearm_category);
+
+        return $options[$this->action_type]
+            ?? self::getActionTypeOptions()[$this->action_type]
+            ?? ucfirst(str_replace('_', ' ', $this->action_type));
     }
 
     /**
