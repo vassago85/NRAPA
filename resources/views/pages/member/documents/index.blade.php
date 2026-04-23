@@ -487,8 +487,9 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Date of Birth</label>
-                                        <input type="date" wire:model="idDateOfBirth" readonly
-                                            class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-zinc-100 dark:bg-zinc-600 text-zinc-900 dark:text-white cursor-not-allowed">
+                                        <div class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-zinc-100 dark:bg-zinc-600 text-zinc-900 dark:text-white min-h-[42px]">
+                                            {{ $idDateOfBirth ? \Carbon\Carbon::parse($idDateOfBirth)->format('d F Y') : '—' }}
+                                        </div>
                                         <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Auto-calculated from ID number</p>
                                     </div>
                                 </div>
@@ -589,19 +590,19 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                                 }
                             }">
                             <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">File</label>
-                            <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-zinc-300 dark:border-zinc-600 border-dashed rounded-lg hover:border-emerald-400 dark:hover:border-emerald-500 transition-colors cursor-pointer"
+                            <label for="member-upload-file-input"
+                                class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-zinc-300 dark:border-zinc-600 border-dashed rounded-lg hover:border-emerald-400 dark:hover:border-emerald-500 transition-colors cursor-pointer"
                                 x-on:dragover.prevent="dragging = true"
                                 x-on:dragleave.prevent="dragging = false"
                                 x-on:drop.prevent="handleDrop($event)"
-                                x-on:click="$refs.fileInput.click()"
                                 :class="{ 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20': dragging }">
                                 <div class="space-y-1 text-center">
                                     <svg class="mx-auto h-12 w-12 text-zinc-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
                                         <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                                     </svg>
                                     <div class="flex text-sm text-zinc-600 dark:text-zinc-400 justify-center">
-                                        <span class="font-medium text-emerald-600 hover:text-emerald-500 dark:text-emerald-400">Upload a file</span>
-                                        <p class="pl-1">or drag and drop</p>
+                                        <span class="font-medium text-emerald-600 hover:text-emerald-500 dark:text-emerald-400">Tap to choose a file</span>
+                                        <p class="pl-1 hidden sm:inline">or drag and drop</p>
                                     </div>
                                     <p class="text-xs text-zinc-500 dark:text-zinc-500">PDF, PNG, JPG up to 10MB</p>
                                     
@@ -616,8 +617,8 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                                         </div>
                                     </div>
                                 </div>
-                                <input x-ref="fileInput" wire:model="uploadFile" type="file" class="sr-only" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp">
-                            </div>
+                            </label>
+                            <input id="member-upload-file-input" wire:model="uploadFile" type="file" class="sr-only" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp">
                             @error('uploadFile') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             
                             @if($uploadFile)
