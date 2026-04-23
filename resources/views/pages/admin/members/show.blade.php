@@ -7,6 +7,7 @@ use App\Models\ShootingActivity;
 use App\Models\ActivityType;
 use App\Models\UserDeletionRequest;
 use App\Models\AccountResetLog;
+use App\Models\LoginLog;
 use App\Models\UserSecurityQuestion;
 use App\Models\KnowledgeTest;
 use App\Models\KnowledgeTestAttempt;
@@ -103,6 +104,23 @@ new #[Title('Member Details - Admin')] class extends Component {
             'knowledgeTestAttempts.knowledgeTest',
             'deletionRequests',
         ]);
+    }
+
+    /**
+     * The last 3 logins for the user being viewed.
+     *
+     * Powered by LoginLog entries written by the RecordLoginLog listener on
+     * every successful Illuminate\Auth\Events\Login. We cap at 3 so the card
+     * stays compact on the admin profile page — older history can be surfaced
+     * later if admins request it.
+     */
+    #[Computed]
+    public function recentLogins()
+    {
+        return LoginLog::where('user_id', $this->user->id)
+            ->orderByDesc('created_at')
+            ->limit(3)
+            ->get();
     }
 
     #[Computed]
@@ -1132,7 +1150,7 @@ new #[Title('Member Details - Admin')] class extends Component {
     }
 }; ?>
 
-<div class="flex flex-col gap-6">
+<div class="flex flex-col gap-4">
     <x-slot name="header">
         <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Member Details</h1>
         <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">View and manage member information</p>
@@ -1239,61 +1257,67 @@ new #[Title('Member Details - Admin')] class extends Component {
         </div>
     </div>
 
-    <div class="grid gap-6 lg:grid-cols-3">
+    <div class="grid gap-4 lg:grid-cols-3">
         {{-- Member Info --}}
+        {{--
+            Previously a single-column "dl" with space-y-4. Converted to a 2-column
+            grid with space-y-2 inside each row to dramatically reduce vertical height
+            while keeping all fields visible. Physical/Postal address are intentionally
+            full-width because they wrap, everything else stays in the 2-col dense grid.
+        --}}
         <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-            <div class="flex items-center justify-between border-b border-zinc-200 p-6 dark:border-zinc-800">
-                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Member Information</h2>
-                <button wire:click="openEditProfileModal" class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600 transition-colors">
+            <div class="flex items-center justify-between border-b border-zinc-200 px-5 py-3 dark:border-zinc-800">
+                <h2 class="text-sm font-semibold text-zinc-900 dark:text-white">Member Information</h2>
+                <button wire:click="openEditProfileModal" class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600 transition-colors">
                     <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/></svg>
                     Edit
                 </button>
             </div>
-            <div class="p-6">
-                <dl class="space-y-4">
+            <div class="p-4">
+                <dl class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
                     <div>
-                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Full Name</dt>
-                        <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $this->user->name }}</dd>
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Full Name</dt>
+                        <dd class="font-medium text-zinc-900 dark:text-white">{{ $this->user->name }}</dd>
                     </div>
                     <div>
-                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Member Number</dt>
-                        <dd class="mt-1 font-mono font-medium text-zinc-900 dark:text-white">{{ $this->user->formatted_member_number }}</dd>
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Member Number</dt>
+                        <dd class="font-mono font-medium text-zinc-900 dark:text-white">{{ $this->user->formatted_member_number }}</dd>
+                    </div>
+                    <div class="col-span-2">
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Email</dt>
+                        <dd class="font-medium text-zinc-900 dark:text-white truncate">{{ $this->user->email }}</dd>
                     </div>
                     <div>
-                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Email</dt>
-                        <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $this->user->email }}</dd>
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">ID Number</dt>
+                        <dd class="font-mono font-medium text-zinc-900 dark:text-white">{{ $this->user->id_number ?? '—' }}</dd>
                     </div>
                     <div>
-                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">ID Number</dt>
-                        <dd class="mt-1 font-mono font-medium text-zinc-900 dark:text-white">{{ $this->user->id_number ?? '—' }}</dd>
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Phone</dt>
+                        <dd class="font-medium text-zinc-900 dark:text-white">{{ $this->user->phone ?? '—' }}</dd>
                     </div>
                     <div>
-                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Phone</dt>
-                        <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $this->user->phone ?? '—' }}</dd>
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Date of Birth</dt>
+                        <dd class="font-medium text-zinc-900 dark:text-white">{{ $this->user->date_of_birth?->format('d M Y') ?? '—' }}</dd>
                     </div>
                     <div>
-                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Date of Birth</dt>
-                        <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $this->user->date_of_birth?->format('d M Y') ?? '—' }}</dd>
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Registered</dt>
+                        <dd class="text-zinc-900 dark:text-white">{{ $this->user->created_at->format('d M Y') }}</dd>
                     </div>
                     @if($this->user->physical_address)
-                    <div>
-                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Physical Address</dt>
-                        <dd class="mt-1 text-sm text-zinc-900 dark:text-white">{{ $this->user->physical_address }}</dd>
+                    <div class="col-span-2">
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Physical Address</dt>
+                        <dd class="text-zinc-900 dark:text-white">{{ $this->user->physical_address }}</dd>
                     </div>
                     @endif
                     @if($this->user->postal_address)
-                    <div>
-                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Postal Address</dt>
-                        <dd class="mt-1 text-sm text-zinc-900 dark:text-white">{{ $this->user->postal_address }}</dd>
+                    <div class="col-span-2">
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Postal Address</dt>
+                        <dd class="text-zinc-900 dark:text-white">{{ $this->user->postal_address }}</dd>
                     </div>
                     @endif
-                    <div>
-                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Registered</dt>
-                        <dd class="mt-1 text-zinc-900 dark:text-white">{{ $this->user->created_at->format('d M Y \a\t H:i') }}</dd>
-                    </div>
-                    <div>
-                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Email Verified</dt>
-                        <dd class="mt-1">
+                    <div class="col-span-2">
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Email Verified</dt>
+                        <dd>
                             @if($this->user->email_verified_at)
                             <span class="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -1312,8 +1336,8 @@ new #[Title('Member Details - Admin')] class extends Component {
 
         {{-- Current Membership --}}
         <div id="membership" class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 lg:col-span-2 scroll-mt-24">
-            <div class="flex items-center justify-between border-b border-zinc-200 p-6 dark:border-zinc-800">
-                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Current Membership</h2>
+            <div class="flex items-center justify-between border-b border-zinc-200 px-5 py-3 dark:border-zinc-800">
+                <h2 class="text-sm font-semibold text-zinc-900 dark:text-white">Current Membership</h2>
                 @if($this->activeMembership)
                 <div class="flex items-center gap-2">
                     @if($this->activeMembership->status === 'active')
@@ -1329,57 +1353,57 @@ new #[Title('Member Details - Admin')] class extends Component {
                 </div>
                 @endif
             </div>
-            <div class="p-6">
+            <div class="p-4">
                 @if($this->activeMembership)
-                <div class="grid gap-6 md:grid-cols-2">
+                <div class="grid gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-3 text-sm">
                     <div>
-                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Membership Type</dt>
-                        <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $this->activeMembership->type->name }}</dd>
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Membership Type</dt>
+                        <dd class="font-medium text-zinc-900 dark:text-white">{{ $this->activeMembership->type->name }}</dd>
                     </div>
                     <div>
-                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Member Number</dt>
-                        <dd class="mt-1 font-mono font-medium text-zinc-900 dark:text-white">{{ $this->activeMembership->membership_number }}</dd>
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Member Number</dt>
+                        <dd class="font-mono font-medium text-zinc-900 dark:text-white">{{ $this->activeMembership->membership_number }}</dd>
                     </div>
                     <div>
-                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Status</dt>
-                        <dd class="mt-1">
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Status</dt>
+                        <dd>
                             @if($this->activeMembership->expires_at?->isPast())
-                                <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-sm font-medium text-red-800 dark:bg-red-900/40 dark:text-red-300">
+                                <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/40 dark:text-red-300">
                                     Expired
                                 </span>
                             @else
-                                <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-sm font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                <span class="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
                                     Active
                                 </span>
                             @endif
                         </dd>
                     </div>
                     <div>
-                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Activated On</dt>
-                        <dd class="mt-1 text-zinc-900 dark:text-white">{{ $this->activeMembership->activated_at?->format('d M Y') ?? 'N/A' }}</dd>
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Activated On</dt>
+                        <dd class="text-zinc-900 dark:text-white">{{ $this->activeMembership->activated_at?->format('d M Y') ?? 'N/A' }}</dd>
                     </div>
                     <div>
-                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Expires On</dt>
-                        <dd class="mt-1 text-zinc-900 dark:text-white">
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Expires On</dt>
+                        <dd class="text-zinc-900 dark:text-white">
                             @if($this->activeMembership->expires_at)
                                 {{ $this->activeMembership->expires_at->format('d M Y') }}
                                 @if($this->activeMembership->expires_at->isPast())
-                                    <span class="ml-2 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/40 dark:text-red-200">Expired</span>
+                                    <span class="ml-1 inline-flex items-center rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-800 dark:bg-red-900/40 dark:text-red-200">Expired</span>
                                 @elseif($this->activeMembership->expires_at->lte(now()->addDays(30)))
-                                    <span class="ml-2 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">Expiring Soon</span>
+                                    <span class="ml-1 inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">Expiring Soon</span>
                                 @endif
                             @else
-                                <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-sm font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">Lifetime</span>
+                                <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">Lifetime</span>
                             @endif
                         </dd>
                     </div>
                     <div>
-                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Approved By</dt>
-                        <dd class="mt-1 text-zinc-900 dark:text-white">{{ $this->activeMembership->approver?->name ?? 'N/A' }}</dd>
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Approved By</dt>
+                        <dd class="text-zinc-900 dark:text-white">{{ $this->activeMembership->approver?->name ?? 'N/A' }}</dd>
                     </div>
-                    <div>
-                        <dt class="text-sm text-zinc-500 dark:text-zinc-400">Proof of Payment</dt>
-                        <dd class="mt-1">
+                    <div class="sm:col-span-2 lg:col-span-3">
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Proof of Payment</dt>
+                        <dd>
                             @if($this->activeMembership->proof_of_payment_path)
                                 <a href="{{ route('admin.approvals.proof-of-payment', $this->activeMembership) }}" target="_blank"
                                     class="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
@@ -1411,10 +1435,58 @@ new #[Title('Member Details - Admin')] class extends Component {
         </div>
     </div>
 
+    {{-- Recent Logins --}}
+    {{--
+        Last 3 sign-ins (populated from login_logs via the RecordLoginLog listener).
+        Visible to every admin-level viewer because the controller/auth gate for this
+        page already restricts access to admin+; no extra @can check needed.
+        Kept intentionally compact — one row per login — so it doesn't bulk up the
+        page when no recent activity exists.
+    --}}
+    <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+        <div class="flex items-center justify-between border-b border-zinc-200 px-5 py-3 dark:border-zinc-800">
+            <div class="flex items-center gap-2">
+                <svg class="size-4 text-zinc-500 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z"/>
+                </svg>
+                <h2 class="text-sm font-semibold text-zinc-900 dark:text-white">Recent Logins</h2>
+                <span class="text-xs text-zinc-400 dark:text-zinc-500">(last 3)</span>
+            </div>
+        </div>
+        @if($this->recentLogins->count() > 0)
+        <div class="divide-y divide-zinc-100 dark:divide-zinc-800">
+            @foreach($this->recentLogins as $login)
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-2.5 text-sm">
+                <span class="font-medium text-zinc-900 dark:text-white">
+                    {{ $login->created_at->format('d M Y H:i') }}
+                </span>
+                <span class="text-xs text-zinc-500 dark:text-zinc-400">
+                    {{ $login->created_at->diffForHumans() }}
+                </span>
+                <span class="inline-flex items-center rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-xs text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                    {{ $login->ip_address ?? '—' }}
+                </span>
+                <span class="text-xs text-zinc-500 dark:text-zinc-400">{{ $login->browser }}</span>
+                @if($login->via_2fa)
+                <span class="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">2FA</span>
+                @endif
+                @if($login->via_remember)
+                <span class="inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800 dark:bg-sky-900/40 dark:text-sky-300">Remembered</span>
+                @endif
+            </div>
+            @endforeach
+        </div>
+        @else
+        <div class="px-5 py-4 text-sm text-zinc-500 dark:text-zinc-400">
+            No login activity recorded yet.
+        </div>
+        @endif
+    </div>
+
     {{-- Membership History --}}
     <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-        <div class="border-b border-zinc-200 p-6 dark:border-zinc-800">
-            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Membership History</h2>
+        <div class="border-b border-zinc-200 px-5 py-3 dark:border-zinc-800">
+            <h2 class="text-sm font-semibold text-zinc-900 dark:text-white">Membership History</h2>
         </div>
 
         @if($this->user->memberships->count() > 0)
@@ -1494,9 +1566,9 @@ new #[Title('Member Details - Admin')] class extends Component {
 
     {{-- Activities --}}
     <div id="activities" class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 scroll-mt-24">
-        <div class="flex items-center justify-between border-b border-zinc-200 p-6 dark:border-zinc-800">
+        <div class="flex items-center justify-between border-b border-zinc-200 px-5 py-3 dark:border-zinc-800">
             <div>
-                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Activities</h2>
+                <h2 class="text-sm font-semibold text-zinc-900 dark:text-white">Activities</h2>
                 <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ $this->activitySummary['period_label'] }}</p>
             </div>
             <button wire:click="openAddActivityModal" class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 transition-colors">
@@ -1629,8 +1701,8 @@ new #[Title('Member Details - Admin')] class extends Component {
 
     {{-- Uploaded Documents --}}
     <div id="documents" class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 scroll-mt-24">
-        <div class="border-b border-zinc-200 p-6 dark:border-zinc-800">
-            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Uploaded Documents</h2>
+        <div class="border-b border-zinc-200 px-5 py-3 dark:border-zinc-800">
+            <h2 class="text-sm font-semibold text-zinc-900 dark:text-white">Uploaded Documents</h2>
         </div>
 
         @if($this->memberDocuments->count() > 0)
@@ -1686,9 +1758,9 @@ new #[Title('Member Details - Admin')] class extends Component {
     {{-- Document Issuance --}}
     @if($this->activeMembership)
     <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-        <div class="border-b border-zinc-200 p-6 dark:border-zinc-800">
+        <div class="border-b border-zinc-200 px-5 py-3 dark:border-zinc-800">
             <div class="flex items-center justify-between">
-                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Document Issuance</h2>
+                <h2 class="text-sm font-semibold text-zinc-900 dark:text-white">Document Issuance</h2>
             </div>
             <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Issue official certificates and documents for this member</p>
         </div>
@@ -1835,9 +1907,9 @@ new #[Title('Member Details - Admin')] class extends Component {
 
     {{-- Messages --}}
     <div id="messages" class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 scroll-mt-24">
-        <div class="flex items-center justify-between border-b border-zinc-200 p-6 dark:border-zinc-800">
+        <div class="flex items-center justify-between border-b border-zinc-200 px-5 py-3 dark:border-zinc-800">
             <div>
-                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Messages</h2>
+                <h2 class="text-sm font-semibold text-zinc-900 dark:text-white">Messages</h2>
                 @php $unreadCount = $this->user->messages->whereNull('read_at')->count(); @endphp
                 <p class="text-sm text-zinc-500 dark:text-zinc-400">
                     {{ $this->user->messages->count() }} total
@@ -1899,8 +1971,8 @@ new #[Title('Member Details - Admin')] class extends Component {
     {{-- Certificates & Endorsement Requests --}}
     @if($this->user->certificates->count() > 0 || $this->endorsementRequests->count() > 0)
     <div id="endorsements" class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 scroll-mt-24">
-        <div class="border-b border-zinc-200 p-6 dark:border-zinc-800">
-            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Certificates & Endorsement Requests</h2>
+        <div class="border-b border-zinc-200 px-5 py-3 dark:border-zinc-800">
+            <h2 class="text-sm font-semibold text-zinc-900 dark:text-white">Certificates & Endorsement Requests</h2>
         </div>
 
         <div class="overflow-x-auto">
@@ -2075,9 +2147,9 @@ new #[Title('Member Details - Admin')] class extends Component {
 
     {{-- Knowledge Test Status --}}
     <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-        <div class="border-b border-zinc-200 p-6 dark:border-zinc-800">
+        <div class="border-b border-zinc-200 px-5 py-3 dark:border-zinc-800">
             <div class="flex items-center justify-between">
-                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Knowledge Test Status</h2>
+                <h2 class="text-sm font-semibold text-zinc-900 dark:text-white">Knowledge Test Status</h2>
                 @if(!$this->user->hasPassedKnowledgeTest())
                     <button wire:click="openMarkKnowledgeTestModal" class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2123,8 +2195,8 @@ new #[Title('Member Details - Admin')] class extends Component {
     {{-- Knowledge Test Attempts Summary --}}
     @if(count($this->testAttemptSummary) > 0)
     <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-        <div class="border-b border-zinc-200 p-6 dark:border-zinc-800">
-            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Knowledge Test Attempts</h2>
+        <div class="border-b border-zinc-200 px-5 py-3 dark:border-zinc-800">
+            <h2 class="text-sm font-semibold text-zinc-900 dark:text-white">Knowledge Test Attempts</h2>
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Overview of test attempts by test type</p>
         </div>
 
@@ -2535,7 +2607,7 @@ new #[Title('Member Details - Admin')] class extends Component {
         <div class="flex min-h-screen items-center justify-center p-4">
             <div wire:click="$set('showRevokeApprovalModal', false)" class="fixed inset-0 bg-black/50"></div>
             <div class="relative w-full max-w-lg rounded-xl bg-white shadow-xl dark:bg-zinc-800">
-                <div class="border-b border-zinc-200 p-6 dark:border-zinc-800">
+                <div class="border-b border-zinc-200 px-5 py-3 dark:border-zinc-800">
                     <div class="flex items-center gap-3">
                         <div class="flex size-10 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
                             <svg class="size-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"/></svg>

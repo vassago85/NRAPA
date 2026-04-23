@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Auth\Events\Login;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Queue\Events\JobFailed;
@@ -43,6 +44,22 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->registerMailEventListeners();
+        $this->registerAuthEventListeners();
+    }
+
+    /**
+     * Wire listeners for auth events so every successful login lands in the
+     * `login_logs` table.
+     *
+     * Same reasoning as registerMailEventListeners(): Laravel 11 does not
+     * auto-discover listeners in app/Listeners, so without this the
+     * RecordLoginLog listener was defined but never fired — which is why
+     * admin "Recent Logins" panels appeared empty.
+     */
+    protected function registerAuthEventListeners(): void
+    {
+        Event::listen(Login::class, \App\Listeners\RecordLoginLog::class);
+        Event::listen(Login::class, \App\Listeners\TrackLoginWithout2FA::class);
     }
 
     /**
