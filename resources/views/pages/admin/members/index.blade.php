@@ -107,11 +107,11 @@ new #[Title('Members - Admin')] class extends Component {
 
                 if ($recipient->email) {
                     try {
-                        Mail::to($recipient->email)->queue(new MemberMessageMail($message));
+                        Mail::to($recipient->email)->send(new MemberMessageMail($message));
                         $message->update(['email_sent_at' => now()]);
                         $emailed++;
                     } catch (\Throwable $e) {
-                        Log::warning('Failed to queue bulk member message email', [
+                        Log::warning('Failed to send bulk member message email', [
                             'user_id' => $recipient->id,
                             'message_id' => $message->id,
                             'error' => $e->getMessage(),
@@ -131,7 +131,7 @@ new #[Title('Members - Admin')] class extends Component {
             app(\App\Services\NtfyService::class)->notifyAdmins(
                 'new_member',
                 'Bulk Message Sent',
-                Auth::user()->name . " sent \"{$this->bulkMessageSubject}\" to {$sent} member(s). {$emailed} emails queued.",
+                Auth::user()->name . " sent \"{$this->bulkMessageSubject}\" to {$sent} member(s). {$emailed} emails sent.",
                 'low',
             );
         } catch (\Exception $e) {}

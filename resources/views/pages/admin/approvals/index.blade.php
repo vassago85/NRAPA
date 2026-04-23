@@ -420,7 +420,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
         // Send emails
         try {
             if ($membership->user && !$membership->welcome_email_sent_at) {
-                Mail::to($membership->user->email)->queue(new MembershipApproved(membership: $membership, cardUrl: route('card')));
+                Mail::to($membership->user->email)->send(new MembershipApproved(membership: $membership, cardUrl: route('card')));
                 $membership->update(['welcome_email_sent_at' => now()]);
             }
         } catch (\Exception $e) {
@@ -430,9 +430,9 @@ new #[Title('All Approvals - Admin')] class extends Component {
         if ($membership->source !== 'import' && $membership->user) {
             try {
                 $bankAccount = SystemSetting::getBankAccount();
-                Mail::to($membership->user->email)->queue(new PaymentInstructions($membership->load('type', 'user', 'affiliatedClub'), $bankAccount, $membership->payment_reference));
+                Mail::to($membership->user->email)->send(new PaymentInstructions($membership->load('type', 'user', 'affiliatedClub'), $bankAccount, $membership->payment_reference));
             } catch (\Exception $e) {
-                Log::warning('Failed to queue payment email on inline approval', ['membership_id' => $membership->id, 'error' => $e->getMessage()]);
+                Log::warning('Failed to send payment email on inline approval', ['membership_id' => $membership->id, 'error' => $e->getMessage()]);
             }
         }
 
@@ -502,7 +502,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
 
             try {
                 if ($membership->user && !$membership->welcome_email_sent_at) {
-                    Mail::to($membership->user->email)->queue(new MembershipApproved(
+                    Mail::to($membership->user->email)->send(new MembershipApproved(
                         membership: $membership,
                         cardUrl: route('card'),
                     ));
@@ -518,13 +518,13 @@ new #[Title('All Approvals - Admin')] class extends Component {
             if ($membership->source !== 'import' && $membership->user) {
                 try {
                     $bankAccount = \App\Models\SystemSetting::getBankAccount();
-                    Mail::to($membership->user->email)->queue(new PaymentInstructions(
+                    Mail::to($membership->user->email)->send(new PaymentInstructions(
                         $membership->load('type', 'user', 'affiliatedClub'),
                         $bankAccount,
                         $membership->payment_reference,
                     ));
                 } catch (\Exception $e) {
-                    Log::warning('Failed to queue payment email on bulk approval', [
+                    Log::warning('Failed to send payment email on bulk approval', [
                         'membership_id' => $membership->id,
                         'error' => $e->getMessage(),
                     ]);

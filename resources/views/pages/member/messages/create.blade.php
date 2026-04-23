@@ -40,10 +40,10 @@ new #[Title('New Message')] class extends Component {
 
         if (! empty($adminEmails)) {
             try {
-                Mail::to($adminEmails)->queue(new MemberMessageMail($message));
+                Mail::to($adminEmails)->send(new MemberMessageMail($message));
                 $message->update(['email_sent_at' => now()]);
             } catch (\Throwable $e) {
-                Log::warning('Failed to queue member enquiry email to admins', [
+                Log::warning('Failed to send member enquiry email to admins', [
                     'message_id' => $message->id,
                     'error' => $e->getMessage(),
                 ]);

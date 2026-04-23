@@ -134,7 +134,7 @@ new #[Title('Club Membership Application')] class extends Component {
             $bankAccount = SystemSetting::getBankAccount();
 
             Mail::to($membership->user->email)
-                ->queue(new PaymentInstructions(
+                ->send(new PaymentInstructions(
                     $membership->load('type', 'user', 'affiliatedClub'),
                     $bankAccount,
                     $membership->payment_reference

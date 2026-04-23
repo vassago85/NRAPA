@@ -302,7 +302,7 @@ class ShootingActivity extends Model
         }
 
         try {
-            \Illuminate\Support\Facades\Mail::to($user->email)->queue(
+            \Illuminate\Support\Facades\Mail::to($user->email)->send(
                 new \App\Mail\ActivityApproved($this)
             );
         } catch (\Exception $e) {
@@ -322,7 +322,7 @@ class ShootingActivity extends Model
 
         if ($user->email) {
             try {
-                \Illuminate\Support\Facades\Mail::to($user->email)->queue(
+                \Illuminate\Support\Facades\Mail::to($user->email)->send(
                     new \App\Mail\ActivityRejected($this, $reason)
                 );
             } catch (\Exception $e) {

@@ -126,7 +126,7 @@ new class extends Component {
         }
 
         try {
-            Mail::to($user->email)->queue(new ImportWelcome(
+            Mail::to($user->email)->send(new ImportWelcome(
                 $user,
                 $membership,
                 'Use the password provided during import (or reset via Forgot Password)',

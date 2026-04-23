@@ -216,7 +216,7 @@ new #[Title('Review Application - Admin')] class extends Component {
         try {
             if ($this->membership->user?->email) {
                 $bankAccount = \App\Models\SystemSetting::getBankAccount();
-                Mail::to($this->membership->user->email)->queue(
+                Mail::to($this->membership->user->email)->send(
                     new \App\Mail\PaymentInstructions(
                         membership: $this->membership,
                         bankAccount: $bankAccount,
@@ -480,7 +480,7 @@ new #[Title('Review Application - Admin')] class extends Component {
             $user = $this->membership->user;
             $cardUrl = route('card');
 
-            Mail::to($user->email)->queue(new MembershipApproved(
+            Mail::to($user->email)->send(new MembershipApproved(
                 membership: $this->membership,
                 cardUrl: $cardUrl,
             ));
@@ -505,7 +505,7 @@ new #[Title('Review Application - Admin')] class extends Component {
             $bankAccount = SystemSetting::getBankAccount();
             $user = $this->membership->user;
 
-            Mail::to($user->email)->queue(new PaymentInstructions(
+            Mail::to($user->email)->send(new PaymentInstructions(
                 $this->membership->load('type', 'user', 'affiliatedClub'),
                 $bankAccount,
                 $this->membership->payment_reference,
@@ -523,7 +523,7 @@ new #[Title('Review Application - Admin')] class extends Component {
         try {
             $user = $this->membership->user;
 
-            Mail::to($user->email)->queue(new PaymentReceived(
+            Mail::to($user->email)->send(new PaymentReceived(
                 membership: $this->membership->load('type', 'user'),
             ));
         } catch (\Exception $e) {
@@ -539,7 +539,7 @@ new #[Title('Review Application - Admin')] class extends Component {
         try {
             $user = $this->membership->user;
 
-            Mail::to($user->email)->queue(new MembershipRejected(
+            Mail::to($user->email)->send(new MembershipRejected(
                 membership: $this->membership->load('type', 'user'),
                 reason: $this->rejectionReason,
             ));

@@ -300,10 +300,10 @@ new #[Title('Member Details - Admin')] class extends Component {
 
         if ($this->user->email) {
             try {
-                Mail::to($this->user->email)->queue(new MemberMessageMail($message));
+                Mail::to($this->user->email)->send(new MemberMessageMail($message));
                 $message->update(['email_sent_at' => now()]);
             } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::warning('Failed to queue member message email', [
+                \Illuminate\Support\Facades\Log::warning('Failed to send member message email', [
                     'user_id' => $this->user->id,
                     'message_id' => $message->id,
                     'error' => $e->getMessage(),
@@ -342,7 +342,7 @@ new #[Title('Member Details - Admin')] class extends Component {
         }
 
         try {
-            Mail::to($this->user->email)->queue(new ImportWelcome(
+            Mail::to($this->user->email)->send(new ImportWelcome(
                 $this->user,
                 $membership,
                 'Use the password provided during import',
@@ -357,9 +357,9 @@ new #[Title('Member Details - Admin')] class extends Component {
                 );
             } catch (\Exception $e) {}
 
-            session()->flash('success', "Welcome email queued for {$this->user->name} ({$this->user->email}).");
+            session()->flash('success', "Welcome email sent to {$this->user->name} ({$this->user->email}).");
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::warning('Failed to queue welcome email resend', [
+            \Illuminate\Support\Facades\Log::warning('Failed to send welcome email resend', [
                 'user_id' => $this->user->id,
                 'error' => $e->getMessage(),
             ]);
@@ -976,7 +976,7 @@ new #[Title('Member Details - Admin')] class extends Component {
         );
 
         try {
-            Mail::to($membership->user->email)->queue(
+            Mail::to($membership->user->email)->send(
                 new \App\Mail\MembershipApprovalRevoked(
                     membership: $membership->load('type', 'user'),
                     message: $this->revokeApprovalMessage,

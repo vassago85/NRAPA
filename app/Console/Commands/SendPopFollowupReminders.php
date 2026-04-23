@@ -41,7 +41,7 @@ class SendPopFollowupReminders extends Command
             }
 
             try {
-                Mail::to($membership->user->email)->queue(
+                Mail::to($membership->user->email)->send(
                     new PopFollowupReminder($membership)
                 );
 

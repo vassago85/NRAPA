@@ -334,7 +334,7 @@ class MemberDocument extends Model
         }
 
         try {
-            Mail::to($user->email)->queue(new DocumentVerified(
+            Mail::to($user->email)->send(new DocumentVerified(
                 document: $this->load('documentType', 'user'),
             ));
         } catch (\Exception $e) {
@@ -358,7 +358,7 @@ class MemberDocument extends Model
 
         // Send rejection email
         try {
-            Mail::to($user->email)->queue(new DocumentRejected(
+            Mail::to($user->email)->send(new DocumentRejected(
                 document: $this->load('documentType', 'user'),
                 reason: $reason,
             ));

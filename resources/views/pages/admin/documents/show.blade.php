@@ -123,7 +123,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         }
 
         try {
-            Mail::to($user->email)->queue(new DocumentCorrected(
+            Mail::to($user->email)->send(new DocumentCorrected(
                 $this->document,
                 $changes,
                 auth()->user()->name,

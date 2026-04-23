@@ -252,7 +252,7 @@ new #[Title('Affiliated Clubs - Admin')] class extends Component {
 
         try {
             Mail::to($this->inviteEmail)
-                ->queue(new AffiliatedClubInviteMail($invite, $this->managingClub, $inviteUrl));
+                ->send(new AffiliatedClubInviteMail($invite, $this->managingClub, $inviteUrl));
 
             session()->flash('success', "Invitation sent to {$this->inviteEmail} for {$this->managingClub->name}.");
         } catch (\Exception $e) {

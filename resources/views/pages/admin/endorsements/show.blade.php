@@ -234,7 +234,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             // Auto-issue failed — send the "approved" email so the member still knows
             $this->request->refresh();
             try {
-                Mail::to($this->request->user->email)->queue(new \App\Mail\EndorsementApproved(
+                Mail::to($this->request->user->email)->send(new \App\Mail\EndorsementApproved(
                     endorsement: $this->request->load('firearm', 'user'),
                 ));
             } catch (\Exception $mailEx) {

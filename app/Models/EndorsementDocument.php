@@ -351,7 +351,7 @@ class EndorsementDocument extends Model
         }
 
         try {
-            \Illuminate\Support\Facades\Mail::to($user->email)->queue(
+            \Illuminate\Support\Facades\Mail::to($user->email)->send(
                 new \App\Mail\EndorsementDocumentVerified($this)
             );
         } catch (\Exception $e) {
@@ -370,7 +370,7 @@ class EndorsementDocument extends Model
         }
 
         try {
-            \Illuminate\Support\Facades\Mail::to($user->email)->queue(
+            \Illuminate\Support\Facades\Mail::to($user->email)->send(
                 new \App\Mail\EndorsementDocumentRejected($this, $reason)
             );
         } catch (\Exception $e) {

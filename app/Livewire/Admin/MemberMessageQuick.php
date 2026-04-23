@@ -79,10 +79,10 @@ class MemberMessageQuick extends Component
 
         if ($user->email) {
             try {
-                Mail::to($user->email)->queue(new MemberMessageMail($message));
+                Mail::to($user->email)->send(new MemberMessageMail($message));
                 $message->update(['email_sent_at' => now()]);
             } catch (\Throwable $e) {
-                Log::warning('Failed to queue quick member message email', [
+                Log::warning('Failed to send quick member message email', [
                     'user_id' => $user->id,
                     'message_id' => $message->id,
                     'error' => $e->getMessage(),

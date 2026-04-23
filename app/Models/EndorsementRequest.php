@@ -884,7 +884,7 @@ class EndorsementRequest extends Model
         }
 
         try {
-            Mail::to($user->email)->queue(new EndorsementApproved(
+            Mail::to($user->email)->send(new EndorsementApproved(
                 endorsement: $this->load('firearm', 'user'),
             ));
         } catch (\Exception $e) {
@@ -906,7 +906,7 @@ class EndorsementRequest extends Model
         }
 
         try {
-            Mail::to($user->email)->queue(new EndorsementRejected(
+            Mail::to($user->email)->send(new EndorsementRejected(
                 endorsement: $this->load('firearm', 'user'),
                 reason: $reason,
             ));

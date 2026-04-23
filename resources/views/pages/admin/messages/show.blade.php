@@ -62,10 +62,10 @@ new #[Title('Conversation')] class extends Component {
 
         if ($member->email) {
             try {
-                Mail::to($member->email)->queue(new MemberMessageMail($reply));
+                Mail::to($member->email)->send(new MemberMessageMail($reply));
                 $reply->update(['email_sent_at' => now()]);
             } catch (\Throwable $e) {
-                Log::warning('Failed to queue admin reply to member', [
+                Log::warning('Failed to send admin reply to member', [
                     'reply_id' => $reply->id,
                     'error' => $e->getMessage(),
                 ]);

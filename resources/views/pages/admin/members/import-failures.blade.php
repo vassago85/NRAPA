@@ -244,14 +244,14 @@ new #[Title('Import Failures - Admin')] class extends Component {
         }
 
         try {
-            Mail::to($user->email)->queue(new ImportWelcome(
+            Mail::to($user->email)->send(new ImportWelcome(
                 $user,
                 $membership,
                 'Use the password provided during import',
             ));
             return true;
         } catch (\Throwable $e) {
-            Log::warning('Failed to queue welcome email from import-failures resolution', [
+            Log::warning('Failed to send welcome email from import-failures resolution', [
                 'user_id' => $user->id,
                 'error'   => $e->getMessage(),
             ]);
