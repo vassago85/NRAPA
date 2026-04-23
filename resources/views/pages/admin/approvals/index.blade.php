@@ -816,14 +816,14 @@ new #[Title('All Approvals - Admin')] class extends Component {
                     </button>
                     <button
                         wire:click="sendPaymentReminder({{ $item['membership_id'] }})"
-                        wire:confirm="Send a payment reminder email to {{ $item['user']->email }}?"
-                        @if($item['pop_reminder_sent_at']) disabled title="Reminder already sent" @endif
-                        class="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:bg-zinc-800 dark:text-amber-400 dark:hover:bg-amber-950/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        wire:confirm="@if($item['pop_reminder_sent_at'])Resend payment reminder to {{ $item['user']->email }}? (last sent {{ \Carbon\Carbon::parse($item['pop_reminder_sent_at'])->diffForHumans() }})@else Send a payment reminder email to {{ $item['user']->email }}? @endif"
+                        @if($item['pop_reminder_sent_at']) title="Last reminder: {{ \Carbon\Carbon::parse($item['pop_reminder_sent_at'])->diffForHumans() }} — click to resend" @endif
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:bg-zinc-800 dark:text-amber-400 dark:hover:bg-amber-950/20 transition-colors">
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                         </svg>
                         @if($item['pop_reminder_sent_at'])
-                            Reminded
+                            Resend
                         @else
                             Remind
                         @endif
