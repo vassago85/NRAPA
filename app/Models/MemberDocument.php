@@ -101,7 +101,7 @@ class MemberDocument extends Model
     /**
      * Parse South African ID number to extract date of birth.
      * Format: YYMMDD SSSS C A Z
-     * Example: 8507026265088 = 02 July 1985
+     * Example: 9001010000089 = 01 January 1990
      */
     public static function parseSaIdNumber(string $idNumber): ?array
     {

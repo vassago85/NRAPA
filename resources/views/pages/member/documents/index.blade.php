@@ -462,7 +462,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
 
                                 <div>
                                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">ID Number <span class="text-red-500">*</span></label>
-                                    <input type="text" wire:model.live.debounce.500ms="idNumber" placeholder="e.g. 8507026265088" maxlength="13"
+                                    <input type="text" wire:model.live.debounce.500ms="idNumber" placeholder="e.g. 9001010000089" maxlength="13"
                                         class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent font-mono tracking-wider">
                                     <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">13-digit South African ID number</p>
                                     @error('idNumber') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
