@@ -191,10 +191,24 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * Get the next sequential member number.
+     *
+     * Considers both currently-assigned numbers on `users` and any numbers
+     * retired via `retired_member_numbers` (from previous deletions / gaps)
+     * so deleted member numbers are never reused.
      */
     public static function nextMemberNumber(): int
     {
-        return ((int) static::max('member_number')) + 1;
+        $maxAssigned = (int) static::max('member_number');
+
+        $maxRetired = 0;
+        try {
+            $maxRetired = (int) \App\Models\RetiredMemberNumber::max('member_number');
+        } catch (\Throwable $e) {
+            // Table may not exist yet during fresh install before migrations run.
+            $maxRetired = 0;
+        }
+
+        return max($maxAssigned, $maxRetired) + 1;
     }
 
     // ===== Relationships =====
@@ -324,6 +338,26 @@ class User extends Authenticatable implements MustVerifyEmail
         // Hard-delete all related records so nothing orphaned remains.
         static::deleting(function (User $user) {
             $disk = config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
+
+            // Retire this member number FIRST so it can never be reissued,
+            // even if a later cleanup step below fails and aborts the delete.
+            try {
+                if (! empty($user->member_number)) {
+                    \App\Models\RetiredMemberNumber::retire(
+                        memberNumber: (int) $user->member_number,
+                        userId: $user->id,
+                        name: $user->name,
+                        email: $user->email,
+                        reason: 'user deleted',
+                    );
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Failed to retire member number on user delete', [
+                    'user_id' => $user->id,
+                    'member_number' => $user->member_number,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             try {
                 $endorsementIds = \App\Models\EndorsementRequest::withTrashed()

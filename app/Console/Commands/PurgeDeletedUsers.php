@@ -49,6 +49,15 @@ class PurgeDeletedUsers extends Command
 
         foreach ($deletedUsers as $user) {
             try {
+                if (! empty($user->member_number)) {
+                    \App\Models\RetiredMemberNumber::retire(
+                        memberNumber: (int) $user->member_number,
+                        userId: $user->id,
+                        name: $user->name,
+                        email: $user->email,
+                        reason: 'legacy soft-deleted user purge',
+                    );
+                }
                 DB::table('memberships')->where('user_id', $user->id)->delete();
                 DB::table('certificates')->where('user_id', $user->id)->delete();
                 DB::table('member_documents')->where('user_id', $user->id)->delete();
