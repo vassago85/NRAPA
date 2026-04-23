@@ -217,18 +217,29 @@ class ExcelMemberImporter
 
             DB::commit();
 
-            // Queue welcome emails after successful commit
+            // Send welcome emails synchronously after successful commit.
+            //
+            // Historically these were dispatched via ->queue(), which caused
+            // two problems: queued SendQueuedMailable jobs sometimes failed
+            // silently on the worker (template render errors, transient SMTP
+            // issues) and never landed in the email_logs table because the
+            // MessageSent listener only fires in whatever context ran the
+            // send. Switching to ->send() matches the precedent set for
+            // reminder/verify/reset emails, surfaces SMTP failures in the
+            // importer's own try/catch so the admin actually sees them, and
+            // guarantees a row is written to email_logs for every send.
             foreach ($importedMembers as $member) {
                 try {
-                    Mail::to($member['send_to_email'])->queue(new ImportWelcome(
+                    Mail::to($member['send_to_email'])->send(new ImportWelcome(
                         $member['user'],
                         $member['membership'],
                         $defaultPassword,
                     ));
                     $emailsSent++;
                 } catch (Exception $e) {
-                    Log::warning('Failed to queue import welcome email', [
+                    Log::warning('Failed to send import welcome email', [
                         'user_id' => $member['user']->id,
+                        'to' => $member['send_to_email'],
                         'error' => $e->getMessage(),
                     ]);
                     \App\Listeners\LogFailedEmail::logFailure(
@@ -238,6 +249,7 @@ class ExcelMemberImporter
                         $e->getMessage(),
                         $member['user']->id,
                     );
+                    $errors[] = "Welcome email to {$member['send_to_email']}: ".$e->getMessage();
                 }
             }
 

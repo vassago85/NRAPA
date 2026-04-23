@@ -312,14 +312,14 @@ new #[Title('Members - Admin')] class extends Component {
         }
 
         try {
-            Mail::to($user->email)->queue(new ImportWelcome(
+            Mail::to($user->email)->send(new ImportWelcome(
                 $user,
                 $membership,
                 'Use the password provided during import',
             ));
-            session()->flash('success', "Welcome email queued for {$user->name} ({$user->email}).");
+            session()->flash('success', "Welcome email sent to {$user->name} ({$user->email}).");
         } catch (\Exception $e) {
-            Log::warning('Failed to queue welcome email resend', [
+            Log::warning('Failed to send welcome email resend', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
             ]);
