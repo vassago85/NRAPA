@@ -214,14 +214,12 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         ]);
 
         // Pre-populate users.id_number from ID document metadata so it is
-        // available as a fallback on certificates even before verification.
+        // available as a fallback elsewhere. Note: the membership certificate
+        // is intentionally NOT auto-issued here — it is issued once an
+        // administrator has verified the ID document, so typos in the
+        // member-supplied metadata cannot end up on the certificate.
         if (in_array($documentType->slug, MemberDocument::ID_DOCUMENT_SLUGS) && !empty($this->idNumber)) {
             $user->update(['id_number' => $this->idNumber]);
-
-            // Auto-issue membership certificate now that we have the member's
-            // full name and ID number from their ID document upload.
-            $certService = app(\App\Services\CertificateIssueService::class);
-            $certificate = $certService->tryAutoIssueMembershipCertificate($user);
         }
 
         $this->reset([
@@ -239,11 +237,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             );
         } catch (\Exception $e) {}
 
-        if (isset($certificate) && $certificate) {
-            session()->flash('success', 'Document uploaded successfully. Your Membership Certificate has been automatically issued!');
-        } else {
-            session()->flash('success', 'Document uploaded successfully. It will be reviewed by an administrator.');
-        }
+        session()->flash('success', 'Document uploaded successfully. It will be reviewed by an administrator, and your membership certificate will be issued once your ID has been verified.');
     }
 
     public function viewDocument(MemberDocument $document): void

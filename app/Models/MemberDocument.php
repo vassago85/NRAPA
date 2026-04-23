@@ -266,6 +266,23 @@ class MemberDocument extends Model
 
         // Send verification email to member
         $this->notifyVerification();
+
+        // If this is an ID document, attempt to auto-issue the membership
+        // certificate now that the member's details have been verified. We
+        // deliberately wait until verification so typos in member-supplied
+        // metadata cannot end up on the certificate.
+        if ($this->requiresIdMetadata() && $this->user) {
+            try {
+                app(\App\Services\CertificateIssueService::class)
+                    ->tryAutoIssueMembershipCertificate($this->user);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Auto-issue membership certificate on ID verification failed', [
+                    'user_id' => $this->user->id,
+                    'document_id' => $this->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     /**

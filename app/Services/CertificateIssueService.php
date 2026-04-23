@@ -674,12 +674,14 @@ class CertificateIssueService
     {
         $missing = [];
 
-        // Check for ID document (any status except rejected/archived = uploaded)
+        // Require a verified ID document. A pending (unverified) ID may
+        // contain typos in the metadata (name, ID number, DOB) which would
+        // then be written onto the membership certificate.
         $hasId = \App\Models\MemberDocument::where('user_id', $user->id)
             ->whereHas('documentType', function ($q) {
                 $q->whereIn('slug', \App\Models\MemberDocument::ID_DOCUMENT_SLUGS);
             })
-            ->whereIn('status', ['pending', 'verified'])
+            ->where('status', 'verified')
             ->exists();
 
         if (! $hasId) {
@@ -705,9 +707,12 @@ class CertificateIssueService
     }
 
     /**
-     * Attempt to auto-issue a membership certificate after an ID document is uploaded.
-     * Only issues if the user has an active membership and no existing valid certificate.
-     * Silently skips if conditions aren't met (no exceptions thrown).
+     * Attempt to auto-issue a membership certificate after an ID document is
+     * VERIFIED by an admin. Issuing at verification (rather than at upload)
+     * prevents typos in the member-supplied ID metadata from ending up on
+     * the certificate.
+     * Only issues if the user has an active membership and no existing valid
+     * certificate. Silently skips if conditions aren't met.
      */
     public function tryAutoIssueMembershipCertificate(User $user): ?Certificate
     {
