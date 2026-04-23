@@ -431,6 +431,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
             try {
                 $bankAccount = SystemSetting::getBankAccount();
                 Mail::to($membership->user->email)->send(new PaymentInstructions($membership->load('type', 'user', 'affiliatedClub'), $bankAccount, $membership->payment_reference));
+                $membership->update(['payment_email_sent_at' => now()]);
             } catch (\Exception $e) {
                 Log::warning('Failed to send payment email on inline approval', ['membership_id' => $membership->id, 'error' => $e->getMessage()]);
             }
@@ -523,6 +524,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
                         $bankAccount,
                         $membership->payment_reference,
                     ));
+                    $membership->update(['payment_email_sent_at' => now()]);
                 } catch (\Exception $e) {
                     Log::warning('Failed to send payment email on bulk approval', [
                         'membership_id' => $membership->id,

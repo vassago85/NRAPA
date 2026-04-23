@@ -510,6 +510,8 @@ new #[Title('Review Application - Admin')] class extends Component {
                 $bankAccount,
                 $this->membership->payment_reference,
             ));
+
+            $this->membership->update(['payment_email_sent_at' => now()]);
         } catch (\Exception $e) {
             Log::warning('Failed to send payment instructions on approval', [
                 'membership_id' => $this->membership->id,

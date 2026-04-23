@@ -108,8 +108,10 @@ new #[Title('Club Membership Application')] class extends Component {
         // Mark invite as accepted
         $this->invite->markAccepted();
 
-        // Send payment instructions email
-        $this->sendPaymentInstructionsEmail($membership);
+        // Payment instructions are intentionally NOT sent here. They are
+        // sent once an administrator approves the application so the
+        // member isn't asked to pay for something that may still be
+        // rejected — and so we don't duplicate the approval-time email.
 
         // Notify admins of new application
         try {
@@ -123,7 +125,7 @@ new #[Title('Club Membership Application')] class extends Component {
             // Non-critical
         }
 
-        session()->flash('success', 'Your club membership application has been submitted! Payment instructions have been sent to your email.');
+        session()->flash('success', 'Your club membership application has been submitted! Payment instructions will be emailed to you once an administrator has reviewed and approved your application.');
 
         $this->redirect(route('membership.show', $membership), navigate: true);
     }
