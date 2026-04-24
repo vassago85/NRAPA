@@ -21,8 +21,10 @@ use Illuminate\Support\Facades\Password;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 new #[Title('Member Details - Admin')] class extends Component {
+    use WithFileUploads;
     public User $user;
     public bool $showDeleteModal = false;
     public bool $showRequestDeleteModal = false;
@@ -53,6 +55,16 @@ new #[Title('Member Details - Admin')] class extends Component {
     public string $messageSubject = '';
     public string $messageBody = '';
 
+    // Upload document on behalf of member
+    public bool $showUploadDocumentModal = false;
+    public string $uploadDocumentTypeId = '';
+    public $uploadDocumentFile = null;
+    public string $uploadIdSurname = '';
+    public string $uploadIdNames = '';
+    public string $uploadIdSex = '';
+    public string $uploadIdNumber = '';
+    public string $uploadIdDateOfBirth = '';
+
     // Edit profile properties
     public bool $showEditProfileModal = false;
     public string $editName = '';
@@ -82,6 +94,8 @@ new #[Title('Member Details - Admin')] class extends Component {
     public string $addActivityTypeId = '';
     public string $addActivityDate = '';
     public string $addActivityDescription = '';
+    public $addActivityProofDocument = null;
+    public $addActivityAdditionalDocument = null;
 
     // Edit activity properties
     public bool $showEditActivityModal = false;
@@ -182,6 +196,12 @@ new #[Title('Member Details - Admin')] class extends Component {
             'is_compliant_next_year' => $compliance['is_compliant_next_year'],
             'explainer' => $compliance['explainer'],
         ];
+    }
+
+    #[Computed]
+    public function documentTypes()
+    {
+        return \App\Models\DocumentType::active()->ordered()->get();
     }
 
     #[Computed]
@@ -1054,6 +1074,8 @@ new #[Title('Member Details - Admin')] class extends Component {
         $this->addActivityTypeId = '';
         $this->addActivityDate = now()->format('Y-m-d');
         $this->addActivityDescription = '';
+        $this->addActivityProofDocument = null;
+        $this->addActivityAdditionalDocument = null;
         $this->showAddActivityModal = true;
     }
 
@@ -1064,13 +1086,15 @@ new #[Title('Member Details - Admin')] class extends Component {
             'addActivityTypeId' => 'nullable|exists:activity_types,id',
             'addActivityDate' => 'required|date',
             'addActivityDescription' => 'required|string|max:500',
+            'addActivityProofDocument' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
+            'addActivityAdditionalDocument' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
         ]);
 
         $activityType = $this->addActivityTypeId
             ? ActivityType::find($this->addActivityTypeId)
             : ActivityType::active()->forTrack($this->addActivityTrack)->first();
 
-        ShootingActivity::create([
+        $activity = ShootingActivity::create([
             'uuid' => \Illuminate\Support\Str::uuid(),
             'user_id' => $this->user->id,
             'activity_type_id' => $activityType?->id,
@@ -1082,9 +1106,194 @@ new #[Title('Member Details - Admin')] class extends Component {
             'verified_by' => auth()->id(),
         ]);
 
+        if ($this->addActivityProofDocument || $this->addActivityAdditionalDocument) {
+            $disk = config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
+
+            $evidenceDocumentType = \App\Models\DocumentType::firstOrCreate(
+                ['slug' => 'activity-evidence'],
+                [
+                    'name' => 'Activity Evidence',
+                    'description' => 'Proof of activity participation (photos, certificates, etc.)',
+                    'is_active' => true,
+                    'expiry_months' => null,
+                    'archive_months' => 12,
+                    'sort_order' => 100,
+                ]
+            );
+
+            $evidenceDocumentId = null;
+            if ($this->addActivityProofDocument) {
+                $filename = \Illuminate\Support\Str::random(40) . '.' . $this->addActivityProofDocument->getClientOriginalExtension();
+                $directory = "documents/{$this->user->uuid}/activity-evidence";
+
+                $path = $this->addActivityProofDocument->storeAs($directory, $filename, [
+                    'disk' => $disk,
+                    'visibility' => 'private',
+                    'options' => [
+                        'ContentDisposition' => 'inline',
+                        'ContentType' => $this->addActivityProofDocument->getMimeType(),
+                    ],
+                ]);
+
+                $evidenceDocument = \App\Models\MemberDocument::create([
+                    'user_id' => $this->user->id,
+                    'document_type_id' => $evidenceDocumentType->id,
+                    'file_path' => $path,
+                    'original_filename' => $this->addActivityProofDocument->getClientOriginalName(),
+                    'mime_type' => $this->addActivityProofDocument->getMimeType(),
+                    'file_size' => $this->addActivityProofDocument->getSize(),
+                    'status' => 'verified',
+                    'uploaded_at' => now(),
+                    'verified_at' => now(),
+                    'verified_by' => auth()->id(),
+                    'metadata' => [
+                        'activity_id' => $activity->id,
+                        'activity_date' => $activity->activity_date->format('Y-m-d'),
+                        'activity_type' => $activityType?->name,
+                        'uploaded_by_admin' => auth()->user()->name,
+                    ],
+                ]);
+
+                $evidenceDocumentId = $evidenceDocument->id;
+            }
+
+            $additionalDocumentId = null;
+            if ($this->addActivityAdditionalDocument) {
+                $filename = \Illuminate\Support\Str::random(40) . '.' . $this->addActivityAdditionalDocument->getClientOriginalExtension();
+                $directory = "documents/{$this->user->uuid}/activity-evidence";
+
+                $path = $this->addActivityAdditionalDocument->storeAs($directory, $filename, [
+                    'disk' => $disk,
+                    'visibility' => 'private',
+                    'options' => [
+                        'ContentDisposition' => 'inline',
+                        'ContentType' => $this->addActivityAdditionalDocument->getMimeType(),
+                    ],
+                ]);
+
+                $additionalDoc = \App\Models\MemberDocument::create([
+                    'user_id' => $this->user->id,
+                    'document_type_id' => $evidenceDocumentType->id,
+                    'file_path' => $path,
+                    'original_filename' => $this->addActivityAdditionalDocument->getClientOriginalName(),
+                    'mime_type' => $this->addActivityAdditionalDocument->getMimeType(),
+                    'file_size' => $this->addActivityAdditionalDocument->getSize(),
+                    'status' => 'verified',
+                    'uploaded_at' => now(),
+                    'verified_at' => now(),
+                    'verified_by' => auth()->id(),
+                    'metadata' => [
+                        'activity_id' => $activity->id,
+                        'activity_date' => $activity->activity_date->format('Y-m-d'),
+                        'activity_type' => $activityType?->name,
+                        'is_additional' => true,
+                        'uploaded_by_admin' => auth()->user()->name,
+                    ],
+                ]);
+
+                $additionalDocumentId = $additionalDoc->id;
+            }
+
+            $activity->update(array_filter([
+                'evidence_document_id' => $evidenceDocumentId,
+                'additional_document_id' => $additionalDocumentId,
+            ]));
+        }
+
         unset($this->memberActivities, $this->activitySummary);
+        $this->addActivityProofDocument = null;
+        $this->addActivityAdditionalDocument = null;
         $this->showAddActivityModal = false;
         session()->flash('success', 'Activity added and approved.');
+    }
+
+    public function openUploadDocumentModal(): void
+    {
+        $this->uploadDocumentTypeId = '';
+        $this->uploadDocumentFile = null;
+        $this->uploadIdSurname = '';
+        $this->uploadIdNames = '';
+        $this->uploadIdSex = '';
+        $this->uploadIdNumber = '';
+        $this->uploadIdDateOfBirth = '';
+        $this->showUploadDocumentModal = true;
+    }
+
+    public function uploadDocumentIsIdType(): bool
+    {
+        if (!$this->uploadDocumentTypeId) return false;
+        $docType = \App\Models\DocumentType::find($this->uploadDocumentTypeId);
+        return $docType && in_array($docType->slug, \App\Models\MemberDocument::ID_DOCUMENT_SLUGS);
+    }
+
+    public function saveUploadedDocument(): void
+    {
+        $rules = [
+            'uploadDocumentTypeId' => 'required|exists:document_types,id',
+            'uploadDocumentFile' => 'required|file|mimes:jpg,jpeg,png,pdf|max:10240',
+        ];
+
+        if ($this->uploadDocumentIsIdType()) {
+            $rules['uploadIdSurname'] = 'required|string|max:255';
+            $rules['uploadIdNames'] = 'required|string|max:255';
+            $rules['uploadIdNumber'] = 'required|string|max:20';
+        }
+
+        $this->validate($rules);
+
+        $disk = config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
+        $documentType = \App\Models\DocumentType::findOrFail($this->uploadDocumentTypeId);
+
+        $filename = \Illuminate\Support\Str::random(40) . '.' . $this->uploadDocumentFile->getClientOriginalExtension();
+        $directory = "documents/{$this->user->uuid}/{$documentType->slug}";
+
+        $path = $this->uploadDocumentFile->storeAs($directory, $filename, [
+            'disk' => $disk,
+            'visibility' => 'private',
+            'options' => [
+                'ContentDisposition' => 'inline',
+                'ContentType' => $this->uploadDocumentFile->getMimeType(),
+            ],
+        ]);
+
+        $metadata = null;
+        if (in_array($documentType->slug, \App\Models\MemberDocument::ID_DOCUMENT_SLUGS)) {
+            $metadata = [
+                'surname' => $this->uploadIdSurname,
+                'names' => $this->uploadIdNames,
+                'sex' => $this->uploadIdSex,
+                'identity_number' => $this->uploadIdNumber,
+                'date_of_birth' => $this->uploadIdDateOfBirth,
+                'uploaded_by_admin' => auth()->user()->name,
+            ];
+        }
+
+        $expiresAt = $documentType->expires()
+            ? $documentType->calculateExpiryDate(now())
+            : null;
+
+        $document = \App\Models\MemberDocument::create([
+            'user_id' => $this->user->id,
+            'document_type_id' => $documentType->id,
+            'file_path' => $path,
+            'original_filename' => $this->uploadDocumentFile->getClientOriginalName(),
+            'mime_type' => $this->uploadDocumentFile->getMimeType(),
+            'file_size' => $this->uploadDocumentFile->getSize(),
+            'metadata' => $metadata,
+            'status' => 'pending',
+            'uploaded_at' => now(),
+            'expires_at' => $expiresAt,
+        ]);
+
+        $document->load(['documentType', 'user']);
+        $document->verify(auth()->user());
+
+        $this->user->load(['documents.documentType', 'documents.verifier']);
+        unset($this->memberDocuments);
+
+        $this->uploadDocumentFile = null;
+        $this->showUploadDocumentModal = false;
+        session()->flash('success', "{$documentType->name} uploaded and verified for {$this->user->name}.");
     }
 
     public function openEditActivityModal(int $activityId): void
@@ -1711,8 +1920,12 @@ new #[Title('Member Details - Admin')] class extends Component {
 
     {{-- Uploaded Documents --}}
     <div id="documents" class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 scroll-mt-24">
-        <div class="border-b border-zinc-200 px-5 py-3 dark:border-zinc-800">
+        <div class="flex items-center justify-between border-b border-zinc-200 px-5 py-3 dark:border-zinc-800">
             <h2 class="text-sm font-semibold text-zinc-900 dark:text-white">Uploaded Documents</h2>
+            <button wire:click="openUploadDocumentModal" class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 transition-colors">
+                <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                Upload Document
+            </button>
         </div>
 
         @if($this->memberDocuments->count() > 0)
@@ -2820,12 +3033,126 @@ new #[Title('Member Details - Admin')] class extends Component {
                         <textarea wire:model="addActivityDescription" rows="3" placeholder="e.g. Letter received — member was overseas, Medical certificate provided..." class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white"></textarea>
                         @error('addActivityDescription') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Proof Document</label>
+                        <input type="file" wire:model="addActivityProofDocument" accept=".jpg,.jpeg,.png,.pdf"
+                            class="w-full text-sm text-zinc-600 dark:text-zinc-400 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-900/30 dark:file:text-emerald-300">
+                        <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">JPG, PNG or PDF up to 10MB. Auto-verified on upload.</p>
+                        @error('addActivityProofDocument') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        <div wire:loading wire:target="addActivityProofDocument" class="mt-1 flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+                            <svg class="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                            Uploading...
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Additional Document <span class="text-zinc-400 font-normal">(optional)</span></label>
+                        <input type="file" wire:model="addActivityAdditionalDocument" accept=".jpg,.jpeg,.png,.pdf"
+                            class="w-full text-sm text-zinc-600 dark:text-zinc-400 file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-zinc-700 hover:file:bg-zinc-200 dark:file:bg-zinc-700 dark:file:text-zinc-300">
+                        @error('addActivityAdditionalDocument') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        <div wire:loading wire:target="addActivityAdditionalDocument" class="mt-1 flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+                            <svg class="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                            Uploading...
+                        </div>
+                    </div>
                     <div class="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
-                        <p class="text-xs text-blue-700 dark:text-blue-300">This activity will be created as <strong>approved</strong> and credited to the member's current activity year.</p>
+                        <p class="text-xs text-blue-700 dark:text-blue-300">This activity will be created as <strong>approved</strong> and credited to the member's activity year. Documents are auto-verified.</p>
                     </div>
                     <div class="flex justify-end gap-3 pt-2 border-t border-zinc-200 dark:border-zinc-800">
                         <button type="button" wire:click="$set('showAddActivityModal', false)" class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 transition-colors">Cancel</button>
                         <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">Add Activity</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Upload Document Modal --}}
+    @if($showUploadDocumentModal)
+    <div class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div wire:click="$set('showUploadDocumentModal', false)" class="fixed inset-0 bg-black/50"></div>
+            <div class="relative w-full max-w-lg rounded-xl bg-white shadow-xl dark:bg-zinc-800">
+                <div class="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
+                    <div>
+                        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Upload Document</h3>
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400">Upload on behalf of {{ $this->user->name }}</p>
+                    </div>
+                    <button wire:click="$set('showUploadDocumentModal', false)" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <form wire:submit="saveUploadedDocument" class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Document Type <span class="text-red-500">*</span></label>
+                        <select wire:model.live="uploadDocumentTypeId" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                            <option value="">Select document type...</option>
+                            @foreach($this->documentTypes as $docType)
+                            <option value="{{ $docType->id }}">{{ $docType->name }}</option>
+                            @endforeach
+                        </select>
+                        @error('uploadDocumentTypeId') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">File <span class="text-red-500">*</span></label>
+                        <input type="file" wire:model="uploadDocumentFile" accept=".jpg,.jpeg,.png,.pdf"
+                            class="w-full text-sm text-zinc-600 dark:text-zinc-400 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-900/30 dark:file:text-emerald-300">
+                        <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">JPG, PNG or PDF up to 10MB</p>
+                        @error('uploadDocumentFile') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        <div wire:loading wire:target="uploadDocumentFile" class="mt-1 flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+                            <svg class="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                            Uploading...
+                        </div>
+                    </div>
+
+                    @if($this->uploadDocumentIsIdType())
+                    <div class="rounded-lg border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-800 dark:bg-indigo-900/20">
+                        <h4 class="text-sm font-semibold text-indigo-800 dark:text-indigo-200 mb-3">ID Document Details</h4>
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <div>
+                                <label class="block text-xs font-medium text-indigo-700 dark:text-indigo-300 mb-1">Surname <span class="text-red-500">*</span></label>
+                                <input type="text" wire:model="uploadIdSurname" class="w-full rounded-lg border border-indigo-300 bg-white px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-indigo-600 dark:bg-zinc-700 dark:text-white">
+                                @error('uploadIdSurname') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-indigo-700 dark:text-indigo-300 mb-1">First Names <span class="text-red-500">*</span></label>
+                                <input type="text" wire:model="uploadIdNames" class="w-full rounded-lg border border-indigo-300 bg-white px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-indigo-600 dark:bg-zinc-700 dark:text-white">
+                                @error('uploadIdNames') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-indigo-700 dark:text-indigo-300 mb-1">ID Number <span class="text-red-500">*</span></label>
+                                <input type="text" wire:model="uploadIdNumber" maxlength="13" class="w-full rounded-lg border border-indigo-300 bg-white px-3 py-1.5 text-sm font-mono focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-indigo-600 dark:bg-zinc-700 dark:text-white">
+                                @error('uploadIdNumber') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-indigo-700 dark:text-indigo-300 mb-1">Sex</label>
+                                <select wire:model="uploadIdSex" class="w-full rounded-lg border border-indigo-300 bg-white px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-indigo-600 dark:bg-zinc-700 dark:text-white">
+                                    <option value="">—</option>
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                </select>
+                            </div>
+                            <div class="sm:col-span-2">
+                                <label class="block text-xs font-medium text-indigo-700 dark:text-indigo-300 mb-1">Date of Birth</label>
+                                <input type="date" wire:model="uploadIdDateOfBirth" class="w-full rounded-lg border border-indigo-300 bg-white px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-indigo-600 dark:bg-zinc-700 dark:text-white">
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
+                    <div class="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
+                        <p class="text-xs text-blue-700 dark:text-blue-300">This document will be <strong>auto-verified</strong>. For ID documents, the member's ID number will be synced and their membership certificate will be auto-issued if eligible.</p>
+                    </div>
+                    <div class="flex justify-end gap-3 pt-2 border-t border-zinc-200 dark:border-zinc-800">
+                        <button type="button" wire:click="$set('showUploadDocumentModal', false)" class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 transition-colors">Cancel</button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">
+                            <span wire:loading.remove wire:target="saveUploadedDocument">Upload & Verify</span>
+                            <span wire:loading wire:target="saveUploadedDocument" class="flex items-center gap-2">
+                                <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                Saving...
+                            </span>
+                        </button>
                     </div>
                 </form>
             </div>
