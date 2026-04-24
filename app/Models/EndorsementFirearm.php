@@ -315,32 +315,44 @@ class EndorsementFirearm extends Model
     }
 
     /**
+     * Check if a serial/make value is actually meaningful (not null, empty, or placeholder text).
+     */
+    protected static function isRealValue(?string $value): bool
+    {
+        if (empty($value)) {
+            return false;
+        }
+
+        return ! in_array(strtolower(trim($value)), ['none', 'n/a', 'na', '-', 'null', 'unknown']);
+    }
+
+    /**
      * Get all serial numbers as array.
      */
     public function getSerialNumbersAttribute(): array
     {
         $serials = [];
 
-        if (! empty($this->barrel_serial_number)) {
+        if (static::isRealValue($this->barrel_serial_number)) {
             $serials['barrel'] = [
                 'serial' => $this->barrel_serial_number,
-                'make' => $this->barrel_make,
+                'make' => static::isRealValue($this->barrel_make) ? $this->barrel_make : null,
             ];
         }
-        if (! empty($this->frame_serial_number)) {
+        if (static::isRealValue($this->frame_serial_number)) {
             $serials['frame'] = [
                 'serial' => $this->frame_serial_number,
-                'make' => $this->frame_make,
+                'make' => static::isRealValue($this->frame_make) ? $this->frame_make : null,
             ];
         }
-        if (! empty($this->receiver_serial_number)) {
+        if (static::isRealValue($this->receiver_serial_number)) {
             $serials['receiver'] = [
                 'serial' => $this->receiver_serial_number,
-                'make' => $this->receiver_make,
+                'make' => static::isRealValue($this->receiver_make) ? $this->receiver_make : null,
             ];
         }
         // Legacy serial number
-        if (! empty($this->serial_number) && empty($serials)) {
+        if (static::isRealValue($this->serial_number) && empty($serials)) {
             $serials['general'] = [
                 'serial' => $this->serial_number,
                 'make' => null,

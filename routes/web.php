@@ -493,7 +493,7 @@ Route::middleware(['auth', 'verified', 'membership.required', 'terms.accepted'])
             abort(403);
         }
 
-        if (! $request->isIssued()) {
+        if (! $request->isIssued() && ! $request->isApproved()) {
             abort(404, 'Endorsement letter not found.');
         }
 
