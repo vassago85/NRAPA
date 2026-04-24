@@ -33,9 +33,9 @@ new class extends Component {
         ];
     }
 
-    public function selectUser(int $userId): void
+    public function selectUser(string $uuid): void
     {
-        $this->selectedUser = User::find($userId);
+        $this->selectedUser = User::where('uuid', $uuid)->first();
         $this->createNew = false;
     }
 
@@ -154,7 +154,7 @@ new class extends Component {
                     <ul class="space-y-2 max-h-64 overflow-y-auto">
                         @foreach($existingUsers as $user)
                             <li>
-                                <button wire:click="selectUser({{ $user->id }})"
+                                <button wire:click="selectUser('{{ $user->uuid }}')"
                                     class="w-full flex items-center gap-3 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-700/50 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors text-left">
                                     <div class="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-600 flex items-center justify-center">
                                         <span class="text-zinc-700 dark:text-zinc-300 text-sm">{{ $user->initials() }}</span>

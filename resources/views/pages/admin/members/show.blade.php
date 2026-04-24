@@ -459,6 +459,16 @@ new #[Title('Member Details - Admin')] class extends Component {
 
     public function toggleAdmin(): void
     {
+        if (!auth()->user()->canManageUser($this->user)) {
+            session()->flash('error', 'You do not have permission to change this user\'s role.');
+            return;
+        }
+
+        if (!auth()->user()->canAssignRoles()) {
+            session()->flash('error', 'Only owners and developers can assign admin roles.');
+            return;
+        }
+
         $isCurrentlyAdmin = $this->user->hasRoleLevel(User::ROLE_ADMIN);
 
         $this->user->update([

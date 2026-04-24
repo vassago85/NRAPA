@@ -89,8 +89,8 @@ new class extends Component {
 
     public function openPermissionsModal(User $admin): void
     {
-        if (!auth()->user()->canGrantPermissions()) {
-            session()->flash('error', 'You do not have permission to manage permissions.');
+        if (!auth()->user()->canGrantPermissions() || !auth()->user()->canManageUser($admin)) {
+            session()->flash('error', 'You do not have permission to manage this administrator\'s permissions.');
             return;
         }
 
@@ -110,8 +110,8 @@ new class extends Component {
 
     public function savePermissions(): void
     {
-        if (!$this->adminToEdit || !auth()->user()->canGrantPermissions()) {
-            session()->flash('error', 'You do not have permission to manage permissions.');
+        if (!$this->adminToEdit || !auth()->user()->canGrantPermissions() || !auth()->user()->canManageUser($this->adminToEdit)) {
+            session()->flash('error', 'You do not have permission to manage this administrator\'s permissions.');
             $this->showPermissionsModal = false;
             return;
         }
@@ -173,8 +173,13 @@ new class extends Component {
 
     public function updateAdminType(User $admin, string $type): void
     {
-        if (!auth()->user()->canAssignRoles()) {
-            session()->flash('error', 'You do not have permission to change admin roles.');
+        if (!auth()->user()->canAssignRoles() || !auth()->user()->canManageUser($admin)) {
+            session()->flash('error', 'You do not have permission to change this admin\'s role.');
+            return;
+        }
+
+        if (!in_array($type, [User::ADMIN_TYPE_SUPER, User::ADMIN_TYPE_STANDARD])) {
+            session()->flash('error', 'Invalid admin type.');
             return;
         }
 
@@ -255,7 +260,7 @@ new class extends Component {
                             </td>
                             <td class="px-6 py-4">
                                 @if(auth()->user()->canAssignRoles() && auth()->user()->canManageUser($admin))
-                                <select wire:change="updateAdminType({{ $admin->id }}, $event.target.value)" 
+                                <select wire:change="updateAdminType('{{ $admin->uuid }}', $event.target.value)" 
                                     class="text-sm rounded-lg border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
                                     <option value="{{ User::ADMIN_TYPE_STANDARD }}" {{ $admin->admin_type === User::ADMIN_TYPE_STANDARD ? 'selected' : '' }}>Standard Admin</option>
                                     <option value="{{ User::ADMIN_TYPE_SUPER }}" {{ $admin->admin_type === User::ADMIN_TYPE_SUPER ? 'selected' : '' }}>Super Admin</option>
@@ -283,13 +288,13 @@ new class extends Component {
                             <td class="px-6 py-4 text-right">
                                 <div class="flex items-center justify-end gap-2">
                                     @if(auth()->user()->canGrantPermissions() && auth()->user()->canManageUser($admin))
-                                    <button wire:click="openPermissionsModal({{ $admin->id }})"
+                                    <button wire:click="openPermissionsModal('{{ $admin->uuid }}')"
                                         class="px-3 py-1.5 text-sm bg-purple-100 hover:bg-purple-200 text-purple-700 dark:bg-purple-900/50 dark:hover:bg-purple-900 dark:text-purple-300 rounded-lg transition-colors">
                                         Permissions
                                     </button>
                                     @endif
                                     @if(auth()->user()->canManageUser($admin))
-                                    <button wire:click="confirmDelete({{ $admin->id }})"
+                                    <button wire:click="confirmDelete('{{ $admin->uuid }}')"
                                         class="px-3 py-1.5 text-sm bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/50 dark:hover:bg-red-900 dark:text-red-300 rounded-lg transition-colors">
                                         Demote
                                     </button>
