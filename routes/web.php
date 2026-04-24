@@ -487,7 +487,7 @@ Route::middleware(['auth', 'verified', 'membership.required', 'terms.accepted'])
         ]);
     })->name('member.endorsements.preview');
 
-    // Member endorsement letter view/download (always regenerates to use latest renderer)
+    // Member endorsement letter view/download (serves cached PDF, regenerates if missing)
     Route::get('endorsements/{request}/letter', function (\App\Models\EndorsementRequest $request) {
         if ($request->user_id !== auth()->id()) {
             abort(403);
@@ -502,9 +502,12 @@ Route::middleware(['auth', 'verified', 'membership.required', 'terms.accepted'])
             : (config('filesystems.disks.r2.key') ? 'r2' : (config('filesystems.disks.s3.key') ? 's3' : 'local'));
         $storage = \Illuminate\Support\Facades\Storage::disk($disk);
 
-        $renderer = app(\App\Contracts\DocumentRenderer::class);
-        $filePath = $renderer->renderEndorsementLetter($request, 'documents.letters.endorsement');
-        $request->update(['letter_file_path' => $filePath]);
+        $filePath = $request->letter_file_path;
+        if (! $filePath || ! $storage->exists($filePath)) {
+            $renderer = app(\App\Contracts\DocumentRenderer::class);
+            $filePath = $renderer->renderEndorsementLetter($request, 'documents.letters.endorsement');
+            $request->update(['letter_file_path' => $filePath]);
+        }
 
         $filename = 'endorsement-letter-'.($request->letter_reference ?? $request->uuid).'.pdf';
 
@@ -1094,7 +1097,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         ]);
     })->name('endorsements.preview'); // Note: This becomes 'admin.endorsements.preview' due to group prefix
 
-    // Admin endorsement letter download (always regenerates to use latest renderer)
+    // Admin endorsement letter download (serves cached PDF, regenerates if missing or forced)
     Route::get('endorsements/{request}/download', function (\App\Models\EndorsementRequest $request) {
         if (! $request->isIssued()) {
             abort(404, 'Endorsement letter not found.');
@@ -1105,9 +1108,14 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
             : (config('filesystems.disks.r2.key') ? 'r2' : (config('filesystems.disks.s3.key') ? 's3' : 'local'));
         $storage = \Illuminate\Support\Facades\Storage::disk($disk);
 
-        $renderer = app(\App\Contracts\DocumentRenderer::class);
-        $filePath = $renderer->renderEndorsementLetter($request, 'documents.letters.endorsement');
-        $request->update(['letter_file_path' => $filePath]);
+        $forceRegenerate = request()->boolean('regenerate');
+        $filePath = $request->letter_file_path;
+
+        if ($forceRegenerate || ! $filePath || ! $storage->exists($filePath)) {
+            $renderer = app(\App\Contracts\DocumentRenderer::class);
+            $filePath = $renderer->renderEndorsementLetter($request, 'documents.letters.endorsement');
+            $request->update(['letter_file_path' => $filePath]);
+        }
 
         $filename = 'endorsement-letter-'.($request->letter_reference ?? $request->uuid).'.pdf';
 
