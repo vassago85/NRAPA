@@ -191,15 +191,17 @@ new #[Title('Members - Admin')] class extends Component {
     #[Computed]
     public function stats()
     {
-        return [
-            'total' => User::where('role', User::ROLE_MEMBER)->count(),
-            'active' => User::whereHas('memberships', fn ($q) => $q->where('status', 'active')->where(fn ($sq) => $sq->whereNull('expires_at')->orWhere('expires_at', '>', now())))->count(),
-            'pending' => User::whereHas('memberships', fn ($q) => $q->where('status', 'applied'))->count(),
-            'expired' => User::where(function ($q) {
-                $q->whereHas('memberships', fn ($mq) => $mq->where('status', 'expired'))
-                  ->orWhereHas('memberships', fn ($mq) => $mq->where('status', 'active')->whereNotNull('expires_at')->where('expires_at', '<=', now()));
-            })->count(),
-        ];
+        return \Illuminate\Support\Facades\Cache::remember('admin_members_stats', 120, function () {
+            return [
+                'total' => User::where('role', User::ROLE_MEMBER)->count(),
+                'active' => User::whereHas('memberships', fn ($q) => $q->where('status', 'active')->where(fn ($sq) => $sq->whereNull('expires_at')->orWhere('expires_at', '>', now())))->count(),
+                'pending' => User::whereHas('memberships', fn ($q) => $q->where('status', 'applied'))->count(),
+                'expired' => User::where(function ($q) {
+                    $q->whereHas('memberships', fn ($mq) => $mq->where('status', 'expired'))
+                      ->orWhereHas('memberships', fn ($mq) => $mq->where('status', 'active')->whereNotNull('expires_at')->where('expires_at', '<=', now()));
+                })->count(),
+            ];
+        });
     }
 
     public function getMembershipStatus($user): array

@@ -101,13 +101,17 @@ class Membership extends Model
             }
         });
 
-        // Send terms acceptance email when membership is activated
-        static::updated(function (Membership $membership) {
-            // Check if status changed to 'active'
-            if ($membership->wasChanged('status') && $membership->status === 'active') {
-                $user = $membership->user;
-                if ($user) {
-                    \App\Helpers\TermsHelper::checkAndNotify($user);
+        static::saved(function (Membership $membership) {
+            if ($membership->wasChanged('status')) {
+                \Illuminate\Support\Facades\Cache::forget('sidebar_pending_total');
+                \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats');
+                \Illuminate\Support\Facades\Cache::forget('admin_members_stats');
+
+                if ($membership->status === 'active') {
+                    $user = $membership->user;
+                    if ($user) {
+                        \App\Helpers\TermsHelper::checkAndNotify($user);
+                    }
                 }
             }
         });

@@ -46,13 +46,21 @@ new class extends Component {
         $isPaidUp = $user->activeMembership && (!$user->activeMembership->expires_at || $user->activeMembership->expires_at->isFuture());
         $complianceMet = $compliance['is_compliant_now'];
 
-        $complianceHistory = [];
         $currentYear = now()->year;
-        for ($year = $currentYear - 1; $year >= $currentYear - 5; $year--) {
-            $yearApproved = ShootingActivity::where('user_id', $user->id)
-                ->withinActivityYear($user, $year)
-                ->where('status', 'approved')
-                ->count();
+        $historyStartYear = $currentYear - 5;
+        $historyStart = \Carbon\Carbon::create($historyStartYear, 1, 1)->startOfDay();
+        $historyEnd = \Carbon\Carbon::create($currentYear - 1, 10, 31)->endOfDay();
+
+        $yearCounts = ShootingActivity::where('user_id', $user->id)
+            ->where('status', 'approved')
+            ->whereBetween('activity_date', [$historyStart, $historyEnd])
+            ->selectRaw('YEAR(activity_date) as yr, count(*) as cnt')
+            ->groupByRaw('YEAR(activity_date)')
+            ->pluck('cnt', 'yr');
+
+        $complianceHistory = [];
+        for ($year = $currentYear - 1; $year >= $historyStartYear; $year--) {
+            $yearApproved = (int) ($yearCounts[$year] ?? 0);
             $complianceHistory[] = [
                 'year' => $year,
                 'label' => "OCT {$year}",

@@ -698,19 +698,16 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function hasPermission(string $permission): bool
     {
-        // Developers have all permissions (system level)
-        if ($this->isDeveloper()) {
+        if ($this->isDeveloper() || $this->isOwner()) {
             return true;
         }
 
-        // Owners have all permissions (NRAPA level)
-        if ($this->isOwner()) {
-            return true;
-        }
-
-        // Admins check their assigned permissions
         if ($this->isAdmin()) {
-            return $this->permissions()->where('slug', $permission)->exists();
+            if (! $this->relationLoaded('permissions')) {
+                $this->load('permissions');
+            }
+
+            return $this->permissions->contains('slug', $permission);
         }
 
         return false;

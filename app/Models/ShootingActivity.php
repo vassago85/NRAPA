@@ -88,6 +88,13 @@ class ShootingActivity extends Model
                 }
             }
         });
+
+        static::saved(function (ShootingActivity $activity) {
+            if ($activity->wasChanged('status')) {
+                \Illuminate\Support\Facades\Cache::forget('sidebar_pending_total');
+                \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats');
+            }
+        });
     }
 
     /**
@@ -473,15 +480,16 @@ class ShootingActivity extends Model
             $start = Carbon::create($year, 1, 1)->startOfDay();
             $end = Carbon::create($year, 10, 31)->endOfDay();
 
-            $rows = self::where('user_id', $user->id)
+            $counts = self::where('user_id', $user->id)
                 ->approved()
                 ->whereBetween('activity_date', [$start, $end])
-                ->get(['track']);
+                ->selectRaw("count(*) as total, sum(track = 'hunting') as hunting, sum(track = 'sport') as sport")
+                ->first();
 
             return [
-                'total' => $rows->count(),
-                'hunting' => $rows->where('track', 'hunting')->count(),
-                'sport' => $rows->where('track', 'sport')->count(),
+                'total' => (int) $counts->total,
+                'hunting' => (int) $counts->hunting,
+                'sport' => (int) $counts->sport,
                 'start' => $start,
                 'end' => $end,
                 'label' => $start->format('d M Y').' - '.$end->format('d M Y'),

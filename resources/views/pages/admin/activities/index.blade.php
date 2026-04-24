@@ -34,9 +34,12 @@ new class extends Component {
             ->orderBy('created_at', 'desc')
             ->paginate(15);
 
-        $pendingCount = ShootingActivity::pending()->count();
-        $approvedCount = ShootingActivity::approved()->count();
-        $rejectedCount = ShootingActivity::rejected()->count();
+        $statusCounts = ShootingActivity::selectRaw("status, count(*) as cnt")
+            ->groupBy('status')
+            ->pluck('cnt', 'status');
+        $pendingCount = (int) ($statusCounts['pending'] ?? 0);
+        $approvedCount = (int) ($statusCounts['approved'] ?? 0);
+        $rejectedCount = (int) ($statusCounts['rejected'] ?? 0);
 
         return [
             'activities' => $activities,

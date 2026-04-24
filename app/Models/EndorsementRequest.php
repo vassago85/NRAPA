@@ -114,6 +114,13 @@ class EndorsementRequest extends Model
                 $request->uuid = (string) Str::uuid();
             }
         });
+
+        static::saved(function (EndorsementRequest $request) {
+            if ($request->wasChanged('status')) {
+                \Illuminate\Support\Facades\Cache::forget('sidebar_pending_total');
+                \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats');
+            }
+        });
     }
 
     /**
@@ -367,14 +374,16 @@ class EndorsementRequest extends Model
     public static function getEligibilitySummary(User $user): array
     {
         $eligibility = self::checkUserEligibility($user);
+        $activityDetails = self::checkActivityRequirements($user);
+        $missingDocuments = self::getMissingRequiredDocuments($user);
 
         return [
             'eligible' => $eligibility['eligible'],
             'knowledge_test_passed' => $user->hasPassedKnowledgeTest(),
-            'documents_complete' => count(self::getMissingRequiredDocuments($user)) === 0,
-            'activities_met' => self::checkActivityRequirements($user)['met'],
-            'activity_details' => self::checkActivityRequirements($user),
-            'missing_documents' => self::getMissingRequiredDocuments($user),
+            'documents_complete' => count($missingDocuments) === 0,
+            'activities_met' => $activityDetails['met'],
+            'activity_details' => $activityDetails,
+            'missing_documents' => $missingDocuments,
             'errors' => $eligibility['errors'],
         ];
     }

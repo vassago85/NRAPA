@@ -156,6 +156,13 @@ class MemberDocument extends Model
                 $document->expires_at = $document->documentType->calculateExpiryDate($document->uploaded_at);
             }
         });
+
+        static::saved(function (MemberDocument $document) {
+            if ($document->wasChanged('status')) {
+                \Illuminate\Support\Facades\Cache::forget('sidebar_pending_total');
+                \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats');
+            }
+        });
     }
 
     /**

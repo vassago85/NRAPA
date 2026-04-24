@@ -31,9 +31,10 @@ class TermsVersion extends Model
     public static function active(): ?self
     {
         try {
-            return static::where('is_active', true)->first();
+            return \Illuminate\Support\Facades\Cache::remember('terms_active_version', 3600, function () {
+                return static::where('is_active', true)->first();
+            });
         } catch (\Exception $e) {
-            // Table doesn't exist yet - return null (migrations need to be run)
             return null;
         }
     }
@@ -80,14 +81,14 @@ class TermsVersion extends Model
      */
     public function activate(): void
     {
-        // Deactivate all other versions
         static::where('id', '!=', $this->id)->update(['is_active' => false]);
 
-        // Activate this one
         $this->update(['is_active' => true]);
 
         if (! $this->published_at) {
             $this->update(['published_at' => now()]);
         }
+
+        \Illuminate\Support\Facades\Cache::forget('terms_active_version');
     }
 }

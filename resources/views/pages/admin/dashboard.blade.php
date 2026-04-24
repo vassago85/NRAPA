@@ -31,62 +31,72 @@ new class extends Component {
 
     public function loadStats(): void
     {
-        $this->totalMembers = User::where('role', User::ROLE_MEMBER)->count();
-
-        $this->activeMembers = User::where('role', User::ROLE_MEMBER)
-            ->whereHas('memberships', function ($query) {
-                $query->where('status', 'active')
-                    ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()));
-            })
-            ->count();
-
-        try {
-            $this->pendingDocuments = MemberDocument::where('status', 'pending')
-                ->whereDoesntHave('shootingActivityAsEvidence')
-                ->whereDoesntHave('shootingActivityAsAdditional')
+        $stats = \Illuminate\Support\Facades\Cache::remember('admin_dashboard_stats', 120, function () {
+            $s = [];
+            $s['totalMembers'] = User::where('role', User::ROLE_MEMBER)->count();
+            $s['activeMembers'] = User::where('role', User::ROLE_MEMBER)
+                ->whereHas('memberships', function ($query) {
+                    $query->where('status', 'active')
+                        ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()));
+                })
                 ->count();
-            $this->pendingActivities = ShootingActivity::where('status', 'pending')->count();
-            $this->pendingCalibres = CalibreRequest::where('status', 'pending')->count();
-            $this->pendingEndorsements = EndorsementRequest::whereIn('status', [
-                EndorsementRequest::STATUS_SUBMITTED,
-                EndorsementRequest::STATUS_UNDER_REVIEW,
-                EndorsementRequest::STATUS_PENDING_DOCUMENTS,
-            ])->count();
 
-            // Awaiting payment: billable applied without POP/confirmation + pending_payment without POP/confirmation
-            $this->awaitingPaymentCount = Membership::where('status', 'applied')
-                    ->whereHas('user')
-                    ->whereIn('source', ['web', 'admin'])
-                    ->whereNull('proof_of_payment_path')
-                    ->whereNull('payment_confirmed_at')
-                    ->count()
-                + Membership::where('status', 'pending_payment')
-                    ->whereHas('user')
-                    ->whereNull('proof_of_payment_path')
-                    ->whereNull('payment_confirmed_at')
+            try {
+                $s['pendingDocuments'] = MemberDocument::where('status', 'pending')
+                    ->whereDoesntHave('shootingActivityAsEvidence')
+                    ->whereDoesntHave('shootingActivityAsAdditional')
                     ->count();
+                $s['pendingActivities'] = ShootingActivity::where('status', 'pending')->count();
+                $s['pendingCalibres'] = CalibreRequest::where('status', 'pending')->count();
+                $s['pendingEndorsements'] = EndorsementRequest::whereIn('status', [
+                    EndorsementRequest::STATUS_SUBMITTED,
+                    EndorsementRequest::STATUS_UNDER_REVIEW,
+                    EndorsementRequest::STATUS_PENDING_DOCUMENTS,
+                ])->count();
 
-            // Actionable memberships (not blocked on payment)
-            $this->pendingMemberships = Membership::where('status', 'applied')
-                    ->whereHas('user')
-                    ->where(function ($q) {
-                        $q->whereNotIn('source', ['web', 'admin'])
-                            ->orWhereNotNull('proof_of_payment_path')
-                            ->orWhereNotNull('payment_confirmed_at');
-                    })
-                    ->count()
-                + Membership::whereIn('status', ['pending_change'])->whereHas('user')->count()
-                + Membership::where('status', 'pending_payment')
-                    ->whereHas('user')
-                    ->where(function ($q) {
-                        $q->whereNotNull('proof_of_payment_path')
-                            ->orWhereNotNull('payment_confirmed_at');
-                    })
-                    ->count();
-        } catch (\Exception $e) {
-            // Tables might not exist yet
-        }
+                $s['awaitingPaymentCount'] = Membership::where('status', 'applied')
+                        ->whereHas('user')
+                        ->whereIn('source', ['web', 'admin'])
+                        ->whereNull('proof_of_payment_path')
+                        ->whereNull('payment_confirmed_at')
+                        ->count()
+                    + Membership::where('status', 'pending_payment')
+                        ->whereHas('user')
+                        ->whereNull('proof_of_payment_path')
+                        ->whereNull('payment_confirmed_at')
+                        ->count();
 
+                $s['pendingMemberships'] = Membership::where('status', 'applied')
+                        ->whereHas('user')
+                        ->where(function ($q) {
+                            $q->whereNotIn('source', ['web', 'admin'])
+                                ->orWhereNotNull('proof_of_payment_path')
+                                ->orWhereNotNull('payment_confirmed_at');
+                        })
+                        ->count()
+                    + Membership::whereIn('status', ['pending_change'])->whereHas('user')->count()
+                    + Membership::where('status', 'pending_payment')
+                        ->whereHas('user')
+                        ->where(function ($q) {
+                            $q->whereNotNull('proof_of_payment_path')
+                                ->orWhereNotNull('payment_confirmed_at');
+                        })
+                        ->count();
+            } catch (\Exception $e) {
+                $s += ['pendingDocuments' => 0, 'pendingActivities' => 0, 'pendingCalibres' => 0, 'pendingEndorsements' => 0, 'awaitingPaymentCount' => 0, 'pendingMemberships' => 0];
+            }
+
+            return $s;
+        });
+
+        $this->totalMembers = $stats['totalMembers'];
+        $this->activeMembers = $stats['activeMembers'];
+        $this->pendingDocuments = $stats['pendingDocuments'];
+        $this->pendingActivities = $stats['pendingActivities'];
+        $this->pendingCalibres = $stats['pendingCalibres'];
+        $this->pendingEndorsements = $stats['pendingEndorsements'];
+        $this->awaitingPaymentCount = $stats['awaitingPaymentCount'];
+        $this->pendingMemberships = $stats['pendingMemberships'];
         $this->totalOutstandingApprovals = $this->pendingDocuments
             + $this->pendingMemberships
             + $this->awaitingPaymentCount

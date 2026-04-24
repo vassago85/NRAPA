@@ -76,7 +76,11 @@ class SidebarMenu
                     'route' => 'messages.index',
                     'icon' => 'chat-bubble-left-right',
                     'roles' => ['member', 'admin', 'owner', 'developer'],
-                    'pending_count' => $user->unreadMessages()->count(),
+                    'pending_count' => \Illuminate\Support\Facades\Cache::remember(
+                        "user_{$user->id}_unread_messages",
+                        60,
+                        fn () => $user->unreadMessages()->count()
+                    ),
                 ],
                 [
                     'label' => 'My Membership',
@@ -157,33 +161,26 @@ class SidebarMenu
 
         // 2. ADMINISTRATION (admin + owner, hidden in member mode)
         if ($showAdminArea && $user->hasRoleLevel(\App\Models\User::ROLE_ADMIN)) {
-            // Calculate combined pending count for all approval types
-            $totalPending = 0;
-            try {
-                if (\Illuminate\Support\Facades\Schema::hasTable('member_documents')) {
-                    $totalPending += \App\Models\MemberDocument::where('status', 'pending')
+            $totalPending = \Illuminate\Support\Facades\Cache::remember('sidebar_pending_total', 60, function () {
+                $total = 0;
+                try {
+                    $total += \App\Models\MemberDocument::where('status', 'pending')
                         ->whereDoesntHave('shootingActivityAsEvidence')
                         ->whereDoesntHave('shootingActivityAsAdditional')
                         ->count();
-                }
-                if (\Illuminate\Support\Facades\Schema::hasTable('memberships')) {
-                    $totalPending += \App\Models\Membership::where('status', 'applied')->count();
-                }
-                if (\Illuminate\Support\Facades\Schema::hasTable('shooting_activities')) {
-                    $totalPending += \App\Models\ShootingActivity::where('status', 'pending')->count();
-                }
-                if (\Illuminate\Support\Facades\Schema::hasTable('calibre_requests')) {
-                    $totalPending += \App\Models\CalibreRequest::where('status', 'pending')->count();
-                }
-                if (\Illuminate\Support\Facades\Schema::hasTable('endorsement_requests')) {
-                    $totalPending += \App\Models\EndorsementRequest::whereIn('status', [
+                    $total += \App\Models\Membership::where('status', 'applied')->count();
+                    $total += \App\Models\ShootingActivity::where('status', 'pending')->count();
+                    $total += \App\Models\CalibreRequest::where('status', 'pending')->count();
+                    $total += \App\Models\EndorsementRequest::whereIn('status', [
                         \App\Models\EndorsementRequest::STATUS_SUBMITTED,
                         \App\Models\EndorsementRequest::STATUS_UNDER_REVIEW,
                         \App\Models\EndorsementRequest::STATUS_PENDING_DOCUMENTS,
                     ])->count();
+                } catch (\Exception $e) {
                 }
-            } catch (\Exception $e) {
-            }
+
+                return $total;
+            });
 
             $menu[] = [
                 'section' => 'ADMINISTRATION',
