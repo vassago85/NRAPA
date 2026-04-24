@@ -328,29 +328,28 @@ class EndorsementFirearm extends Model
 
     /**
      * Get all serial numbers as array.
+     * Always includes barrel/frame/receiver headings (SAPS fields) but
+     * cleans placeholder values like "None" or "N/A" to null.
      */
     public function getSerialNumbersAttribute(): array
     {
         $serials = [];
 
-        if (static::isRealValue($this->barrel_serial_number)) {
-            $serials['barrel'] = [
-                'serial' => $this->barrel_serial_number,
-                'make' => static::isRealValue($this->barrel_make) ? $this->barrel_make : null,
-            ];
+        $fields = [
+            'barrel' => ['serial' => $this->barrel_serial_number, 'make' => $this->barrel_make],
+            'frame' => ['serial' => $this->frame_serial_number, 'make' => $this->frame_make],
+            'receiver' => ['serial' => $this->receiver_serial_number, 'make' => $this->receiver_make],
+        ];
+
+        foreach ($fields as $type => $data) {
+            if (! empty($data['serial'])) {
+                $serials[$type] = [
+                    'serial' => static::isRealValue($data['serial']) ? $data['serial'] : null,
+                    'make' => static::isRealValue($data['make']) ? $data['make'] : null,
+                ];
+            }
         }
-        if (static::isRealValue($this->frame_serial_number)) {
-            $serials['frame'] = [
-                'serial' => $this->frame_serial_number,
-                'make' => static::isRealValue($this->frame_make) ? $this->frame_make : null,
-            ];
-        }
-        if (static::isRealValue($this->receiver_serial_number)) {
-            $serials['receiver'] = [
-                'serial' => $this->receiver_serial_number,
-                'make' => static::isRealValue($this->receiver_make) ? $this->receiver_make : null,
-            ];
-        }
+
         // Legacy serial number
         if (static::isRealValue($this->serial_number) && empty($serials)) {
             $serials['general'] = [
