@@ -418,9 +418,13 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
         $this->editFirearmCategory = $firearm->firearm_category ?? '';
         $this->editFirearmActionType = $firearm->action_type ?? '';
         $this->editFirearmIgnitionType = $firearm->ignition_type ?? '';
-        $this->editFirearmMake = $firearm->make ?? '';
-        $this->editFirearmModel = $firearm->model ?? '';
-        $this->editFirearmCalibreManual = $firearm->calibre_manual ?? '';
+        // Pre-fill from the resolved display values (which prefer the reference
+        // tables) so the admin actually sees what's currently shown on the page,
+        // not just the legacy plain-text columns. Saving will write back into
+        // the manual fields and clear the reference links (see saveFirearmDetails).
+        $this->editFirearmMake = $firearm->make_display ?? '';
+        $this->editFirearmModel = $firearm->model_display ?? '';
+        $this->editFirearmCalibreManual = $firearm->calibre_display ?? '';
         $this->editFirearmSapsReference = $firearm->saps_reference ?? '';
         $this->editFirearmLicenceSection = $firearm->licence_section ?? '';
         $this->showEditFirearmModal = true;
@@ -461,20 +465,41 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             'make' => $firearm->make,
             'model' => $firearm->model,
             'calibre_manual' => $firearm->calibre_manual,
+            'firearm_calibre_id' => $firearm->firearm_calibre_id,
+            'calibre_id' => $firearm->calibre_id,
+            'calibre_text_override' => $firearm->calibre_text_override,
+            'firearm_make_id' => $firearm->firearm_make_id,
+            'make_text_override' => $firearm->make_text_override,
+            'firearm_model_id' => $firearm->firearm_model_id,
+            'model_text_override' => $firearm->model_text_override,
             'saps_reference' => $firearm->saps_reference,
             'licence_section' => $firearm->licence_section,
         ];
 
-        $firearm->update([
+        // The display accessors (calibre_display / make_display / model_display) prefer
+        // the reference table FKs over the plain-text columns. So when an admin edits
+        // these fields here, we MUST clear the reference FKs and any *_text_override
+        // values, otherwise the legacy values we just wrote will lose the priority
+        // contest in the display and the edit appears to do nothing.
+        $newValues = [
             'firearm_category' => $this->editFirearmCategory,
             'action_type' => $this->editFirearmActionType ?: null,
             'ignition_type' => $this->editFirearmIgnitionType ?: null,
             'make' => $this->editFirearmMake ?: null,
             'model' => $this->editFirearmModel ?: null,
             'calibre_manual' => $this->editFirearmCalibreManual ?: null,
+            'firearm_calibre_id' => null,
+            'calibre_id' => null,
+            'calibre_text_override' => null,
+            'firearm_make_id' => null,
+            'make_text_override' => null,
+            'firearm_model_id' => null,
+            'model_text_override' => null,
             'saps_reference' => $this->editFirearmSapsReference ?: null,
             'licence_section' => $this->editFirearmLicenceSection ?: null,
-        ]);
+        ];
+
+        $firearm->update($newValues);
 
         AuditLog::create([
             'user_id' => auth()->id(),
@@ -482,23 +507,14 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             'auditable_type' => EndorsementRequest::class,
             'auditable_id' => $this->request->id,
             'old_values' => $oldValues,
-            'new_values' => [
-                'firearm_category' => $this->editFirearmCategory,
-                'action_type' => $this->editFirearmActionType ?: null,
-                'ignition_type' => $this->editFirearmIgnitionType ?: null,
-                'make' => $this->editFirearmMake ?: null,
-                'model' => $this->editFirearmModel ?: null,
-                'calibre_manual' => $this->editFirearmCalibreManual ?: null,
-                'saps_reference' => $this->editFirearmSapsReference ?: null,
-                'licence_section' => $this->editFirearmLicenceSection ?: null,
-            ],
+            'new_values' => $newValues,
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
         ]);
 
         $this->showEditFirearmModal = false;
         $this->request->refresh();
-        $this->request->load('firearm');
+        $this->request->load('firearm', 'firearm.firearmCalibre', 'firearm.firearmMake', 'firearm.firearmModel');
         session()->flash('success', 'Firearm details updated.');
     }
 
