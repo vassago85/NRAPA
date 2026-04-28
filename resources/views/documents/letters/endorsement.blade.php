@@ -138,7 +138,7 @@
                 @foreach($serialNumbers as $type => $info)
                 <td>
                     <span class="fg-label">{{ ucfirst($type) }} Serial</span>
-                    <span class="fg-value">{{ $info['serial'] ?? '—' }}@if($info['make']) <span style="font-weight:400; font-size:10px; color:#6a6a6a;">({{ $info['make'] }})</span>@endif</span>
+                    <span class="fg-value">{{ !empty($info['serial']) ? strtoupper($info['serial']) : '—' }}@if($info['make']) <span style="font-weight:400; font-size:10px; color:#6a6a6a;">({{ $info['make'] }})</span>@endif</span>
                 </td>
                 @endforeach
             </tr>
@@ -162,7 +162,7 @@
                         Calibre: {{ $component->calibre_display }}
                     @endif
                     @if ($component->component_serial)
-                        &nbsp;| Serial: {{ $component->component_serial }}
+                        &nbsp;| Serial: {{ strtoupper($component->component_serial) }}
                     @endif
                 </td>
             </tr>
