@@ -152,10 +152,15 @@ new #[Title('Review Application - Admin')] class extends Component {
 
         $admin = Auth::user();
 
+        // Rejection must NOT stamp approved_at — that timestamp is reserved for
+        // genuine approvals and is what the billing/payments-received report
+        // keys off. Use the rejection-specific columns instead so revoked
+        // applications stay out of every "approved" / billable query.
         $this->membership->update([
             'status' => 'revoked',
-            'approved_at' => now(),
-            'approved_by' => $admin->id,
+            'revoked_at' => now(),
+            'revoked_by' => $admin->id,
+            'revocation_reason' => $this->rejectionReason,
             'suspension_reason' => $this->rejectionReason,
         ]);
 
@@ -351,10 +356,14 @@ new #[Title('Review Application - Admin')] class extends Component {
         $admin = Auth::user();
         $oldStatus = $this->membership->status;
 
+        // Same reason as reject(): rejecting a change request must not stamp
+        // approved_at, otherwise the membership leaks into the payments
+        // received report. Use the rejection-specific columns instead.
         $this->membership->update([
             'status' => 'revoked',
-            'approved_at' => now(),
-            'approved_by' => $admin->id,
+            'revoked_at' => now(),
+            'revoked_by' => $admin->id,
+            'revocation_reason' => $this->rejectionReason,
             'suspension_reason' => $this->rejectionReason,
         ]);
 

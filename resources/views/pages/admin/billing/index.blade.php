@@ -53,7 +53,7 @@ new class extends Component {
             // Select all visible membership IDs on current page
             try {
                 $this->selected = Membership::billable()
-                    ->approvedInMonth($this->selectedYear, $this->selectedMonth)
+                    ->paidInMonth($this->selectedYear, $this->selectedMonth)
                     ->pluck('id')
                     ->map(fn ($id) => (string) $id)
                     ->toArray();
@@ -211,9 +211,9 @@ new class extends Component {
     {
         try {
             $memberships = Membership::billable()
-                ->approvedInMonth($this->selectedYear, $this->selectedMonth)
+                ->paidInMonth($this->selectedYear, $this->selectedMonth)
                 ->with(['user', 'type', 'previousMembership.type', 'affiliatedClub'])
-                ->orderBy('approved_at', 'desc')
+                ->orderBy('payment_confirmed_at', 'desc')
                 ->paginate(20);
         } catch (\Exception $e) {
             $memberships = collect()->paginate(20);
@@ -360,24 +360,40 @@ new class extends Component {
     public function exportCsv(): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         $memberships = Membership::billable()
-            ->approvedInMonth($this->selectedYear, $this->selectedMonth)
+            ->paidInMonth($this->selectedYear, $this->selectedMonth)
             ->with(['user', 'type', 'previousMembership.type', 'affiliatedClub'])
-            ->orderBy('approved_at', 'desc')
+            ->orderBy('payment_confirmed_at', 'desc')
             ->get();
 
         $monthName = date('F', mktime(0, 0, 0, $this->selectedMonth, 1));
-        $filename = "billing-report-{$monthName}-{$this->selectedYear}.csv";
+        $filename = "payments-received-{$monthName}-{$this->selectedYear}.csv";
 
         return response()->streamDownload(function () use ($memberships) {
             $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['Date Approved', 'Membership Number', 'Member Name', 'Email', 'Membership Type', 'Affiliated Club', 'Type (New/Renewal)', 'Previous Membership', 'Source']);
+            fputcsv($handle, [
+                'Date Paid',
+                'Membership Number',
+                'Member Name',
+                'Email',
+                'Payment Reference',
+                'Amount (R)',
+                'Membership Type',
+                'Affiliated Club',
+                'Type (New/Renewal)',
+                'Previous Membership',
+                'Source',
+            ]);
 
             foreach ($memberships as $m) {
+                $amount = (float) ($m->change_amount ?? $m->amount_due ?? 0);
+
                 fputcsv($handle, [
-                    $m->approved_at?->format('Y-m-d H:i:s') ?? '',
+                    $m->payment_confirmed_at?->format('Y-m-d H:i:s') ?? '',
                     $m->membership_number,
                     $m->user->name ?? '',
                     $m->user->email ?? '',
+                    $m->payment_reference ?? '',
+                    number_format($amount, 2, '.', ''),
                     $m->type->name ?? '',
                     $m->affiliatedClub?->name ?? '',
                     $m->isRenewal() ? 'Renewal' : 'New',
@@ -634,8 +650,11 @@ new class extends Component {
 
     {{-- Detailed List --}}
     <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-        <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Billable Memberships - {{ $months[$selectedMonth] }} {{ $selectedYear }}</h2>
+        <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
+            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Payments Received - {{ $months[$selectedMonth] }} {{ $selectedYear }}</h2>
+            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                For accounting reconciliation. Includes new memberships and renewals where payment was confirmed in this month. Excludes imports and items removed from billing.
+            </p>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full">
@@ -645,9 +664,11 @@ new class extends Component {
                             <input type="checkbox" wire:model.live="selectAll"
                                 class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500 dark:border-zinc-600 dark:bg-zinc-700">
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Date</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Date Paid</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Member</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Membership #</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Reference</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Amount</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Type</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Club</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Category</th>
@@ -656,13 +677,16 @@ new class extends Component {
                 </thead>
                 <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                     @forelse($memberships as $membership)
+                        @php
+                            $rowAmount = (float) ($membership->change_amount ?? $membership->amount_due ?? 0);
+                        @endphp
                         <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 {{ in_array((string) $membership->id, $selected) ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : '' }}">
                             <td class="px-4 py-4">
                                 <input type="checkbox" wire:model.live="selected" value="{{ $membership->id }}"
                                     class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500 dark:border-zinc-600 dark:bg-zinc-700">
                             </td>
                             <td class="px-4 py-4 whitespace-nowrap text-sm text-zinc-600 dark:text-zinc-300">
-                                {{ $membership->approved_at?->format('d M Y') ?? '-' }}
+                                {{ $membership->payment_confirmed_at?->format('d M Y') ?? '-' }}
                             </td>
                             <td class="px-4 py-4 whitespace-nowrap">
                                 <div class="text-sm font-medium text-zinc-900 dark:text-white">{{ $membership->user?->name ?? 'Deleted User' }}</div>
@@ -670,6 +694,16 @@ new class extends Component {
                             </td>
                             <td class="px-4 py-4 whitespace-nowrap text-sm text-zinc-600 dark:text-zinc-300">
                                 {{ $membership->membership_number }}
+                            </td>
+                            <td class="px-4 py-4 whitespace-nowrap">
+                                @if($membership->payment_reference)
+                                    <span class="font-mono text-xs text-zinc-700 dark:text-zinc-200">{{ $membership->payment_reference }}</span>
+                                @else
+                                    <span class="text-zinc-400 dark:text-zinc-500">—</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-4 whitespace-nowrap text-right text-sm font-medium text-zinc-900 dark:text-white">
+                                R{{ number_format($rowAmount, 2) }}
                             </td>
                             <td class="px-4 py-4 whitespace-nowrap text-sm text-zinc-600 dark:text-zinc-300">
                                 {{ $membership->type?->name ?? '-' }}
@@ -715,8 +749,8 @@ new class extends Component {
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-12 text-center text-zinc-500 dark:text-zinc-400">
-                                No billable memberships for this period.
+                            <td colspan="10" class="px-6 py-12 text-center text-zinc-500 dark:text-zinc-400">
+                                No payments received for this period.
                             </td>
                         </tr>
                     @endforelse
@@ -830,9 +864,11 @@ new class extends Component {
             <div>
                 <p class="text-sm font-medium text-amber-800 dark:text-amber-200">About Billing Tracking</p>
                 <p class="text-sm text-amber-700 dark:text-amber-300 mt-1">
-                    This report only includes <strong>billable</strong> memberships (web applications and admin-created). 
-                    Initially imported members are excluded from billing counts. Only memberships with an <strong>approved date</strong> 
-                    within the selected period are counted.
+                    Counts and the payments-received list only include <strong>billable</strong> memberships
+                    (web applications and admin-created). Imports, rejected applications, and anything you have
+                    removed via <em>Remove from billing</em> are excluded. Only memberships with
+                    <strong>payment confirmed</strong> within the selected period are counted &mdash; this matches
+                    money actually received by NRAPA so the report reconciles against the accounting system.
                 </p>
             </div>
         </div>

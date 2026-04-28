@@ -677,39 +677,54 @@ class Membership extends Model
     // ===== Billing Scopes =====
 
     /**
-     * Scope to billable memberships (excludes imports).
+     * Scope to billable memberships (excludes imports, rejections,
+     * and pending type-change requests that haven't been paid yet).
+     *
      * Billable sources: web, admin
-     * Non-billable: import
+     * Non-billable: import (admin "Remove from billing" sets this),
+     *               revoked status (rejections), pending_change status.
      */
     public function scopeBillable($query)
     {
-        return $query->whereIn('source', ['web', 'admin']);
+        return $query->whereIn('source', ['web', 'admin'])
+            ->whereNotIn('status', ['revoked', 'pending_change']);
     }
 
     /**
-     * Scope to new memberships (not renewals) in a specific month.
+     * Scope to memberships where NRAPA actually received payment in the
+     * given month. Drives the "Payments Received" / billing report so the
+     * counts only reflect money that hit the books.
+     */
+    public function scopePaidInMonth($query, int $year, int $month)
+    {
+        return $query->whereNotNull('payment_confirmed_at')
+            ->whereYear('payment_confirmed_at', $year)
+            ->whereMonth('payment_confirmed_at', $month);
+    }
+
+    /**
+     * Scope to new memberships (not renewals) where payment was confirmed
+     * in the given month.
      */
     public function scopeNewInMonth($query, int $year, int $month)
     {
         return $query->whereNull('previous_membership_id')
-            ->whereYear('approved_at', $year)
-            ->whereMonth('approved_at', $month)
-            ->whereNotNull('approved_at');
+            ->paidInMonth($year, $month);
     }
 
     /**
-     * Scope to renewals in a specific month.
+     * Scope to renewals where payment was confirmed in the given month.
      */
     public function scopeRenewalsInMonth($query, int $year, int $month)
     {
         return $query->whereNotNull('previous_membership_id')
-            ->whereYear('approved_at', $year)
-            ->whereMonth('approved_at', $month)
-            ->whereNotNull('approved_at');
+            ->paidInMonth($year, $month);
     }
 
     /**
-     * Scope to memberships approved in a specific month.
+     * Scope to memberships approved in a specific month. Retained for any
+     * non-billing callers that want approval-date semantics; the billing
+     * report itself uses paidInMonth() so it only counts confirmed payments.
      */
     public function scopeApprovedInMonth($query, int $year, int $month)
     {
