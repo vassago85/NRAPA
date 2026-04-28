@@ -2,7 +2,7 @@
 
 use App\Mail\MemberMessageMail;
 use App\Models\MemberMessage;
-use App\Models\User;
+use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -66,20 +66,17 @@ new #[Title('Message')] class extends Component {
             'body' => trim($this->replyBody),
         ]);
 
-        // Email all admins (use setting-configured list if available, fallback to admin users)
-        $adminEmails = User::whereIn('role', [User::ROLE_ADMIN, User::ROLE_OWNER])
-            ->whereNotNull('email')
-            ->pluck('email')
-            ->unique()
-            ->values()
-            ->all();
+        // Member replies on online queries go ONLY to the configured NRAPA contact
+        // mailbox (defaults to info@nrapa.co.za). Personal admin/owner email
+        // addresses are intentionally excluded so threads stay on the shared inbox.
+        $contactEmail = trim((string) SystemSetting::get('nrapa_email', 'info@nrapa.co.za'));
 
-        if (! empty($adminEmails)) {
+        if ($contactEmail !== '' && filter_var($contactEmail, FILTER_VALIDATE_EMAIL)) {
             try {
-                Mail::to($adminEmails)->send(new MemberMessageMail($reply));
+                Mail::to($contactEmail)->send(new MemberMessageMail($reply));
                 $reply->update(['email_sent_at' => now()]);
             } catch (\Throwable $e) {
-                Log::warning('Failed to send member reply email to admins', [
+                Log::warning('Failed to send member reply email to NRAPA contact mailbox', [
                     'reply_id' => $reply->id,
                     'error' => $e->getMessage(),
                 ]);

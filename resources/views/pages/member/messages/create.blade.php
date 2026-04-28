@@ -2,7 +2,7 @@
 
 use App\Mail\MemberMessageMail;
 use App\Models\MemberMessage;
-use App\Models\User;
+use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -31,19 +31,18 @@ new #[Title('New Message')] class extends Component {
             'body' => trim($this->body),
         ]);
 
-        $adminEmails = User::whereIn('role', [User::ROLE_ADMIN, User::ROLE_OWNER])
-            ->whereNotNull('email')
-            ->pluck('email')
-            ->unique()
-            ->values()
-            ->all();
+        // Online member queries are routed only to the configured NRAPA contact mailbox
+        // (defaults to info@nrapa.co.za). Personal admin/owner email addresses are
+        // intentionally NOT included so that public correspondence stays on the shared
+        // NRAPA inbox.
+        $contactEmail = trim((string) SystemSetting::get('nrapa_email', 'info@nrapa.co.za'));
 
-        if (! empty($adminEmails)) {
+        if ($contactEmail !== '' && filter_var($contactEmail, FILTER_VALIDATE_EMAIL)) {
             try {
-                Mail::to($adminEmails)->send(new MemberMessageMail($message));
+                Mail::to($contactEmail)->send(new MemberMessageMail($message));
                 $message->update(['email_sent_at' => now()]);
             } catch (\Throwable $e) {
-                Log::warning('Failed to send member enquiry email to admins', [
+                Log::warning('Failed to send member enquiry email to NRAPA contact mailbox', [
                     'message_id' => $message->id,
                     'error' => $e->getMessage(),
                 ]);
