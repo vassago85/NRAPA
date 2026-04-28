@@ -223,9 +223,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     protected function getFirearmPanelInitialData(): array
     {
         // Map firearm category to firearm type
-        // Map SAPS 271 compliant categories to FirearmSearchPanel firearm_type
+        // Map SAPS 271 compliant categories to FirearmSearchPanel firearm_type.
+        // Self-loading rifles share the rifle calibre/make/model search filters.
         $firearmType = match($this->firearmCategory) {
-            'rifle' => 'rifle',
+            'rifle', 'self_loading_rifle' => 'rifle',
             'shotgun' => 'shotgun',
             'handgun' => 'handgun',
             'combination' => 'combination',
@@ -412,12 +413,12 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             1 => ['requestType' => 'required|in:new,renewal'],
             2 => $isComponent 
                 ? [
-                    'firearmCategory' => 'required|in:rifle,shotgun,handgun,combination,other,barrel,action',
+                    'firearmCategory' => 'required|in:rifle,self_loading_rifle,shotgun,handgun,combination,other,barrel,action',
                     'make' => 'required|string|max:255',
                     'serialNumber' => 'required|string|max:255',
                 ]
                 : [
-                    'firearmCategory' => 'required|in:rifle,shotgun,handgun,combination,other,barrel,action',
+                    'firearmCategory' => 'required|in:rifle,self_loading_rifle,shotgun,handgun,combination,other,barrel,action',
                     'actionType' => 'required',
                     'make' => 'required|string|max:255',
                     'model' => 'required|string|max:255',
@@ -631,6 +632,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             if ($firearm->firearm_type) {
                 $categoryMap = [
                     'rifle' => 'rifle',
+                    'self_loading_rifle' => 'self_loading_rifle',
                     'shotgun' => 'shotgun',
                     'handgun' => 'handgun',
                     'combination' => 'combination',
