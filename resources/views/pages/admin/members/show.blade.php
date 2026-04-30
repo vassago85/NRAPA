@@ -18,6 +18,7 @@ use App\Models\MemberMessage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -36,6 +37,12 @@ new #[Title('Member Details - Admin')] class extends Component {
     public bool $showResetPasswordModal = false;
     public bool $showReset2FAModal = false;
     public string $resetNotes = '';
+
+    // Manually set password (admin shares it with the member out-of-band)
+    public bool $showSetPasswordModal = false;
+    public string $newPassword = '';
+    public string $setPasswordNotes = '';
+    public ?string $sharedPassword = null;
     
     // Knowledge test manual completion
     public bool $showMarkKnowledgeTestModal = false;
@@ -305,6 +312,100 @@ new #[Title('Member Details - Admin')] class extends Component {
         } else {
             session()->flash('warning', 'Password reset initiated. The user should check their email.');
         }
+    }
+
+    public function openSetPasswordModal(): void
+    {
+        $this->setPasswordNotes = '';
+        $this->sharedPassword = null;
+        $this->newPassword = $this->generateReadablePassword();
+        $this->resetErrorBag('newPassword');
+        $this->showSetPasswordModal = true;
+    }
+
+    public function closeSetPasswordModal(): void
+    {
+        $this->showSetPasswordModal = false;
+        $this->newPassword = '';
+        $this->setPasswordNotes = '';
+        $this->sharedPassword = null;
+        $this->resetErrorBag('newPassword');
+    }
+
+    public function regeneratePassword(): void
+    {
+        $this->newPassword = $this->generateReadablePassword();
+        $this->resetErrorBag('newPassword');
+    }
+
+    /**
+     * Generate a readable, easy-to-share password that satisfies our policy:
+     * mixed-case letters, digits, and a symbol (e.g. "Bright-Falcon-42!").
+     */
+    private function generateReadablePassword(): string
+    {
+        $adjectives = [
+            'Bright', 'Swift', 'Brave', 'Calm', 'Clever', 'Eager', 'Fair', 'Gentle',
+            'Happy', 'Jolly', 'Kind', 'Lucky', 'Mighty', 'Noble', 'Proud', 'Quick',
+            'Royal', 'Sharp', 'Sunny', 'Bold', 'Quiet', 'Loyal', 'Smart', 'Steady',
+        ];
+        $nouns = [
+            'Eagle', 'Falcon', 'Tiger', 'Lion', 'Bear', 'Wolf', 'Hawk', 'Otter',
+            'River', 'Mountain', 'Forest', 'Ocean', 'Valley', 'Meadow', 'Stone', 'Flame',
+            'Storm', 'Cloud', 'Shadow', 'Spark', 'Arrow', 'Crystal', 'Thunder', 'Star',
+        ];
+        $symbols = ['!', '#', '$', '%', '&', '*', '@'];
+
+        $word1 = $adjectives[array_rand($adjectives)];
+        $word2 = $nouns[array_rand($nouns)];
+        $digits = (string) random_int(10, 99);
+        $symbol = $symbols[array_rand($symbols)];
+
+        return $word1 . '-' . $word2 . '-' . $digits . $symbol;
+    }
+
+    public function saveManualPassword(): void
+    {
+        if (!$this->canResetPassword) {
+            session()->flash('error', 'You do not have permission to set this user\'s password.');
+            return;
+        }
+
+        $this->validate([
+            'newPassword' => ['required', 'string', 'min:8', 'max:255'],
+        ]);
+
+        $plain = $this->newPassword;
+
+        // The User model casts 'password' => 'hashed', so assigning the
+        // plaintext is enough — Eloquent hashes it on save.
+        $this->user->forceFill([
+            'password' => $plain,
+            'remember_token' => Str::random(60),
+        ])->save();
+
+        AccountResetLog::create([
+            'user_id' => $this->user->id,
+            'reset_by' => auth()->id(),
+            'reset_type' => AccountResetLog::TYPE_PASSWORD,
+            'verification_passed' => true,
+            'notes' => $this->setPasswordNotes ?: 'Password manually set by admin and shared with member out-of-band.',
+            'ip_address' => request()->ip(),
+        ]);
+
+        try {
+            app(\App\Services\NtfyService::class)->notifyAdmins(
+                'new_member',
+                'Password Manually Set',
+                auth()->user()->name . " manually set the password for {$this->user->name} ({$this->user->email}).",
+                'high',
+            );
+        } catch (\Exception $e) {}
+
+        // Transition modal to "share" state so the admin can copy/share the password.
+        $this->sharedPassword = $plain;
+        $this->newPassword = '';
+        session()->flash('success', "Password updated for {$this->user->name}. Share it with the member securely.");
     }
 
     public function openSendMessage(): void
@@ -1433,6 +1534,14 @@ new #[Title('Member Details - Admin')] class extends Component {
                     <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
                 </svg>
                 Reset Password
+            </button>
+
+            <button wire:click="openSetPasswordModal" class="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-300 dark:hover:bg-amber-900/50 transition-colors"
+                title="Manually set a password and share it with the member">
+                <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
+                </svg>
+                Set Password
             </button>
             @endif
 
@@ -2641,6 +2750,113 @@ new #[Title('Member Details - Admin')] class extends Component {
                         Send Reset Email
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Set Password Modal (admin manually sets a password to share with the member) --}}
+    @if($showSetPasswordModal)
+    <div class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div wire:click="closeSetPasswordModal" class="fixed inset-0 bg-black/50"></div>
+            <div class="relative w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-zinc-800">
+                <div class="mb-4 flex items-center gap-3">
+                    <div class="flex size-10 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/50">
+                        <svg class="size-5 text-amber-600 dark:text-amber-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Set Password Manually</h3>
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400">For <strong>{{ $this->user->name }}</strong></p>
+                    </div>
+                </div>
+
+                @if($sharedPassword === null)
+                    {{-- Edit state: pick / generate a password --}}
+                    <p class="mb-4 text-sm text-zinc-600 dark:text-zinc-300">
+                        Set a new password for this member. After saving you'll be shown the password so you can share it with them (e.g. via WhatsApp or phone). The user will be logged out of any "remember me" sessions.
+                    </p>
+
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">New password</label>
+                        <div x-data="{ show: true }" class="relative">
+                            <input
+                                :type="show ? 'text' : 'password'"
+                                wire:model="newPassword"
+                                autocomplete="new-password"
+                                class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 pr-20 font-mono text-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white" />
+                            <button type="button" x-on:click="show = !show"
+                                class="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200">
+                                <span x-text="show ? 'Hide' : 'Show'"></span>
+                            </button>
+                        </div>
+                        @error('newPassword') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                        <button type="button" wire:click="regeneratePassword"
+                            class="mt-2 inline-flex items-center gap-1 text-xs font-medium text-amber-700 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300">
+                            <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            Generate a different one
+                        </button>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Notes (optional)</label>
+                        <textarea wire:model="setPasswordNotes" rows="2" placeholder="Why is the password being set manually?"
+                            class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white"></textarea>
+                    </div>
+
+                    <div class="mb-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                        <p class="text-sm text-amber-800 dark:text-amber-300">
+                            <strong>Heads up:</strong> Verify the member's identity before sharing this password. The action is logged.
+                        </p>
+                    </div>
+
+                    <div class="flex justify-end gap-3">
+                        <button wire:click="closeSetPasswordModal"
+                            class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors">
+                            Cancel
+                        </button>
+                        <button wire:click="saveManualPassword"
+                            wire:loading.attr="disabled"
+                            class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 transition-colors disabled:opacity-50">
+                            <span wire:loading.remove wire:target="saveManualPassword">Set Password</span>
+                            <span wire:loading wire:target="saveManualPassword">Saving…</span>
+                        </button>
+                    </div>
+                @else
+                    {{-- Share state: password has been saved, let admin copy it --}}
+                    <div class="mb-4 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+                        <p class="text-sm text-emerald-800 dark:text-emerald-300">
+                            <strong>Password updated.</strong> Share the password below with {{ $this->user->name }} securely. This is the only time it will be displayed.
+                        </p>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Password</label>
+                        <div
+                            x-data="{ copied: false, password: @js($sharedPassword) }"
+                            class="flex items-center justify-between gap-3 rounded-lg border-2 border-dashed border-amber-400 bg-amber-50 px-4 py-3 dark:border-amber-600 dark:bg-amber-900/20">
+                            <code class="select-all break-all font-mono text-base font-semibold text-zinc-900 dark:text-white" x-text="password"></code>
+                            <button type="button"
+                                x-on:click="navigator.clipboard.writeText(password); copied = true; setTimeout(() => copied = false, 2000)"
+                                class="shrink-0 inline-flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 transition-colors">
+                                <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                <span x-text="copied ? 'Copied!' : 'Copy'"></span>
+                            </button>
+                        </div>
+                        <p class="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                            Tip: ask the member to log in with this password and change it under their account settings.
+                        </p>
+                    </div>
+
+                    <div class="flex justify-end">
+                        <button wire:click="closeSetPasswordModal"
+                            class="rounded-lg bg-zinc-800 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-700 dark:hover:bg-zinc-600 transition-colors">
+                            Done
+                        </button>
+                    </div>
+                @endif
             </div>
         </div>
     </div>
