@@ -185,6 +185,14 @@ class Membership extends Model
     }
 
     /**
+     * Renewal-reminder log entries for this membership.
+     */
+    public function renewalReminders(): HasMany
+    {
+        return $this->hasMany(MembershipRenewalReminder::class);
+    }
+
+    /**
      * Get the membership type.
      */
     public function type(): BelongsTo

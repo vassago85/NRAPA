@@ -31,6 +31,7 @@ class NotificationPreference extends Model
         'notify_system_errors',
         'notify_license_expiry',
         'license_expiry_intervals',
+        'notify_membership_expiry',
     ];
 
     protected function casts(): array
@@ -50,6 +51,7 @@ class NotificationPreference extends Model
             'notify_system_errors' => 'boolean',
             'notify_license_expiry' => 'boolean',
             'license_expiry_intervals' => 'array',
+            'notify_membership_expiry' => 'boolean',
         ];
     }
 

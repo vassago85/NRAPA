@@ -26,6 +26,13 @@ Schedule::command('nrapa:send-license-expiry-notifications')
     ->withoutOverlapping()
     ->runInBackground();
 
+// Send membership renewal reminders daily at 8:10 AM (offset from licence job)
+Schedule::command('nrapa:send-membership-expiry-notifications')
+    ->dailyAt('08:10')
+    ->timezone('Africa/Johannesburg')
+    ->withoutOverlapping()
+    ->runInBackground();
+
 // Daily database backup at 2 AM
 Schedule::command('nrapa:daily-database-backup')
     ->dailyAt('02:00')

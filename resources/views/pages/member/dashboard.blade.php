@@ -116,6 +116,25 @@ new #[Title('Dashboard')] class extends Component {
         return $m->expires_at->isPast() ? $m : null;
     }
 
+    /**
+     * Active membership that expires within the next 30 days (and is not yet expired).
+     * Used to show a renewal-reminder banner before the membership lapses.
+     */
+    #[Computed]
+    public function expiringSoonMembership(): ?Membership
+    {
+        $m = $this->activeMembership;
+        if (! $m || ! $m->expires_at || $m->type->isLifetime()) {
+            return null;
+        }
+
+        if ($m->expires_at->isPast()) {
+            return null;
+        }
+
+        return $m->expires_at->lessThanOrEqualTo(now()->addDays(30)) ? $m : null;
+    }
+
     #[Computed]
     public function pendingPaymentMembership()
     {
@@ -611,6 +630,71 @@ new #[Title('Dashboard')] class extends Component {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/>
                         </svg>
                         Update Profile
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Expiring-Soon Membership Banner (>0 and ≤30 days) --}}
+    @if($this->expiringSoonMembership)
+    @php
+        $soonMembership = $this->expiringSoonMembership;
+        $daysLeft = max(0, (int) now()->startOfDay()->diffInDays($soonMembership->expires_at, false));
+        $urgent = $daysLeft <= 7;
+    @endphp
+    <div @class([
+        'rounded-xl border-2 bg-gradient-to-r p-6',
+        'border-red-300 dark:border-red-700 from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20' => $urgent,
+        'border-amber-300 dark:border-amber-700 from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20' => ! $urgent,
+    ])>
+        <div class="flex items-start gap-4">
+            <div @class([
+                'flex size-14 flex-shrink-0 items-center justify-center rounded-xl',
+                'bg-red-200 dark:bg-red-800' => $urgent,
+                'bg-amber-200 dark:bg-amber-800' => ! $urgent,
+            ])>
+                <svg @class([
+                    'size-7',
+                    'text-red-700 dark:text-red-300' => $urgent,
+                    'text-amber-700 dark:text-amber-300' => ! $urgent,
+                ]) fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h3 @class([
+                    'text-lg font-bold',
+                    'text-red-800 dark:text-red-200' => $urgent,
+                    'text-amber-800 dark:text-amber-200' => ! $urgent,
+                ])>
+                    @if($urgent)
+                        Your Membership Expires in {{ $daysLeft }} {{ \Illuminate\Support\Str::plural('Day', $daysLeft) }}
+                    @else
+                        Your Membership Expires Soon
+                    @endif
+                </h3>
+                <p @class([
+                    'mt-1 text-sm',
+                    'text-red-700 dark:text-red-300' => $urgent,
+                    'text-amber-700 dark:text-amber-300' => ! $urgent,
+                ])>
+                    Your <strong>{{ $soonMembership->type->name }}</strong> membership expires on
+                    <strong>{{ $soonMembership->expires_at->format('d M Y') }}</strong>.
+                    Renew now to avoid any interruption to your endorsements, certificates and member benefits.
+                </p>
+                <div class="mt-4 flex flex-wrap items-center gap-3">
+                    <a href="{{ route('membership.index') }}" wire:navigate
+                        @class([
+                            'inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium text-white transition-colors',
+                            'bg-red-600 hover:bg-red-700' => $urgent,
+                            'bg-amber-600 hover:bg-amber-700' => ! $urgent,
+                        ])>
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        Renew Membership
                     </a>
                 </div>
             </div>
