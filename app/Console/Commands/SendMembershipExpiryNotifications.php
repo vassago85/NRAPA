@@ -5,8 +5,8 @@ namespace App\Console\Commands;
 use App\Mail\MembershipExpiry;
 use App\Models\Membership;
 use App\Models\MembershipRenewalReminder;
+use Carbon\CarbonInterface;
 use Illuminate\Console\Command;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -112,7 +112,7 @@ class SendMembershipExpiryNotifications extends Command
     /**
      * Decide what (if anything) to send for one membership.
      */
-    protected function processMembership(Membership $membership, Carbon $today, bool $dryRun, int $throttleSeconds): string
+    protected function processMembership(Membership $membership, CarbonInterface $today, bool $dryRun, int $throttleSeconds): string
     {
         $user = $membership->user;
 
@@ -211,7 +211,7 @@ class SendMembershipExpiryNotifications extends Command
     /**
      * Pick the relevant reminder bucket for a membership today, or null if none applies.
      */
-    protected function bucketFor(Membership $membership, Carbon $today): ?string
+    protected function bucketFor(Membership $membership, CarbonInterface $today): ?string
     {
         $expiresAt = $membership->expires_at?->copy()?->startOfDay();
         if (! $expiresAt) {
