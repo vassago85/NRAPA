@@ -21,9 +21,15 @@
             <span style="font-size: 28px; display: block; margin-bottom: 8px;">&#9888;&#65039;</span>
             <span class="tx" style="font-weight: 700; font-size: 15px; color: #991b1b; display: block;">Your NRAPA membership expired on {{ $membership->expires_at->format('d F Y') }}.</span>
         </div>
-        <p class="tx" style="color: #374151; margin: 0 0 24px 0; font-size: 15px;">
-            You can still renew during the grace period and keep your existing record, certificates and endorsement history.
-            After the grace period ends you will need to re-apply as a new member, with full sign-up fees.
+        <div class="bx-info" style="background-color: #eff6ff; border: 1px solid #93c5fd; border-radius: 10px; padding: 20px; margin: 0 0 24px 0;">
+            <span class="tx" style="font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; color: #1e40af; display: block; margin-bottom: 8px;">Good news</span>
+            <p class="tx" style="color: #1e40af; margin: 0; font-size: 14px; line-height: 1.6;">
+                With our new member platform you have a <strong>6-month grace period</strong> from your expiry date to renew without penalty.
+                Renew now and keep your existing member number, certificates and endorsement record &mdash; no need to re-apply or pay a sign-up fee.
+            </p>
+        </div>
+        <p class="tx" style="color: #374151; margin: 0 0 24px 0; font-size: 14px;">
+            After the 6-month grace period ends you will need to re-apply as a new member and pay the full sign-up fee, so please don&rsquo;t leave it.
         </p>
     @elseif($kind === \App\Models\MembershipRenewalReminder::KIND_SEVEN_DAYS)
         <div class="bx-danger" style="background-color: #fef2f2; border: 1px solid #fca5a5; border-radius: 10px; padding: 20px; margin: 0 0 24px 0; text-align: center;">

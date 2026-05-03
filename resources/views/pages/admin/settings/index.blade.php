@@ -15,7 +15,7 @@ new #[Title('Settings - Admin')] class extends Component {
 
     // Renewal Policy
     public int $renewalWindowDays = 30;
-    public int $renewalGracePeriodDays = 90;
+    public int $renewalGracePeriodDays = 180;
     public int $lateRenewalThresholdDays = 90;
     public float $lateRenewalFeeMultiplier = 2;
 
@@ -70,7 +70,7 @@ new #[Title('Settings - Admin')] class extends Component {
     public function mount(): void
     {
         $this->renewalWindowDays = (int) SystemSetting::get('renewal_window_days', 30);
-        $this->renewalGracePeriodDays = (int) SystemSetting::get('renewal_grace_period_days', 90);
+        $this->renewalGracePeriodDays = (int) SystemSetting::get('renewal_grace_period_days', 180);
         $this->lateRenewalThresholdDays = (int) SystemSetting::get('late_renewal_threshold_days', 90);
         $this->lateRenewalFeeMultiplier = (float) SystemSetting::get('late_renewal_fee_multiplier', 2);
     }

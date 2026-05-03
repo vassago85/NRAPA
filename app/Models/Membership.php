@@ -414,7 +414,9 @@ class Membership extends Model
      */
     public static function renewalGracePeriodDays(): int
     {
-        return (int) SystemSetting::get('renewal_grace_period_days', 90);
+        // Default 180 days (~6 months) — NRAPA's new-platform policy gives lapsed
+        // members half a year to renew before they have to re-apply as new.
+        return (int) SystemSetting::get('renewal_grace_period_days', 180);
     }
 
     /**
