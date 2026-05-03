@@ -189,12 +189,25 @@ class SendMembershipExpiryNotifications extends Command
             // a separate "sent" row when the queue worker actually delivers the mail
             // — but we always want a record of the dispatch attempt itself, so the
             // admin email-logs page never goes dark for bulk runs.
+            $renderedBody = null;
+            try {
+                $renderedBody = (new MembershipExpiry($user, $membership, $kind))->render();
+            } catch (\Throwable $e) {
+                // Rendering failure shouldn't break dispatch; we'll log without body.
+                Log::warning('Could not render MembershipExpiry body for audit row', [
+                    'user_id' => $user->id,
+                    'membership_id' => $membership->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
             EmailLog::log(
                 toEmail: $user->email,
                 subject: $mail->subject,
                 mailableClass: MembershipExpiry::class,
                 toName: $user->name,
                 userId: $user->id,
+                body: $renderedBody,
                 metadata: [
                     'membership_id' => $membership->id,
                     'membership_number' => $membership->membership_number,
