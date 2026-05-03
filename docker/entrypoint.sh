@@ -95,5 +95,12 @@ chmod -R 775 /var/www/html/storage
 
 echo "✅ NRAPA is ready!"
 
-# Start supervisor
-exec /usr/bin/supervisord -c /etc/supervisord.conf
+# Hand off to the container's CMD if one was provided (queue:work, schedule:run, etc.).
+# Otherwise default to supervisor (nginx + php-fpm) for the web app container.
+if [ "$#" -gt 0 ]; then
+    echo "▶️  Running container command: $*"
+    exec "$@"
+else
+    echo "▶️  Starting supervisor (nginx + php-fpm)"
+    exec /usr/bin/supervisord -c /etc/supervisord.conf
+fi
