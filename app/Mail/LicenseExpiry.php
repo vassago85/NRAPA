@@ -5,13 +5,16 @@ namespace App\Mail;
 use App\Models\User;
 use App\Models\UserFirearm;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class LicenseExpiry extends Mailable implements ShouldQueue
+// NOTE: Not implementing ShouldQueue. Whether to queue is decided by the
+// dispatcher (Mail::send vs Mail::later vs Mail::queue) — keeping the Mailable
+// neutral lets --throttle=0 actually send synchronously when we want immediate
+// delivery, instead of silently going to the queue.
+class LicenseExpiry extends Mailable
 {
     use Queueable, SerializesModels;
 

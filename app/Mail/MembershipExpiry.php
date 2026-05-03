@@ -6,13 +6,18 @@ use App\Models\Membership;
 use App\Models\MembershipRenewalReminder;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class MembershipExpiry extends Mailable implements ShouldQueue
+// NOTE: Intentionally NOT implementing ShouldQueue on the Mailable itself.
+// Whether to queue is decided by the dispatcher (Mail::send vs Mail::later vs Mail::queue),
+// so the command can choose synchronous-send (--throttle=0) vs staggered-queue (--throttle>0)
+// without the Mailable forcing one path. Implementing ShouldQueue here causes Mail::send()
+// to silently dispatch to the queue, which made --throttle=0 not actually send synchronously
+// and hid Mailgun delivery failures behind the queue worker.
+class MembershipExpiry extends Mailable
 {
     use Queueable, SerializesModels;
 
