@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Mail\MembershipExpiry;
+use App\Models\EmailLog;
 use App\Models\Membership;
 use App\Models\MembershipRenewalReminder;
 use Carbon\CarbonInterface;
@@ -183,6 +184,26 @@ class SendMembershipExpiryNotifications extends Command
                 'kind' => $kind,
                 'sent_at' => now(),
             ]);
+
+            // Audit-trail row at dispatch time. The MessageSent listener will write
+            // a separate "sent" row when the queue worker actually delivers the mail
+            // — but we always want a record of the dispatch attempt itself, so the
+            // admin email-logs page never goes dark for bulk runs.
+            EmailLog::log(
+                toEmail: $user->email,
+                subject: $mail->subject,
+                mailableClass: MembershipExpiry::class,
+                toName: $user->name,
+                userId: $user->id,
+                metadata: [
+                    'membership_id' => $membership->id,
+                    'membership_number' => $membership->membership_number,
+                    'kind' => $kind,
+                    'expires_at' => $membership->expires_at->toDateString(),
+                    'delay_seconds' => $delaySeconds,
+                ],
+                status: 'queued',
+            );
 
             Log::info('Membership expiry notification queued', [
                 'user_id' => $user->id,
