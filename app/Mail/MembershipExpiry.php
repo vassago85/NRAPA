@@ -16,7 +16,7 @@ class MembershipExpiry extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
-    public string $subject;
+    public $subject;
 
     public int $daysUntilExpiry;
 
