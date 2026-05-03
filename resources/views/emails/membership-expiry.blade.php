@@ -123,5 +123,5 @@
 
 @section('footer')
     This reminder was sent because you have membership renewal notifications enabled.
-    You can manage your notification preferences in your <a href="{{ route('settings.notifications') }}" style="color: #6b7280;">account settings</a>.
+    You can manage your notification preferences in your <a href="{{ route('notifications.edit') }}" style="color: #6b7280;">account settings</a>.
 @endsection
