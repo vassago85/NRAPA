@@ -23,17 +23,10 @@ new class extends Component {
     public function with(): array
     {
         $bankAccount = SystemSetting::getBankAccount();
-        $user = auth()->user();
-
-        // Generate payment reference
-        $prefix = $bankAccount['reference_prefix'] ?: 'NRAPA';
-        $surname = strtoupper(explode(' ', $user->name)[count(explode(' ', $user->name)) - 1] ?? 'MEMBER');
-        $idLastFour = substr($user->id_number ?? $user->id, -4);
-        $reference = "{$prefix}-{$surname}-{$idLastFour}";
 
         return [
             'bankAccount' => $bankAccount,
-            'reference' => $reference,
+            'reference' => $this->membership->payment_reference,
             'membershipType' => $this->membership->type,
         ];
     }
@@ -42,18 +35,15 @@ new class extends Component {
     {
         $user = auth()->user();
         $bankAccount = SystemSetting::getBankAccount();
-        $prefix = $bankAccount['reference_prefix'] ?: 'NRAPA';
-        $surname = strtoupper(explode(' ', $user->name)[count(explode(' ', $user->name)) - 1] ?? 'MEMBER');
-        $idLastFour = substr($user->id_number ?? $user->id, -4);
-        $reference = "{$prefix}-{$surname}-{$idLastFour}";
 
         try {
             Mail::to($user->email)->send(new PaymentInstructions(
-                $this->membership,
+                $this->membership->load('type', 'user'),
                 $bankAccount,
-                $reference
+                $this->membership->payment_reference,
             ));
 
+            $this->membership->update(['payment_email_sent_at' => now()]);
             $this->emailSent = true;
             session()->flash('success', 'Payment instructions have been sent to your email.');
         } catch (\Exception $e) {

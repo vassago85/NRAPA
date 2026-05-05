@@ -193,6 +193,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
                     'date' => $m->applied_at,
                     'payment_reference' => $m->payment_reference,
                     'pop_reminder_sent_at' => $m->pop_reminder_sent_at,
+                    'payment_email_sent_at' => $m->payment_email_sent_at,
                     'amount_due' => $m->amount_due,
                     'route' => route('admin.approvals.show', $m),
                 ])
@@ -217,6 +218,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
                     'date' => $m->applied_at,
                     'payment_reference' => $m->payment_reference,
                     'pop_reminder_sent_at' => $m->pop_reminder_sent_at,
+                    'payment_email_sent_at' => $m->payment_email_sent_at,
                     'route' => route('admin.approvals.show', $m),
                 ])
         );
@@ -360,6 +362,38 @@ new #[Title('All Approvals - Admin')] class extends Component {
                 'error' => $e->getMessage(),
             ]);
             session()->flash('error', 'Failed to send reminder: ' . $e->getMessage());
+        }
+    }
+
+    public function resendPaymentInstructions(int $membershipId): void
+    {
+        $membership = Membership::with(['user', 'type', 'affiliatedClub'])->whereHas('user')->findOrFail($membershipId);
+
+        if (!$membership->user?->email) {
+            session()->flash('error', 'Member has no email address.');
+            return;
+        }
+
+        try {
+            $bankAccount = SystemSetting::getBankAccount();
+
+            Mail::to($membership->user->email)->send(new PaymentInstructions(
+                $membership,
+                $bankAccount,
+                $membership->payment_reference,
+            ));
+
+            $membership->update(['payment_email_sent_at' => now()]);
+
+            unset($this->awaitingPayment);
+
+            session()->flash('success', 'Payment instructions sent to ' . $membership->user->email);
+        } catch (\Exception $e) {
+            Log::warning('Failed to resend payment instructions', [
+                'membership_id' => $membership->id,
+                'error' => $e->getMessage(),
+            ]);
+            session()->flash('error', 'Failed to send email: ' . $e->getMessage());
         }
     }
 
@@ -817,6 +851,21 @@ new #[Title('All Approvals - Admin')] class extends Component {
                         Mark Paid
                     </button>
                     <button
+                        wire:click="resendPaymentInstructions({{ $item['membership_id'] }})"
+                        wire:confirm="Send banking details &amp; payment reference to {{ $item['user']->email }}?"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-blue-300 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:bg-zinc-800 dark:text-blue-400 dark:hover:bg-blue-950/20 transition-colors"
+                        @if($item['payment_email_sent_at']) title="Last sent: {{ \Carbon\Carbon::parse($item['payment_email_sent_at'])->diffForHumans() }}" @else title="Payment email never sent" @endif
+                    >
+                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                        @if($item['payment_email_sent_at'])
+                            Resend Payment
+                        @else
+                            Send Payment Details
+                        @endif
+                    </button>
+                    <button
                         wire:click="sendPaymentReminder({{ $item['membership_id'] }})"
                         wire:confirm="@if($item['pop_reminder_sent_at'])Resend payment reminder to {{ $item['user']->email }}? (last sent {{ \Carbon\Carbon::parse($item['pop_reminder_sent_at'])->diffForHumans() }})@else Send a payment reminder email to {{ $item['user']->email }}? @endif"
                         @if($item['pop_reminder_sent_at']) title="Last reminder: {{ \Carbon\Carbon::parse($item['pop_reminder_sent_at'])->diffForHumans() }} — click to resend" @endif
@@ -825,7 +874,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                         </svg>
                         @if($item['pop_reminder_sent_at'])
-                            Resend
+                            Resend Reminder
                         @else
                             Remind
                         @endif

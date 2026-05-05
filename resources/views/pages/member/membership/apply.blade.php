@@ -178,10 +178,7 @@ new #[Title('Apply for Membership')] class extends Component {
             'dedicated_declaration_accepted_at' => $this->isDedicatedType ? now() : null,
         ]);
 
-        // Payment instructions are intentionally NOT sent here. They are
-        // sent once an administrator approves the application so the
-        // member isn't asked to pay for something that may still be
-        // rejected — and so we don't duplicate the approval-time email.
+        $this->sendPaymentInstructionsEmail($membership);
 
         // Notify admins of new application
         try {
@@ -196,7 +193,7 @@ new #[Title('Apply for Membership')] class extends Component {
             // Non-critical — don't block the application
         }
 
-        session()->flash('success', 'Your membership application has been submitted! Payment instructions will be emailed to you once an administrator has reviewed and approved your application.');
+        session()->flash('success', 'Your membership application has been submitted! Payment instructions have been emailed to you.');
 
         $this->redirect(route('membership.show', $membership), navigate: true);
     }
@@ -395,7 +392,7 @@ new #[Title('Apply for Membership')] class extends Component {
                         <span class="font-bold text-emerald-600 dark:text-emerald-400">R{{ number_format($this->signupTotal, 2) }}</span>
                     </div>
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">
-                        Payment details will be sent to your email after submitting your application.
+                        Payment details will be emailed to you and shown on the next page after you submit.
                     </p>
                 </div>
             </div>

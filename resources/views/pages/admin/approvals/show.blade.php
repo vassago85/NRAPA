@@ -533,6 +533,36 @@ new #[Title('Review Application - Admin')] class extends Component {
         }
     }
 
+    public function resendPaymentInstructions(): void
+    {
+        $membership = $this->membership;
+
+        if (!$membership->user?->email) {
+            session()->flash('error', 'Member has no email address.');
+            return;
+        }
+
+        try {
+            $bankAccount = SystemSetting::getBankAccount();
+
+            Mail::to($membership->user->email)->send(new PaymentInstructions(
+                $membership->load('type', 'user', 'affiliatedClub'),
+                $bankAccount,
+                $membership->payment_reference,
+            ));
+
+            $membership->update(['payment_email_sent_at' => now()]);
+
+            session()->flash('success', 'Payment instructions resent to ' . $membership->user->email);
+        } catch (\Exception $e) {
+            Log::warning('Failed to resend payment instructions', [
+                'membership_id' => $membership->id,
+                'error' => $e->getMessage(),
+            ]);
+            session()->flash('error', 'Failed to send email: ' . $e->getMessage());
+        }
+    }
+
     protected function sendPaymentReceivedEmail(): void
     {
         try {
@@ -941,7 +971,7 @@ new #[Title('Review Application - Admin')] class extends Component {
                 <p class="mt-1 text-sm text-amber-700 dark:text-amber-300">
                     This member has not yet uploaded proof of payment. If you have confirmed payment through other means (e.g. bank statement), you can mark it as paid.
                 </p>
-                <div class="mt-3">
+                <div class="mt-3 flex items-center gap-3 flex-wrap">
                     <button
                         wire:click="confirmPayment"
                         wire:confirm="Confirm payment received for this member? The application will become ready for approval."
@@ -952,6 +982,21 @@ new #[Title('Review Application - Admin')] class extends Component {
                         </svg>
                         Mark as Paid
                     </button>
+                    <button
+                        wire:click="resendPaymentInstructions"
+                        wire:confirm="Resend payment instructions to {{ $this->membership->user->email }}?"
+                        class="inline-flex items-center gap-2 rounded-lg border border-blue-300 bg-white px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:bg-zinc-800 dark:text-blue-400 dark:hover:bg-blue-950/20 transition-colors"
+                    >
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                        Resend Payment Email
+                    </button>
+                    @if($this->membership->payment_email_sent_at)
+                    <span class="text-xs text-zinc-500 dark:text-zinc-400">Last sent: {{ $this->membership->payment_email_sent_at->diffForHumans() }}</span>
+                    @elseif(!$this->membership->payment_email_sent_at)
+                    <span class="text-xs text-red-500 dark:text-red-400">Payment email never sent</span>
+                    @endif
                 </div>
             </div>
         </div>
@@ -1152,7 +1197,7 @@ new #[Title('Review Application - Admin')] class extends Component {
         <div class="mb-4 p-4 rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
             <p class="text-sm text-amber-700 dark:text-amber-300">No proof of payment uploaded yet. The member has been notified to make payment.</p>
             @if(!$this->membership->payment_confirmed_at)
-            <div class="mt-3">
+            <div class="mt-3 flex items-center gap-3 flex-wrap">
                 <button
                     wire:click="confirmPayment"
                     wire:confirm="Confirm payment received? The application will become ready for final approval."
@@ -1163,6 +1208,21 @@ new #[Title('Review Application - Admin')] class extends Component {
                     </svg>
                     Mark as Paid
                 </button>
+                <button
+                    wire:click="resendPaymentInstructions"
+                    wire:confirm="Resend payment instructions to {{ $this->membership->user->email }}?"
+                    class="inline-flex items-center gap-2 rounded-lg border border-blue-300 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:bg-zinc-800 dark:text-blue-400 dark:hover:bg-blue-950/20 transition-colors"
+                >
+                    <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                    Resend Payment Email
+                </button>
+                @if($this->membership->payment_email_sent_at)
+                <span class="text-xs text-zinc-500 dark:text-zinc-400">Last sent: {{ $this->membership->payment_email_sent_at->diffForHumans() }}</span>
+                @else
+                <span class="text-xs text-red-500 dark:text-red-400">Payment email never sent</span>
+                @endif
             </div>
             @else
             <p class="mt-2 text-xs text-emerald-600 dark:text-emerald-400">Payment confirmed by admin on {{ $this->membership->payment_confirmed_at->format('d M Y \a\t H:i') }}.</p>
