@@ -332,6 +332,19 @@ class MemberDocument extends Model
     }
 
     /**
+     * Revert a verified or rejected document back to pending for re-review.
+     */
+    public function revertToPending(User $admin): void
+    {
+        $this->update([
+            'status' => 'pending',
+            'verified_at' => null,
+            'verified_by' => null,
+            'rejection_reason' => null,
+        ]);
+    }
+
+    /**
      * Reject the document.
      */
     public function reject(User $admin, string $reason): void

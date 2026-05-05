@@ -123,6 +123,18 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         $this->reset(['showReviewModal', 'reviewingDocument', 'rejectionReason']);
     }
 
+    public function revertDocument(): void
+    {
+        if (!$this->reviewingDocument) {
+            return;
+        }
+
+        $this->reviewingDocument->revertToPending(auth()->user());
+
+        session()->flash('success', "Document reverted to pending. You can now re-review it.");
+        $this->reset(['showReviewModal', 'reviewingDocument', 'rejectionReason']);
+    }
+
     public function getStatusBadgeClass(string $status): string
     {
         return match($status) {
@@ -548,7 +560,12 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                                     </div>
                                 @endif
                                 
-                                <div class="flex justify-end">
+                                <div class="flex justify-end gap-3">
+                                    <button wire:click="revertDocument"
+                                        wire:confirm="Revert this document to pending? It will need to be reviewed again."
+                                        class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors">
+                                        Revert to Pending
+                                    </button>
                                     <button wire:click="$set('showReviewModal', false)"
                                         class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                                         Close

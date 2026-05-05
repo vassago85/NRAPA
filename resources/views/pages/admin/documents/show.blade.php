@@ -182,6 +182,14 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         $this->redirect(route('admin.documents.index'), navigate: true);
     }
 
+    public function revertDocument(): void
+    {
+        $this->document->revertToPending(auth()->user());
+
+        session()->flash('success', "Document reverted to pending. You can now re-review it.");
+        $this->redirect(route('admin.documents.show', $this->document), navigate: true);
+    }
+
     public function getStatusBadgeClass(string $status): string
     {
         return match($status) {
@@ -488,6 +496,15 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                             Reject Document
                         </button>
                     </div>
+                </div>
+            @else
+                <div class="mt-4">
+                    <button wire:click="revertDocument"
+                        wire:confirm="Revert this document to pending? It will need to be reviewed again."
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                        Revert to Pending
+                    </button>
                 </div>
             @endif
         </div>
