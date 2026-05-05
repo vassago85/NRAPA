@@ -12,6 +12,9 @@ use App\Models\EndorsementRequest;
 use App\Models\MemberDocument;
 use App\Models\Membership;
 use App\Models\ShootingActivity;
+use App\Models\KnowledgeTest;
+use App\Models\KnowledgeTestAttempt;
+use App\Models\MembershipType;
 use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -365,6 +368,49 @@ new #[Title('All Approvals - Admin')] class extends Component {
         }
     }
 
+    protected function autoCompleteKnowledgeTests(\App\Models\User $user, \App\Models\User $admin, ?MembershipType $membershipType = null): void
+    {
+        if ($user->hasPassedKnowledgeTest()) {
+            return;
+        }
+
+        if (!$membershipType?->requires_knowledge_test) {
+            return;
+        }
+
+        $requiredTests = $membershipType->requiredKnowledgeTests;
+        $tests = $requiredTests->isNotEmpty()
+            ? $requiredTests
+            : KnowledgeTest::active()->limit(1)->get();
+
+        foreach ($tests as $test) {
+            $alreadyPassed = KnowledgeTestAttempt::where('user_id', $user->id)
+                ->where('knowledge_test_id', $test->id)
+                ->where(fn ($q) => $q->where('passed', true)->orWhereNotNull('marked_by'))
+                ->exists();
+
+            if ($alreadyPassed) {
+                continue;
+            }
+
+            $totalPoints = $test->total_points ?? 100;
+
+            KnowledgeTestAttempt::create([
+                'user_id' => $user->id,
+                'knowledge_test_id' => $test->id,
+                'started_at' => now(),
+                'submitted_at' => now(),
+                'auto_score' => $totalPoints,
+                'manual_score' => 0,
+                'total_score' => $totalPoints,
+                'passed' => true,
+                'marked_at' => now(),
+                'marked_by' => $admin->id,
+                'marker_notes' => 'Auto-completed on membership approval by admin',
+            ]);
+        }
+    }
+
     public function resendPaymentInstructions(int $membershipId): void
     {
         $membership = Membership::with(['user', 'type', 'affiliatedClub'])->whereHas('user')->findOrFail($membershipId);
@@ -451,6 +497,11 @@ new #[Title('All Approvals - Admin')] class extends Component {
             Log::error('Failed to issue welcome letter/card on inline approval', ['membership_id' => $membership->id, 'error' => $e->getMessage()]);
         }
 
+        // Auto-complete knowledge tests
+        if ($membership->user) {
+            $this->autoCompleteKnowledgeTests($membership->user, $admin, $membership->type);
+        }
+
         // Send emails
         try {
             if ($membership->user && !$membership->welcome_email_sent_at) {
@@ -533,6 +584,10 @@ new #[Title('All Approvals - Admin')] class extends Component {
                 $membership->update([
                     'membership_number' => $membership->user->formatted_member_number,
                 ]);
+            }
+
+            if ($membership->user) {
+                $this->autoCompleteKnowledgeTests($membership->user, $admin, $membership->type);
             }
 
             try {

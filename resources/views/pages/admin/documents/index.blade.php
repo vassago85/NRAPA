@@ -287,10 +287,10 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
 
     {{-- Review Modal --}}
     @if($showReviewModal && $reviewingDocument)
-        <div class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="fixed inset-0 z-50 overflow-y-auto" x-data x-on:keydown.escape.window="$wire.set('showReviewModal', false)">
             <div class="flex min-h-screen items-center justify-center p-4">
-                <div wire:click="$set('showReviewModal', false)" class="fixed inset-0 bg-black/50"></div>
-                <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-5xl p-6 max-h-[90vh] overflow-y-auto">
+                <div wire:click="$set('showReviewModal', false)" class="fixed inset-0 z-10 bg-black/50"></div>
+                <div class="relative z-20 bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-5xl p-6 max-h-[90vh] overflow-y-auto" @click.stop>
                     <h2 class="text-xl font-bold text-zinc-900 dark:text-white mb-4">Review Document</h2>
                     
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" style="min-height: 70vh;">

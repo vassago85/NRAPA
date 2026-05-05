@@ -8,6 +8,8 @@ use App\Mail\MembershipApproved;
 use App\Mail\MembershipRejected;
 use App\Mail\PaymentInstructions;
 use App\Mail\PaymentReceived;
+use App\Models\KnowledgeTest;
+use App\Models\KnowledgeTestAttempt;
 use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
@@ -117,6 +119,9 @@ new #[Title('Review Application - Admin')] class extends Component {
 
         // Issue welcome letter and membership card
         $this->issueWelcomeLetterAndCard($admin);
+
+        // Auto-complete knowledge tests so admin doesn't have to do it separately
+        $this->autoCompleteKnowledgeTests($this->membership->user, $admin);
 
         // Queue welcome email and payment instructions
         $this->sendApprovalEmail();
@@ -289,6 +294,9 @@ new #[Title('Review Application - Admin')] class extends Component {
             } catch (\Exception $e) {}
             $this->membership->update(['proof_of_payment_path' => null]);
         }
+
+        // Auto-complete knowledge tests for the new membership type
+        $this->autoCompleteKnowledgeTests($this->membership->user, $admin);
 
         // Send payment confirmation and approval email
         $this->sendPaymentReceivedEmail();
@@ -529,6 +537,50 @@ new #[Title('Review Application - Admin')] class extends Component {
             Log::warning('Failed to send payment instructions on approval', [
                 'membership_id' => $this->membership->id,
                 'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    protected function autoCompleteKnowledgeTests(\App\Models\User $user, \App\Models\User $admin): void
+    {
+        if ($user->hasPassedKnowledgeTest()) {
+            return;
+        }
+
+        $membershipType = $this->membership->type;
+        if (!$membershipType?->requires_knowledge_test) {
+            return;
+        }
+
+        $requiredTests = $membershipType->requiredKnowledgeTests;
+        $tests = $requiredTests->isNotEmpty()
+            ? $requiredTests
+            : KnowledgeTest::active()->limit(1)->get();
+
+        foreach ($tests as $test) {
+            $alreadyPassed = KnowledgeTestAttempt::where('user_id', $user->id)
+                ->where('knowledge_test_id', $test->id)
+                ->where(fn ($q) => $q->where('passed', true)->orWhereNotNull('marked_by'))
+                ->exists();
+
+            if ($alreadyPassed) {
+                continue;
+            }
+
+            $totalPoints = $test->total_points ?? 100;
+
+            KnowledgeTestAttempt::create([
+                'user_id' => $user->id,
+                'knowledge_test_id' => $test->id,
+                'started_at' => now(),
+                'submitted_at' => now(),
+                'auto_score' => $totalPoints,
+                'manual_score' => 0,
+                'total_score' => $totalPoints,
+                'passed' => true,
+                'marked_at' => now(),
+                'marked_by' => $admin->id,
+                'marker_notes' => 'Auto-completed on membership approval by admin',
             ]);
         }
     }
