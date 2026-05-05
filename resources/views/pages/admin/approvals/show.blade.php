@@ -100,6 +100,8 @@ new #[Title('Review Application - Admin')] class extends Component {
             'approved_by' => $admin->id,
             'activated_at' => now(),
             'expires_at' => $expiresAt,
+            'payment_confirmed_at' => $this->membership->payment_confirmed_at ?? now(),
+            'payment_confirmed_by' => $this->membership->payment_confirmed_by ?? $admin->id,
         ]);
 
         // Generate membership number from user's permanent member number
@@ -264,6 +266,8 @@ new #[Title('Review Application - Admin')] class extends Component {
             'approved_by' => $admin->id,
             'activated_at' => now(),
             'expires_at' => $expiresAt,
+            'payment_confirmed_at' => $this->membership->payment_confirmed_at ?? now(),
+            'payment_confirmed_by' => $this->membership->payment_confirmed_by ?? $admin->id,
         ]);
 
         // Always use the user's permanent member number
