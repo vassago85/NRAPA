@@ -153,6 +153,28 @@ new #[Title('Dashboard')] class extends Component {
     }
 
     #[Computed]
+    public function idDocumentStatus(): string
+    {
+        $idSlugs = MemberDocument::ID_DOCUMENT_SLUGS;
+        $idTypeIds = \App\Models\DocumentType::whereIn('slug', $idSlugs)->pluck('id');
+
+        if ($idTypeIds->isEmpty()) {
+            return 'none';
+        }
+
+        $doc = MemberDocument::where('user_id', $this->user->id)
+            ->whereIn('document_type_id', $idTypeIds)
+            ->orderByRaw("FIELD(status, 'verified', 'pending', 'rejected') ASC")
+            ->first();
+
+        if (!$doc) {
+            return 'missing';
+        }
+
+        return $doc->status;
+    }
+
+    #[Computed]
     public function pendingDocuments()
     {
         return MemberDocument::where('user_id', $this->user->id)
@@ -463,6 +485,41 @@ new #[Title('Dashboard')] class extends Component {
 
         if ($this->expiredMembership) {
             return null;
+        }
+
+        $idStatus = $this->idDocumentStatus;
+        if ($this->activeMembership && $idStatus === 'missing') {
+            return [
+                'key' => 'id_upload',
+                'title' => 'Upload Your ID Document',
+                'description' => 'Please upload a copy of your identity document. This is required for your membership and must be verified by an admin.',
+                'action' => 'Upload ID',
+                'route' => 'documents.index',
+                'color' => 'blue',
+            ];
+        }
+
+        if ($this->activeMembership && $idStatus === 'rejected') {
+            return [
+                'key' => 'id_upload',
+                'title' => 'Re-upload Your ID Document',
+                'description' => 'Your ID document was rejected. Please review the reason and upload a new copy.',
+                'action' => 'Upload ID',
+                'route' => 'documents.index',
+                'color' => 'red',
+            ];
+        }
+
+        if ($this->activeMembership && $idStatus === 'pending') {
+            return [
+                'key' => 'id_pending',
+                'title' => 'ID Document Under Review',
+                'description' => 'Your ID document has been uploaded and is waiting for admin verification.',
+                'action' => 'View Documents',
+                'route' => 'documents.index',
+                'color' => 'amber',
+                'waiting' => true,
+            ];
         }
 
         if ($this->activeMembership && ! $this->hasDedicatedMembership) {
@@ -927,6 +984,14 @@ new #[Title('Dashboard')] class extends Component {
                     @elseif($step['key'] === 'knowledge_test')
                         <svg class="size-6 text-blue-700 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.62 48.62 0 0112 20.904a48.62 48.62 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.636 50.636 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0112 13.489a50.702 50.702 0 017.74-3.342"/>
+                        </svg>
+                    @elseif($step['key'] === 'id_upload')
+                        <svg class="size-6 {{ $step['color'] === 'red' ? 'text-red-700 dark:text-red-300' : ($step['color'] === 'blue' ? 'text-blue-700 dark:text-blue-300' : 'text-amber-700 dark:text-amber-300') }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15A2.25 2.25 0 002.25 6.75v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z"/>
+                        </svg>
+                    @elseif($step['key'] === 'id_pending')
+                        <svg class="size-6 text-amber-700 dark:text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
                     @elseif($step['key'] === 'documents')
                         <svg class="size-6 text-blue-700 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
