@@ -541,6 +541,26 @@ new #[Title('Review Application - Admin')] class extends Component {
         }
     }
 
+    public function manuallyVerifyEmail(): void
+    {
+        $user = $this->membership->user;
+
+        if (!$user) {
+            session()->flash('error', 'Member not found.');
+            return;
+        }
+
+        if ($user->hasVerifiedEmail()) {
+            session()->flash('info', 'Email is already verified.');
+            return;
+        }
+
+        $user->markEmailAsVerified();
+        $this->membership->load('user');
+
+        session()->flash('success', "Email verified for {$user->name}.");
+    }
+
     protected function autoCompleteKnowledgeTests(\App\Models\User $user, \App\Models\User $admin): void
     {
         if ($user->hasPassedKnowledgeTest()) {
@@ -790,12 +810,20 @@ new #[Title('Review Application - Admin')] class extends Component {
                                 Verified
                             </span>
                             @else
-                            <span class="inline-flex items-center gap-1 text-red-600 dark:text-red-400">
-                                <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                                </svg>
-                                Not Verified
-                            </span>
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center gap-1 text-red-600 dark:text-red-400">
+                                    <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                    </svg>
+                                    Not Verified
+                                </span>
+                                <button wire:click="manuallyVerifyEmail"
+                                    wire:confirm="Mark this email as verified? Use this for members registered by a third party."
+                                    class="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700 transition-colors">
+                                    <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    Verify
+                                </button>
+                            </div>
                             @endif
                         </dd>
                     </div>

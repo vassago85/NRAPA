@@ -506,6 +506,19 @@ new #[Title('Member Details - Admin')] class extends Component {
         }
     }
 
+    public function manuallyVerifyEmail(): void
+    {
+        if ($this->user->hasVerifiedEmail()) {
+            session()->flash('info', 'Email is already verified.');
+            return;
+        }
+
+        $this->user->markEmailAsVerified();
+        $this->user->refresh();
+
+        session()->flash('success', "Email verified for {$this->user->name}.");
+    }
+
     public function verifySecurityAnswers(): void
     {
         $this->verificationError = null;
@@ -1654,7 +1667,15 @@ new #[Title('Member Details - Admin')] class extends Component {
                                 {{ $this->user->email_verified_at->format('d M Y') }}
                             </span>
                             @else
-                            <span class="text-red-600 dark:text-red-400">Not verified</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-red-600 dark:text-red-400">Not verified</span>
+                                <button wire:click="manuallyVerifyEmail"
+                                    wire:confirm="Mark this email as verified? Use this for members registered by a third party on their behalf."
+                                    class="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700 transition-colors">
+                                    <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    Verify
+                                </button>
+                            </div>
                             @endif
                         </dd>
                     </div>
