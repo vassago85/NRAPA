@@ -26,10 +26,20 @@ class NtfyService
     {
         try {
             $response = Http::withHeaders([
+                'Content-Type' => 'text/plain',
                 'Title' => $title,
                 'Priority' => $priority,
                 'Tags' => implode(',', $tags),
-            ])->post("{$this->baseUrl}/{$topic}", $message);
+            ])->withBody($message, 'text/plain')
+              ->post("{$this->baseUrl}/{$topic}");
+
+            if (! $response->successful()) {
+                Log::warning('NTFY send returned non-200', [
+                    'topic' => $topic,
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+            }
 
             return $response->successful();
         } catch (\Exception $e) {

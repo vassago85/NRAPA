@@ -74,7 +74,7 @@ class SyncMembershipToSage implements ShouldQueue
         try {
             $ntfy = app(NtfyService::class);
             $ntfy->notifyAdmins(
-                'notify_system_errors',
+                'system_errors',
                 'Sage Invoice Failed',
                 "Failed to sync membership #{$this->membership->id} to Sage: {$exception->getMessage()}",
                 'high',
