@@ -193,7 +193,7 @@
                 <div class="card signatory-card">
                     <div class="card-title">Authorised NRAPA Signatory</div>
                     <div class="sig-box">{!! $signatureHtml !!}</div>
-                    <div style="font-size:8px; color:#6a6a6a; margin-top:2px;">Placeholder must remain white.</div>
+                    <div style="height:2px;"></div>
                     <div class="sig-line"></div>
                     <div class="sig-name">{{ $signatory['name'] }}</div>
                     <div class="sig-title">{{ $signatory['title'] }}</div>
