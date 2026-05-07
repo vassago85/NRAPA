@@ -32,6 +32,7 @@ Route::prefix('info')->name('info.')->group(function () {
     Route::get('/endorsements', fn () => view('pages.info.endorsements'))->name('endorsements');
     Route::get('/membership-benefits', fn () => view('pages.info.membership-benefits'))->name('membership-benefits');
     Route::get('/faq', fn () => view('pages.info.faq'))->name('faq');
+    Route::get('/prs-rifle-equipment-selection', fn () => view('pages.info.prs-rifle-equipment-selection'))->name('prs-rifle-equipment-selection');
 });
 
 // Custom email verification route - works WITHOUT authentication

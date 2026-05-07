@@ -103,6 +103,15 @@
                 <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">How to maintain genuine shooting activities and participation records for dedicated status and compliance.</p>
             </div>
         </a>
+        <a href="{{ route('info.prs-rifle-equipment-selection') }}" class="group flex items-start gap-4 rounded-xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:border-nrapa-blue/30 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-nrapa-blue/50">
+            <span class="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg bg-nrapa-blue/10 text-nrapa-blue">
+                <svg class="size-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 13.5V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 9.75V10.5" /></svg>
+            </span>
+            <div>
+                <p class="font-semibold text-zinc-900 group-hover:text-nrapa-blue dark:text-white dark:group-hover:text-nrapa-blue transition">PRS rifle &amp; equipment guide</p>
+                <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">A beginner guide to choosing a PRS or PR22 rifle setup in South Africa — calibres, optics, gear, and match preparation.</p>
+            </div>
+        </a>
     </div>
 
     {{-- General --}}
