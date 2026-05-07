@@ -7,7 +7,7 @@
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-JV2NSWMYTQ"></script>
         <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-JV2NSWMYTQ');</script>
         <title>NRAPA | Dedicated Sport Shooter & Hunter Status South Africa</title>
-        <meta name="description" content="SAPS-accredited association for dedicated sport shooter and hunter status in South Africa. NRAPA provides membership, activity recording, endorsements, and compliance support under the Firearms Control Act.">
+        <meta name="description" content="SAPS-accredited association for dedicated sport shooter and hunter status in South Africa. NRAPA provides membership, activity recording, endorsements, and compliance support under the Firearms Control Act. Part of the Ranyati Group alongside Motivations, Storage, and Arms (quality used firearms, personally inspected).">
         <link rel="canonical" href="{{ url('/') }}">
         <meta property="og:type" content="website">
         <meta property="og:site_name" content="NRAPA">
@@ -35,6 +35,26 @@
                 "name": "Ranyati Group",
                 "url": "https://ranyati.co.za"
             },
+            "sibling": [
+                {
+                    "@type": "Organization",
+                    "name": "Ranyati Motivations",
+                    "url": "https://motivations.ranyati.co.za",
+                    "description": "Specialist firearm licence motivation letters for South African applicants."
+                },
+                {
+                    "@type": "Organization",
+                    "name": "Ranyati Storage",
+                    "url": "https://storage.ranyati.co.za",
+                    "description": "Secure firearm storage in Pretoria."
+                },
+                {
+                    "@type": "Store",
+                    "name": "Ranyati Arms",
+                    "url": "https://arms.ranyati.co.za",
+                    "description": "Quality used firearms for sale \u2014 every item personally inspected for condition and provenance before listing."
+                }
+            ],
             "contactPoint": {
                 "@type": "ContactPoint",
                 "telephone": "+27-87-151-0987",
@@ -189,15 +209,19 @@
                         </a>
                     </div>
                     {{-- Center: Division pill buttons --}}
-                    <div class="header-pills" style="width: 50%; align-items: center; justify-content: center; gap: 12px;">
-                        <a href="https://motivations.ranyati.co.za" title="Motivations" style="display: inline-flex; align-items: center; justify-content: center; width: 144px; height: 36px; padding: 6px; border-radius: 10px; background: rgba(245,130,32,0.1); box-shadow: inset 0 0 0 1px rgba(245,130,32,0.15); transition: background 0.2s; overflow: hidden;" onmouseover="this.style.background='rgba(245,130,32,0.2)'" onmouseout="this.style.background='rgba(245,130,32,0.1)'">
-                            <img src="{{ asset('logo-ranyati_motivations-white-text.png') }}" alt="Motivations" style="max-height: 24px; max-width: 132px; width: auto; height: auto; object-fit: contain; opacity: 0.6;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" />
+                    <div class="header-pills" style="width: 50%; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; row-gap: 6px;">
+                        <a href="https://motivations.ranyati.co.za" title="Motivations" style="display: inline-flex; align-items: center; justify-content: center; width: 132px; height: 36px; padding: 6px; border-radius: 10px; background: rgba(245,130,32,0.1); box-shadow: inset 0 0 0 1px rgba(245,130,32,0.15); transition: background 0.2s; overflow: hidden;" onmouseover="this.style.background='rgba(245,130,32,0.2)'" onmouseout="this.style.background='rgba(245,130,32,0.1)'">
+                            <img src="{{ asset('logo-ranyati_motivations-white-text.png') }}" alt="Motivations" style="max-height: 24px; max-width: 120px; width: auto; height: auto; object-fit: contain; opacity: 0.6;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" />
                         </a>
-                        <a href="https://nrapa.ranyati.co.za" title="NRAPA" style="display: inline-flex; align-items: center; justify-content: center; width: 144px; height: 36px; padding: 6px; border-radius: 10px; background: rgba(56,189,248,0.1); box-shadow: inset 0 0 0 1px rgba(56,189,248,0.15); transition: background 0.2s; overflow: hidden;" onmouseover="this.style.background='rgba(56,189,248,0.2)'" onmouseout="this.style.background='rgba(56,189,248,0.1)'">
-                            <img src="{{ asset('logo-nrapa-wiite_text.png') }}" alt="NRAPA" style="max-height: 24px; max-width: 132px; width: auto; height: auto; object-fit: contain; opacity: 0.6;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" />
+                        {{-- NRAPA (current site) --}}
+                        <a href="https://nrapa.ranyati.co.za" title="NRAPA" aria-current="page" style="display: inline-flex; align-items: center; justify-content: center; width: 132px; height: 36px; padding: 6px; border-radius: 10px; background: rgba(56,189,248,0.18); box-shadow: inset 0 0 0 1px rgba(56,189,248,0.3); transition: background 0.2s; overflow: hidden;">
+                            <img src="{{ asset('logo-nrapa-wiite_text.png') }}" alt="NRAPA" style="max-height: 24px; max-width: 120px; width: auto; height: auto; object-fit: contain; opacity: 1;" />
                         </a>
-                        <a href="https://storage.ranyati.co.za" title="Storage" style="display: inline-flex; align-items: center; justify-content: center; width: 144px; height: 36px; padding: 6px; border-radius: 10px; background: rgba(52,211,153,0.1); box-shadow: inset 0 0 0 1px rgba(52,211,153,0.15); transition: background 0.2s; overflow: hidden;" onmouseover="this.style.background='rgba(52,211,153,0.2)'" onmouseout="this.style.background='rgba(52,211,153,0.1)'">
-                            <img src="{{ asset('logo-ranyati_storage-white_text.png') }}" alt="Storage" style="max-height: 24px; max-width: 132px; width: auto; height: auto; object-fit: contain; opacity: 0.6;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" />
+                        <a href="https://storage.ranyati.co.za" title="Storage" style="display: inline-flex; align-items: center; justify-content: center; width: 132px; height: 36px; padding: 6px; border-radius: 10px; background: rgba(52,211,153,0.1); box-shadow: inset 0 0 0 1px rgba(52,211,153,0.15); transition: background 0.2s; overflow: hidden;" onmouseover="this.style.background='rgba(52,211,153,0.2)'" onmouseout="this.style.background='rgba(52,211,153,0.1)'">
+                            <img src="{{ asset('logo-ranyati_storage-white_text.png') }}" alt="Storage" style="max-height: 24px; max-width: 120px; width: auto; height: auto; object-fit: contain; opacity: 0.6;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" />
+                        </a>
+                        <a href="https://arms.ranyati.co.za" title="Arms — Used Firearms for Sale" style="display: inline-flex; align-items: center; justify-content: center; width: 132px; height: 36px; padding: 6px; border-radius: 10px; background: rgba(196,90,60,0.1); box-shadow: inset 0 0 0 1px rgba(196,90,60,0.18); transition: background 0.2s; overflow: hidden;" onmouseover="this.style.background='rgba(196,90,60,0.22)'" onmouseout="this.style.background='rgba(196,90,60,0.1)'">
+                            <img src="{{ asset('logo-ranyati_arms-white_text.png') }}" alt="Arms" style="max-height: 24px; max-width: 120px; width: auto; height: auto; object-fit: contain; opacity: 0.6;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" />
                         </a>
                     </div>
                     {{-- Right: Contact + Auth --}}
@@ -649,6 +673,9 @@
                             <a href="https://storage.ranyati.co.za" style="display: inline-flex; align-items: center; justify-content: center; width: 144px; height: 36px; padding: 6px; border-radius: 10px; background: rgba(52,211,153,0.1); box-shadow: inset 0 0 0 1px rgba(52,211,153,0.15); transition: background 0.2s; overflow: hidden;" onmouseover="this.style.background='rgba(52,211,153,0.2)'" onmouseout="this.style.background='rgba(52,211,153,0.1)'">
                                 <img src="{{ asset('logo-ranyati_storage-white_text.png') }}" alt="Storage" style="max-height: 24px; max-width: 132px; width: auto; height: auto; object-fit: contain;" />
                             </a>
+                            <a href="https://arms.ranyati.co.za" style="display: inline-flex; align-items: center; justify-content: center; width: 144px; height: 36px; padding: 6px; border-radius: 10px; background: rgba(196,90,60,0.1); box-shadow: inset 0 0 0 1px rgba(196,90,60,0.18); transition: background 0.2s; overflow: hidden;" onmouseover="this.style.background='rgba(196,90,60,0.22)'" onmouseout="this.style.background='rgba(196,90,60,0.1)'">
+                                <img src="{{ asset('logo-ranyati_arms-white_text.png') }}" alt="Ranyati Arms" style="max-height: 24px; max-width: 132px; width: auto; height: auto; object-fit: contain;" />
+                            </a>
                         </div>
                     </div>
                     {{-- Right: Contact --}}
@@ -672,6 +699,7 @@
                         <a href="https://ranyati.co.za" style="font-size:11px;color:rgba(255,255,255,0.35);">Ranyati Group home</a>
                         <a href="https://motivations.ranyati.co.za" style="font-size:11px;color:rgba(255,255,255,0.35);">Firearm licence motivations</a>
                         <a href="https://storage.ranyati.co.za" style="font-size:11px;color:rgba(255,255,255,0.35);">Secure firearm storage</a>
+                        <a href="https://arms.ranyati.co.za" style="font-size:11px;color:rgba(255,255,255,0.35);">Used firearms for sale</a>
                         <a href="{{ route('info.index') }}" style="font-size:11px;color:rgba(255,255,255,0.35);">NRAPA info &amp; guides</a>
                     </nav>
                 </div>
