@@ -184,9 +184,9 @@
             .footer-right-inner { align-items: flex-start; }
 
             @media (min-width: 768px) {
-                .header-pills { display: flex; }
-                .header-contact { display: flex; }
-                .header-logo { width: 25%; flex: none; }
+                .header-pills { display: flex; flex: 1 1 auto; min-width: 0; }
+                .header-contact { display: flex; flex-shrink: 0; }
+                .header-logo { width: auto; flex-shrink: 0; }
                 .header-auth { display: flex; flex-shrink: 0; }
                 .footer-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 32px; padding: 56px 0; }
                 .footer-center { align-items: center; text-align: center; }
@@ -209,23 +209,23 @@
                         </a>
                     </div>
                     {{-- Center: Division pill buttons --}}
-                    <div class="header-pills" style="width: 50%; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; row-gap: 6px;">
-                        <a href="https://motivations.ranyati.co.za" title="Motivations" style="display: inline-flex; align-items: center; justify-content: center; width: 132px; height: 36px; padding: 6px; border-radius: 10px; background: rgba(245,130,32,0.1); box-shadow: inset 0 0 0 1px rgba(245,130,32,0.15); transition: background 0.2s; overflow: hidden;" onmouseover="this.style.background='rgba(245,130,32,0.2)'" onmouseout="this.style.background='rgba(245,130,32,0.1)'">
-                            <img src="{{ asset('logo-ranyati_motivations-white-text.png') }}" alt="Motivations" style="max-height: 24px; max-width: 120px; width: auto; height: auto; object-fit: contain; opacity: 0.6;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" />
+                    <div class="header-pills" style="align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; row-gap: 6px; padding: 0 12px;">
+                        <a href="https://motivations.ranyati.co.za" title="Motivations" style="display: inline-flex; align-items: center; justify-content: center; width: 116px; height: 36px; padding: 6px; border-radius: 10px; background: rgba(245,130,32,0.1); box-shadow: inset 0 0 0 1px rgba(245,130,32,0.15); transition: background 0.2s; overflow: hidden;" onmouseover="this.style.background='rgba(245,130,32,0.2)'" onmouseout="this.style.background='rgba(245,130,32,0.1)'">
+                            <img src="{{ asset('logo-ranyati_motivations-white-text.png') }}" alt="Motivations" style="max-height: 22px; max-width: 104px; width: auto; height: auto; object-fit: contain; opacity: 0.6;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" />
                         </a>
                         {{-- NRAPA (current site) --}}
-                        <a href="https://nrapa.ranyati.co.za" title="NRAPA" aria-current="page" style="display: inline-flex; align-items: center; justify-content: center; width: 132px; height: 36px; padding: 6px; border-radius: 10px; background: rgba(56,189,248,0.18); box-shadow: inset 0 0 0 1px rgba(56,189,248,0.3); transition: background 0.2s; overflow: hidden;">
-                            <img src="{{ asset('logo-nrapa-wiite_text.png') }}" alt="NRAPA" style="max-height: 24px; max-width: 120px; width: auto; height: auto; object-fit: contain; opacity: 1;" />
+                        <a href="https://nrapa.ranyati.co.za" title="NRAPA" aria-current="page" style="display: inline-flex; align-items: center; justify-content: center; width: 116px; height: 36px; padding: 6px; border-radius: 10px; background: rgba(56,189,248,0.18); box-shadow: inset 0 0 0 1px rgba(56,189,248,0.3); transition: background 0.2s; overflow: hidden;">
+                            <img src="{{ asset('logo-nrapa-wiite_text.png') }}" alt="NRAPA" style="max-height: 22px; max-width: 104px; width: auto; height: auto; object-fit: contain; opacity: 1;" />
                         </a>
-                        <a href="https://storage.ranyati.co.za" title="Storage" style="display: inline-flex; align-items: center; justify-content: center; width: 132px; height: 36px; padding: 6px; border-radius: 10px; background: rgba(52,211,153,0.1); box-shadow: inset 0 0 0 1px rgba(52,211,153,0.15); transition: background 0.2s; overflow: hidden;" onmouseover="this.style.background='rgba(52,211,153,0.2)'" onmouseout="this.style.background='rgba(52,211,153,0.1)'">
-                            <img src="{{ asset('logo-ranyati_storage-white_text.png') }}" alt="Storage" style="max-height: 24px; max-width: 120px; width: auto; height: auto; object-fit: contain; opacity: 0.6;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" />
+                        <a href="https://storage.ranyati.co.za" title="Storage" style="display: inline-flex; align-items: center; justify-content: center; width: 116px; height: 36px; padding: 6px; border-radius: 10px; background: rgba(52,211,153,0.1); box-shadow: inset 0 0 0 1px rgba(52,211,153,0.15); transition: background 0.2s; overflow: hidden;" onmouseover="this.style.background='rgba(52,211,153,0.2)'" onmouseout="this.style.background='rgba(52,211,153,0.1)'">
+                            <img src="{{ asset('logo-ranyati_storage-white_text.png') }}" alt="Storage" style="max-height: 22px; max-width: 104px; width: auto; height: auto; object-fit: contain; opacity: 0.6;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" />
                         </a>
-                        <a href="https://arms.ranyati.co.za" title="Arms — Used Firearms for Sale" style="display: inline-flex; align-items: center; justify-content: center; width: 132px; height: 36px; padding: 6px; border-radius: 10px; background: rgba(196,90,60,0.1); box-shadow: inset 0 0 0 1px rgba(196,90,60,0.18); transition: background 0.2s; overflow: hidden;" onmouseover="this.style.background='rgba(196,90,60,0.22)'" onmouseout="this.style.background='rgba(196,90,60,0.1)'">
-                            <img src="{{ asset('logo-ranyati_arms-white_text.png') }}" alt="Arms" style="max-height: 24px; max-width: 120px; width: auto; height: auto; object-fit: contain; opacity: 0.6;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" />
+                        <a href="https://arms.ranyati.co.za" title="Arms — Used Firearms for Sale" style="display: inline-flex; align-items: center; justify-content: center; width: 116px; height: 36px; padding: 6px; border-radius: 10px; background: rgba(196,90,60,0.1); box-shadow: inset 0 0 0 1px rgba(196,90,60,0.18); transition: background 0.2s; overflow: hidden;" onmouseover="this.style.background='rgba(196,90,60,0.22)'" onmouseout="this.style.background='rgba(196,90,60,0.1)'">
+                            <img src="{{ asset('logo-ranyati_arms-white_text.png') }}" alt="Arms" style="max-height: 22px; max-width: 104px; width: auto; height: auto; object-fit: contain; opacity: 0.6;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" />
                         </a>
                     </div>
                     {{-- Right: Contact + Auth --}}
-                    <div class="header-contact" style="width: 25%; flex-direction: column; align-items: flex-end; gap: 0;">
+                    <div class="header-contact" style="flex-direction: column; align-items: flex-end; gap: 0;">
                         <a href="tel:+27871510987" style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='rgba(255,255,255,0.7)'" onmouseout="this.style.color='rgba(255,255,255,0.35)'">
                             <svg style="width: 11px; height: 11px; flex-shrink: 0;" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z"/></svg>
                             +27 87 151 0987
