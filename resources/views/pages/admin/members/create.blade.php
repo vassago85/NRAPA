@@ -23,6 +23,13 @@ new #[Title('Add Member - Admin')] class extends Component {
     public bool $knowledgeTestCompleted = true;
     public bool $activitiesUpToDate = false;
 
+    // New-member-with-payment-already-received flow. When the admin took payment
+    // offline (cash at an event, EFT outside the platform, etc.) we activate the
+    // membership immediately AND stamp payment_confirmed_at so it shows up on the
+    // billing report. Without this the membership exists but never hits billing.
+    public bool $paymentReceived = false;
+    public string $paymentReceivedDate = '';
+
     public ?string $error = null;
     public ?array $duplicateMatch = null;
 
@@ -52,6 +59,19 @@ new #[Title('Add Member - Admin')] class extends Component {
             $this->status = 'applied';
         } else {
             $this->status = 'active';
+            // Payment-received flow is a "New Member" concept only; imports are
+            // intentionally non-billable so the field doesn't apply to them.
+            $this->paymentReceived = false;
+            $this->paymentReceivedDate = '';
+        }
+    }
+
+    public function updatedPaymentReceived(): void
+    {
+        // Pre-fill the date to today when the admin first ticks the box, but
+        // don't clobber an already-entered date.
+        if ($this->paymentReceived && $this->paymentReceivedDate === '') {
+            $this->paymentReceivedDate = now()->toDateString();
         }
     }
 
@@ -79,14 +99,26 @@ new #[Title('Add Member - Admin')] class extends Component {
             'renewalDate' => 'nullable|date',
             'status' => 'required|in:active,applied',
             'defaultPassword' => 'required|string|min:6',
+            'paymentReceived' => 'boolean',
+            'paymentReceivedDate' => 'required_if:paymentReceived,true|nullable|date|before_or_equal:today',
+        ], [
+            'paymentReceivedDate.required_if' => 'Please provide the date payment was received.',
+            'paymentReceivedDate.before_or_equal' => 'Payment date cannot be in the future.',
         ]);
 
         $this->error = null;
 
         $isImport = $this->memberMode === 'import';
+        // Admin is creating a new member who has already paid offline — activate
+        // immediately and stamp payment_confirmed_at so billing picks them up.
+        $paymentReceived = !$isImport && $this->paymentReceived;
+        $paymentReceivedDate = $paymentReceived ? $this->paymentReceivedDate : null;
 
         $rowData = [
-            'date_joined' => $this->dateJoined ?: now()->toDateString(),
+            // For paid-up new members, anchor the membership timeline to the
+            // payment date (applied_at / activated_at / expires_at all flow
+            // from this) so audit dates line up with when money was received.
+            'date_joined' => $paymentReceivedDate ?: ($this->dateJoined ?: now()->toDateString()),
             'initials' => $this->initials,
             'surname' => $this->surname,
             'id_number' => $this->idNumber,
@@ -94,17 +126,18 @@ new #[Title('Add Member - Admin')] class extends Component {
             'email' => $this->email,
             'membership_type' => $this->membershipType,
             'renewal_date' => $this->renewalDate,
-            'status' => $isImport ? 'Active' : '',
+            'status' => ($isImport || $paymentReceived) ? 'Active' : '',
         ];
 
         $options = [
             'default_password' => $this->defaultPassword,
-            'auto_approve' => $isImport,
-            'auto_activate' => $isImport,
+            'auto_approve' => $isImport || $paymentReceived,
+            'auto_activate' => $isImport || $paymentReceived,
             'send_welcome_email' => $this->sendWelcomeEmail,
             'source' => $isImport ? 'import' : 'admin',
             'auto_pass_knowledge_tests' => $isImport && $this->knowledgeTestCompleted,
             'auto_create_activities' => $isImport && $this->activitiesUpToDate,
+            'payment_received_at' => $paymentReceivedDate,
         ];
 
         $importer = new ExcelMemberImporter();
@@ -318,6 +351,29 @@ new #[Title('Add Member - Admin')] class extends Component {
                         </div>
                     </div>
                     @endif
+
+                    @if($memberMode === 'new')
+                    {{-- Offline payment capture: when the admin already received money (cash, EFT, etc.) --}}
+                    <div class="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800/50">
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" wire:model.live="paymentReceived" class="mt-0.5 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500">
+                            <div class="flex-1">
+                                <span class="text-sm font-medium text-zinc-900 dark:text-white">Payment already received</span>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Tick this if you've already taken payment offline (cash, EFT, etc.). The member will be activated immediately and appear on the billing report for the payment month.</p>
+                            </div>
+                        </label>
+
+                        @if($paymentReceived)
+                        <div class="mt-4 pl-7">
+                            <label for="paymentReceivedDate" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Payment received on <span class="text-red-500">*</span></label>
+                            <input type="date" id="paymentReceivedDate" wire:model="paymentReceivedDate" max="{{ now()->toDateString() }}"
+                                class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Membership will start from this date and run for the membership type's normal duration.</p>
+                            @error('paymentReceivedDate') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                        </div>
+                        @endif
+                    </div>
+                    @endif
                 </div>
             </div>
 
@@ -369,7 +425,7 @@ new #[Title('Add Member - Admin')] class extends Component {
             @endif
 
             {{-- Info Banner --}}
-            @if($memberMode === 'new')
+            @if($memberMode === 'new' && !$paymentReceived)
             <div class="rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
                 <div class="flex items-start gap-3">
                     <svg class="size-5 flex-shrink-0 text-blue-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -378,6 +434,18 @@ new #[Title('Add Member - Admin')] class extends Component {
                     <div class="text-sm text-blue-700 dark:text-blue-300">
                         <p class="font-medium">New member payment flow</p>
                         <p class="mt-1 text-blue-600 dark:text-blue-400">The member will be created with status "Applied". When they sign in, they'll see payment instructions with a unique reference and the amount due for their membership type.</p>
+                    </div>
+                </div>
+            </div>
+            @elseif($memberMode === 'new' && $paymentReceived)
+            <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
+                <div class="flex items-start gap-3">
+                    <svg class="size-5 flex-shrink-0 text-emerald-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m4.5 12.75 6 6 9-13.5"/>
+                    </svg>
+                    <div class="text-sm text-emerald-700 dark:text-emerald-300">
+                        <p class="font-medium">Paid-up new member</p>
+                        <p class="mt-1 text-emerald-600 dark:text-emerald-400">The membership will be created as <strong>Active</strong> with payment confirmed on the date you entered. They'll appear under <em>New Members</em> on the billing report for that month.</p>
                     </div>
                 </div>
             </div>

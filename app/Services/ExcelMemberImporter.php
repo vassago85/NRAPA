@@ -328,6 +328,10 @@ class ExcelMemberImporter
         $sendWelcomeEmail = $options['send_welcome_email'] ?? true;
         $source = $options['source'] ?? 'import';
         $autoPassTests = $options['auto_pass_knowledge_tests'] ?? ($source === 'import');
+        // When the admin took payment offline before creating the member, this
+        // is the date money was received. The membership row will be stamped
+        // with payment_confirmed_at so it shows up on the billing report.
+        $paymentReceivedAt = $options['payment_received_at'] ?? null;
 
         try {
             // Rebuild into the array format parseRow expects (column-indexed):
@@ -393,7 +397,7 @@ class ExcelMemberImporter
                 return ['success' => false, 'error' => "Could not resolve membership type '{$rawLabel}'. Please select a valid type.", 'user' => null];
             }
 
-            $membership = $this->createMembership($user, $memberData, $membershipType, $autoApprove, $autoActivate, $source);
+            $membership = $this->createMembership($user, $memberData, $membershipType, $autoApprove, $autoActivate, $source, $paymentReceivedAt);
 
             if ($autoPassTests) {
                 $this->autoPassKnowledgeTests($user, $membershipType);
@@ -920,8 +924,14 @@ class ExcelMemberImporter
 
     /**
      * Create a membership for the user.
+     *
+     * $paymentReceivedAt — when non-null, the membership is stamped with
+     * payment_confirmed_at/_by so it appears on the billing report. Use this
+     * for admin-created members whose payment landed offline (cash, EFT
+     * outside the platform, etc.). Excel-imported members from another system
+     * leave this null because their previous-system payments aren't NRAPA revenue.
      */
-    protected function createMembership(User $user, array $memberData, MembershipType $membershipType, bool $autoApprove, bool $autoActivate, string $source = 'import'): Membership
+    protected function createMembership(User $user, array $memberData, MembershipType $membershipType, bool $autoApprove, bool $autoActivate, string $source = 'import', ?string $paymentReceivedAt = null): Membership
     {
         // Use the user's permanent member number
         $membershipNumber = $user->formatted_member_number;
@@ -954,6 +964,10 @@ class ExcelMemberImporter
         $approvedAt = ($status === 'approved' || $status === 'active' || $status === 'expired') ? $appliedAt : null;
         $activatedAt = ($status === 'active' || $status === 'expired') ? $appliedAt : null;
 
+        $paymentConfirmedAt = $paymentReceivedAt
+            ? \Carbon\Carbon::parse($paymentReceivedAt)
+            : null;
+
         return Membership::create([
             'uuid' => Str::uuid(),
             'user_id' => $user->id,
@@ -966,6 +980,8 @@ class ExcelMemberImporter
             'activated_at' => $autoActivate || $activatedAt ? ($activatedAt ?? now()) : null,
             'expires_at' => $expiresAt,
             'source' => $source,
+            'payment_confirmed_at' => $paymentConfirmedAt,
+            'payment_confirmed_by' => $paymentConfirmedAt ? auth()->id() : null,
         ]);
     }
 
