@@ -904,8 +904,8 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * Check if the current user can delete another user.
-     * Owners and developers can delete directly.
-     * Admins can only request deletion.
+     * Owners, developers, and super admins can delete directly.
+     * Standard admins can only request deletion.
      */
     public function canDeleteUser(User $targetUser): bool
     {
@@ -919,14 +919,14 @@ class User extends Authenticatable implements MustVerifyEmail
             return ! $targetUser->isDeveloper();
         }
 
-        // Owners can delete anyone except developers
+        // Owners can delete anyone except developers and other owners
         if ($this->isOwner()) {
             return ! $targetUser->isDeveloper() && ! $targetUser->isOwner();
         }
 
-        // Admins cannot delete anyone (must request deletion)
-        if ($this->isAdmin()) {
-            return false;
+        // Super admins can delete members directly (no approval needed)
+        if ($this->isSuperAdmin()) {
+            return $targetUser->role === self::ROLE_MEMBER;
         }
 
         return false;
@@ -934,7 +934,8 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * Check if the current user can request deletion of another user.
-     * Admins can request deletion of members only.
+     * Standard admins can request deletion of members only.
+     * (Super admins delete directly and don't need to request.)
      */
     public function canRequestUserDeletion(User $targetUser): bool
     {
@@ -943,8 +944,9 @@ class User extends Authenticatable implements MustVerifyEmail
             return false;
         }
 
-        // Only admins request deletion (owners/devs delete directly)
-        if (! $this->isAdmin()) {
+        // Only standard admins request deletion
+        // (owners/devs/super admins delete directly)
+        if (! $this->isAdmin() || $this->isSuperAdmin()) {
             return false;
         }
 

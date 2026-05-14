@@ -28,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
             'owner' => \App\Http\Middleware\EnsureUserIsOwner::class,
             'developer' => \App\Http\Middleware\EnsureUserIsDeveloper::class,
+            'review.deletions' => \App\Http\Middleware\EnsureUserCanReviewDeletions::class,
             'membership.required' => \App\Http\Middleware\RedirectIfNoMembership::class,
             'can' => \App\Http\Middleware\CheckPermission::class,
             '2fa.enforce' => \App\Http\Middleware\Enforce2FAForAdmins::class,

@@ -525,13 +525,15 @@ Route::middleware(['auth', 'verified', 'membership.required', 'terms.accepted'])
     })->name('member.endorsements.letter');
 });
 
+// User Deletion Requests (Owners, Developers, and Super Admins can review)
+Route::middleware(['auth', 'verified', 'review.deletions'])->prefix('owner')->name('owner.')->group(function () {
+    Route::livewire('deletion-requests', 'pages::owner.deletion-requests.index')->name('deletion-requests.index');
+});
+
 // Owner Routes (Owners and Developers can access)
 Route::middleware(['auth', 'verified', 'owner'])->prefix('owner')->name('owner.')->group(function () {
     Route::livewire('dashboard', 'pages::owner.dashboard')->name('dashboard');
     Route::livewire('admins', 'pages::owner.admins.index')->name('admins.index');
-
-    // User Deletion Requests
-    Route::livewire('deletion-requests', 'pages::owner.deletion-requests.index')->name('deletion-requests.index');
 
     // Owner Settings (Bank, Email, Storage, etc.)
     Route::livewire('settings', 'pages::owner.settings.index')->name('settings.index');
