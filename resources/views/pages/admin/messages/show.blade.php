@@ -77,6 +77,21 @@ new #[Title('Conversation')] class extends Component {
         session()->flash('success', 'Reply sent to the member.');
     }
 
+    public function markThreadUnread(): void
+    {
+        // Reset read_at on every member->admin message in this thread so the
+        // inbox shows it as unread again for whichever admin picks it up next.
+        MemberMessage::where('direction', MemberMessage::DIRECTION_MEMBER_TO_ADMIN)
+            ->where(function ($q) {
+                $q->where('id', $this->thread->id)
+                    ->orWhere('parent_id', $this->thread->id);
+            })
+            ->update(['read_at' => null]);
+
+        session()->flash('success', 'Thread marked as unread for the admin team.');
+        $this->redirectRoute('admin.messages.index', navigate: true);
+    }
+
     public function deleteMessage(int $id): void
     {
         $msg = MemberMessage::findOrFail($id);
@@ -121,8 +136,16 @@ new #[Title('Conversation')] class extends Component {
                         </p>
                     @endif
                 </div>
-                <button wire:click="deleteMessage({{ $thread->id }})" wire:confirm="Delete this entire thread?"
-                    class="text-xs text-red-600 hover:text-red-800 dark:text-red-400">Delete thread</button>
+                <div class="flex items-center gap-3">
+                    <button wire:click="markThreadUnread"
+                        class="inline-flex items-center gap-1 text-xs font-medium text-amber-700 hover:text-amber-900 dark:text-amber-400 dark:hover:text-amber-200"
+                        title="Leave this for another admin to action">
+                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        Mark as unread
+                    </button>
+                    <button wire:click="deleteMessage({{ $thread->id }})" wire:confirm="Delete this entire thread?"
+                        class="text-xs text-red-600 hover:text-red-800 dark:text-red-400">Delete thread</button>
+                </div>
             </div>
         </div>
 
