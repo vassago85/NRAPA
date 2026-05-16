@@ -38,6 +38,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Add 2FA enforcement and security headers to web middleware group
         $middleware->web(append: [
             \App\Http\Middleware\Enforce2FAForAdmins::class,
+            \App\Http\Middleware\AgentDiscovery::class,
             \App\Http\Middleware\SecurityHeaders::class,
         ]);
     })

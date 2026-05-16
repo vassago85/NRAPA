@@ -44,6 +44,58 @@ Route::get('/firearm-motivations.md', function () {
         ->header('Content-Type', 'text/markdown; charset=UTF-8');
 })->name('agent.firearm-motivations-md');
 
+// RFC 9727 API Catalog. NRAPA does not expose a public agent-callable API;
+// the catalog points agents to the public information surfaces instead.
+Route::get('/.well-known/api-catalog', function () {
+    $base = rtrim(config('app.url'), '/');
+
+    $body = [
+        'linkset' => [
+            [
+                'anchor' => $base.'/',
+                'service-desc' => [
+                    [
+                        'href' => $base.'/llms.txt',
+                        'type' => 'text/plain',
+                        'title' => 'NRAPA public information overview for AI agents',
+                    ],
+                    [
+                        'href' => $base.'/sitemap.xml',
+                        'type' => 'application/xml',
+                        'title' => 'NRAPA public sitemap',
+                    ],
+                ],
+                'describedby' => [
+                    [
+                        'href' => $base.'/about.md',
+                        'type' => 'text/markdown',
+                        'title' => 'About NRAPA (markdown)',
+                    ],
+                    [
+                        'href' => $base.'/dedicated-status.md',
+                        'type' => 'text/markdown',
+                        'title' => 'Dedicated sport shooter & hunter status (markdown)',
+                    ],
+                    [
+                        'href' => $base.'/firearm-motivations.md',
+                        'type' => 'text/markdown',
+                        'title' => 'Firearm licence motivations (markdown)',
+                    ],
+                ],
+            ],
+        ],
+        'comment' => 'NRAPA is a public information site, not an agent-callable API platform. '
+            .'There is no public REST/GraphQL/MCP/OAuth surface. Public information is provided '
+            .'as HTML pages, an XML sitemap, and plain markdown summaries. See /llms.txt for usage rules.',
+    ];
+
+    return response()
+        ->json($body, 200, [
+            'Cache-Control' => 'public, max-age=3600',
+        ], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
+        ->header('Content-Type', 'application/linkset+json; charset=UTF-8');
+})->name('agent.api-catalog');
+
 // Info / Resources pages (public)
 Route::prefix('info')->name('info.')->group(function () {
     Route::get('/', fn () => view('pages.info.index'))->name('index');
