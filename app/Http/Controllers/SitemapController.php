@@ -27,6 +27,7 @@ class SitemapController extends Controller
             ['route' => 'info.endorsements', 'priority' => '0.75', 'changefreq' => 'monthly', 'file' => resource_path('views/pages/info/endorsements.blade.php')],
             ['route' => 'info.membership-benefits', 'priority' => '0.8', 'changefreq' => 'monthly', 'file' => resource_path('views/pages/info/membership-benefits.blade.php')],
             ['route' => 'info.faq', 'priority' => '0.8', 'changefreq' => 'weekly', 'file' => resource_path('views/pages/info/faq.blade.php')],
+            ['route' => 'info.prs-rifle-equipment-selection', 'priority' => '0.7', 'changefreq' => 'monthly', 'file' => resource_path('views/pages/info/prs-rifle-equipment-selection.blade.php')],
         ];
 
         $lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'];

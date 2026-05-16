@@ -5,10 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Certificate Verification — NRAPA</title>
     <meta name="description" content="Verify the authenticity of NRAPA certificates and documents using QR code verification.">
+    <meta name="robots" content="noindex, follow">
+    <link rel="canonical" href="{{ url()->current() }}">
     <meta property="og:title" content="NRAPA Certificate Verification">
     <meta property="og:description" content="Verify the authenticity of NRAPA certificates and documents.">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://nrapa.ranyati.co.za/verify">
+    <meta property="og:url" content="{{ url()->current() }}">
     <script type="application/ld+json">
     {
         "@@context": "https://schema.org",

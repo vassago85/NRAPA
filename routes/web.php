@@ -18,6 +18,32 @@ Route::get('/privacy-policy', function () {
 
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 
+// Machine-readable agent/LLM pages (plain text/markdown summaries of public info)
+// These expose only information that already appears on the public site.
+Route::get('/llms.txt', function () {
+    return response()
+        ->view('agent.llms', [], 200)
+        ->header('Content-Type', 'text/plain; charset=UTF-8');
+})->name('agent.llms');
+
+Route::get('/about.md', function () {
+    return response()
+        ->view('agent.about-md', [], 200)
+        ->header('Content-Type', 'text/markdown; charset=UTF-8');
+})->name('agent.about-md');
+
+Route::get('/dedicated-status.md', function () {
+    return response()
+        ->view('agent.dedicated-status-md', [], 200)
+        ->header('Content-Type', 'text/markdown; charset=UTF-8');
+})->name('agent.dedicated-status-md');
+
+Route::get('/firearm-motivations.md', function () {
+    return response()
+        ->view('agent.firearm-motivations-md', [], 200)
+        ->header('Content-Type', 'text/markdown; charset=UTF-8');
+})->name('agent.firearm-motivations-md');
+
 // Info / Resources pages (public)
 Route::prefix('info')->name('info.')->group(function () {
     Route::get('/', fn () => view('pages.info.index'))->name('index');

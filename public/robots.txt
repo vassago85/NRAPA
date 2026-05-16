@@ -1,7 +1,34 @@
+# NRAPA — National Rifle and Pistol Association of South Africa
+# Operated by Ranyati Firearm Motivations (Pty) Ltd / Ranyati Group
+# https://nrapa.ranyati.co.za
+
 User-agent: *
 Disallow: /dashboard
 Disallow: /admin
+Disallow: /owner
+Disallow: /developer
 Disallow: /dev
 Disallow: /email
+Disallow: /verify
+Disallow: /membership
+Disallow: /messages
+Disallow: /certificates
+Disallow: /endorsements
+Disallow: /documents
+Disallow: /learning
+Disallow: /activities
+Disallow: /armoury
+Disallow: /load-data
+Disallow: /knowledge-test
+Disallow: /settings
+Disallow: /card
 
+# Content usage signals (Cloudflare Content-Signal proposal)
+# Public information pages may be crawled by search engines and read by AI
+# assistants when answering user questions, but must NOT be used to train AI
+# models. Membership/admin areas above remain disallowed for all crawlers.
+Content-Signal: ai-train=no, search=yes, ai-input=yes
+
+# Machine-readable summary for AI agents
+# See https://nrapa.ranyati.co.za/llms.txt
 Sitemap: https://nrapa.ranyati.co.za/sitemap.xml

@@ -65,6 +65,42 @@
             }
         }
         </script>
+        <script type="application/ld+json">
+        {
+            "@@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "NRAPA",
+            "alternateName": "National Rifle and Pistol Association of South Africa",
+            "url": "https://nrapa.ranyati.co.za",
+            "description": "Public information and member portal for NRAPA — a SAPS-accredited association for dedicated sport shooter and hunter status in South Africa.",
+            "inLanguage": "en-ZA",
+            "publisher": {
+                "@type": "Organization",
+                "name": "NRAPA",
+                "url": "https://nrapa.ranyati.co.za"
+            }
+        }
+        </script>
+        <script type="application/ld+json">
+        {
+            "@@context": "https://schema.org",
+            "@type": "WebPage",
+            "name": "NRAPA | Dedicated Sport Shooter & Hunter Status South Africa",
+            "url": "https://nrapa.ranyati.co.za",
+            "description": "SAPS-accredited association for dedicated sport shooter and hunter status in South Africa. Membership, activity recording, endorsements, and compliance support under the Firearms Control Act.",
+            "isPartOf": {
+                "@type": "WebSite",
+                "name": "NRAPA",
+                "url": "https://nrapa.ranyati.co.za"
+            },
+            "about": [
+                {"@type": "Thing", "name": "Dedicated Sport Shooter Status"},
+                {"@type": "Thing", "name": "Dedicated Hunter Status"},
+                {"@type": "Thing", "name": "Firearms Control Act"},
+                {"@type": "Thing", "name": "SAPS Accredited Association"}
+            ]
+        }
+        </script>
         <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
         <link href="https://fonts.bunny.net/css?family=inter:300,400,500,600,700,800,900" rel="stylesheet" crossorigin="anonymous" />
         @vite(['resources/css/app.css', 'resources/js/app.js'])
