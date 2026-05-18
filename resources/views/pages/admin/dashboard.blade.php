@@ -307,78 +307,6 @@ new class extends Component {
         </a>
     </div>
 
-    {{-- Inactive Imported Members Alert --}}
-    @if($this->inactiveImports->isNotEmpty())
-    <div class="mb-6 rounded-2xl border-2 border-rose-300 dark:border-rose-700 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
-        <div class="bg-rose-50 dark:bg-rose-900/20 px-6 py-4 flex items-center justify-between border-b border-rose-200 dark:border-rose-800">
-            <div class="flex items-center gap-3">
-                <div class="p-2 bg-rose-100 dark:bg-rose-900/50 rounded-lg">
-                    <svg class="w-5 h-5 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                    </svg>
-                </div>
-                <div>
-                    <p class="font-semibold text-rose-800 dark:text-rose-200">{{ $this->inactiveImports->count() }} Imported {{ Str::plural('Member', $this->inactiveImports->count()) }} Never Logged In</p>
-                    <p class="text-sm text-rose-600 dark:text-rose-400">These members were imported over 3 days ago but have not signed in. Their email address may be incorrect.</p>
-                </div>
-            </div>
-            <span class="px-3 py-1 text-sm font-bold text-white bg-rose-600 rounded-full">{{ $this->inactiveImports->count() }}</span>
-        </div>
-
-        <div class="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-80 overflow-y-auto">
-            @foreach($this->inactiveImports as $inactiveUser)
-                @php $importMembership = $inactiveUser->memberships->first(); @endphp
-                <div class="px-6 py-3 flex items-center justify-between gap-4 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
-                    <div class="flex items-center gap-4 min-w-0 flex-1">
-                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
-                            <span class="text-sm font-bold text-rose-600 dark:text-rose-400">{{ strtoupper(substr($inactiveUser->name, 0, 2)) }}</span>
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <div class="flex items-center gap-2">
-                                <a href="{{ route('admin.members.show', $inactiveUser) }}" class="font-medium text-zinc-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 truncate transition-colors">
-                                    {{ $inactiveUser->name }}
-                                </a>
-                                @if($importMembership)
-                                    <span class="flex-shrink-0 px-2 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 rounded-full">
-                                        {{ $importMembership->type?->name ?? 'N/A' }}
-                                    </span>
-                                @endif
-                            </div>
-                            <div class="flex items-center gap-3 text-sm text-zinc-500 dark:text-zinc-400">
-                                <span class="truncate">{{ $inactiveUser->email }}</span>
-                                <span class="flex-shrink-0">&middot;</span>
-                                <span class="flex-shrink-0 text-rose-500 dark:text-rose-400 font-medium">
-                                    {{ $inactiveUser->created_at->diffForHumans() }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2 flex-shrink-0">
-                        <button
-                            wire:click="resendWelcomeEmail({{ $inactiveUser->id }})"
-                            wire:confirm="Resend welcome email to {{ $inactiveUser->email }}?"
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
-                        >
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                            </svg>
-                            Resend
-                        </button>
-                        <a href="{{ route('admin.members.show', $inactiveUser) }}" wire:navigate
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-700 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors"
-                        >
-                            View
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                            </svg>
-                        </a>
-                    </div>
-                </div>
-            @endforeach
-        </div>
-    </div>
-    @endif
-
     {{-- Quick Actions --}}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
@@ -527,6 +455,78 @@ new class extends Component {
             <a href="{{ route('admin.approvals.index') }}" wire:navigate class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors">
                 Review Now
             </a>
+        </div>
+    </div>
+    @endif
+
+    {{-- Inactive Imported Members Alert --}}
+    @if($this->inactiveImports->isNotEmpty())
+    <div class="mb-6 rounded-2xl border-2 border-rose-300 dark:border-rose-700 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
+        <div class="bg-rose-50 dark:bg-rose-900/20 px-6 py-4 flex items-center justify-between border-b border-rose-200 dark:border-rose-800">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-rose-100 dark:bg-rose-900/50 rounded-lg">
+                    <svg class="w-5 h-5 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <div>
+                    <p class="font-semibold text-rose-800 dark:text-rose-200">{{ $this->inactiveImports->count() }} Imported {{ Str::plural('Member', $this->inactiveImports->count()) }} Never Logged In</p>
+                    <p class="text-sm text-rose-600 dark:text-rose-400">These members were imported over 3 days ago but have not signed in. Their email address may be incorrect.</p>
+                </div>
+            </div>
+            <span class="px-3 py-1 text-sm font-bold text-white bg-rose-600 rounded-full">{{ $this->inactiveImports->count() }}</span>
+        </div>
+
+        <div class="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-80 overflow-y-auto">
+            @foreach($this->inactiveImports as $inactiveUser)
+                @php $importMembership = $inactiveUser->memberships->first(); @endphp
+                <div class="px-6 py-3 flex items-center justify-between gap-4 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
+                    <div class="flex items-center gap-4 min-w-0 flex-1">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
+                            <span class="text-sm font-bold text-rose-600 dark:text-rose-400">{{ strtoupper(substr($inactiveUser->name, 0, 2)) }}</span>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-2">
+                                <a href="{{ route('admin.members.show', $inactiveUser) }}" class="font-medium text-zinc-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 truncate transition-colors">
+                                    {{ $inactiveUser->name }}
+                                </a>
+                                @if($importMembership)
+                                    <span class="flex-shrink-0 px-2 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 rounded-full">
+                                        {{ $importMembership->type?->name ?? 'N/A' }}
+                                    </span>
+                                @endif
+                            </div>
+                            <div class="flex items-center gap-3 text-sm text-zinc-500 dark:text-zinc-400">
+                                <span class="truncate">{{ $inactiveUser->email }}</span>
+                                <span class="flex-shrink-0">&middot;</span>
+                                <span class="flex-shrink-0 text-rose-500 dark:text-rose-400 font-medium">
+                                    {{ $inactiveUser->created_at->diffForHumans() }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        <button
+                            wire:click="resendWelcomeEmail({{ $inactiveUser->id }})"
+                            wire:confirm="Resend welcome email to {{ $inactiveUser->email }}?"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                        >
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                            </svg>
+                            Resend
+                        </button>
+                        <a href="{{ route('admin.members.show', $inactiveUser) }}" wire:navigate
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-700 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors"
+                        >
+                            View
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            @endforeach
         </div>
     </div>
     @endif
