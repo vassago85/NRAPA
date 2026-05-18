@@ -411,43 +411,67 @@ class Membership extends Model
 
     /**
      * Get the configured grace period (days after expiry member can still renew).
+     *
+     * Policy:
+     *  - Through 31 Dec 2026: 180 days (~6 months) — new-platform launch grace period
+     *    while expiry reminders and the renewal flow stabilise.
+     *  - From 1 Jan 2027 onwards: 90 days (~3 months) — standard ongoing policy.
+     *
+     * The policy is the source of truth so the system auto-flips at the date
+     * boundary. An admin can still override by saving a custom value in the
+     * `renewal_grace_period_days` system setting.
      */
     public static function renewalGracePeriodDays(): int
     {
-        // Default 180 days (~6 months) — NRAPA's new-platform policy gives lapsed
-        // members half a year to renew before they have to re-apply as new.
-        return (int) SystemSetting::get('renewal_grace_period_days', 180);
+        $hasOverride = SystemSetting::where('key', 'renewal_grace_period_days')->exists();
+        if ($hasOverride) {
+            return (int) SystemSetting::get('renewal_grace_period_days', static::policyGracePeriodDays());
+        }
+
+        return static::policyGracePeriodDays();
+    }
+
+    /**
+     * Hard-coded business policy for the renewal grace period.
+     * Returns 180 days through end of 2026, 90 days from 1 Jan 2027 onwards.
+     */
+    public static function policyGracePeriodDays(): int
+    {
+        return now()->lt(\Carbon\Carbon::create(2027, 1, 1)) ? 180 : 90;
+    }
+
+    /**
+     * Is the system currently inside the extended new-platform grace window
+     * (i.e. 6-month grace, ending 31 Dec 2026)?
+     */
+    public static function isExtendedGraceActive(): bool
+    {
+        return now()->lt(\Carbon\Carbon::create(2027, 1, 1));
     }
 
     /**
      * Check if the membership is renewable.
-     * Renewal is only allowed within the configured window before expiry,
-     * or during the grace period after expiry.
+     *
+     * Policy (May 2026 onwards): renewals are ALWAYS accepted regardless of
+     * how long the membership has been expired. The submission goes to admin
+     * for review, where they decide whether to apply a penalty/late fee based
+     * on context (member's history, length of lapse, etc.).
+     *
+     * The grace-period helpers (`renewalGracePeriodDays`, `isExpiredBeyondGracePeriod`,
+     * `isInRenewalWindow`) still exist and are used to surface guidance to admins
+     * — they no longer hard-block the renewal flow.
      */
     public function isRenewable(): bool
     {
-        // Must require renewal (attribute check)
         if (! $this->requiresRenewal()) {
             return false;
         }
 
-        // Must be active or expired
         if (! in_array($this->status, ['active', 'expired'])) {
             return false;
         }
 
-        // Must not already have a renewal
         if ($this->nextMembership()->exists()) {
-            return false;
-        }
-
-        // Must be within the renewal window (before expiry) or grace period (after expiry)
-        if (! $this->isInRenewalWindow()) {
-            return false;
-        }
-
-        // Must NOT be expired beyond the grace period
-        if ($this->isExpiredBeyondGracePeriod()) {
             return false;
         }
 
@@ -481,7 +505,11 @@ class Membership extends Model
 
     /**
      * Check if the membership expired beyond the grace period.
-     * After this, member must re-apply as new (with full sign-up fee).
+     *
+     * This used to hard-block renewals. As of May 2026, renewals are always
+     * allowed; this flag is now used only to flag "late" renewals so that the
+     * UI and admin review surfaces can highlight them and let admin decide
+     * whether to apply a penalty fee.
      */
     public function isExpiredBeyondGracePeriod(): bool
     {

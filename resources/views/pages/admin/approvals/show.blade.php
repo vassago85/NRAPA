@@ -725,6 +725,86 @@ new #[Title('Review Application - Admin')] class extends Component {
     </div>
     @endif
 
+    {{-- Renewal context banner: surfaced when this application is a renewal of a previous membership --}}
+    @if($this->membership->user && $this->previousMembership && !$this->isChangeRequest)
+    @php
+        $prev = $this->previousMembership;
+        $expiredAtPast = $prev->expires_at && $prev->expires_at->isPast();
+        $expiredFor = $expiredAtPast
+            ? $prev->expires_at->diffForHumans(now(), \Carbon\CarbonInterface::DIFF_ABSOLUTE, false, 2)
+            : null;
+        $inLaunchGrace = \App\Models\Membership::isExtendedGraceActive();
+        $graceDays = \App\Models\Membership::renewalGracePeriodDays();
+        $beyondGrace = $prev->isExpiredBeyondGracePeriod();
+    @endphp
+    <div class="rounded-2xl shadow-sm border-2 {{ $beyondGrace ? 'border-orange-300 bg-orange-50 dark:border-orange-700 dark:bg-orange-900/20' : 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20' }} p-6">
+        <div class="flex items-start gap-4">
+            <div class="flex size-12 flex-shrink-0 items-center justify-center rounded-xl {{ $beyondGrace ? 'bg-orange-200 dark:bg-orange-800' : 'bg-blue-200 dark:bg-blue-800' }}">
+                <svg class="size-6 {{ $beyondGrace ? 'text-orange-700 dark:text-orange-300' : 'text-blue-700 dark:text-blue-300' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <div class="flex items-center gap-3">
+                    <h3 class="text-lg font-bold {{ $beyondGrace ? 'text-orange-900 dark:text-orange-100' : 'text-blue-900 dark:text-blue-100' }}">Renewal Application</h3>
+                    @if($beyondGrace)
+                    <span class="inline-flex items-center rounded-full bg-orange-200 dark:bg-orange-800 px-2.5 py-0.5 text-xs font-semibold text-orange-900 dark:text-orange-100">
+                        Beyond grace ({{ $graceDays }} days)
+                    </span>
+                    @else
+                    <span class="inline-flex items-center rounded-full bg-blue-200 dark:bg-blue-800 px-2.5 py-0.5 text-xs font-semibold text-blue-900 dark:text-blue-100">
+                        Within grace ({{ $graceDays }} days)
+                    </span>
+                    @endif
+                </div>
+
+                <dl class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                    <div>
+                        <dt class="text-xs uppercase tracking-wider {{ $beyondGrace ? 'text-orange-700 dark:text-orange-300' : 'text-blue-700 dark:text-blue-300' }}">Previous membership</dt>
+                        <dd class="mt-0.5 font-semibold text-zinc-900 dark:text-white">{{ $prev->type?->name ?? 'Unknown type' }}</dd>
+                        @if($prev->membership_number)
+                        <dd class="mt-0.5 font-mono text-xs text-zinc-600 dark:text-zinc-400">{{ $prev->membership_number }}</dd>
+                        @endif
+                    </div>
+                    <div>
+                        <dt class="text-xs uppercase tracking-wider {{ $beyondGrace ? 'text-orange-700 dark:text-orange-300' : 'text-blue-700 dark:text-blue-300' }}">Previous status</dt>
+                        <dd class="mt-0.5 font-semibold text-zinc-900 dark:text-white">{{ ucfirst($prev->status) }}</dd>
+                        @if($prev->expires_at)
+                        <dd class="mt-0.5 text-xs text-zinc-600 dark:text-zinc-400">Expired {{ $prev->expires_at->format('d M Y') }}</dd>
+                        @endif
+                    </div>
+                    <div>
+                        <dt class="text-xs uppercase tracking-wider {{ $beyondGrace ? 'text-orange-700 dark:text-orange-300' : 'text-blue-700 dark:text-blue-300' }}">Lapse duration</dt>
+                        <dd class="mt-0.5 font-semibold text-zinc-900 dark:text-white">
+                            @if($expiredFor)
+                                {{ $expiredFor }} ago
+                            @else
+                                Not yet expired
+                            @endif
+                        </dd>
+                    </div>
+                </dl>
+
+                @if($inLaunchGrace)
+                <div class="mt-4 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 p-3">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Platform launch grace</p>
+                    <p class="mt-1 text-sm text-emerald-800 dark:text-emerald-200">
+                        Per current policy, <strong>no late-renewal penalty</strong> is being applied to renewals submitted through <strong>31 Dec 2026</strong>. Approve at the standard renewal price unless there's a specific reason otherwise.
+                    </p>
+                </div>
+                @else
+                <div class="mt-4 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/30 p-3">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">Penalty discretion</p>
+                    <p class="mt-1 text-sm text-amber-800 dark:text-amber-200">
+                        The platform launch grace ended 31 Dec 2026. Standard grace is now <strong>{{ $graceDays }} days</strong>. You can apply a late-renewal penalty fee (in addition to the standard renewal fee) based on the lapse duration and the member's history.
+                    </p>
+                </div>
+                @endif
+            </div>
+        </div>
+    </div>
+    @endif
+
     {{-- Deleted user: show dismiss option --}}
     @if(!$this->membership->user)
     <div class="rounded-2xl shadow-sm border-2 border-red-300 bg-red-50 p-8 dark:border-red-700 dark:bg-red-900/20">

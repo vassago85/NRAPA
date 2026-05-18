@@ -37,6 +37,74 @@ new #[Title('My Membership')] class extends Component {
         return $this->user->activeMembership;
     }
 
+    /**
+     * Membership eligible for the renew flow.
+     *
+     * Picks the most recent active OR expired membership the user has, as long
+     * as its type still requires renewal and there isn't already a renewal in
+     * flight. Renewals are always allowed regardless of how long the previous
+     * membership has been expired — admin decides per submission whether to
+     * apply a late-renewal penalty.
+     */
+    #[Computed]
+    public function renewableMembership(): ?Membership
+    {
+        $active = $this->activeMembership;
+        if ($active && $active->isRenewable()) {
+            return $active;
+        }
+
+        $latest = $this->user->memberships()
+            ->with('type')
+            ->whereIn('status', ['active', 'expired'])
+            ->latest()
+            ->first();
+
+        if (!$latest || !$latest->isRenewable()) {
+            return null;
+        }
+
+        return $latest;
+    }
+
+    /**
+     * Human-friendly text describing how long the renewable membership has been expired.
+     * Returns null if the membership hasn't expired (yet) or has no expiry date.
+     */
+    #[Computed]
+    public function renewableExpiredDurationLabel(): ?string
+    {
+        $m = $this->renewableMembership;
+        if (!$m || $m->status !== 'expired') {
+            return null;
+        }
+
+        // Use expires_at if it's in the past; otherwise fall back to approved_at + duration,
+        // or just the time since the record was marked expired (updated_at as best-effort).
+        $referenceDate = null;
+        if ($m->expires_at && $m->expires_at->isPast()) {
+            $referenceDate = $m->expires_at;
+        } elseif ($m->approved_at) {
+            $referenceDate = $m->approved_at;
+        }
+
+        if (!$referenceDate) {
+            return null;
+        }
+
+        return $referenceDate->diffForHumans(now(), \Carbon\CarbonInterface::DIFF_ABSOLUTE, false, 2);
+    }
+
+    /**
+     * Are we currently inside the new-platform launch grace window
+     * (i.e. through 31 Dec 2026, when admin will not normally apply a penalty)?
+     */
+    #[Computed]
+    public function inLaunchGraceWindow(): bool
+    {
+        return Membership::isExtendedGraceActive();
+    }
+
     #[Computed]
     public function membershipStatus(): array
     {
@@ -124,10 +192,7 @@ new #[Title('My Membership')] class extends Component {
     #[Computed]
     public function canRenew(): bool
     {
-        $membership = $this->activeMembership;
-        if (!$membership) return false;
-        
-        return $membership->requiresRenewal() && $membership->isRenewable();
+        return $this->renewableMembership !== null;
     }
 
     #[Computed]
@@ -156,15 +221,13 @@ new #[Title('My Membership')] class extends Component {
     #[Computed]
     public function renewalAmountDue(): float
     {
-        $membership = $this->activeMembership;
+        $membership = $this->renewableMembership;
         if (!$membership) return 0;
 
-        // Affiliated club membership: use club renewal fee
         if ($membership->isAffiliatedClubMembership() && $membership->affiliatedClub) {
             return (float) $membership->affiliatedClub->renewal_fee;
         }
 
-        // Standard membership: use type renewal price
         return (float) $membership->type->renewal_price;
     }
 
@@ -192,9 +255,26 @@ new #[Title('My Membership')] class extends Component {
             'agreedToRenewalTerms.accepted' => 'You must agree to the terms and conditions.',
         ]);
 
-        $current = $this->activeMembership;
+        $current = $this->renewableMembership;
 
-        // Create renewal membership - billable (source: web), linked to previous membership
+        // Build a renewal context string so admin sees expiry duration on review.
+        $contextLines = [
+            'Renewal of ' . $current->type->name . (
+                $current->isAffiliatedClubMembership() && $current->affiliatedClub
+                    ? ' (Club: ' . $current->affiliatedClub->name . ')'
+                    : ''
+            ),
+        ];
+        if ($current->expires_at) {
+            $contextLines[] = 'Previous expiry: ' . $current->expires_at->format('d M Y');
+            if ($current->expires_at->isPast()) {
+                $contextLines[] = 'Expired: ' . $current->expires_at->diffForHumans(now(), \Carbon\CarbonInterface::DIFF_ABSOLUTE, false, 2) . ' ago';
+            }
+        }
+        $contextLines[] = Membership::isExtendedGraceActive()
+            ? 'Submitted during platform-launch grace window (until 31 Dec 2026) — no penalty per current policy.'
+            : 'Submitted outside launch grace — admin to decide on penalty.';
+
         $renewal = Membership::create([
             'user_id' => $this->user->id,
             'membership_type_id' => $current->membership_type_id,
@@ -202,10 +282,8 @@ new #[Title('My Membership')] class extends Component {
             'applied_at' => now(),
             'source' => 'web', // Billable - member renewal via website
             'previous_membership_id' => $current->id,
-            'affiliated_club_id' => $current->affiliated_club_id, // Carry over club affiliation
-            'notes' => $current->isAffiliatedClubMembership()
-                ? "Renewal of {$current->type->name} (Club: {$current->affiliatedClub->name})"
-                : "Renewal of {$current->type->name}",
+            'affiliated_club_id' => $current->affiliated_club_id,
+            'notes' => implode("\n", $contextLines),
         ]);
 
         // Send payment instructions email
@@ -369,6 +447,61 @@ new #[Title('My Membership')] class extends Component {
     </div>
     @endif
 
+    {{-- Renewal CTA for users whose previous membership was marked expired --}}
+    @if(!$this->activeMembership && $this->canRenew)
+    @php
+        $renewable = $this->renewableMembership;
+        $expiredFor = $this->renewableExpiredDurationLabel;
+    @endphp
+    <div class="rounded-xl border-2 border-red-300 dark:border-red-700 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 p-6">
+        <div class="flex items-start gap-4">
+            <div class="flex size-12 flex-shrink-0 items-center justify-center rounded-xl bg-red-200 dark:bg-red-800">
+                <svg class="size-6 text-red-700 dark:text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-lg font-bold text-red-800 dark:text-red-200">Renew Your Membership</h3>
+                <p class="mt-1 text-sm text-red-700 dark:text-red-300">
+                    Your <strong>{{ $renewable->type->name }}</strong> membership has expired.
+                    @if($renewable->expires_at && $renewable->expires_at->isPast())
+                        It expired on <strong>{{ $renewable->expires_at->format('d M Y') }}</strong>@if($expiredFor) — <strong>{{ $expiredFor }} ago</strong>@endif.
+                    @elseif($expiredFor)
+                        It has been expired for <strong>{{ $expiredFor }}</strong>.
+                    @endif
+                    Renew now to restore your benefits, certificates, and endorsements.
+                </p>
+
+                @if($this->inLaunchGraceWindow)
+                <div class="mt-3 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 p-3">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">New platform launch grace</p>
+                    <p class="mt-1 text-sm text-emerald-800 dark:text-emerald-200">
+                        We're not applying a late-renewal penalty during the launch of our new system. This extended grace runs until <strong>31 December 2026</strong>; from <strong>1 January 2027</strong> the grace period reverts to <strong>3 months</strong> and a penalty fee may apply.
+                    </p>
+                </div>
+                @else
+                <div class="mt-3 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/30 p-3">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">Late renewal</p>
+                    <p class="mt-1 text-sm text-amber-800 dark:text-amber-200">
+                        Your renewal will be reviewed by an administrator who may apply a late-renewal penalty fee in addition to the standard renewal fee.
+                    </p>
+                </div>
+                @endif
+
+                <div class="mt-4 flex flex-wrap items-center gap-3">
+                    <button wire:click="openRenewalModal"
+                        class="inline-flex items-center gap-2 rounded-lg bg-red-600 hover:bg-red-700 px-5 py-2.5 text-sm font-medium text-white transition-colors">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        Renew Membership (R{{ number_format($this->renewalAmountDue, 2) }})
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     {{-- Current Membership Summary Card --}}
     @if($this->activeMembership)
     @php
@@ -376,7 +509,7 @@ new #[Title('My Membership')] class extends Component {
         $status = $this->membershipStatus;
     @endphp
 
-    {{-- Lapsed membership alert --}}
+    {{-- Lapsed membership alert: renewal is still allowed; admin will review for any late-renewal penalty --}}
     @if($status['expired_beyond_grace'])
     <div class="rounded-xl bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700 p-5">
         <div class="flex items-start gap-4">
@@ -386,20 +519,28 @@ new #[Title('My Membership')] class extends Component {
                 </svg>
             </div>
             <div class="flex-1">
-                <h3 class="font-semibold text-red-800 dark:text-red-200">Membership Lapsed</h3>
+                <h3 class="font-semibold text-red-800 dark:text-red-200">Membership Expired</h3>
                 <p class="mt-1 text-sm text-red-700 dark:text-red-300">
-                    Your membership expired on {{ $membership->expires_at->format('d M Y') }} and the renewal grace period has passed.
-                    To continue as an NRAPA member, you will need to rejoin as a new member and pay the full sign-up fee.
+                    Your membership expired on <strong>{{ $membership->expires_at->format('d M Y') }}</strong>
+                    ({{ $membership->expires_at->diffForHumans(now(), \Carbon\CarbonInterface::DIFF_ABSOLUTE, false, 2) }} ago).
+                    You can still renew — your renewal will be reviewed by an administrator who will decide whether a late-renewal penalty applies.
                 </p>
+                @if(\App\Models\Membership::isExtendedGraceActive())
+                <p class="mt-2 text-sm text-emerald-700 dark:text-emerald-300">
+                    <strong>Platform launch grace:</strong> no late-renewal penalty is being applied through 31 December 2026.
+                </p>
+                @endif
+                @if($this->canRenew)
                 <div class="mt-3">
-                    <a href="{{ route('membership.apply') }}" wire:navigate 
+                    <button wire:click="openRenewalModal"
                         class="inline-flex items-center gap-2 rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2 text-sm font-medium text-white transition-colors">
                         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                         </svg>
-                        Rejoin as New Member
-                    </a>
+                        Renew Membership
+                    </button>
                 </div>
+                @endif
             </div>
         </div>
     </div>
@@ -473,17 +614,9 @@ new #[Title('My Membership')] class extends Component {
 
         {{-- Actions Row --}}
         <div class="px-6 py-4 border-t border-zinc-100 dark:border-zinc-700 flex flex-wrap items-center gap-3">
-            @if($status['expired_beyond_grace'])
-            <a href="{{ route('membership.apply') }}" wire:navigate
-                class="inline-flex items-center gap-2 rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2 text-sm font-medium text-white transition-colors">
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                </svg>
-                Rejoin as New Member
-            </a>
-            @elseif($this->canRenew)
+            @if($this->canRenew)
             <button wire:click="openRenewalModal"
-                class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue hover:bg-nrapa-blue-dark px-4 py-2 text-sm font-medium text-white transition-colors">
+                class="inline-flex items-center gap-2 rounded-lg {{ $status['expired_beyond_grace'] ? 'bg-red-600 hover:bg-red-700' : 'bg-nrapa-blue hover:bg-nrapa-blue-dark' }} px-4 py-2 text-sm font-medium text-white transition-colors">
                 <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                 </svg>
@@ -697,16 +830,17 @@ new #[Title('My Membership')] class extends Component {
     </div>
 
     {{-- Renewal Modal --}}
-    @if($showRenewalModal)
+    @if($showRenewalModal && $this->renewableMembership)
+    @php $renewalMembership = $this->renewableMembership; @endphp
     <div class="fixed inset-0 z-50 overflow-y-auto" x-data x-init="document.body.classList.add('overflow-hidden')" x-on:remove="document.body.classList.remove('overflow-hidden')">
         <div class="flex min-h-screen items-center justify-center p-4">
             <div wire:click="$set('showRenewalModal', false)" class="fixed inset-0 bg-black/50 transition-opacity"></div>
             <div class="relative w-full max-w-lg rounded-xl bg-white dark:bg-zinc-800 p-6 shadow-xl">
                 <h2 class="text-xl font-bold text-zinc-900 dark:text-white mb-2">Renew Membership</h2>
                 <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
-                    Renew your <strong class="text-zinc-700 dark:text-zinc-300">{{ $this->activeMembership->type->name }}</strong> membership
-                    @if($this->activeMembership->isAffiliatedClubMembership() && $this->activeMembership->affiliatedClub)
-                        with <strong class="text-zinc-700 dark:text-zinc-300">{{ $this->activeMembership->affiliatedClub->name }}</strong>
+                    Renew your <strong class="text-zinc-700 dark:text-zinc-300">{{ $renewalMembership->type->name }}</strong> membership
+                    @if($renewalMembership->isAffiliatedClubMembership() && $renewalMembership->affiliatedClub)
+                        with <strong class="text-zinc-700 dark:text-zinc-300">{{ $renewalMembership->affiliatedClub->name }}</strong>
                     @endif
                     for another period.
                 </p>
@@ -716,21 +850,21 @@ new #[Title('My Membership')] class extends Component {
                     <div class="rounded-lg bg-zinc-50 dark:bg-zinc-900/50 p-4 space-y-3 text-sm">
                         <div class="flex items-center justify-between">
                             <span class="text-zinc-500 dark:text-zinc-400">Membership Type</span>
-                            <span class="font-semibold text-zinc-900 dark:text-white">{{ $this->activeMembership->type->name }}</span>
+                            <span class="font-semibold text-zinc-900 dark:text-white">{{ $renewalMembership->type->name }}</span>
                         </div>
-                        @if($this->activeMembership->isAffiliatedClubMembership() && $this->activeMembership->affiliatedClub)
+                        @if($renewalMembership->isAffiliatedClubMembership() && $renewalMembership->affiliatedClub)
                         <div class="flex items-center justify-between">
                             <span class="text-zinc-500 dark:text-zinc-400">Affiliated Club</span>
-                            <span class="font-medium text-zinc-900 dark:text-white">{{ $this->activeMembership->affiliatedClub->name }}</span>
+                            <span class="font-medium text-zinc-900 dark:text-white">{{ $renewalMembership->affiliatedClub->name }}</span>
                         </div>
                         @endif
                         <div class="flex items-center justify-between">
                             <span class="text-zinc-500 dark:text-zinc-400">Duration</span>
-                            <span class="text-zinc-900 dark:text-white">{{ $this->activeMembership->type->duration_months }} months</span>
+                            <span class="text-zinc-900 dark:text-white">{{ $renewalMembership->type->duration_months }} months</span>
                         </div>
                         <div class="flex items-center justify-between">
                             <span class="text-zinc-500 dark:text-zinc-400">Current Expiry</span>
-                            <span class="text-zinc-900 dark:text-white">{{ $this->activeMembership->expires_at?->format('d M Y') ?? 'N/A' }}</span>
+                            <span class="text-zinc-900 dark:text-white">{{ $renewalMembership->expires_at?->format('d M Y') ?? 'N/A' }}</span>
                         </div>
                         <hr class="border-zinc-200 dark:border-zinc-700">
                         <div class="flex items-center justify-between text-base">

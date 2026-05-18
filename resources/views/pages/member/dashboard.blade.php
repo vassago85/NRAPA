@@ -773,9 +773,25 @@ new #[Title('Dashboard')] class extends Component {
                 <h3 class="text-lg font-bold text-red-800 dark:text-red-200">Your Membership Has Expired</h3>
                 <p class="mt-1 text-sm text-red-700 dark:text-red-300">
                     Your <strong>{{ $expMembership->type->name }}</strong> membership expired on
-                    <strong>{{ $expMembership->expires_at->format('d M Y') }}</strong>.
+                    <strong>{{ $expMembership->expires_at->format('d M Y') }}</strong>
+                    ({{ $expMembership->expires_at->diffForHumans(now(), \Carbon\CarbonInterface::DIFF_ABSOLUTE, false, 2) }} ago).
                     Renew now to keep your membership active and retain access to endorsements, certificates, and all member benefits.
                 </p>
+                @if(\App\Models\Membership::isExtendedGraceActive())
+                <div class="mt-3 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 p-3">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">New platform launch grace</p>
+                    <p class="mt-1 text-sm text-emerald-800 dark:text-emerald-200">
+                        No late-renewal penalty is being applied during our platform launch (through <strong>31 December 2026</strong>). From <strong>1 January 2027</strong> the grace period reverts to <strong>3 months</strong> and a penalty fee may apply.
+                    </p>
+                </div>
+                @else
+                <div class="mt-3 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/30 p-3">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">Late renewal</p>
+                    <p class="mt-1 text-sm text-amber-800 dark:text-amber-200">
+                        Your renewal will be reviewed by an administrator who may apply a late-renewal penalty fee.
+                    </p>
+                </div>
+                @endif
                 <div class="mt-4 flex flex-wrap items-center gap-3">
                     <a href="{{ route('membership.index') }}" wire:navigate
                         class="inline-flex items-center gap-2 rounded-lg bg-red-600 hover:bg-red-700 px-5 py-2.5 text-sm font-medium text-white transition-colors">
@@ -1921,6 +1937,16 @@ new #[Title('Dashboard')] class extends Component {
             <p class="text-sm text-zinc-500 dark:text-zinc-400">
                 Applied on {{ $this->latestMembership->applied_at->format('d M Y') }}
             </p>
+
+            @if(in_array($this->latestMembership->status, ['expired', 'revoked', 'suspended']))
+                <a href="{{ route('membership.index') }}" wire:navigate
+                    class="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2 text-sm font-semibold text-white transition-colors">
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Renew Membership
+                </a>
+            @endif
         </div>
     </div>
     @else
