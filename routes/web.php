@@ -599,6 +599,13 @@ Route::middleware(['auth', 'verified', 'membership.required', 'terms.accepted'])
         }, 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="'.$filename.'"',
+            // Disable browser/proxy caching so admins can regenerate the
+            // letter (e.g. after correcting serial numbers) and members get
+            // the new PDF on the very next download instead of seeing the
+            // device-cached old one.
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
         ]);
     })->name('member.endorsements.letter');
 });
@@ -1209,6 +1216,12 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         }, 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="'.$filename.'"',
+            // See member.endorsements.letter route — no caching so a freshly
+            // regenerated PDF (e.g. after firearm-detail edits) is served
+            // immediately rather than the previously-cached version.
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
         ]);
     })->name('endorsements.download');
 
