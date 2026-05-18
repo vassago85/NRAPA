@@ -32,6 +32,15 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
     public string $editFirearmSapsReference = '';
     public string $editFirearmLicenceSection = '';
 
+    // Edit firearm serial numbers (clearing a value removes that serial from the letter)
+    public string $editFirearmBarrelSerial = '';
+    public string $editFirearmBarrelMake = '';
+    public string $editFirearmFrameSerial = '';
+    public string $editFirearmFrameMake = '';
+    public string $editFirearmReceiverSerial = '';
+    public string $editFirearmReceiverMake = '';
+    public string $editFirearmGeneralSerial = '';
+
     public function mount(EndorsementRequest $request): void
     {
         $relationships = [
@@ -427,6 +436,16 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
         $this->editFirearmCalibreManual = $firearm->calibre_display ?? '';
         $this->editFirearmSapsReference = $firearm->saps_reference ?? '';
         $this->editFirearmLicenceSection = $firearm->licence_section ?? '';
+
+        // Serial numbers — clearing any of these and saving removes it from the letter.
+        $this->editFirearmBarrelSerial = $firearm->barrel_serial_number ?? '';
+        $this->editFirearmBarrelMake = $firearm->barrel_make ?? '';
+        $this->editFirearmFrameSerial = $firearm->frame_serial_number ?? '';
+        $this->editFirearmFrameMake = $firearm->frame_make ?? '';
+        $this->editFirearmReceiverSerial = $firearm->receiver_serial_number ?? '';
+        $this->editFirearmReceiverMake = $firearm->receiver_make ?? '';
+        $this->editFirearmGeneralSerial = $firearm->serial_number ?? '';
+
         $this->showEditFirearmModal = true;
     }
 
@@ -474,7 +493,21 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             'model_text_override' => $firearm->model_text_override,
             'saps_reference' => $firearm->saps_reference,
             'licence_section' => $firearm->licence_section,
+            'serial_number' => $firearm->serial_number,
+            'barrel_serial_number' => $firearm->barrel_serial_number,
+            'barrel_make' => $firearm->barrel_make,
+            'frame_serial_number' => $firearm->frame_serial_number,
+            'frame_make' => $firearm->frame_make,
+            'receiver_serial_number' => $firearm->receiver_serial_number,
+            'receiver_make' => $firearm->receiver_make,
         ];
+
+        // Trim then coerce empty serial fields to null — a null serial is the
+        // signal to drop it from the endorsement letter (see EndorsementFirearm::getSerialNumbersAttribute).
+        $barrelSerial = trim($this->editFirearmBarrelSerial);
+        $frameSerial = trim($this->editFirearmFrameSerial);
+        $receiverSerial = trim($this->editFirearmReceiverSerial);
+        $generalSerial = trim($this->editFirearmGeneralSerial);
 
         // The display accessors (calibre_display / make_display / model_display) prefer
         // the reference table FKs over the plain-text columns. So when an admin edits
@@ -497,6 +530,14 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             'model_text_override' => null,
             'saps_reference' => $this->editFirearmSapsReference ?: null,
             'licence_section' => $this->editFirearmLicenceSection ?: null,
+            'serial_number' => $generalSerial !== '' ? $generalSerial : null,
+            'barrel_serial_number' => $barrelSerial !== '' ? $barrelSerial : null,
+            // Clearing the serial also clears the matching make so an orphan make doesn't linger.
+            'barrel_make' => $barrelSerial !== '' ? (trim($this->editFirearmBarrelMake) ?: null) : null,
+            'frame_serial_number' => $frameSerial !== '' ? $frameSerial : null,
+            'frame_make' => $frameSerial !== '' ? (trim($this->editFirearmFrameMake) ?: null) : null,
+            'receiver_serial_number' => $receiverSerial !== '' ? $receiverSerial : null,
+            'receiver_make' => $receiverSerial !== '' ? (trim($this->editFirearmReceiverMake) ?: null) : null,
         ];
 
         $firearm->update($newValues);
@@ -1487,6 +1528,59 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Calibre (manual)</label>
                         <input type="text" wire:model="editFirearmCalibreManual" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
+                    </div>
+
+                    <div class="pt-2 border-t border-zinc-200 dark:border-zinc-700">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Serial Numbers</h4>
+                            <span class="text-[11px] text-zinc-500 dark:text-zinc-400">Clear a serial to remove it from the letter</span>
+                        </div>
+
+                        @foreach ([
+                            ['label' => 'Barrel',   'serial' => 'editFirearmBarrelSerial',   'make' => 'editFirearmBarrelMake'],
+                            ['label' => 'Frame',    'serial' => 'editFirearmFrameSerial',    'make' => 'editFirearmFrameMake'],
+                            ['label' => 'Receiver', 'serial' => 'editFirearmReceiverSerial', 'make' => 'editFirearmReceiverMake'],
+                        ] as $row)
+                            <div class="grid grid-cols-12 gap-2 mb-2 items-end">
+                                <div class="col-span-5">
+                                    <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">{{ $row['label'] }} Serial</label>
+                                    <input type="text" wire:model="{{ $row['serial'] }}" placeholder="Leave blank to remove"
+                                        class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
+                                </div>
+                                <div class="col-span-5">
+                                    <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">{{ $row['label'] }} Make (optional)</label>
+                                    <input type="text" wire:model="{{ $row['make'] }}"
+                                        class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
+                                </div>
+                                <div class="col-span-2">
+                                    <button type="button"
+                                        wire:click="$set('{{ $row['serial'] }}', ''); $set('{{ $row['make'] }}', '')"
+                                        class="w-full px-2 py-2 text-xs font-medium text-red-700 dark:text-red-300 border border-red-300 dark:border-red-700 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                        title="Clear this serial (will be removed from letter on save)">
+                                        Clear
+                                    </button>
+                                </div>
+                            </div>
+                        @endforeach
+
+                        @if (!empty($editFirearmGeneralSerial))
+                            <div class="grid grid-cols-12 gap-2 mb-2 items-end">
+                                <div class="col-span-10">
+                                    <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+                                        General Serial <span class="text-zinc-400">(legacy)</span>
+                                    </label>
+                                    <input type="text" wire:model="editFirearmGeneralSerial" placeholder="Leave blank to remove"
+                                        class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
+                                </div>
+                                <div class="col-span-2">
+                                    <button type="button"
+                                        wire:click="$set('editFirearmGeneralSerial', '')"
+                                        class="w-full px-2 py-2 text-xs font-medium text-red-700 dark:text-red-300 border border-red-300 dark:border-red-700 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                                        Clear
+                                    </button>
+                                </div>
+                            </div>
+                        @endif
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
