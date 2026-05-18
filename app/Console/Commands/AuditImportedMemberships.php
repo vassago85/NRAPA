@@ -152,8 +152,14 @@ class AuditImportedMemberships extends Command
             $issues[] = 'missing_expiry';
         }
 
-        // 4. Duration mismatch: actual span (approved_at -> expires_at) more than ±30 days
-        //    away from the type's expected duration_months. Hints at a bad import row.
+        // 4. Duration mismatch — only flag *strongly* anomalous spans:
+        //    - Actual span is negative (expires before approval), OR
+        //    - Actual span is more than 1.5x the type's expected duration, OR
+        //    - Actual span is less than 30 days when expected >= 6 months.
+        //
+        // We deliberately do NOT flag "off by a few months" mismatches because
+        // imports legitimately carry over the previous system's renewal_date,
+        // which won't align with the type's nominal duration_months.
         if (
             !$isLifetime
             && $m->approved_at
@@ -164,7 +170,11 @@ class AuditImportedMemberships extends Command
             $expectedDays = $m->type->duration_months * 30;
             $actualDays = $m->approved_at->diffInDays($m->expires_at, false);
 
-            if (abs($actualDays - $expectedDays) > 30) {
+            $stronglyAnomalous = $actualDays < 0
+                || $actualDays > $expectedDays * 1.5
+                || ($expectedDays >= 180 && $actualDays < 30);
+
+            if ($stronglyAnomalous) {
                 $issues[] = 'duration_mismatch';
             }
         }

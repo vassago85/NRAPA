@@ -38,14 +38,13 @@ docker compose exec app php artisan migrate --force
 docker compose exec app php artisan optimize:clear
 docker compose exec app php artisan optimize
 docker compose exec app php artisan view:cache
-docker compose exec app npm run build
 ```
 
 Notes:
-- `docker compose build app` rebuilds the `nrapa-app:latest` image used by `app`, `queue`, and `scheduler`.
+- `docker compose build app` rebuilds the `nrapa-app:latest` image used by `app`, `queue`, and `scheduler`. **`npm install` and `npm run build` happen inside this step** (see `Dockerfile` line ~57) and `node_modules` is then deleted to keep the image small. The compiled assets live in `public/build/`.
 - `docker compose up -d app queue scheduler` recreates those containers against the new image.
-- `composer install` and `npm ci` are usually already run inside the Dockerfile build step — only run them manually via `exec` if you've changed deps and need them re-resolved *outside* a rebuild (rare).
-- `npm run build` is kept explicit because vite manifest output lives under `public/build/`, and if the Dockerfile doesn't run it, you need it here.
+- Do **NOT** run `docker compose exec app npm run build` afterwards — it will fail with `vite: not found` because `node_modules` is already gone from the running image. The build already ran during `docker compose build`.
+- `composer install` is already run inside the Dockerfile build step — only run it manually via `exec` if you've changed deps and need them re-resolved *outside* a rebuild (rare).
 
 Symptom that tells you you've forgotten to rebuild: `git log` on host shows the new commit, but `docker compose exec app grep …` against the source file inside the container still shows the old content. Always rebuild.
 
