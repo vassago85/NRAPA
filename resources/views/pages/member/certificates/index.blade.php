@@ -221,10 +221,15 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
                 session()->flash('error', 'Unable to generate certificate. Please try again later.');
             }
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Member certificate request failed', [
+            // These are validation failures (missing ID/PoA, activity quota
+            // not met, terms not accepted, not in good standing, etc.) raised
+            // by CertificateIssueService. They're user-facing preconditions,
+            // not system errors — log at WARNING so the daily error log only
+            // surfaces real problems.
+            \Illuminate\Support\Facades\Log::warning('Member certificate request rejected', [
                 'user_id' => $this->user->id,
                 'slug' => $slug,
-                'error' => $e->getMessage(),
+                'reason' => $e->getMessage(),
             ]);
             session()->flash('error', $e->getMessage());
         }

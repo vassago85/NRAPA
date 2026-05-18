@@ -18,13 +18,17 @@ class RenewLifetimeCertificates extends Command
         $this->info('Checking lifetime members for certificate renewal...');
 
         $renewed = 0;
+        $skippedMissingDocs = 0;
         $errors = 0;
+        $skippedMissingDocsUserIds = [];
 
         $lifetimeMembers = User::whereHas('activeMembership', function ($q) {
             $q->whereHas('type', fn ($t) => $t->where('duration_type', 'lifetime'));
         })->get();
 
         $this->info("Found {$lifetimeMembers->count()} lifetime member(s).");
+
+        $service = app(CertificateIssueService::class);
 
         foreach ($lifetimeMembers as $user) {
             $currentCert = $user->certificates()
@@ -40,8 +44,21 @@ class RenewLifetimeCertificates extends Command
                 continue;
             }
 
+            // Pre-skip members who can't be auto-renewed yet (e.g. ID document
+            // missing). Without this check the job would attempt the renewal
+            // every day and emit an ERROR log line per member — turning the
+            // daily error log into noise. We log a single INFO summary at the
+            // end instead.
+            $missingDocs = $service->getMissingRequiredDocumentsForMembership($user);
+            if (count($missingDocs) > 0) {
+                $skippedMissingDocs++;
+                $skippedMissingDocsUserIds[] = $user->id;
+                $this->line("  Skipped: {$user->name} (#{$user->id}) — missing: ".implode(', ', $missingDocs));
+
+                continue;
+            }
+
             try {
-                $service = app(CertificateIssueService::class);
                 $certificate = $service->issueMembershipCertificate($user, $user, skipChecks: true);
 
                 if ($certificate) {
@@ -55,6 +72,9 @@ class RenewLifetimeCertificates extends Command
             } catch (\Exception $e) {
                 $errors++;
                 $this->error("  Failed: {$user->name} — {$e->getMessage()}");
+                // Genuinely unexpected — we already pre-skipped the known
+                // "missing required document" cases above, so anything that
+                // throws here is worth a real error log.
                 Log::error('Lifetime certificate auto-renewal failed', [
                     'user_id' => $user->id,
                     'error' => $e->getMessage(),
@@ -62,7 +82,14 @@ class RenewLifetimeCertificates extends Command
             }
         }
 
-        $this->info("Done. Renewed: {$renewed}, Errors: {$errors}");
+        if ($skippedMissingDocs > 0) {
+            Log::info('Lifetime certificate renewal: members skipped because of missing required documents', [
+                'count' => $skippedMissingDocs,
+                'user_ids' => $skippedMissingDocsUserIds,
+            ]);
+        }
+
+        $this->info("Done. Renewed: {$renewed}, Skipped (missing docs): {$skippedMissingDocs}, Errors: {$errors}");
 
         return $errors > 0 ? self::FAILURE : self::SUCCESS;
     }
