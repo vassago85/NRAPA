@@ -43,6 +43,12 @@ new #[Title('Member Details - Admin')] class extends Component {
     public string $newPassword = '';
     public string $setPasswordNotes = '';
     public ?string $sharedPassword = null;
+
+    // Resend welcome email — when it succeeds we surface the freshly generated
+    // temporary password to the admin so they have a backup channel if the
+    // member never receives the email (mail bounce, friend's inbox, etc).
+    public ?string $resentWelcomePassword = null;
+    public ?string $resentWelcomeRecipient = null;
     
     // Knowledge test manual completion
     public bool $showMarkKnowledgeTestModal = false;
@@ -473,6 +479,11 @@ new #[Title('Member Details - Admin')] class extends Component {
 
     public function resendWelcomeEmail(): void
     {
+        if (!$this->canResetPassword) {
+            session()->flash('error', 'You do not have permission to resend the welcome email for this user.');
+            return;
+        }
+
         $membership = $this->user->memberships()->latest()->first();
 
         if (!$membership) {
@@ -480,30 +491,74 @@ new #[Title('Member Details - Admin')] class extends Component {
             return;
         }
 
+        // The original welcome email may have gone to the wrong inbox (e.g. a
+        // shared/friend's address) or the member may simply have lost the
+        // password. Resending must therefore include a *usable* password —
+        // we generate a fresh temporary one, persist it (hashed via the
+        // User model's 'hashed' cast), and embed the plaintext in the email.
+        $plain = $this->generateReadablePassword();
+        $recipient = $this->user->email;
+
+        $this->user->forceFill([
+            'password' => $plain,
+            'remember_token' => Str::random(60),
+        ])->save();
+
+        AccountResetLog::create([
+            'user_id' => $this->user->id,
+            'reset_by' => auth()->id(),
+            'reset_type' => AccountResetLog::TYPE_PASSWORD,
+            'verification_passed' => true,
+            'notes' => 'Temporary password generated when resending welcome email to ' . $recipient . '.',
+            'ip_address' => request()->ip(),
+        ]);
+
         try {
-            Mail::to($this->user->email)->send(new ImportWelcome(
+            Mail::to($recipient)->send(new ImportWelcome(
                 $this->user,
                 $membership,
-                'Use the password provided during import',
+                $plain,
             ));
 
             try {
                 app(\App\Services\NtfyService::class)->notifyAdmins(
                     'new_member',
                     'Welcome Email Resent',
-                    auth()->user()->name . " resent welcome email to {$this->user->name} ({$this->user->email}).",
+                    auth()->user()->name . " resent welcome email to {$this->user->name} ({$recipient}) and reset their temporary password.",
                     'low',
                 );
             } catch (\Exception $e) {}
 
-            session()->flash('success', "Welcome email sent to {$this->user->name} ({$this->user->email}).");
+            $this->resentWelcomePassword = $plain;
+            $this->resentWelcomeRecipient = $recipient;
+
+            session()->flash(
+                'success',
+                "Welcome email sent to {$this->user->name} ({$recipient}). A fresh temporary password has been generated — share it below in case the email is delayed."
+            );
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::warning('Failed to send welcome email resend', [
                 'user_id' => $this->user->id,
                 'error' => $e->getMessage(),
             ]);
-            session()->flash('error', "Failed to send email: {$e->getMessage()}");
+
+            // We still rotated the password, so expose it to the admin so they
+            // can communicate it manually rather than leaving the member locked
+            // out with no known credentials.
+            $this->resentWelcomePassword = $plain;
+            $this->resentWelcomeRecipient = $recipient;
+
+            session()->flash(
+                'error',
+                "Failed to send email: {$e->getMessage()} The password was reset — please share it with the member out-of-band."
+            );
         }
+    }
+
+    public function dismissResentWelcomePassword(): void
+    {
+        $this->resentWelcomePassword = null;
+        $this->resentWelcomeRecipient = null;
     }
 
     public function manuallyVerifyEmail(): void
@@ -1502,6 +1557,54 @@ new #[Title('Member Details - Admin')] class extends Component {
         </div>
     @endif
 
+    {{-- Resent welcome email: show the freshly generated temporary password --}}
+    {{-- so the admin can copy and share it manually if the email never arrives. --}}
+    @if($resentWelcomePassword !== null)
+    <div class="rounded-xl border border-amber-300 bg-amber-50 p-5 dark:border-amber-700 dark:bg-amber-900/20">
+        <div class="flex items-start gap-4">
+            <div class="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/50">
+                <svg class="size-5 text-amber-700 dark:text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                </svg>
+            </div>
+            <div class="flex-1 min-w-0">
+                <h3 class="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                    Welcome email sent — temporary password regenerated
+                </h3>
+                <p class="mt-1 text-sm text-amber-800 dark:text-amber-300">
+                    A welcome email has been sent to <strong class="break-all">{{ $resentWelcomeRecipient }}</strong>.
+                    The member's password has been replaced with the temporary password below — share it with them
+                    securely if the email is delayed or doesn't arrive. This is the only time it will be displayed.
+                </p>
+
+                <div
+                    x-data="{ copied: false, password: @js($resentWelcomePassword) }"
+                    class="mt-3 flex items-center justify-between gap-3 rounded-lg border-2 border-dashed border-amber-400 bg-white px-4 py-3 dark:border-amber-600 dark:bg-zinc-900">
+                    <code class="select-all break-all font-mono text-base font-semibold text-zinc-900 dark:text-white" x-text="password"></code>
+                    <button type="button"
+                        x-on:click="navigator.clipboard.writeText(password); copied = true; setTimeout(() => copied = false, 2000)"
+                        class="shrink-0 inline-flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 transition-colors">
+                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                        <span x-text="copied ? 'Copied!' : 'Copy'"></span>
+                    </button>
+                </div>
+
+                <p class="mt-2 text-xs text-amber-700 dark:text-amber-400">
+                    Tip: ask the member to sign in with their email or phone number and this temporary password,
+                    then change it immediately under their account settings.
+                </p>
+
+                <div class="mt-3">
+                    <button wire:click="dismissResentWelcomePassword"
+                        class="text-xs font-medium text-amber-800 underline hover:text-amber-900 dark:text-amber-300 dark:hover:text-amber-200">
+                        Dismiss (I've copied or shared the password)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     {{-- Header --}}
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-4">
@@ -1573,12 +1676,15 @@ new #[Title('Member Details - Admin')] class extends Component {
                 Send Message
             </button>
 
+            @if($this->canResetPassword)
             <button wire:click="resendWelcomeEmail"
-                wire:confirm="Send welcome email to {{ $this->user->name }} ({{ $this->user->email }})?"
-                class="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 dark:hover:bg-emerald-900/50 transition-colors">
+                wire:confirm="Resend welcome email to {{ $this->user->name }} ({{ $this->user->email }})?&#10;&#10;A fresh temporary password will be generated and replace the member's current password. Their previous password will no longer work."
+                class="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 dark:hover:bg-emerald-900/50 transition-colors"
+                title="Sends the welcome email with a brand-new temporary password (the existing password will be replaced).">
                 <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" /></svg>
                 Resend Welcome Email
             </button>
+            @endif
 
             @if($this->canDelete)
             <button wire:click="$set('showDeleteModal', true)" class="inline-flex items-center gap-1 rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 transition-colors">
@@ -3020,8 +3126,15 @@ new #[Title('Member Details - Admin')] class extends Component {
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Email <span class="text-red-500">*</span></label>
-                        <input type="email" wire:model="editEmail" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                        <input type="email" wire:model.live.debounce.400ms="editEmail" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
                         @error('editEmail') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        @if($this->user->email !== $editEmail && $editEmail !== '')
+                        <p class="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                            Heads up: changing the email does not reset the password. If the member never logged in
+                            with the previous email, click <strong>"Resend Welcome Email"</strong> after saving — it
+                            will deliver a fresh temporary password to the new address.
+                        </p>
+                        @endif
                     </div>
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div>
