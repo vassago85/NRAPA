@@ -121,7 +121,7 @@ Create `.env` from `.env.example` + key if missing → `migrate` → `db:seed --
 ## 4. Environments & URLs
 
 - **Local:** http://nrapa.test or http://127.0.0.1:8000  
-- **Test server:** https://nrapa.charsley.co.za  
+- **Test server:** https://nrapa.ranyati.co.za  
 - **Production (if used):** https://members.nrapa.co.za  
 - **Verification:** `https://<domain>/verify/{qr_code}` (set APP_URL correctly for QR links; see deploy.sh warning).
 

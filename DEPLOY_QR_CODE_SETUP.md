@@ -12,7 +12,7 @@ The only environment variable needed for QR codes is `APP_URL`, which should be 
 
 **Test Environment:**
 ```env
-APP_URL=https://nrapa.charsley.co.za
+APP_URL=https://nrapa.ranyati.co.za
 ```
 
 **Production (future):**
@@ -66,7 +66,7 @@ docker exec nrapa-app php artisan tinker
 >>> config('app.url')
 ```
 
-Should return: `https://nrapa.charsley.co.za` (test environment)
+Should return: `https://nrapa.ranyati.co.za` (test environment)
 
 ### 5. Clear Caches
 
@@ -82,7 +82,7 @@ docker exec nrapa-app php artisan cache:clear
 1. **Generate a test certificate** (if you have admin access)
 2. **View the certificate** and check the QR code
 3. **Scan the QR code** with your phone
-4. **Verify it points to**: `https://nrapa.charsley.co.za/verify/{qr_code}`
+4. **Verify it points to**: `https://nrapa.ranyati.co.za/verify/{qr_code}`
 5. **Test the verification page** loads correctly
 
 ## Quick Deployment Script

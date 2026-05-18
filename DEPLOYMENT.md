@@ -4,7 +4,7 @@
 
 - **Server**: Docker + Portainer
 - **Reverse Proxy**: Nginx Proxy Manager
-- **Domain**: `nrapa.charsley.co.za`
+- **Domain**: `nrapa.ranyati.co.za`
 - **Repository**: `github.com/vassago85/NRAPA` (private)
 
 ---
@@ -30,7 +30,7 @@ docker build -t nrapa-app:latest .
 - Or run: `docker compose up -d`
 
 ### 4. Configure Nginx Proxy Manager
-- **Domain**: `nrapa.charsley.co.za` (test environment)
+- **Domain**: `nrapa.ranyati.co.za` (test environment)
 - **Forward Hostname**: **Host IP** (e.g. `41.72.157.26`) — **not** `localhost`
 - **Forward Port**: `8085`
 - **Forward Scheme**: `http`
@@ -212,7 +212,7 @@ base64:k2j+RehijTAMeuojTYpp7+7VHbr9BlMLlVPaDBVgDqw=
 
 | Environment | URL |
 |-------------|-----|
-| Test/Staging | `https://nrapa.charsley.co.za` |
+| Test/Staging | `https://nrapa.ranyati.co.za` |
 | Production | `https://members.nrapa.co.za` (future) |
 | Local Dev | `http://nrapa.test` |
 | Monitoring | `https://status.charsley.co.za` |
@@ -229,7 +229,7 @@ QR codes are automatically generated for certificates and endorsement letters. T
 **Critical**: Set `APP_URL` to your test domain in Docker environment variables:
 
 ```env
-APP_URL=https://nrapa.charsley.co.za
+APP_URL=https://nrapa.ranyati.co.za
 ```
 
 ### Verify QR Code Configuration
@@ -241,13 +241,13 @@ docker exec nrapa-app php artisan tinker
 >>> config('app.url')
 ```
 
-Should return: `https://nrapa.charsley.co.za` (test environment)
+Should return: `https://nrapa.ranyati.co.za` (test environment)
 
 ### Testing QR Codes
 
 1. Generate a test certificate (admin access required)
 2. View the certificate and scan the QR code
-3. Verify it points to: `https://nrapa.charsley.co.za/verify/{qr_code}`
+3. Verify it points to: `https://nrapa.ranyati.co.za/verify/{qr_code}`
 4. Test the verification page loads correctly
 
 **See `DEPLOY_QR_CODE_SETUP.md` for detailed QR code testing instructions.**
@@ -318,7 +318,7 @@ services:
       - APP_NAME=NRAPA
       - APP_ENV=production
       - APP_DEBUG=false
-      - APP_URL=https://nrapa.charsley.co.za  # Test environment
+      - APP_URL=https://nrapa.ranyati.co.za  # Test environment
       - APP_KEY=base64:k2j+RehijTAMeuojTYpp7+7VHbr9BlMLlVPaDBVgDqw=
       - DB_CONNECTION=mysql
       - DB_HOST=db

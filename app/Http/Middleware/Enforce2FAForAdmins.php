@@ -33,9 +33,12 @@ class Enforce2FAForAdmins
         // TEMPORARY: 2FA enforcement disabled globally — re-enable after member issue resolved
         return $next($request);
 
-        // Skip 2FA enforcement in local/development environments or test domains
-        if (app()->environment(['local', 'development', 'testing']) ||
-            str_contains($request->getHost(), 'charsley.co.za')) {
+        // Skip 2FA enforcement only in non-production runtime environments.
+        // The previous host-based bypass for charsley.co.za has been removed —
+        // any reachable production-grade hostname (test, staging, or live)
+        // should enforce 2FA the same way to avoid accidental gaps when
+        // domains are renamed.
+        if (app()->environment(['local', 'development', 'testing'])) {
             return $next($request);
         }
 

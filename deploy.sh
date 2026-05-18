@@ -46,9 +46,9 @@ echo "Step 8: Verifying APP_URL configuration..."
 APP_URL=$(docker exec nrapa-app php artisan tinker --execute="echo config('app.url');")
 echo "APP_URL is set to: $APP_URL"
 echo ""
-if [[ "$APP_URL" != "https://nrapa.charsley.co.za"* ]] && [[ "$APP_URL" != "https://members.nrapa.co.za"* ]] && [[ "$APP_URL" != "http://localhost"* ]]; then
+if [[ "$APP_URL" != "https://nrapa.ranyati.co.za"* ]] && [[ "$APP_URL" != "https://members.nrapa.co.za"* ]] && [[ "$APP_URL" != "http://localhost"* ]]; then
     echo "⚠️  WARNING: APP_URL may not be set correctly for QR codes!"
-    echo "   Expected: https://nrapa.charsley.co.za (test) or https://members.nrapa.co.za (production)"
+    echo "   Expected: https://nrapa.ranyati.co.za (test) or https://members.nrapa.co.za (production)"
     echo "   Current:  $APP_URL"
     echo "   Update APP_URL in Docker environment variables if needed."
 fi
@@ -65,4 +65,4 @@ echo ""
 echo "Next steps:"
 echo "1. Test QR codes by generating a certificate"
 echo "2. Verify prices display without admin fees"
-echo "3. Check verification pages: https://nrapa.charsley.co.za/verify/{qr_code}"
+echo "3. Check verification pages: https://nrapa.ranyati.co.za/verify/{qr_code}"
