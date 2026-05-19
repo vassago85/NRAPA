@@ -706,52 +706,20 @@ class EndorsementRequest extends Model
         // Refresh the model to ensure status is updated
         $this->refresh();
 
-        // Notify admins about the new endorsement request
+        // Dispatch admin notifications onto the queue so the submit returns
+        // immediately rather than blocking on remote NTFY HTTP calls.
         if ($result) {
-            $this->notifyAdminsOfSubmission();
+            try {
+                \App\Jobs\NotifyAdminsOfEndorsementSubmission::dispatch($this)->afterCommit();
+            } catch (\Exception $e) {
+                Log::error('Failed to dispatch endorsement submission notification job', [
+                    'endorsement_request_id' => $this->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         return $result;
-    }
-
-    /**
-     * Notify admins when an endorsement request is submitted.
-     */
-    protected function notifyAdminsOfSubmission(): void
-    {
-        try {
-            $ntfyService = app(\App\Services\NtfyService::class);
-
-            $title = 'New Endorsement Request Submitted';
-            $subject = $this->firearm
-                ? (trim(($this->firearm->make ?? '').' '.($this->firearm->model ?? '')) ?: 'a firearm')
-                : ($this->components->first()?->summary ?? 'a component');
-            $message = sprintf(
-                '%s has submitted an endorsement request for %s. Review and approve at: %s',
-                $this->user->name,
-                $subject,
-                route('admin.endorsements.show', $this->uuid)
-            );
-
-            $ntfyService->notifyAdmins(
-                'endorsement_request',
-                $title,
-                $message,
-                'high',
-                [
-                    'endorsement_request_id' => $this->id,
-                    'endorsement_request_uuid' => $this->uuid,
-                    'user_id' => $this->user_id,
-                    'user_name' => $this->user->name,
-                ]
-            );
-        } catch (\Exception $e) {
-            // Log error but don't fail the submission
-            \Illuminate\Support\Facades\Log::error('Failed to send endorsement request notification', [
-                'endorsement_request_id' => $this->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
     }
 
     /**

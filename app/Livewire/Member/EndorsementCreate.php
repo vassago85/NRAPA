@@ -921,15 +921,8 @@ class EndorsementCreate extends Component
             return;
         }
 
+        // saveRequest() already refreshes and eager-loads ['firearm', 'documents'].
         $request = $this->saveRequest(true);
-
-        // Refresh to ensure all relationships and documents are loaded
-        $request->refresh();
-        $request->load(['documents', 'firearm']);
-
-        // Double-check documents were created
-        $request->refresh();
-        $request->load(['documents']);
 
         // Check if submission is possible before attempting
         if (! $request->canSubmit()) {
@@ -952,12 +945,10 @@ class EndorsementCreate extends Component
             return;
         }
 
-        // Attempt to submit
+        // Attempt to submit (submit() already refreshes the model on success)
         $submitResult = $request->submit();
 
         if ($submitResult) {
-            // Refresh again after submission to get updated status
-            $request->refresh();
             session()->flash('success', 'Endorsement request submitted successfully!');
             $this->redirect(route('member.endorsements.index'), navigate: true);
         } else {

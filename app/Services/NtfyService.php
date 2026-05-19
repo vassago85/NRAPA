@@ -25,12 +25,17 @@ class NtfyService
     public function send(string $topic, string $title, string $message, string $priority = 'default', array $tags = []): bool
     {
         try {
+            // Bound the wait so a slow/unreachable NTFY broker can never
+            // stall a user-facing request for the default 30s.
             $response = Http::withHeaders([
                 'Content-Type' => 'text/plain',
                 'Title' => $title,
                 'Priority' => $priority,
                 'Tags' => implode(',', $tags),
-            ])->withBody($message, 'text/plain')
+            ])
+              ->connectTimeout(2)
+              ->timeout(3)
+              ->withBody($message, 'text/plain')
               ->post("{$this->baseUrl}/{$topic}");
 
             if (! $response->successful()) {
