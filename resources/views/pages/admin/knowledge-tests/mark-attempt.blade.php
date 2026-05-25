@@ -65,6 +65,54 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
         $this->redirect(route('admin.knowledge-tests.mark-attempt', $this->attempt->fresh()), navigate: true);
     }
 
+    public function deleteAttempt(): void
+    {
+        $snapshot = [
+            'attempt_id' => $this->attempt->id,
+            'attempt_uuid' => $this->attempt->uuid,
+            'user_id' => $this->attempt->user_id,
+            'user_name' => $this->attempt->user?->name,
+            'knowledge_test_id' => $this->attempt->knowledge_test_id,
+            'test_name' => $this->attempt->knowledgeTest?->name,
+            'submitted_at' => $this->attempt->submitted_at?->toIso8601String(),
+            'marked_at' => $this->attempt->marked_at?->toIso8601String(),
+            'marked_by' => $this->attempt->marked_by,
+            'total_score' => $this->attempt->total_score,
+            'passed' => $this->attempt->passed,
+            'reason' => $this->reopenReason ?: null,
+        ];
+
+        $userName = $this->attempt->user?->name ?? 'member';
+        $testName = $this->attempt->knowledgeTest?->name ?? 'knowledge test';
+
+        $this->attempt->answers()->delete();
+        $this->attempt->delete();
+
+        AuditLog::create([
+            'user_id' => Auth::id(),
+            'event' => 'knowledge_test_attempt_deleted',
+            'auditable_type' => KnowledgeTestAttempt::class,
+            'auditable_id' => $snapshot['attempt_id'],
+            'old_values' => $snapshot,
+            'new_values' => null,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+
+        try {
+            app(\App\Services\NtfyService::class)->notifyAdmins(
+                'knowledge_test_completed',
+                'Knowledge Test Attempt Deleted',
+                Auth::user()->name." deleted {$userName}'s {$testName} attempt.",
+            );
+        } catch (\Exception $e) {
+            // best effort
+        }
+
+        session()->flash('success', "Deleted {$userName}'s attempt. They can take the test from scratch.");
+        $this->redirect(route('admin.knowledge-tests.marking'), navigate: true);
+    }
+
     #[Computed]
     public function writtenAnswers()
     {
@@ -181,9 +229,11 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
                         — Total: {{ $attempt->total_score }} / {{ $this->totalPossiblePoints }} pts.
                     </p>
                     <p class="mt-2 text-xs text-amber-600 dark:text-amber-400">
-                        Reopening will clear the result, send the attempt back to the marking queue,
-                        and let you re-enter scores. The member's original answers are kept; only
-                        marker scores/feedback are reset.
+                        <strong>Reopen</strong> keeps the attempt and lets you re-enter the marker scores
+                        (member's answers are preserved; only marker scores/feedback are reset).
+                        <strong>Delete</strong> wipes the attempt entirely &mdash; use this if the wrong
+                        member's profile was marked by mistake; they will be back to having taken zero
+                        attempts and the test will show as required.
                     </p>
                 </div>
             </div>
@@ -194,16 +244,28 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
                     maxlength="200"
                     placeholder="Reason (optional, e.g. wrong member)"
                     class="w-full rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs text-zinc-700 placeholder-zinc-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-amber-700 dark:bg-zinc-800 dark:text-zinc-200">
-                <button
-                    type="button"
-                    wire:click="reopenForMarking"
-                    wire:confirm="Reopen this attempt for re-marking? The current pass/fail result and marker scores will be cleared. The member's answers are kept."
-                    class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900 transition-colors">
-                    <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
-                    </svg>
-                    Reopen for re-marking
-                </button>
+                <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                    <button
+                        type="button"
+                        wire:click="reopenForMarking"
+                        wire:confirm="Reopen this attempt for re-marking? The current pass/fail result and marker scores will be cleared. The member's answers are kept."
+                        class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900 transition-colors">
+                        <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+                        </svg>
+                        Reopen for re-marking
+                    </button>
+                    <button
+                        type="button"
+                        wire:click="deleteAttempt"
+                        wire:confirm="PERMANENTLY DELETE this attempt for {{ $attempt->user->name }}? This wipes the submission entirely and they will go back to having taken zero attempts. Use this for wrong-member mistakes. This cannot be undone."
+                        class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-600 bg-white px-4 py-1.5 text-sm font-semibold text-red-700 shadow-sm hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:border-red-500 dark:bg-zinc-800 dark:text-red-300 dark:hover:bg-red-900/20 dark:focus:ring-offset-zinc-900 transition-colors">
+                        <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                        </svg>
+                        Delete attempt
+                    </button>
+                </div>
             </div>
         </div>
     </div>
