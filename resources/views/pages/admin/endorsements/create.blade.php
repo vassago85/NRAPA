@@ -30,6 +30,12 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
     public string $licenceSection = '16';
     public string $componentDiameter = '';
 
+    // Serial numbers
+    public string $barrelSerial = '';
+    public string $frameSerial = '';
+    public string $receiverSerial = '';
+    public string $serialNumber = '';   // legacy / component general serial
+
     // Dedicated category
     public string $dedicatedCategory = '';
 
@@ -114,6 +120,94 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
 
     public function createEndorsement(): void
     {
+        $request = $this->persistEndorsement();
+
+        session()->flash('success', 'Endorsement created for ' . $request->user->name . '. You can now review and approve it.');
+        $this->redirect(route('admin.endorsements.show', $request), navigate: true);
+    }
+
+    /**
+     * Create the endorsement AND immediately approve + auto-issue the signed letter,
+     * mirroring the show-page approve flow but in a single click. Used when the admin
+     * is filling out the request on behalf of the member and wants to complete the
+     * full workflow without a second review step.
+     */
+    public function createAndApproveEndorsement(): void
+    {
+        $request = $this->persistEndorsement();
+        $admin = auth()->user();
+
+        try {
+            $request->approve($admin, $this->adminNotes ?: null, sendNotification: false);
+
+            AuditLog::create([
+                'user_id' => $admin->id,
+                'event' => 'endorsement_approved',
+                'auditable_type' => EndorsementRequest::class,
+                'auditable_id' => $request->id,
+                'old_values' => ['status' => 'submitted'],
+                'new_values' => [
+                    'status' => 'approved',
+                    'approved_via' => 'admin_create_form',
+                ],
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
+
+            // Generate and issue the signed letter
+            $letterReference = EndorsementRequest::generateLetterReference();
+            $renderer = app(\App\Contracts\DocumentRenderer::class);
+            $letterPath = $renderer->renderEndorsementLetter(
+                $request->fresh(['firearm', 'user']),
+                'documents.letters.endorsement'
+            );
+
+            $request->issue(
+                $admin,
+                $letterReference,
+                $letterPath,
+                true,
+                $this->dedicatedCategory ?: 'Dedicated Sport Shooter',
+            );
+
+            AuditLog::create([
+                'user_id' => $admin->id,
+                'event' => 'endorsement_issued',
+                'auditable_type' => EndorsementRequest::class,
+                'auditable_id' => $request->id,
+                'old_values' => ['status' => 'approved'],
+                'new_values' => [
+                    'status' => 'issued',
+                    'letter_reference' => $letterReference,
+                    'dedicated_category' => $this->dedicatedCategory,
+                    'auto_issued' => true,
+                    'issued_via' => 'admin_create_form',
+                ],
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
+
+            session()->flash('success', 'Endorsement created, approved, and letter issued for ' . $request->user->name . '. Reference: ' . $letterReference);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Admin create-and-approve endorsement failed mid-flow', [
+                'request_id' => $request->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            session()->flash('warning', 'Endorsement created for ' . $request->user->name . ' but auto-approve/issue failed: ' . $e->getMessage() . '. You can complete it manually from the review page.');
+        }
+
+        $this->redirect(route('admin.endorsements.show', $request->fresh()), navigate: true);
+    }
+
+    /**
+     * Shared persistence path: validates, creates the EndorsementRequest + firearm,
+     * runs document auto-verification, writes the create audit log. Returns the
+     * persisted request so the caller can choose whether to also approve/issue it.
+     */
+    protected function persistEndorsement(): EndorsementRequest
+    {
         $this->validate([
             'selectedUserId' => 'required|exists:users,id',
             'requestType' => 'required|in:new,renewal',
@@ -151,12 +245,16 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
         if ($isComponent) {
             $firearmData['component_diameter'] = $this->firearmCategory === 'barrel' ? ($this->componentDiameter ?: null) : null;
             $firearmData['make'] = $this->make ?: null;
+            $firearmData['serial_number'] = $this->serialNumber ?: null;
         } else {
             $firearmData['ignition_type'] = $this->ignitionType ?: null;
             $firearmData['action_type'] = $this->actionType ?: null;
             $firearmData['make'] = $this->make ?: null;
             $firearmData['model'] = $this->model ?: null;
             $firearmData['calibre_manual'] = $this->calibreManual ?: null;
+            $firearmData['barrel_serial_number'] = $this->barrelSerial ?: null;
+            $firearmData['frame_serial_number'] = $this->frameSerial ?: null;
+            $firearmData['receiver_serial_number'] = $this->receiverSerial ?: null;
         }
 
         EndorsementFirearm::create($firearmData);
@@ -180,8 +278,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
             'user_agent' => request()->userAgent(),
         ]);
 
-        session()->flash('success', 'Endorsement created for ' . $user->name . '. You can now review and approve it.');
-        $this->redirect(route('admin.endorsements.show', $request), navigate: true);
+        return $request->fresh(['user', 'firearm']);
     }
 }; ?>
 
@@ -341,6 +438,25 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
                             <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Calibre</label>
                             <input type="text" wire:model="calibreManual" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white" placeholder="e.g. .308 Winchester">
                         </div>
+
+                        {{-- Serial Numbers (SAPS 271) --}}
+                        <div class="border-t border-zinc-200 dark:border-zinc-700 pt-4">
+                            <h3 class="text-sm font-semibold text-zinc-900 dark:text-white mb-2">Serial Numbers <span class="ml-1 text-xs font-normal text-zinc-500">(at least one recommended)</span></h3>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">Barrel</label>
+                                    <input type="text" wire:model="barrelSerial" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white" placeholder="Barrel serial">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">Frame</label>
+                                    <input type="text" wire:model="frameSerial" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white" placeholder="Frame serial">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">Receiver</label>
+                                    <input type="text" wire:model="receiverSerial" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white" placeholder="Receiver serial">
+                                </div>
+                            </div>
+                        </div>
                     @endif
 
                     @if(EndorsementFirearm::isComponentCategory($firearmCategory))
@@ -353,6 +469,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
                         <div>
                             <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Make</label>
                             <input type="text" wire:model="make" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Serial Number</label>
+                            <input type="text" wire:model="serialNumber" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white" placeholder="Component serial number">
                         </div>
                     @endif
 
@@ -465,22 +585,46 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
                         </div>
                     @endif
 
-                    <button
-                        wire:click="createEndorsement"
-                        wire:loading.attr="disabled"
-                        wire:confirm="{{ ($this->selectedUser && !($this->eligibility['eligible'] ?? true)) ? 'This member is NOT fully eligible. Are you sure you want to create this endorsement anyway?' : 'Create this endorsement request? You will be taken to the review page where you can approve and issue it.' }}"
-                        class="w-full px-4 py-3 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <span wire:loading.remove wire:target="createEndorsement">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                            </svg>
-                        </span>
-                        <span wire:loading.remove wire:target="createEndorsement">Create & Review</span>
-                        <span wire:loading wire:target="createEndorsement">Creating...</span>
-                    </button>
+                    <div class="space-y-2">
+                        {{-- Primary: Create, Approve & Issue (full one-click completion) --}}
+                        <button
+                            wire:click="createAndApproveEndorsement"
+                            wire:loading.attr="disabled"
+                            wire:target="createAndApproveEndorsement,createEndorsement"
+                            wire:confirm="{{ ($this->selectedUser && !($this->eligibility['eligible'] ?? true))
+                                ? 'This member is NOT fully eligible. Create, approve AND issue the signed endorsement letter anyway? The member will receive the issued letter by email.'
+                                : 'Create, approve and issue the signed endorsement letter for this member in one step? They will receive the letter by email immediately.' }}"
+                            class="w-full px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span wire:loading.remove wire:target="createAndApproveEndorsement">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </span>
+                            <span wire:loading.remove wire:target="createAndApproveEndorsement">Create, Approve &amp; Issue Letter</span>
+                            <span wire:loading wire:target="createAndApproveEndorsement">Issuing...</span>
+                        </button>
+
+                        {{-- Secondary: Create only (admin wants to review before approving) --}}
+                        <button
+                            wire:click="createEndorsement"
+                            wire:loading.attr="disabled"
+                            wire:target="createAndApproveEndorsement,createEndorsement"
+                            wire:confirm="{{ ($this->selectedUser && !($this->eligibility['eligible'] ?? true))
+                                ? 'This member is NOT fully eligible. Are you sure you want to create this endorsement anyway?'
+                                : 'Create this endorsement request? You will be taken to the review page where you can approve and issue it.' }}"
+                            class="w-full px-4 py-2.5 border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span wire:loading.remove wire:target="createEndorsement">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                            </span>
+                            <span wire:loading.remove wire:target="createEndorsement">Create &amp; Review (don't approve yet)</span>
+                            <span wire:loading wire:target="createEndorsement">Creating...</span>
+                        </button>
+                    </div>
 
                     <p class="mt-3 text-xs text-zinc-500 dark:text-zinc-400 text-center">
-                        The endorsement will be created in "Submitted" status. You can then approve and issue it from the review page.
+                        <strong class="text-emerald-700 dark:text-emerald-400">Create, Approve &amp; Issue</strong> runs the full workflow in one step (approval is audit-logged and the signed letter is emailed to the member). Use <strong>Create &amp; Review</strong> if you want to verify documents on the next page first.
                     </p>
                 </div>
             </div>
