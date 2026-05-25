@@ -421,7 +421,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                     'firearmCategory' => 'required|in:rifle,self_loading_rifle,shotgun,handgun,combination,other,barrel,action',
                     'actionType' => 'required',
                     'make' => 'required|string|max:255',
-                    'model' => 'required|string|max:255',
+                    'model' => 'nullable|string|max:255',
                 ],
             3 => [
                 'dedicatedCategory' => 'required|in:Dedicated Sport Shooter,Dedicated Hunter',
@@ -491,7 +491,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                     : (!empty($this->actionType)
                         && (!empty($this->calibreId) || !empty($this->calibreManual) || !empty($this->firearmCalibreId) || !empty($this->calibreTextOverride))
                         && (!empty($this->make) || !empty($this->firearmMakeId) || !empty($this->makeTextOverride))
-                        && (!empty($this->model) || !empty($this->firearmModelId) || !empty($this->modelTextOverride))
                         && $this->hasAtLeastOneSerial)
             ),
             3 => !empty($this->dedicatedCategory),
@@ -534,6 +533,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         unset($this->canProceedToNextStep);
         unset($this->canSubmit);
         unset($this->submissionErrors);
+        unset($this->submissionWarnings);
     }
 
     // Calibre selected - auto-fill SAPS code if available
@@ -732,7 +732,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             if (empty($this->actionType)) return false;
             if (empty($this->calibreId) && empty($this->calibreManual) && empty($this->firearmCalibreId) && empty($this->calibreTextOverride)) return false;
             if (empty($this->make) && empty($this->firearmMakeId) && empty($this->makeTextOverride)) return false;
-            if (empty($this->model) && empty($this->firearmModelId) && empty($this->modelTextOverride)) return false;
             if (!$this->hasAtLeastOneSerial) return false;
         }
         
@@ -778,9 +777,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             if (empty($this->make) && empty($this->firearmMakeId) && empty($this->makeTextOverride)) {
                 $errors[] = 'Firearm make is required.';
             }
-            if (empty($this->model) && empty($this->firearmModelId) && empty($this->modelTextOverride)) {
-                $errors[] = 'Firearm model is required.';
-            }
             if (!$this->hasAtLeastOneSerial) {
                 $errors[] = 'At least one serial number is required (barrel, frame, or receiver).';
             }
@@ -791,6 +787,27 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         }
 
         return $errors;
+    }
+
+    #[Computed]
+    public function submissionWarnings(): array
+    {
+        $warnings = [];
+
+        $isComponent = EndorsementFirearm::isComponentCategory($this->firearmCategory);
+
+        // Model is optional but strongly recommended for non-component endorsements.
+        // We keep it as a soft warning so the SAPS designated officer has the most
+        // complete description possible on the endorsement letter.
+        if (!$isComponent
+            && empty($this->model)
+            && empty($this->firearmModelId)
+            && empty($this->modelTextOverride)
+        ) {
+            $warnings[] = 'Firearm model is missing. You can still submit, but adding it (e.g. "Model 70", "X-Bolt", "1911") helps SAPS match the firearm faster.';
+        }
+
+        return $warnings;
     }
 
     // Save as draft
@@ -1518,6 +1535,29 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                     @endif
                                 @endforeach
                             </ul>
+                        </div>
+                    @endif
+
+                    {{-- Submission Warnings (non-blocking) --}}
+                    @if(count($this->submissionWarnings) > 0)
+                        <div class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                            <h4 class="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-2 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                                </svg>
+                                Recommended — you can still submit
+                            </h4>
+                            <ul class="text-sm text-amber-700 dark:text-amber-300 space-y-1">
+                                @foreach($this->submissionWarnings as $warning)
+                                    <li class="flex items-start gap-2">
+                                        <span class="mt-0.5">•</span>
+                                        <span>{{ $warning }}</span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                            <p class="mt-2 text-xs text-amber-700 dark:text-amber-300">
+                                Tip: scroll back to <strong>step 2 (Firearm Details)</strong> to fill these in &mdash; or submit as-is and the admin will follow up if needed.
+                            </p>
                         </div>
                     @endif
 

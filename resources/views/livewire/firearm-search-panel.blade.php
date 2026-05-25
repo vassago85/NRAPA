@@ -226,14 +226,20 @@ use Illuminate\Support\Facades\Schema;
 
             {{-- Model Search --}}
             <div class="relative">
-                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Model</label>
-                <input 
+                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                    Model
+                    <span class="ml-1 text-xs font-normal text-zinc-500 dark:text-zinc-400">(recommended)</span>
+                </label>
+                <input
                     type="text"
                     wire:model.live.debounce.250ms="modelSearch"
-                    placeholder="Search model..."
+                    placeholder="Search model... e.g. Model 70, X-Bolt, 1911"
                     @disabled(!$firearmMakeId && !$makeTextOverride)
                     class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
+                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                    Optional &mdash; you can still submit without it, but adding the model helps SAPS match your firearm quickly.
+                </p>
                 
                 @if($firearmModelId || $modelTextOverride)
                     <button 
