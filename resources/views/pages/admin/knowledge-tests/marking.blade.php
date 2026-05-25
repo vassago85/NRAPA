@@ -1,6 +1,8 @@
 <?php
 
+use App\Models\AuditLog;
 use App\Models\KnowledgeTestAttempt;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -37,6 +39,45 @@ new #[Title('Marking Queue - Admin')] class extends Component {
             'passed_today' => KnowledgeTestAttempt::whereDate('marked_at', today())->where('passed', true)->count(),
         ];
     }
+
+    public function reopenAttempt(string $uuid): void
+    {
+        $attempt = KnowledgeTestAttempt::where('uuid', $uuid)->firstOrFail();
+
+        if ($attempt->marked_at === null) {
+            session()->flash('error', 'That attempt has not been marked yet.');
+            return;
+        }
+
+        $previous = [
+            'total_score' => $attempt->total_score,
+            'passed' => $attempt->passed,
+            'marked_at' => $attempt->marked_at?->toIso8601String(),
+            'marked_by' => $attempt->marked_by,
+        ];
+
+        $attempt->reopenForMarking(Auth::user());
+
+        AuditLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'knowledge_test_reopened',
+            'auditable_type' => KnowledgeTestAttempt::class,
+            'auditable_id' => $attempt->id,
+            'old_values' => $previous,
+            'new_values' => [
+                'total_score' => null,
+                'passed' => null,
+                'marked_at' => null,
+                'marked_by' => null,
+                'source' => 'marking_queue',
+            ],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+
+        unset($this->pendingAttempts, $this->recentlyMarked, $this->stats);
+        session()->flash('success', "Reopened {$attempt->user->name}'s attempt. It is back in the queue.");
+    }
 }; ?>
 
 <div class="flex flex-col gap-6">
@@ -54,6 +95,18 @@ new #[Title('Marking Queue - Admin')] class extends Component {
             Back
         </a>
     </div>
+
+    @if(session('success'))
+    <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
+        <p class="text-sm text-emerald-700 dark:text-emerald-300">{{ session('success') }}</p>
+    </div>
+    @endif
+
+    @if(session('error'))
+    <div class="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
+        <p class="text-sm text-red-700 dark:text-red-300">{{ session('error') }}</p>
+    </div>
+    @endif
 
     {{-- Stats --}}
     <div class="grid gap-4 sm:grid-cols-3">
@@ -151,6 +204,7 @@ new #[Title('Marking Queue - Admin')] class extends Component {
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Result</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Marked By</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Marked</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -177,6 +231,29 @@ new #[Title('Marking Queue - Admin')] class extends Component {
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-zinc-500 dark:text-zinc-400">
                             {{ $attempt->marked_at->format('d M Y H:i') }}
+                        </td>
+                        <td class="whitespace-nowrap px-6 py-4 text-right">
+                            <div class="inline-flex items-center gap-2">
+                                <a href="{{ route('admin.knowledge-tests.mark-attempt', $attempt) }}"
+                                    wire:navigate
+                                    class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 transition-colors">
+                                    <svg class="size-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                    </svg>
+                                    View
+                                </a>
+                                <button
+                                    type="button"
+                                    wire:click="reopenAttempt('{{ $attempt->uuid }}')"
+                                    wire:confirm="Reopen {{ $attempt->user->name }}'s attempt for re-marking? The current pass/fail result and marker scores will be cleared. The member's answers are kept."
+                                    class="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-200 dark:hover:bg-amber-900/50 transition-colors">
+                                    <svg class="size-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+                                    </svg>
+                                    Reopen
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     @endforeach

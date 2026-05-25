@@ -13,10 +13,11 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
     public array $scores = [];
     public array $feedback = [];
     public string $markerNotes = '';
+    public string $reopenReason = '';
 
     public function mount(KnowledgeTestAttempt $attempt): void
     {
-        $this->attempt = $attempt->load(['user', 'knowledgeTest', 'answers.question']);
+        $this->attempt = $attempt->load(['user', 'knowledgeTest', 'answers.question', 'marker']);
 
         // Initialize scores for written questions
         foreach ($this->attempt->answers as $answer) {
@@ -25,6 +26,43 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
                 $this->feedback[$answer->id] = $answer->marker_feedback ?? '';
             }
         }
+    }
+
+    public function reopenForMarking(): void
+    {
+        if ($this->attempt->marked_at === null) {
+            session()->flash('error', 'This attempt has not been marked yet.');
+            return;
+        }
+
+        $previous = [
+            'total_score' => $this->attempt->total_score,
+            'passed' => $this->attempt->passed,
+            'marked_at' => $this->attempt->marked_at?->toIso8601String(),
+            'marked_by' => $this->attempt->marked_by,
+        ];
+
+        $this->attempt->reopenForMarking(Auth::user(), $this->reopenReason ?: null);
+
+        AuditLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'knowledge_test_reopened',
+            'auditable_type' => KnowledgeTestAttempt::class,
+            'auditable_id' => $this->attempt->id,
+            'old_values' => $previous,
+            'new_values' => [
+                'total_score' => null,
+                'passed' => null,
+                'marked_at' => null,
+                'marked_by' => null,
+                'reason' => $this->reopenReason ?: null,
+            ],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+
+        session()->flash('success', 'Attempt reopened. It is back in the marking queue.');
+        $this->redirect(route('admin.knowledge-tests.mark-attempt', $this->attempt->fresh()), navigate: true);
     }
 
     #[Computed]
@@ -113,6 +151,61 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
     @if(session('error'))
     <div class="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
         <p class="text-sm text-red-700 dark:text-red-300">{{ session('error') }}</p>
+    </div>
+    @endif
+
+    @if(session('success'))
+    <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
+        <p class="text-sm text-emerald-700 dark:text-emerald-300">{{ session('success') }}</p>
+    </div>
+    @endif
+
+    {{-- Already-marked banner with Reopen action --}}
+    @if($attempt->marked_at)
+    <div class="rounded-xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-800 dark:bg-amber-900/20">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div class="flex items-start gap-3">
+                <svg class="size-5 mt-0.5 text-amber-600 dark:text-amber-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+                </svg>
+                <div>
+                    <p class="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                        This attempt has already been marked
+                        <span class="ml-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold {{ $attempt->passed ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200' }}">
+                            {{ $attempt->passed ? 'PASSED' : 'FAILED' }}
+                        </span>
+                    </p>
+                    <p class="mt-1 text-sm text-amber-700 dark:text-amber-300">
+                        Marked by <strong>{{ $attempt->marker?->name ?? 'System' }}</strong>
+                        on {{ $attempt->marked_at->format('d M Y H:i') }}
+                        — Total: {{ $attempt->total_score }} / {{ $this->totalPossiblePoints }} pts.
+                    </p>
+                    <p class="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                        Reopening will clear the result, send the attempt back to the marking queue,
+                        and let you re-enter scores. The member's original answers are kept; only
+                        marker scores/feedback are reset.
+                    </p>
+                </div>
+            </div>
+            <div class="flex flex-col items-stretch gap-2 sm:items-end sm:min-w-[18rem]">
+                <input
+                    type="text"
+                    wire:model="reopenReason"
+                    maxlength="200"
+                    placeholder="Reason (optional, e.g. wrong member)"
+                    class="w-full rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs text-zinc-700 placeholder-zinc-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-amber-700 dark:bg-zinc-800 dark:text-zinc-200">
+                <button
+                    type="button"
+                    wire:click="reopenForMarking"
+                    wire:confirm="Reopen this attempt for re-marking? The current pass/fail result and marker scores will be cleared. The member's answers are kept."
+                    class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900 transition-colors">
+                    <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+                    </svg>
+                    Reopen for re-marking
+                </button>
+            </div>
+        </div>
     </div>
     @endif
 

@@ -331,6 +331,65 @@ class KnowledgeTestAttempt extends Model
         $this->finalizeIfComplete();
     }
 
+    /**
+     * Reopen a previously marked attempt so it can be re-marked.
+     *
+     * Clears the manual/final result fields and the written-answer points
+     * and feedback. The member's original answers (answer_text) and the
+     * auto-marked MC/multi-select/priority/matching results are preserved
+     * so the attempt does not need to be retaken. After this runs, the
+     * attempt re-enters the `needsMarking` queue.
+     */
+    public function reopenForMarking(User $admin, ?string $reason = null): void
+    {
+        // Only meaningful for attempts that have actually been marked, and
+        // only when there are written answers to re-mark. Without written
+        // answers the attempt was auto-finalised on submit and there is
+        // nothing for a marker to revisit.
+        if ($this->marked_at === null) {
+            return;
+        }
+
+        $hasWritten = $this->answers()
+            ->whereHas('question', fn ($q) => $q->where('question_type', 'written'))
+            ->exists();
+
+        if (! $hasWritten) {
+            return;
+        }
+
+        // Reset only the written answers' marker fields. Auto-marked answers
+        // (multiple_choice, multiple_select, priority_order, matching) keep
+        // their points_awarded / is_correct values from submit().
+        $this->answers()
+            ->whereHas('question', fn ($q) => $q->where('question_type', 'written'))
+            ->update([
+                'points_awarded' => null,
+                'marker_feedback' => null,
+            ]);
+
+        $this->update([
+            'manual_score' => null,
+            'total_score' => null,
+            'passed' => null,
+            'marked_at' => null,
+            'marked_by' => null,
+            'marker_notes' => $reason ? '[Reopened by '.$admin->name.']: '.$reason : null,
+        ]);
+
+        try {
+            $user = $this->user ?? User::find($this->user_id);
+            $testName = $this->knowledgeTest?->title ?? $this->knowledgeTest?->name ?? 'Knowledge Test';
+            app(\App\Services\NtfyService::class)->notifyAdmins(
+                'knowledge_test_completed',
+                'Knowledge Test Reopened',
+                "{$admin->name} reopened {$user->name}'s {$testName} for re-marking.",
+            );
+        } catch (\Exception $e) {
+            // notifications are best-effort
+        }
+    }
+
     // ===== Scopes =====
 
     /**
