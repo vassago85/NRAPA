@@ -289,7 +289,12 @@ class Membership extends Model
         if ($this->isRenewal()) {
             $renewalPrice = (float) $this->type->renewal_price;
 
-            if ($this->isLateRenewal()) {
+            // The late-renewal penalty multiplier is SUSPENDED during the
+            // platform launch grace (through 31 Dec 2026). The banner on the
+            // approval page promises members "no late-renewal penalty" during
+            // this period — this ensures the actual quote honours that promise.
+            // From 1 Jan 2027 onwards the multiplier kicks back in.
+            if ($this->isLateRenewal() && ! static::isExtendedGraceActive()) {
                 $multiplier = (float) SystemSetting::get('late_renewal_fee_multiplier', 2);
                 $renewalPrice *= $multiplier;
             }
