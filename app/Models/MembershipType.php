@@ -387,4 +387,51 @@ class MembershipType extends Model
 
         return null;
     }
+
+    /**
+     * Calculate the new expiry for a RENEWAL, anchored on the member's original
+     * sign-up anniversary (= the previous membership's expires_at) rather than
+     * the date payment is received.
+     *
+     * Policy: members have until the end of the calendar year to pay a lapsed
+     * fee, but the renewal date is always anchored to their original sign-up
+     * date. So if their membership expired 07 Feb 2026 and they pay in Aug 2026,
+     * the new expiry is 07 Feb 2027 — not Aug 2027.
+     *
+     * For lifetime/fixed_date/none rules, the anchor doesn't change anything;
+     * we just defer to the standard {@see self::calculateExpiryDate()}.
+     *
+     * If the lapse spans more than one full cycle (e.g. expired Feb 2024,
+     * paying Aug 2026 — well beyond the 12-month cycle), we keep advancing one
+     * cycle at a time so the new expiry always lands in the future.
+     */
+    public function calculateRenewalExpiryDate(?\DateTimeInterface $previousExpiresAt = null): ?\DateTimeInterface
+    {
+        if (! $previousExpiresAt) {
+            return $this->calculateExpiryDate(now());
+        }
+
+        if ($this->duration_type === 'lifetime'
+            || $this->expiry_rule === 'none'
+            || $this->expiry_rule === 'fixed_date'
+        ) {
+            return $this->calculateExpiryDate(now());
+        }
+
+        if ($this->expiry_rule !== 'rolling' || ! $this->duration_months) {
+            return $this->calculateExpiryDate(now());
+        }
+
+        $newExpiry = \Carbon\Carbon::parse($previousExpiresAt)
+            ->copy()
+            ->addMonths($this->duration_months);
+
+        // Lapsed across multiple cycles — keep stepping forward until we
+        // land in the future so the member always pays for a "live" period.
+        while ($newExpiry->isPast()) {
+            $newExpiry->addMonths($this->duration_months);
+        }
+
+        return $newExpiry;
+    }
 }

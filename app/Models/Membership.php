@@ -637,7 +637,7 @@ class Membership extends Model
         $this->update([
             'status' => 'active',
             'activated_at' => now(),
-            'expires_at' => $this->type->calculateExpiryDate(now()),
+            'expires_at' => $this->calculateRenewalAwareExpiry(),
         ]);
 
         if ($this->proof_of_payment_path) {
@@ -777,6 +777,29 @@ class Membership extends Model
     public function isRenewal(): bool
     {
         return $this->previous_membership_id !== null;
+    }
+
+    /**
+     * Compute the correct expires_at for this membership at activation time,
+     * respecting the renewal-anchor policy: for renewals, the new expiry is
+     * anchored on the previous membership's expires_at (the member's sign-up
+     * anniversary) instead of "today". For first-time applications, falls back
+     * to a normal {@see MembershipType::calculateExpiryDate()} from now.
+     *
+     * Always returns a fresh Carbon instance (or null for non-expiring types).
+     */
+    public function calculateRenewalAwareExpiry(): ?\DateTimeInterface
+    {
+        if (! $this->type) {
+            return null;
+        }
+
+        if ($this->isRenewal()) {
+            $prev = $this->previousMembership;
+            return $this->type->calculateRenewalExpiryDate($prev?->expires_at);
+        }
+
+        return $this->type->calculateExpiryDate(now());
     }
 
     /**

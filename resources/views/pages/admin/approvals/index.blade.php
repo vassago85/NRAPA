@@ -456,7 +456,10 @@ new #[Title('All Approvals - Admin')] class extends Component {
         }
 
         $admin = auth()->user();
-        $expiresAt = $membership->type->calculateExpiryDate(now());
+        // Renewals anchor on the previous expires_at (member's sign-up anniversary);
+        // first-time applications anchor on now(). Late payment never shifts the
+        // anniversary forward.
+        $expiresAt = $membership->calculateRenewalAwareExpiry();
 
         $membership->update([
             'status' => 'active',
@@ -572,7 +575,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
             ->with(['user', 'type'])
             ->get();
         foreach ($pendingMemberships as $membership) {
-            $expiresAt = $membership->type->calculateExpiryDate(now());
+            $expiresAt = $membership->calculateRenewalAwareExpiry();
             $membership->update([
                 'status' => 'active',
                 'approved_at' => now(),

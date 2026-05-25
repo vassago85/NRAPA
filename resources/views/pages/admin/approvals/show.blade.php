@@ -92,8 +92,11 @@ new #[Title('Review Application - Admin')] class extends Component {
 
         $admin = Auth::user();
 
-        // Calculate expiry date based on membership type
-        $expiresAt = $this->membership->type->calculateExpiryDate(now());
+        // Calculate expiry — anchored on the member's original sign-up anniversary
+        // for renewals, on now() for first-time applications. Late payers therefore
+        // do NOT get a "rolling" anniversary that drifts; their next renewal stays
+        // on the same calendar date as their original sign-up.
+        $expiresAt = $this->membership->calculateRenewalAwareExpiry();
 
         // Update membership
         $this->membership->update([
@@ -736,6 +739,9 @@ new #[Title('Review Application - Admin')] class extends Component {
         $inLaunchGrace = \App\Models\Membership::isExtendedGraceActive();
         $graceDays = \App\Models\Membership::renewalGracePeriodDays();
         $beyondGrace = $prev->isExpiredBeyondGracePeriod();
+        // Show admin the expiry date that approval will set, so they can sanity-check
+        // the anniversary-anchoring policy before clicking approve.
+        $projectedNewExpiry = $this->membership->calculateRenewalAwareExpiry();
     @endphp
     <div class="rounded-2xl shadow-sm border-2 {{ $beyondGrace ? 'border-orange-300 bg-orange-50 dark:border-orange-700 dark:bg-orange-900/20' : 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20' }} p-6">
         <div class="flex items-start gap-4">
@@ -784,6 +790,25 @@ new #[Title('Review Application - Admin')] class extends Component {
                         </dd>
                     </div>
                 </dl>
+
+                @if($projectedNewExpiry)
+                <div class="mt-4 rounded-lg border border-blue-300 dark:border-blue-700 bg-white/60 dark:bg-blue-950/30 p-3">
+                    <div class="flex items-baseline justify-between gap-3 flex-wrap">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wider text-blue-700 dark:text-blue-300">New expiry on approval</p>
+                            <p class="mt-1 text-base font-bold text-zinc-900 dark:text-white">
+                                {{ \Carbon\Carbon::parse($projectedNewExpiry)->format('d M Y') }}
+                            </p>
+                        </div>
+                        <p class="text-xs text-zinc-600 dark:text-zinc-400 max-w-md">
+                            Renewal anchors on the member's <strong>sign-up anniversary</strong>
+                            ({{ $prev->expires_at?->format('d M') ?? '—' }}), not today. Late payment does
+                            not shift the anniversary forward; the member simply gets a shorter active
+                            period this cycle.
+                        </p>
+                    </div>
+                </div>
+                @endif
 
                 @if($inLaunchGrace)
                 <div class="mt-4 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 p-3">
