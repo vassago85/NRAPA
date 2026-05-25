@@ -55,8 +55,6 @@ new #[Title('Member Details - Admin')] class extends Component {
     public ?int $selectedKnowledgeTestId = null;
     public string $knowledgeTestNotes = '';
     
-    // Reset test attempts
-    public ?int $testToResetId = null;
     
     // 2FA verification for members
     public array $securityAnswers = [];
@@ -2682,11 +2680,11 @@ new #[Title('Member Details - Admin')] class extends Component {
                         </span>
                         @endif
                     </div>
-                    <button 
-                        wire:click="openResetAttemptsModal({{ $testId }}, '{{ addslashes($summary['test']->name ?? 'Unknown') }}')"
-                        wire:confirm="Are you sure you want to reset all attempts for this test? The member will be able to retake the test."
+                    <button
+                        wire:click="resetTestAttempts({{ $testId }})"
+                        wire:confirm="Reset ALL attempts for &quot;{{ addslashes($summary['test']->name ?? 'this test') }}&quot;? Every attempt by {{ addslashes($this->user->name) }} for this test will be permanently deleted and they can take it from scratch. This cannot be undone."
                         class="text-xs text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium"
-                        title="Reset all attempts for this test"
+                        title="Delete all attempts for this test (member can retake from scratch)"
                     >
                         Reset
                     </button>
