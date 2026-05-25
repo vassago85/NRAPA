@@ -60,7 +60,7 @@ new #[Title('Marking Queue - Admin')] class extends Component {
 
         AuditLog::create([
             'user_id' => Auth::id(),
-            'action' => 'knowledge_test_reopened',
+            'event' => 'knowledge_test_reopened',
             'auditable_type' => KnowledgeTestAttempt::class,
             'auditable_id' => $attempt->id,
             'old_values' => $previous,

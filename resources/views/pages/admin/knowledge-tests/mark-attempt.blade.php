@@ -46,7 +46,7 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
 
         AuditLog::create([
             'user_id' => Auth::id(),
-            'action' => 'knowledge_test_reopened',
+            'event' => 'knowledge_test_reopened',
             'auditable_type' => KnowledgeTestAttempt::class,
             'auditable_id' => $this->attempt->id,
             'old_values' => $previous,
@@ -114,7 +114,7 @@ new #[Title('Mark Test Attempt - Admin')] class extends Component {
         // Log the action
         AuditLog::create([
             'user_id' => Auth::id(),
-            'action' => 'knowledge_test_marked',
+            'event' => 'knowledge_test_marked',
             'auditable_type' => KnowledgeTestAttempt::class,
             'auditable_id' => $this->attempt->id,
             'old_values' => null,

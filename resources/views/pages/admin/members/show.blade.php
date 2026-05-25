@@ -964,10 +964,10 @@ new #[Title('Member Details - Admin')] class extends Component {
         // Log the action
         \App\Models\AuditLog::create([
             'user_id' => auth()->id(),
-            'action' => 'reset_test_attempts',
-            'subject_type' => User::class,
-            'subject_id' => $this->user->id,
-            'changes' => [
+            'event' => 'reset_test_attempts',
+            'auditable_type' => User::class,
+            'auditable_id' => $this->user->id,
+            'new_values' => [
                 'test_id' => $testId,
                 'test_name' => $testName,
                 'attempts_deleted' => $deletedCount,
