@@ -732,9 +732,13 @@ new #[Title('Review Application - Admin')] class extends Component {
     @if($this->membership->user && $this->previousMembership && !$this->isChangeRequest)
     @php
         $prev = $this->previousMembership;
+        $notYetExpired = $prev->expires_at && $prev->expires_at->isFuture();
         $expiredAtPast = $prev->expires_at && $prev->expires_at->isPast();
         $expiredFor = $expiredAtPast
             ? $prev->expires_at->diffForHumans(now(), \Carbon\CarbonInterface::DIFF_ABSOLUTE, false, 2)
+            : null;
+        $remainingFor = $notYetExpired
+            ? now()->diffForHumans($prev->expires_at, \Carbon\CarbonInterface::DIFF_ABSOLUTE, false, 2)
             : null;
         $inLaunchGrace = \App\Models\Membership::isExtendedGraceActive();
         $graceDays = \App\Models\Membership::renewalGracePeriodDays();
@@ -742,23 +746,37 @@ new #[Title('Review Application - Admin')] class extends Component {
         // Show admin the expiry date that approval will set, so they can sanity-check
         // the anniversary-anchoring policy before clicking approve.
         $projectedNewExpiry = $this->membership->calculateRenewalAwareExpiry();
+
+        // Pick a colour theme based on renewal context: early (emerald), within
+        // grace (blue), beyond grace (orange).
+        if ($notYetExpired) {
+            $theme = ['border' => 'border-emerald-300 dark:border-emerald-700', 'bg' => 'bg-emerald-50 dark:bg-emerald-900/20', 'iconBg' => 'bg-emerald-200 dark:bg-emerald-800', 'iconText' => 'text-emerald-700 dark:text-emerald-300', 'title' => 'text-emerald-900 dark:text-emerald-100', 'label' => 'text-emerald-700 dark:text-emerald-300', 'badgeBg' => 'bg-emerald-200 dark:bg-emerald-800', 'badgeText' => 'text-emerald-900 dark:text-emerald-100'];
+        } elseif ($beyondGrace) {
+            $theme = ['border' => 'border-orange-300 dark:border-orange-700', 'bg' => 'bg-orange-50 dark:bg-orange-900/20', 'iconBg' => 'bg-orange-200 dark:bg-orange-800', 'iconText' => 'text-orange-700 dark:text-orange-300', 'title' => 'text-orange-900 dark:text-orange-100', 'label' => 'text-orange-700 dark:text-orange-300', 'badgeBg' => 'bg-orange-200 dark:bg-orange-800', 'badgeText' => 'text-orange-900 dark:text-orange-100'];
+        } else {
+            $theme = ['border' => 'border-blue-300 dark:border-blue-700', 'bg' => 'bg-blue-50 dark:bg-blue-900/20', 'iconBg' => 'bg-blue-200 dark:bg-blue-800', 'iconText' => 'text-blue-700 dark:text-blue-300', 'title' => 'text-blue-900 dark:text-blue-100', 'label' => 'text-blue-700 dark:text-blue-300', 'badgeBg' => 'bg-blue-200 dark:bg-blue-800', 'badgeText' => 'text-blue-900 dark:text-blue-100'];
+        }
     @endphp
-    <div class="rounded-2xl shadow-sm border-2 {{ $beyondGrace ? 'border-orange-300 bg-orange-50 dark:border-orange-700 dark:bg-orange-900/20' : 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20' }} p-6">
+    <div class="rounded-2xl shadow-sm border-2 {{ $theme['border'] }} {{ $theme['bg'] }} p-6">
         <div class="flex items-start gap-4">
-            <div class="flex size-12 flex-shrink-0 items-center justify-center rounded-xl {{ $beyondGrace ? 'bg-orange-200 dark:bg-orange-800' : 'bg-blue-200 dark:bg-blue-800' }}">
-                <svg class="size-6 {{ $beyondGrace ? 'text-orange-700 dark:text-orange-300' : 'text-blue-700 dark:text-blue-300' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex size-12 flex-shrink-0 items-center justify-center rounded-xl {{ $theme['iconBg'] }}">
+                <svg class="size-6 {{ $theme['iconText'] }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                 </svg>
             </div>
             <div class="flex-1">
-                <div class="flex items-center gap-3">
-                    <h3 class="text-lg font-bold {{ $beyondGrace ? 'text-orange-900 dark:text-orange-100' : 'text-blue-900 dark:text-blue-100' }}">Renewal Application</h3>
-                    @if($beyondGrace)
-                    <span class="inline-flex items-center rounded-full bg-orange-200 dark:bg-orange-800 px-2.5 py-0.5 text-xs font-semibold text-orange-900 dark:text-orange-100">
+                <div class="flex items-center gap-3 flex-wrap">
+                    <h3 class="text-lg font-bold {{ $theme['title'] }}">Renewal Application</h3>
+                    @if($notYetExpired)
+                    <span class="inline-flex items-center rounded-full {{ $theme['badgeBg'] }} px-2.5 py-0.5 text-xs font-semibold {{ $theme['badgeText'] }}">
+                        Early renewal ({{ $remainingFor }} before expiry)
+                    </span>
+                    @elseif($beyondGrace)
+                    <span class="inline-flex items-center rounded-full {{ $theme['badgeBg'] }} px-2.5 py-0.5 text-xs font-semibold {{ $theme['badgeText'] }}">
                         Beyond grace ({{ $graceDays }} days)
                     </span>
                     @else
-                    <span class="inline-flex items-center rounded-full bg-blue-200 dark:bg-blue-800 px-2.5 py-0.5 text-xs font-semibold text-blue-900 dark:text-blue-100">
+                    <span class="inline-flex items-center rounded-full {{ $theme['badgeBg'] }} px-2.5 py-0.5 text-xs font-semibold {{ $theme['badgeText'] }}">
                         Within grace ({{ $graceDays }} days)
                     </span>
                     @endif
@@ -766,51 +784,71 @@ new #[Title('Review Application - Admin')] class extends Component {
 
                 <dl class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
                     <div>
-                        <dt class="text-xs uppercase tracking-wider {{ $beyondGrace ? 'text-orange-700 dark:text-orange-300' : 'text-blue-700 dark:text-blue-300' }}">Previous membership</dt>
+                        <dt class="text-xs uppercase tracking-wider {{ $theme['label'] }}">Previous membership</dt>
                         <dd class="mt-0.5 font-semibold text-zinc-900 dark:text-white">{{ $prev->type?->name ?? 'Unknown type' }}</dd>
                         @if($prev->membership_number)
                         <dd class="mt-0.5 font-mono text-xs text-zinc-600 dark:text-zinc-400">{{ $prev->membership_number }}</dd>
                         @endif
                     </div>
                     <div>
-                        <dt class="text-xs uppercase tracking-wider {{ $beyondGrace ? 'text-orange-700 dark:text-orange-300' : 'text-blue-700 dark:text-blue-300' }}">Previous status</dt>
+                        <dt class="text-xs uppercase tracking-wider {{ $theme['label'] }}">Previous status</dt>
                         <dd class="mt-0.5 font-semibold text-zinc-900 dark:text-white">{{ ucfirst($prev->status) }}</dd>
                         @if($prev->expires_at)
-                        <dd class="mt-0.5 text-xs text-zinc-600 dark:text-zinc-400">Expired {{ $prev->expires_at->format('d M Y') }}</dd>
+                        <dd class="mt-0.5 text-xs text-zinc-600 dark:text-zinc-400">
+                            {{ $notYetExpired ? 'Expires' : 'Expired' }} {{ $prev->expires_at->format('d M Y') }}
+                        </dd>
                         @endif
                     </div>
                     <div>
-                        <dt class="text-xs uppercase tracking-wider {{ $beyondGrace ? 'text-orange-700 dark:text-orange-300' : 'text-blue-700 dark:text-blue-300' }}">Lapse duration</dt>
+                        <dt class="text-xs uppercase tracking-wider {{ $theme['label'] }}">
+                            {{ $notYetExpired ? 'Time until expiry' : 'Lapse duration' }}
+                        </dt>
                         <dd class="mt-0.5 font-semibold text-zinc-900 dark:text-white">
                             @if($expiredFor)
                                 {{ $expiredFor }} ago
+                            @elseif($remainingFor)
+                                {{ $remainingFor }} remaining
                             @else
-                                Not yet expired
+                                —
                             @endif
                         </dd>
                     </div>
                 </dl>
 
                 @if($projectedNewExpiry)
-                <div class="mt-4 rounded-lg border border-blue-300 dark:border-blue-700 bg-white/60 dark:bg-blue-950/30 p-3">
+                <div class="mt-4 rounded-lg border {{ $theme['border'] }} bg-white/60 dark:bg-zinc-900/30 p-3">
                     <div class="flex items-baseline justify-between gap-3 flex-wrap">
                         <div>
-                            <p class="text-xs font-semibold uppercase tracking-wider text-blue-700 dark:text-blue-300">New expiry on approval</p>
+                            <p class="text-xs font-semibold uppercase tracking-wider {{ $theme['label'] }}">New expiry on approval</p>
                             <p class="mt-1 text-base font-bold text-zinc-900 dark:text-white">
                                 {{ \Carbon\Carbon::parse($projectedNewExpiry)->format('d M Y') }}
                             </p>
                         </div>
                         <p class="text-xs text-zinc-600 dark:text-zinc-400 max-w-md">
                             Renewal anchors on the member's <strong>sign-up anniversary</strong>
-                            ({{ $prev->expires_at?->format('d M') ?? '—' }}), not today. Late payment does
-                            not shift the anniversary forward; the member simply gets a shorter active
-                            period this cycle.
+                            ({{ $prev->expires_at?->format('d M') ?? '—' }}), not today.
+                            @if($notYetExpired)
+                                Approving early does not shorten this cycle &mdash; the new period
+                                always runs from the next anniversary, so the member gets a full
+                                term.
+                            @else
+                                Late payment does not shift the anniversary forward; the member
+                                simply gets a shorter active period this cycle.
+                            @endif
                         </p>
                     </div>
                 </div>
                 @endif
 
-                @if($inLaunchGrace)
+                @if($notYetExpired)
+                {{-- Early renewal: no grace/penalty context is relevant. Just affirm it's on track. --}}
+                <div class="mt-4 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 p-3">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Renewing on time</p>
+                    <p class="mt-1 text-sm text-emerald-800 dark:text-emerald-200">
+                        Member is renewing before their current membership expires. Approve at the standard renewal price &mdash; no penalty applies.
+                    </p>
+                </div>
+                @elseif($inLaunchGrace)
                 <div class="mt-4 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 p-3">
                     <p class="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Platform launch grace</p>
                     <p class="mt-1 text-sm text-emerald-800 dark:text-emerald-200">
