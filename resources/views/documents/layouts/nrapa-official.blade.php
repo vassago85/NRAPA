@@ -233,6 +233,35 @@
         .sig-title { font-size: 10px; color: #6a6a6a; }
         .sig-date { font-size: 9px; color: #6a6a6a; margin-top: 2px; }
 
+        /* Commissioner of Oaths block */
+        .commissioner-card {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin: 4px auto 0 auto;
+            width: 95%;
+        }
+        .commissioner-text {
+            font-size: 10px;
+            line-height: 1.4;
+            color: #2c2c2c;
+            margin-bottom: 6px;
+        }
+        .commissioner-sign-table { width: 100%; border-collapse: collapse; margin: 2px 0 6px 0; }
+        .commissioner-sig-cell { padding: 0; vertical-align: bottom; }
+        .commissioner-sig-label { font-size: 10px; color: #6a6a6a; }
+        .commissioner-sig-line {
+            display: inline-block;
+            width: 60%;
+            border-bottom: 1px solid #6a6a6a;
+            height: 14px;
+            margin-left: 4px;
+            vertical-align: bottom;
+        }
+        .commissioner-details { font-size: 10px; line-height: 1.35; color: #2c2c2c; }
+        .commissioner-role { font-weight: 700; color: #1f4e8c; letter-spacing: 0.3px; }
+
         
 
         /* Orange footer bar — pinned to bottom of A4 page */

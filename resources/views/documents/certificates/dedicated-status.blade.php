@@ -161,6 +161,8 @@
         </tr>
     </table>
 
+    @include('documents.partials.commissioner-oaths')
+
     <div style="margin-top:8px; text-align:center; font-size:9px; color:#6a6a6a;">
         This is an electronically generated document. It can be verified by scanning the QR code above.
     </div>
