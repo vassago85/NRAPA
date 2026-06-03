@@ -222,13 +222,13 @@
         /* Signatory card */
         .signatory-card { text-align: center; }
         .sig-box {
-            height: 36px;
+            height: 30px;
             overflow: hidden;
-            margin: 4px 0 2px 0;
+            margin: 2px 0 1px 0;
             text-align: center;
         }
-        .sig-box img { max-height: 36px; max-width: 100%; }
-        .sig-line { height: 1px; background: #e5e5e5; margin: 4px 0; }
+        .sig-box img { max-height: 30px; max-width: 100%; }
+        .sig-line { height: 1px; background: #e5e5e5; margin: 3px 0; }
         .sig-name { font-weight: 600; font-size: 12px; color: #1f4e8c; }
         .sig-title { font-size: 10px; color: #6a6a6a; }
         .sig-date { font-size: 9px; color: #6a6a6a; margin-top: 2px; }
@@ -238,17 +238,17 @@
             background: rgba(255, 255, 255, 0.6);
             border: 1px solid #e5e5e5;
             border-radius: 6px;
-            padding: 8px 12px;
-            margin: 4px auto 0 auto;
+            padding: 6px 12px;
+            margin: 3px auto 0 auto;
             width: 95%;
         }
         .commissioner-text {
             font-size: 10px;
-            line-height: 1.4;
+            line-height: 1.35;
             color: #2c2c2c;
-            margin-bottom: 6px;
+            margin-bottom: 3px;
         }
-        .commissioner-sign-table { width: 100%; border-collapse: collapse; margin: 4px 0 6px 0; }
+        .commissioner-sign-table { width: 100%; border-collapse: collapse; margin: 2px 0 3px 0; }
         .commissioner-sig-label-cell {
             width: 64px;
             font-size: 10px;
@@ -259,13 +259,13 @@
         }
         .commissioner-sig-line-cell {
             border-bottom: 1px solid #6a6a6a;
-            height: 34px;
+            height: 24px;
             vertical-align: bottom;
             text-align: left;
             padding: 0 0 1px 8px;
         }
-        .commissioner-sig-img img { max-height: 32px; max-width: 100%; vertical-align: bottom; }
-        .commissioner-details { font-size: 10px; line-height: 1.35; color: #2c2c2c; }
+        .commissioner-sig-img img { max-height: 22px; max-width: 100%; vertical-align: bottom; }
+        .commissioner-details { font-size: 10px; line-height: 1.3; color: #2c2c2c; }
         .commissioner-role { font-weight: 700; color: #1f4e8c; letter-spacing: 0.3px; }
 
         

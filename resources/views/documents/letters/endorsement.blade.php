@@ -186,7 +186,10 @@
         The Association confirms that the firearm or component(s) described above is suitable for the stated purpose in accordance with the Firearms Control Act (Act 60 of 2000, as amended) and relevant Regulations.
     </div>
 
-    {{-- Bottom: Signatory + Verification (table layout) --}}
+    {{-- Bottom: Signatory + Commissioner of Oaths (table layout) --}}
+    @php
+        $commissionerSignatureHtml = \App\Helpers\DocumentDataHelper::getCommissionerSignatureHtml();
+    @endphp
     <table class="layout-table">
         <tr>
             <td class="half">
@@ -201,21 +204,93 @@
                 </div>
             </td>
             <td class="half">
-                <div class="verify-card">
-                    <div class="card-title">Verify This Endorsement</div>
-                    <div style="margin:8px 0;">
-                        <div class="qr-box">
-                            <img src="{{ $qrCodeUrl }}" alt="QR Code"/>
-                        </div>
+                <div class="card commissioner-inline">
+                    <div class="card-title">Commissioner of Oaths</div>
+                    <div class="commissioner-text">
+                        I certify that this is a true and correct copy of the original document which has been presented to me, and that according to my observations no alterations have been made to either the original document nor the copy.
                     </div>
-                    <div style="font-size:9px; color:#333; margin-bottom:4px;">
-                        Scan the QR code or visit the link below to confirm this is a genuine NRAPA endorsement letter.
+                    <table class="commissioner-sign-table">
+                        <tr>
+                            <td class="commissioner-sig-label-cell">Signature:</td>
+                            <td class="commissioner-sig-line-cell">
+                                @if($commissionerSignatureHtml)
+                                    <span class="commissioner-sig-img">{!! $commissionerSignatureHtml !!}</span>
+                                @endif
+                            </td>
+                        </tr>
+                    </table>
+                    <div class="commissioner-details">
+                        <div class="commissioner-role">COMMISSIONER OF OATHS</div>
+                        <div>L van Rooyen</div>
+                        <div>SAIPA PR15741</div>
+                        <div>1152 Meyer Street, Waverley, Pretoria</div>
                     </div>
-                    <a href="{{ $verifyUrl }}" style="color:#1f4e8c; word-break:break-all; font-size:8px;">{{ $verifyUrl }}</a>
                 </div>
             </td>
         </tr>
     </table>
 
-    @include('documents.partials.commissioner-oaths')
+    {{-- Verification strip (full width, horizontal) --}}
+    <div class="verify-strip">
+        <table class="verify-strip-table">
+            <tr>
+                <td class="verify-strip-qr">
+                    <div class="qr-box">
+                        <img src="{{ $qrCodeUrl }}" alt="QR Code"/>
+                    </div>
+                </td>
+                <td class="verify-strip-text">
+                    <div class="verify-strip-title">Verify This Endorsement</div>
+                    <div class="verify-strip-blurb">
+                        Scan the QR code or visit the link below to confirm this is a genuine NRAPA endorsement letter.
+                    </div>
+                    <a href="{{ $verifyUrl }}" class="verify-strip-link">{{ $verifyUrl }}</a>
+                </td>
+            </tr>
+        </table>
+    </div>
 @endsection
+
+@push('document-styles')
+<style>
+    /* Commissioner block — inline (half-column) variant for the endorsement letter */
+    .commissioner-inline .commissioner-text {
+        font-size: 9px;
+        line-height: 1.3;
+        color: #2c2c2c;
+        margin-bottom: 3px;
+    }
+    .commissioner-inline .commissioner-sign-table { width: 100%; border-collapse: collapse; margin: 2px 0 3px 0; }
+    .commissioner-inline .commissioner-sig-label-cell {
+        width: 56px; font-size: 9px; color: #6a6a6a;
+        vertical-align: bottom; padding-bottom: 2px; white-space: nowrap;
+    }
+    .commissioner-inline .commissioner-sig-line-cell {
+        border-bottom: 1px solid #6a6a6a; height: 22px;
+        vertical-align: bottom; text-align: left; padding: 0 0 1px 6px;
+    }
+    .commissioner-inline .commissioner-sig-img img { max-height: 20px; max-width: 100%; vertical-align: bottom; }
+    .commissioner-inline .commissioner-details { font-size: 9px; line-height: 1.3; color: #2c2c2c; }
+    .commissioner-inline .commissioner-role { font-weight: 700; color: #1f4e8c; letter-spacing: 0.3px; }
+
+    /* Full-width verification strip at bottom of page */
+    .verify-strip {
+        background: rgba(255, 255, 255, 0.6);
+        border: 1px solid #e5e5e5;
+        border-radius: 6px;
+        padding: 6px 12px;
+        margin: 4px auto 0 auto;
+        width: 95%;
+    }
+    .verify-strip-table { width: 100%; border-collapse: collapse; }
+    .verify-strip-qr { width: 90px; vertical-align: middle; padding-right: 10px; }
+    .verify-strip-qr .qr-box {
+        display: inline-block; border: 1px solid #e5e5e5; border-radius: 6px; background: #fff; padding: 3px;
+    }
+    .verify-strip-qr .qr-box img { width: 78px; height: 78px; display: block; }
+    .verify-strip-text { vertical-align: middle; }
+    .verify-strip-title { font-size: 11px; font-weight: 600; color: #1f4e8c; text-transform: uppercase; letter-spacing: 0.5px; }
+    .verify-strip-blurb { font-size: 9px; color: #333; margin: 3px 0; line-height: 1.35; }
+    .verify-strip-link { color: #1f4e8c; word-break: break-all; font-size: 9px; text-decoration: none; }
+</style>
+@endpush
