@@ -1,3 +1,6 @@
+@php
+    $commissionerSignatureHtml = \App\Helpers\DocumentDataHelper::getCommissionerSignatureHtml();
+@endphp
 <div class="commissioner-card">
     <div class="card-title">Commissioner of Oaths</div>
     <div class="commissioner-text">
@@ -6,9 +9,11 @@
     </div>
     <table class="commissioner-sign-table">
         <tr>
-            <td class="commissioner-sig-cell">
-                <span class="commissioner-sig-label">Signature:</span>
-                <span class="commissioner-sig-line"></span>
+            <td class="commissioner-sig-label-cell">Signature:</td>
+            <td class="commissioner-sig-line-cell">
+                @if($commissionerSignatureHtml)
+                    <span class="commissioner-sig-img">{!! $commissionerSignatureHtml !!}</span>
+                @endif
             </td>
         </tr>
     </table>

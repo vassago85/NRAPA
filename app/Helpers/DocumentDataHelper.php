@@ -161,6 +161,55 @@ class DocumentDataHelper
     }
 
     /**
+     * Get commissioner of oaths signature image HTML (safe, server-generated).
+     * Returns an empty string when no signature is configured so the document
+     * simply shows a blank signature line.
+     */
+    public static function getCommissionerSignatureHtml(?string $signaturePath = null): string
+    {
+        if (! $signaturePath) {
+            $signaturePath = static::getDefaultCommissionerSignaturePath();
+        }
+
+        if (! $signaturePath) {
+            return '';
+        }
+
+        $disks = array_unique(array_filter([
+            SystemSetting::get('document_assets_disk'),
+            StorageHelper::getPublicDisk(),
+        ]));
+
+        foreach ($disks as $disk) {
+            try {
+                if (! Storage::disk($disk)->exists($signaturePath)) {
+                    continue;
+                }
+
+                $contents = Storage::disk($disk)->get($signaturePath);
+                $mimeType = Storage::disk($disk)->mimeType($signaturePath) ?: 'image/png';
+                $dataUri = 'data:'.$mimeType.';base64,'.base64_encode($contents);
+
+                return '<img src="'.e($dataUri).'" alt="Commissioner Signature" />';
+            } catch (\Throwable $e) {
+                report($e);
+
+                continue;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Get default commissioner of oaths signature path from system settings.
+     */
+    public static function getDefaultCommissionerSignaturePath(): ?string
+    {
+        return SystemSetting::get('default_commissioner_oaths_signature_path', null);
+    }
+
+    /**
      * Get signatory name and title (with fallbacks).
      */
     public static function getSignatoryInfo(Certificate $certificate): array

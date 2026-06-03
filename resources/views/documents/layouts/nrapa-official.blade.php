@@ -248,17 +248,23 @@
             color: #2c2c2c;
             margin-bottom: 6px;
         }
-        .commissioner-sign-table { width: 100%; border-collapse: collapse; margin: 2px 0 6px 0; }
-        .commissioner-sig-cell { padding: 0; vertical-align: bottom; }
-        .commissioner-sig-label { font-size: 10px; color: #6a6a6a; }
-        .commissioner-sig-line {
-            display: inline-block;
-            width: 60%;
-            border-bottom: 1px solid #6a6a6a;
-            height: 14px;
-            margin-left: 4px;
+        .commissioner-sign-table { width: 100%; border-collapse: collapse; margin: 4px 0 6px 0; }
+        .commissioner-sig-label-cell {
+            width: 64px;
+            font-size: 10px;
+            color: #6a6a6a;
             vertical-align: bottom;
+            padding-bottom: 2px;
+            white-space: nowrap;
         }
+        .commissioner-sig-line-cell {
+            border-bottom: 1px solid #6a6a6a;
+            height: 34px;
+            vertical-align: bottom;
+            text-align: left;
+            padding: 0 0 1px 8px;
+        }
+        .commissioner-sig-img img { max-height: 32px; max-width: 100%; vertical-align: bottom; }
         .commissioner-details { font-size: 10px; line-height: 1.35; color: #2c2c2c; }
         .commissioner-role { font-weight: 700; color: #1f4e8c; letter-spacing: 0.3px; }
 

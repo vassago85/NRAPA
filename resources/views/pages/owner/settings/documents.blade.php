@@ -15,10 +15,12 @@ new class extends Component {
     // File uploads
     public $signature_file = null;
     public $commissioner_file = null;
+    public $commissioner_signature_file = null;
     
     // Current file paths (for display)
     public ?string $current_signature_path = null;
     public ?string $current_commissioner_path = null;
+    public ?string $current_commissioner_signature_path = null;
 
     public function mount(): void
     {
@@ -26,6 +28,7 @@ new class extends Component {
         $this->signatory_title = SystemSetting::get('default_signatory_title', 'Authorised Signatory');
         $this->current_signature_path = SystemSetting::get('default_signatory_signature_path', null);
         $this->current_commissioner_path = SystemSetting::get('default_commissioner_oaths_scan_path', null);
+        $this->current_commissioner_signature_path = SystemSetting::get('default_commissioner_oaths_signature_path', null);
     }
 
     public function saveSignatoryDetails(): void
@@ -110,6 +113,40 @@ new class extends Component {
         }
     }
 
+    public function uploadCommissionerSignature(): void
+    {
+        $this->validate([
+            'commissioner_signature_file' => 'required|image|mimes:png|max:2048', // PNG only, max 2MB
+        ], [
+            'commissioner_signature_file.required' => 'Please select a commissioner signature file.',
+            'commissioner_signature_file.image' => 'Commissioner signature must be an image file.',
+            'commissioner_signature_file.mimes' => 'Commissioner signature must be a PNG file (transparent PNG recommended).',
+            'commissioner_signature_file.max' => 'Commissioner signature file must not exceed 2MB.',
+        ]);
+
+        try {
+            $disk = $this->resolveDocumentDisk();
+            $path = $this->commissioner_signature_file->store('commissioner-signatures', $disk);
+
+            if ($this->current_commissioner_signature_path) {
+                try {
+                    Storage::disk($disk)->delete($this->current_commissioner_signature_path);
+                } catch (\Exception $e) {
+                    // Ignore deletion errors
+                }
+            }
+
+            SystemSetting::set('default_commissioner_oaths_signature_path', $path, 'string', 'documents', 'Default commissioner of oaths signature path');
+            SystemSetting::set('document_assets_disk', $disk, 'string', 'documents', 'Disk used for document assets');
+            $this->current_commissioner_signature_path = $path;
+            $this->commissioner_signature_file = null;
+
+            session()->flash('success', 'Commissioner of Oaths signature uploaded successfully.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'Upload failed: ' . $e->getMessage());
+        }
+    }
+
     public function deleteSignature(): void
     {
         if ($this->current_signature_path) {
@@ -142,6 +179,23 @@ new class extends Component {
         $this->current_commissioner_path = null;
 
         session()->flash('success', 'Commissioner of Oaths scan deleted successfully.');
+    }
+
+    public function deleteCommissionerSignature(): void
+    {
+        if ($this->current_commissioner_signature_path) {
+            $disk = $this->resolveDocumentDisk();
+            try {
+                Storage::disk($disk)->delete($this->current_commissioner_signature_path);
+            } catch (\Exception $e) {
+                // Ignore deletion errors
+            }
+        }
+
+        SystemSetting::set('default_commissioner_oaths_signature_path', null, 'string', 'documents', 'Default commissioner of oaths signature path');
+        $this->current_commissioner_signature_path = null;
+
+        session()->flash('success', 'Commissioner of Oaths signature deleted successfully.');
     }
     
     /**
@@ -200,6 +254,11 @@ new class extends Component {
     public function getCommissionerUrlProperty(): ?string
     {
         return $this->getPreviewDataUri($this->current_commissioner_path);
+    }
+
+    public function getCommissionerSignatureUrlProperty(): ?string
+    {
+        return $this->getPreviewDataUri($this->current_commissioner_signature_path);
     }
 }; ?>
 
@@ -350,6 +409,52 @@ new class extends Component {
                     @if($commissioner_file)
                         <button type="submit" class="px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white font-medium rounded-lg transition-colors">
                             Upload Commissioner Scan
+                        </button>
+                    @endif
+                </form>
+            </div>
+
+            <!-- Commissioner of Oaths Signature Upload -->
+            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                        <svg class="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Commissioner of Oaths Signature</h2>
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400">Upload a transparent PNG signature placed on the signature line of the Commissioner of Oaths block (max 2MB)</p>
+                    </div>
+                </div>
+
+                @if($this->commissionerSignatureUrl)
+                    <div class="mb-4 p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Current Commissioner Signature</span>
+                            <button wire:click="deleteCommissionerSignature" wire:confirm="Are you sure you want to delete the commissioner signature?"
+                                class="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300">
+                                Delete
+                            </button>
+                        </div>
+                        <div class="bg-white p-4 rounded border border-zinc-200 dark:border-zinc-700">
+                            <img src="{{ $this->commissionerSignatureUrl }}" alt="Commissioner Signature" class="max-h-32 mx-auto object-contain">
+                        </div>
+                    </div>
+                @endif
+
+                <form wire:submit="uploadCommissionerSignature" class="space-y-4">
+                    <div>
+                        <label for="commissioner_signature_file" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Upload Commissioner Signature (PNG only)</label>
+                        <input type="file" id="commissioner_signature_file" wire:model="commissioner_signature_file" accept="image/png"
+                            class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+                        @error('commissioner_signature_file') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                        @if($commissioner_signature_file)
+                            <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Selected: {{ $commissioner_signature_file->getClientOriginalName() }}</p>
+                        @endif
+                    </div>
+
+                    @if($commissioner_signature_file)
+                        <button type="submit" class="px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white font-medium rounded-lg transition-colors">
+                            Upload Commissioner Signature
                         </button>
                     @endif
                 </form>
