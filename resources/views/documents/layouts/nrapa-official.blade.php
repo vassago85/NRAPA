@@ -268,7 +268,46 @@
         .commissioner-details { font-size: 10px; line-height: 1.3; color: #2c2c2c; }
         .commissioner-role { font-weight: 700; color: #1f4e8c; letter-spacing: 0.3px; }
 
-        
+        /* Commissioner block — inline (half-column) variant
+           Used when the commissioner card sits beside the signatory card in a layout-table. */
+        .commissioner-inline .commissioner-text {
+            font-size: 9px;
+            line-height: 1.3;
+            color: #2c2c2c;
+            margin-bottom: 3px;
+        }
+        .commissioner-inline .commissioner-sign-table { width: 100%; border-collapse: collapse; margin: 2px 0 3px 0; }
+        .commissioner-inline .commissioner-sig-label-cell {
+            width: 56px; font-size: 9px; color: #6a6a6a;
+            vertical-align: bottom; padding-bottom: 2px; white-space: nowrap;
+        }
+        .commissioner-inline .commissioner-sig-line-cell {
+            border-bottom: 1px solid #6a6a6a; height: 22px;
+            vertical-align: bottom; text-align: left; padding: 0 0 1px 6px;
+        }
+        .commissioner-inline .commissioner-sig-img img { max-height: 20px; max-width: 100%; vertical-align: bottom; }
+        .commissioner-inline .commissioner-details { font-size: 9px; line-height: 1.3; color: #2c2c2c; }
+        .commissioner-inline .commissioner-role { font-weight: 700; color: #1f4e8c; letter-spacing: 0.3px; }
+
+        /* Full-width verification strip (QR + URL) */
+        .verify-strip {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            padding: 6px 12px;
+            margin: 4px auto 0 auto;
+            width: 95%;
+        }
+        .verify-strip-table { width: 100%; border-collapse: collapse; }
+        .verify-strip-qr { width: 90px; vertical-align: middle; padding-right: 10px; }
+        .verify-strip-qr .qr-box {
+            display: inline-block; border: 1px solid #e5e5e5; border-radius: 6px; background: #fff; padding: 3px;
+        }
+        .verify-strip-qr .qr-box img { width: 78px; height: 78px; display: block; }
+        .verify-strip-text { vertical-align: middle; }
+        .verify-strip-title { font-size: 11px; font-weight: 600; color: #1f4e8c; text-transform: uppercase; letter-spacing: 0.5px; }
+        .verify-strip-blurb { font-size: 9px; color: #333; margin: 3px 0; line-height: 1.35; }
+        .verify-strip-link { color: #1f4e8c; word-break: break-all; font-size: 9px; text-decoration: none; }
 
         /* Orange footer bar — pinned to bottom of A4 page */
         .footer-bar {

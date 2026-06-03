@@ -65,7 +65,7 @@
         This confirms that the member's membership is valid, current, and compliant with the Association's requirements at the date of issue.
     </div>
 
-    {{-- Signatory + Verification --}}
+    {{-- Bottom: Signatory + Commissioner of Oaths --}}
     <table class="layout-table">
         <tr>
             <td class="half">
@@ -78,31 +78,16 @@
                 </div>
             </td>
             <td class="half">
-                <div class="card">
-                    <div class="card-title">Verify Certificate</div>
-                    <table style="width:100%; border-collapse:collapse; margin-top:4px;">
-                        <tr>
-                            <td style="width:85px; vertical-align:top; padding:0;">
-                                <div class="qr-box">
-                                    <img src="{{ $qrCodeUrl }}" alt="QR Code"/>
-                                </div>
-                            </td>
-                            <td class="verify-text" style="vertical-align:top;">
-                                <strong>Scan to verify</strong>
-                                Scan the QR code or visit the link below to confirm this certificate.
-                                <br/>
-                                <a href="{{ $verifyUrl }}" style="word-break:break-all; font-size:8px;">{{ $verifyUrl }}</a>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
+                @include('documents.partials.commissioner-oaths-inline')
             </td>
         </tr>
     </table>
 
-    @include('documents.partials.commissioner-oaths')
-
-    <div style="margin-top:8px; text-align:center; font-size:9px; color:#6a6a6a;">
-        This is an electronically generated document. It can be verified by scanning the QR code above.
-    </div>
+    {{-- Verification strip (full width, horizontal) --}}
+    @include('documents.partials.verify-strip', [
+        'qrCodeUrl' => $qrCodeUrl,
+        'verifyUrl' => $verifyUrl,
+        'verifyStripTitle' => 'Verify Certificate',
+        'verifyStripBlurb' => 'Scan the QR code or visit the link below to confirm this certificate.',
+    ])
 @endsection
