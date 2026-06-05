@@ -22,6 +22,7 @@ class FixExpiredStatuses extends Command
 {
     protected $signature = 'nrapa:fix-expired-statuses
                             {--apply : Actually update the records (default is dry-run)}
+                            {--force : Skip the interactive confirmation (required for scheduled runs)}
                             {--source= : Only fix records with this source value (e.g. "import")}';
 
     protected $description = 'Flip status=active to status=expired when expires_at is past (lifetime types excluded).';
@@ -70,7 +71,7 @@ class FixExpiredStatuses extends Command
             return Command::SUCCESS;
         }
 
-        if (!$this->confirm("Apply status=expired to all {$candidates->count()} records?", false)) {
+        if (!$this->option('force') && !$this->confirm("Apply status=expired to all {$candidates->count()} records?", false)) {
             $this->warn('Aborted by user.');
 
             return Command::FAILURE;

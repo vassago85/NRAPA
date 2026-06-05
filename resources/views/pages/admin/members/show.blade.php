@@ -1123,6 +1123,12 @@ new #[Title('Member Details - Admin')] class extends Component {
                 ]);
             }
 
+            // If admin just flipped this row to active, make sure no other
+            // active rows remain for the same user.
+            if ($this->editMembershipStatus === 'active' && $oldStatus !== 'active') {
+                $membership->retireOtherActiveMemberships();
+            }
+
             $message = 'Membership updated successfully.';
         } else {
             $newMembershipType = MembershipType::findOrFail($this->editMembershipTypeId);
@@ -1133,7 +1139,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                 $newExpiresAt = $activatedAt->copy()->addMonths($newMembershipType->duration_months)->format('Y-m-d');
             }
 
-            Membership::create([
+            $newMembership = Membership::create([
                 'uuid' => \Illuminate\Support\Str::uuid(),
                 'user_id' => $this->user->id,
                 'membership_type_id' => $this->editMembershipTypeId,
@@ -1147,6 +1153,10 @@ new #[Title('Member Details - Admin')] class extends Component {
                 'notes' => $this->editMembershipNotes ?: null,
                 'source' => 'admin',
             ]);
+
+            if ($this->editMembershipStatus === 'active') {
+                $newMembership->retireOtherActiveMemberships();
+            }
 
             $message = 'Membership assigned successfully.';
         }

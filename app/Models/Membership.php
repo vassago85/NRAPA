@@ -687,6 +687,32 @@ class Membership extends Model
         ]);
     }
 
+    /**
+     * Retire every OTHER active membership for the same user.
+     *
+     * Used whenever a new membership row becomes `active` (approval, renewal
+     * approval, admin manual create/edit). Guarantees that only the latest
+     * active row carries status='active' at any moment, so the UI never has
+     * to guess which row is "the current" one.
+     *
+     * Returns the number of rows that were retired.
+     */
+    public function retireOtherActiveMemberships(): int
+    {
+        if (! $this->user_id) {
+            return 0;
+        }
+
+        return static::query()
+            ->where('user_id', $this->user_id)
+            ->where('id', '!=', $this->id)
+            ->where('status', 'active')
+            ->update([
+                'status' => 'expired',
+                'expires_at' => now(),
+            ]);
+    }
+
     // ===== Scopes =====
 
     /**
@@ -791,6 +817,11 @@ class Membership extends Model
      * anniversary) instead of "today". For first-time applications, falls back
      * to a normal {@see MembershipType::calculateExpiryDate()} from now.
      *
+     * The result is always capped at `now() + duration_months` so that a
+     * non-lifetime member can never be active for longer than one full cycle
+     * from this activation moment. This prevents an early renewer from
+     * effectively buying ~2 years of active membership in one go.
+     *
      * Always returns a fresh Carbon instance (or null for non-expiring types).
      */
     public function calculateRenewalAwareExpiry(): ?\DateTimeInterface
@@ -799,12 +830,22 @@ class Membership extends Model
             return null;
         }
 
-        if ($this->isRenewal()) {
-            $prev = $this->previousMembership;
-            return $this->type->calculateRenewalExpiryDate($prev?->expires_at);
+        $expiry = $this->isRenewal()
+            ? $this->type->calculateRenewalExpiryDate($this->previousMembership?->expires_at)
+            : $this->type->calculateExpiryDate(now());
+
+        if ($expiry === null) {
+            return null;
         }
 
-        return $this->type->calculateExpiryDate(now());
+        if ($this->type->duration_months) {
+            $cap = now()->addMonths($this->type->duration_months);
+            $expiryCarbon = \Carbon\Carbon::parse($expiry);
+
+            return $expiryCarbon->gt($cap) ? $cap : $expiryCarbon;
+        }
+
+        return $expiry;
     }
 
     /**

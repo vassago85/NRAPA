@@ -61,6 +61,14 @@ Schedule::command('nrapa:send-pop-followup-reminders')
     ->withoutOverlapping()
     ->runInBackground();
 
+// Flip active memberships whose expires_at is in the past to status=expired so
+// no member can stay flagged 'active' past their expiry date.
+Schedule::command('nrapa:fix-expired-statuses --apply --force')
+    ->dailyAt('00:30')
+    ->timezone('Africa/Johannesburg')
+    ->withoutOverlapping()
+    ->runInBackground();
+
 // Process queued NTFY notifications every 5 minutes (sends any that were
 // deferred outside working hours as soon as working hours begin)
 Schedule::command('notifications:process')

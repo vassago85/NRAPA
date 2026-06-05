@@ -471,6 +471,9 @@ new #[Title('All Approvals - Admin')] class extends Component {
             'payment_confirmed_by' => $membership->payment_confirmed_by ?? $admin->id,
         ]);
 
+        // Make sure no older 'active' rows remain for this user.
+        $membership->retireOtherActiveMemberships();
+
         if (!$membership->membership_number && $membership->user) {
             $membership->update([
                 'membership_number' => $membership->user->formatted_member_number,
@@ -583,6 +586,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
                 'activated_at' => now(),
                 'expires_at' => $expiresAt,
             ]);
+            $membership->retireOtherActiveMemberships();
             if (!$membership->membership_number && $membership->user) {
                 $membership->update([
                     'membership_number' => $membership->user->formatted_member_number,

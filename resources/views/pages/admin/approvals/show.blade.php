@@ -109,6 +109,9 @@ new #[Title('Review Application - Admin')] class extends Component {
             'payment_confirmed_by' => $this->membership->payment_confirmed_by ?? $admin->id,
         ]);
 
+        // Make sure no older 'active' rows are still hanging around for this user.
+        $this->membership->retireOtherActiveMemberships();
+
         // Generate membership number from user's permanent member number
         if (!$this->membership->membership_number) {
             $user = $this->membership->user;
