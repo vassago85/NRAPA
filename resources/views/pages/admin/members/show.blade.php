@@ -168,7 +168,11 @@ new #[Title('Member Details - Admin')] class extends Component {
     {
         $active = $this->user->memberships->where('status', 'active');
 
-        return $active->first(fn ($m) => !$m->expires_at?->isPast())
+        // Prefer the most recent non-expired membership (highest id).
+        // Fall back to the most recent active row if all are expired.
+        return $active->reject(fn ($m) => $m->expires_at && $m->expires_at->isPast())
+            ->sortByDesc('id')
+            ->first()
             ?? $active->sortByDesc('id')->first();
     }
 
