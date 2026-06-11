@@ -26,12 +26,24 @@ return new class extends Migration
             // Already dropped or doesn't exist — safe to ignore
         }
 
-        // Add a regular index if not present
-        $indexes = collect(DB::select("SHOW INDEX FROM memberships WHERE Column_name = 'membership_number'"));
-        if ($indexes->isEmpty()) {
-            Schema::table('memberships', function (Blueprint $table) {
-                $table->index('membership_number');
-            });
+        // Add a regular index if not present.
+        // SHOW INDEX is MySQL-specific; on SQLite (used by the test suite) we just
+        // attempt the index creation and let the exception swallow it if it already
+        // exists.
+        $needsIndex = true;
+        if (DB::getDriverName() === 'mysql') {
+            $indexes = collect(DB::select("SHOW INDEX FROM memberships WHERE Column_name = 'membership_number'"));
+            $needsIndex = $indexes->isEmpty();
+        }
+
+        if ($needsIndex) {
+            try {
+                Schema::table('memberships', function (Blueprint $table) {
+                    $table->index('membership_number');
+                });
+            } catch (\Throwable $e) {
+                // Index already exists on this driver — safe to ignore
+            }
         }
 
         // Assign sequential member numbers to all users who don't have one yet.

@@ -533,7 +533,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasOne(Membership::class)
             ->where('status', 'active')
-            ->orderByRaw('(expires_at IS NULL OR expires_at > NOW()) DESC')
+            ->orderByRaw('(expires_at IS NULL OR expires_at > ?) DESC', [now()])
             ->orderByDesc('id');
     }
 

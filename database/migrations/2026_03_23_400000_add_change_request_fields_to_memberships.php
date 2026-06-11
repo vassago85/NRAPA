@@ -9,8 +9,13 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Extend status enum to include change request statuses
-        DB::statement("ALTER TABLE memberships MODIFY COLUMN status ENUM('applied','approved','active','suspended','revoked','expired','pending_change','pending_payment') DEFAULT 'applied'");
+        // Extend status enum to include change request statuses.
+        // SQLite stores ENUM columns as TEXT and any pre-existing CHECK constraint
+        // is recreated on Blueprint::enum(); for the test suite we skip the raw
+        // MODIFY COLUMN and rely on Eloquent-side validation instead.
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE memberships MODIFY COLUMN status ENUM('applied','approved','active','suspended','revoked','expired','pending_change','pending_payment') DEFAULT 'applied'");
+        }
 
         Schema::table('memberships', function (Blueprint $table) {
             $table->decimal('change_amount', 10, 2)->nullable()->after('proof_of_payment_path');
@@ -24,7 +29,9 @@ return new class extends Migration
             ->whereIn('status', ['pending_change', 'pending_payment'])
             ->update(['status' => 'applied']);
 
-        DB::statement("ALTER TABLE memberships MODIFY COLUMN status ENUM('applied','approved','active','suspended','revoked','expired') DEFAULT 'applied'");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE memberships MODIFY COLUMN status ENUM('applied','approved','active','suspended','revoked','expired') DEFAULT 'applied'");
+        }
 
         Schema::table('memberships', function (Blueprint $table) {
             $table->dropColumn('change_amount');

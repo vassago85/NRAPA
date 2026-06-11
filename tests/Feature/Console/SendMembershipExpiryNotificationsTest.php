@@ -47,7 +47,7 @@ function makeMember(?string $email = null): User
     ]);
 }
 
-function makeMembership(User $user, MembershipType $type, ?\Carbon\Carbon $expiresAt, string $status = 'active'): Membership
+function makeMembership(User $user, MembershipType $type, ?\Carbon\CarbonInterface $expiresAt, string $status = 'active'): Membership
 {
     return Membership::create([
         'user_id' => $user->id,
