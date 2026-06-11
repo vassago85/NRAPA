@@ -58,9 +58,14 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
+            // PHP 8.5 deprecated the global PDO::MYSQL_ATTR_SSL_CA / _VERIFY_SERVER_CERT
+            // constants in favour of namespaced \Pdo\Mysql::*, which only exist on
+            // PHP 8.4+. Production currently runs PHP 8.3, so we branch on
+            // PHP_VERSION_ID and fall back to the legacy constants there. The ternary
+            // is lazy, so the namespaced reference is never resolved on PHP 8.3.
             'options' => extension_loaded('pdo_mysql') ? [
-                PDO::MYSQL_ATTR_SSL_CA => '',
-                PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false,
+                (PHP_VERSION_ID >= 80400 ? \Pdo\Mysql::ATTR_SSL_CA : \PDO::MYSQL_ATTR_SSL_CA) => '',
+                (PHP_VERSION_ID >= 80400 ? \Pdo\Mysql::ATTR_SSL_VERIFY_SERVER_CERT : \PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT) => false,
             ] : [],
         ],
 
@@ -79,9 +84,14 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
+            // PHP 8.5 deprecated the global PDO::MYSQL_ATTR_SSL_CA / _VERIFY_SERVER_CERT
+            // constants in favour of namespaced \Pdo\Mysql::*, which only exist on
+            // PHP 8.4+. Production currently runs PHP 8.3, so we branch on
+            // PHP_VERSION_ID and fall back to the legacy constants there. The ternary
+            // is lazy, so the namespaced reference is never resolved on PHP 8.3.
             'options' => extension_loaded('pdo_mysql') ? [
-                PDO::MYSQL_ATTR_SSL_CA => '',
-                PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false,
+                (PHP_VERSION_ID >= 80400 ? \Pdo\Mysql::ATTR_SSL_CA : \PDO::MYSQL_ATTR_SSL_CA) => '',
+                (PHP_VERSION_ID >= 80400 ? \Pdo\Mysql::ATTR_SSL_VERIFY_SERVER_CERT : \PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT) => false,
             ] : [],
         ],
 
