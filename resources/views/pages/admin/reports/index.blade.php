@@ -420,7 +420,7 @@ new #[Title('Membership Reports - Admin')] class extends Component {
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-2">
                                 <div class="flex-1 h-2 rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
-                                    <div class="h-full rounded-full {{ $row['duration_type'] === 'lifetime' ? 'bg-blue-500' : 'bg-emerald-500' }}" style="width: {{ min($row['active_percent'], 100) }}%"></div>
+                                    <div class="h-full rounded-full {{ $row['duration_type'] === 'lifetime' ? 'bg-blue-500' : 'bg-emerald-500' }}" @style(['width: ' . min($row['active_percent'], 100) . '%'])></div>
                                 </div>
                                 <span class="text-xs font-medium text-zinc-600 dark:text-zinc-400 w-12 text-right">{{ $row['active_percent'] }}%</span>
                             </div>
@@ -500,7 +500,7 @@ new #[Title('Membership Reports - Admin')] class extends Component {
                     </div>
                     <p class="mt-2 text-2xl font-bold {{ $colors['text'] }}">{{ number_format($source['total']) }}</p>
                     <div class="mt-2 h-1.5 w-full rounded-full bg-white/50 dark:bg-zinc-800/50 overflow-hidden">
-                        <div class="h-full rounded-full {{ $colors['bg'] }}" style="width: {{ min($pct, 100) }}%"></div>
+                        <div class="h-full rounded-full {{ $colors['bg'] }}" @style(['width: ' . min($pct, 100) . '%'])></div>
                     </div>
                 </div>
                 @endforeach
@@ -560,7 +560,7 @@ new #[Title('Membership Reports - Admin')] class extends Component {
                     </div>
                 </div>
                 <div class="mt-4 h-2 w-full rounded-full bg-white/60 dark:bg-sky-950/60 overflow-hidden">
-                    <div class="h-full rounded-full bg-sky-500" style="width: {{ min($usage['virtual_safe']['active_member_pct'], 100) }}%"></div>
+                    <div class="h-full rounded-full bg-sky-500" @style(['width: ' . min($usage['virtual_safe']['active_member_pct'], 100) . '%'])></div>
                 </div>
             </div>
 
@@ -601,7 +601,7 @@ new #[Title('Membership Reports - Admin')] class extends Component {
                     </div>
                 </div>
                 <div class="mt-4 h-2 w-full rounded-full bg-white/60 dark:bg-amber-950/60 overflow-hidden">
-                    <div class="h-full rounded-full bg-amber-500" style="width: {{ min($usage['reloading_bench']['active_member_pct'], 100) }}%"></div>
+                    <div class="h-full rounded-full bg-amber-500" @style(['width: ' . min($usage['reloading_bench']['active_member_pct'], 100) . '%'])></div>
                 </div>
             </div>
         </div>
