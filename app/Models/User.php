@@ -488,6 +488,28 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Membership::class);
     }
 
+    /**
+     * The calendar year in which the member first joined NRAPA.
+     * Uses the earliest membership application date, falling back to account creation.
+     */
+    public function firstJoinedYear(): int
+    {
+        $earliest = $this->memberships()->min('applied_at');
+
+        return $earliest
+            ? \Illuminate\Support\Carbon::parse($earliest)->year
+            : $this->created_at->year;
+    }
+
+    /**
+     * Whether the member is in their first (join) year and therefore exempt
+     * from the activity-submission requirement for the current year.
+     */
+    public function isInJoinYear(): bool
+    {
+        return $this->firstJoinedYear() === now()->year;
+    }
+
     public function messages(): HasMany
     {
         return $this->hasMany(MemberMessage::class)->latest();

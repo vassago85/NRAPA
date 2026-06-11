@@ -45,6 +45,7 @@ new class extends Component {
 
         $isPaidUp = $user->activeMembership && (!$user->activeMembership->expires_at || $user->activeMembership->expires_at->isFuture());
         $complianceMet = $compliance['is_compliant_now'];
+        $isExempt = $compliance['is_join_year_exempt'] ?? false;
 
         $currentYear = now()->year;
         $historyStartYear = $currentYear - 5;
@@ -77,6 +78,7 @@ new class extends Component {
             'bankingCount' => $bankingCount,
             'requiredCount' => $requiredCount,
             'complianceMet' => $complianceMet,
+            'isExempt' => $isExempt,
             'isPaidUp' => $isPaidUp,
             'complianceHistory' => $complianceHistory,
             'compliance' => $compliance,
@@ -104,17 +106,29 @@ new class extends Component {
         <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-5">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-xs uppercase tracking-wider font-semibold text-zinc-500">Compliance for {{ now()->year }}</h2>
-                <span class="text-xs px-2 py-1 rounded-full font-medium {{ $complianceMet ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' }}">
-                    {{ $complianceMet ? 'Compliant' : 'Incomplete' }}
-                </span>
+                @if($isExempt)
+                    <span class="text-xs px-2 py-1 rounded-full font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                        Exempt
+                    </span>
+                @else
+                    <span class="text-xs px-2 py-1 rounded-full font-medium {{ $complianceMet ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' }}">
+                        {{ $complianceMet ? 'Compliant' : 'Incomplete' }}
+                    </span>
+                @endif
             </div>
             <div class="grid grid-cols-3 gap-4">
                 <div class="text-center">
-                    <p class="text-2xl font-bold {{ $complianceMet ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' }}">
-                        {{ $approvedCount }} / {{ $requiredCount }}
-                    </p>
-                    <p class="text-xs uppercase tracking-wider text-zinc-500 mt-1">{{ now()->year - 1 }} activities</p>
-                    <p class="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">qualify you for {{ now()->year }}</p>
+                    @if($isExempt)
+                        <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">Exempt</p>
+                        <p class="text-xs uppercase tracking-wider text-zinc-500 mt-1">First year</p>
+                        <p class="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">no activities required for {{ now()->year }}</p>
+                    @else
+                        <p class="text-2xl font-bold {{ $complianceMet ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' }}">
+                            {{ $approvedCount }} / {{ $requiredCount }}
+                        </p>
+                        <p class="text-xs uppercase tracking-wider text-zinc-500 mt-1">{{ now()->year - 1 }} activities</p>
+                        <p class="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">qualify you for {{ now()->year }}</p>
+                    @endif
                 </div>
                 <div class="text-center">
                     <p class="text-2xl font-bold {{ $bankingCount >= $requiredCount ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-700 dark:text-zinc-300' }}">

@@ -317,6 +317,21 @@ class EndorsementRequest extends Model
             self::DEFAULT_MIN_ACTIVITIES_SPORT,
         );
 
+        // Members are exempt from the activity requirement during their first
+        // membership year - they have not yet had a full activity year to
+        // accumulate submissions. They still need current-year activities to
+        // qualify for the following year (enforced by the normal carry-over).
+        if ($user->isInJoinYear()) {
+            return [
+                'met' => true,
+                'approved_count' => 0,
+                'required' => $required,
+                'period' => (string) now()->year,
+                'exempt' => true,
+                'message' => 'Exempt from the activity requirement during your first membership year.',
+            ];
+        }
+
         $currentYear = now()->year;
         $currentYearStart = \Carbon\Carbon::create($currentYear, 1, 1)->startOfDay();
         $currentYearEnd = \Carbon\Carbon::create($currentYear, 10, 31)->endOfDay();

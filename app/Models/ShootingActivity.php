@@ -500,8 +500,22 @@ class ShootingActivity extends Model
         $current = $countForYear($currentYear);
         $previous = $countForYear($prevYear);
 
-        $qualifies = $previous['total'] >= $required || $current['total'] >= $required;
+        // Members in their first membership year are exempt from the current-year
+        // activity requirement. The next-year banking requirement is unchanged -
+        // they still need to submit the required activities this year to qualify
+        // for the following year.
+        $exempt = $user->isInJoinYear();
+
+        $qualifies = $exempt || $previous['total'] >= $required || $current['total'] >= $required;
         $nextYearQualified = $current['total'] >= $required;
+
+        if ($exempt) {
+            $explainer = "Exempt for {$currentYear} (first membership year). Submit {$required} activities this year to stay compliant in {$currentYear}'s following year.";
+        } elseif ($qualifies) {
+            $explainer = "Compliant for {$currentYear} on the strength of {$prevYear}'s activities.";
+        } else {
+            $explainer = "Not compliant for {$currentYear}: only {$previous['total']} approved activities in {$prevYear} (need {$required}).";
+        }
 
         return [
             'required' => $required,
@@ -509,9 +523,8 @@ class ShootingActivity extends Model
             'banking_year' => $current,
             'is_compliant_now' => $qualifies,
             'is_compliant_next_year' => $nextYearQualified,
-            'explainer' => $qualifies
-                ? "Compliant for {$currentYear} on the strength of {$prevYear}'s activities."
-                : "Not compliant for {$currentYear}: only {$previous['total']} approved activities in {$prevYear} (need {$required}).",
+            'is_join_year_exempt' => $exempt,
+            'explainer' => $explainer,
         ];
     }
 

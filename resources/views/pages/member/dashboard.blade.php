@@ -313,6 +313,7 @@ new #[Title('Dashboard')] class extends Component {
             'approved' => $summary['qualifying_year']['total'],
             'required' => $required,
             'met' => $summary['is_compliant_now'],
+            'exempt' => $summary['is_join_year_exempt'] ?? false,
             'banking' => $summary['banking_year']['total'],
             'qualifying_year' => $summary['qualifying_year']['year'],
             'banking_year' => $summary['banking_year']['year'],
@@ -1680,7 +1681,11 @@ new #[Title('Dashboard')] class extends Component {
             @if($this->hasDedicatedMembership)
             <a href="{{ route('activities.index') }}" wire:navigate
                class="group relative rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md hover:border-nrapa-blue/30 dark:hover:border-nrapa-blue/30 transition p-4 text-center">
-                <span class="absolute -top-1.5 -right-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full {{ $this->activityCompliance['met'] ? 'bg-emerald-500' : 'bg-amber-500' }} text-white">{{ $this->activityCompliance['approved'] }}/{{ $this->activityCompliance['required'] }}</span>
+                @if($this->activityCompliance['exempt'])
+                    <span class="absolute -top-1.5 -right-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500 text-white">Exempt</span>
+                @else
+                    <span class="absolute -top-1.5 -right-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full {{ $this->activityCompliance['met'] ? 'bg-emerald-500' : 'bg-amber-500' }} text-white">{{ $this->activityCompliance['approved'] }}/{{ $this->activityCompliance['required'] }}</span>
+                @endif
                 <div class="mx-auto mb-2 flex size-10 items-center justify-center rounded-xl bg-nrapa-blue/10 dark:bg-nrapa-blue/20 group-hover:bg-nrapa-blue/20 transition">
                     <svg class="w-5 h-5 text-nrapa-blue dark:text-nrapa-blue-light" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                 </div>

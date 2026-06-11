@@ -209,6 +209,7 @@ new #[Title('Member Details - Admin')] class extends Component {
             'banking_year' => $compliance['banking_year'],
             'is_compliant_now' => $compliance['is_compliant_now'],
             'is_compliant_next_year' => $compliance['is_compliant_next_year'],
+            'is_join_year_exempt' => $compliance['is_join_year_exempt'] ?? false,
             'explainer' => $compliance['explainer'],
         ];
     }
@@ -1537,6 +1538,49 @@ new #[Title('Member Details - Admin')] class extends Component {
         session()->flash('success', 'Activity deleted.');
     }
 
+    public function deleteDocument(int $documentId): void
+    {
+        $document = \App\Models\MemberDocument::where('user_id', $this->user->id)->findOrFail($documentId);
+
+        \App\Models\ShootingActivity::where('evidence_document_id', $document->id)
+            ->update(['evidence_document_id' => null]);
+        \App\Models\ShootingActivity::where('additional_document_id', $document->id)
+            ->update(['additional_document_id' => null]);
+
+        \App\Models\AuditLog::log('member_document_deleted', $document, $document->only([
+            'user_id', 'document_type_id', 'original_filename', 'status',
+        ]));
+
+        if ($document->file_path) {
+            try {
+                \Illuminate\Support\Facades\Storage::disk($this->getPrivateDisk())->delete($document->file_path);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Failed to delete member document file', [
+                    'document_id' => $document->id,
+                    'file_path' => $document->file_path,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $document->delete();
+
+        $this->user->load(['documents.documentType', 'documents.verifier']);
+        unset($this->memberDocuments);
+        session()->flash('success', 'Document deleted permanently.');
+    }
+
+    protected function getPrivateDisk(): string
+    {
+        if (app()->environment(['local', 'development', 'testing'])) {
+            return 'local';
+        }
+        if (config('filesystems.disks.r2.key')) {
+            return 'r2';
+        }
+        return 's3';
+    }
+
     public function getStatusClasses(string $status): string
     {
         return match($status) {
@@ -2060,9 +2104,24 @@ new #[Title('Member Details - Admin')] class extends Component {
                     $by = $this->activitySummary['banking_year'];
                     $compliantNow = $this->activitySummary['is_compliant_now'];
                     $compliantNext = $this->activitySummary['is_compliant_next_year'];
+                    $joinYearExempt = $this->activitySummary['is_join_year_exempt'];
                 @endphp
                 <div class="grid gap-3 sm:grid-cols-2">
                     {{-- Qualifying (previous) year --}}
+                    @if($joinYearExempt)
+                    <div class="rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20 px-4 py-3">
+                        <div class="flex items-center justify-between text-xs font-medium uppercase tracking-wide text-blue-700 dark:text-blue-300">
+                            <span>Compliance for {{ now()->year }}</span>
+                            <span>Exempt</span>
+                        </div>
+                        <div class="mt-1 text-sm text-zinc-800 dark:text-zinc-100">
+                            <strong>First membership year</strong> — no activities required.
+                        </div>
+                        <div class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                            Member can be issued an endorsement now. They must still bank {{ $required }} activities this year to qualify for {{ now()->year + 1 }}.
+                        </div>
+                    </div>
+                    @else
                     <div class="rounded-lg border {{ $compliantNow ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20' }} px-4 py-3">
                         <div class="flex items-center justify-between text-xs font-medium uppercase tracking-wide {{ $compliantNow ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300' }}">
                             <span>Compliance for {{ now()->year }}</span>
@@ -2077,6 +2136,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                             {{ $qy['label'] }} — activities from this year qualify the member for {{ now()->year }}.
                         </div>
                     </div>
+                    @endif
 
                     {{-- Banking (current) year --}}
                     <div class="rounded-lg border {{ $compliantNext ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900' }} px-4 py-3">
@@ -2208,11 +2268,19 @@ new #[Title('Member Details - Admin')] class extends Component {
                         </td>
                         <td class="whitespace-nowrap px-6 py-3 text-sm text-zinc-500 dark:text-zinc-400">{{ $document->verifier?->name ?? '—' }}</td>
                         <td class="whitespace-nowrap px-6 py-3 text-sm">
-                            <a href="{{ route('admin.documents.show', $document) }}" wire:navigate
-                                class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/></svg>
-                                Review
-                            </a>
+                            <div class="inline-flex items-center gap-2">
+                                <a href="{{ route('admin.documents.show', $document) }}" wire:navigate
+                                    class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/></svg>
+                                    Review
+                                </a>
+                                <button wire:click="deleteDocument({{ $document->id }})"
+                                    wire:confirm="Permanently delete &quot;{{ addslashes($document->original_filename) }}&quot;?&#10;&#10;This removes the file and cannot be undone. Any activity linked to it will lose its evidence reference."
+                                    class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a2 2 0 012-2h2a2 2 0 012 2v3"/></svg>
+                                    Delete
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     @endforeach

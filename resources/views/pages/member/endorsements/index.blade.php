@@ -147,6 +147,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
             'sport_compliant' => $isCompliant,
             'hunter_compliant' => $isCompliant,
             'is_compliant' => $isCompliant,
+            'is_join_year_exempt' => $summary['is_join_year_exempt'] ?? false,
             'days_until_deadline' => max(0, $daysUntilDeadline),
             'is_past_deadline' => $isPastDeadline,
             'deadline_date' => $period['nrapa_deadline']->format('d M Y'),
@@ -288,6 +289,22 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
 
             {{-- Activity Progress (single total; NRAPA requires 2 approved activities per year regardless of category) --}}
             <div class="p-6">
+                @if($this->complianceStatus['is_join_year_exempt'])
+                    <div class="mb-4 p-4 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <div>
+                                <p class="font-semibold text-blue-800 dark:text-blue-200">Exempt for {{ now()->year }} — first membership year</p>
+                                <p class="text-sm text-blue-700 dark:text-blue-300 mt-0.5">
+                                    You can request an endorsement now without any activities. To stay compliant for {{ now()->year + 1 }}, submit {{ $this->complianceStatus['required'] }} approved activities during {{ now()->year }}
+                                    (currently {{ $this->complianceStatus['banking_count'] }}/{{ $this->complianceStatus['required'] }}).
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                @endif
                 <div class="p-4 rounded-lg border {{ $this->complianceStatus['is_compliant'] ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20' }}">
                     <div class="flex items-center justify-between mb-3">
                         <div class="flex items-center gap-2">
