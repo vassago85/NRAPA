@@ -109,6 +109,12 @@ new #[Title('Membership Reports - Admin')] class extends Component {
             $pending = $pendingCounts[$type->id] ?? 0;
             $total = $active + $expired + $pending;
 
+            // Hide retired/deactivated types that no longer have any memberships
+            // attached (e.g. standard-annual after consolidation into basic).
+            // Active types are kept even if empty so admins can see new
+            // configurations they have just set up.
+            if (! $type->is_active && $total === 0) continue;
+
             if ($this->statusFilter === 'active' && $active === 0) continue;
             if ($this->statusFilter === 'expired' && $expired === 0) continue;
             if ($this->statusFilter === 'pending' && $pending === 0) continue;
