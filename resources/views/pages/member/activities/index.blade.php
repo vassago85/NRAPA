@@ -1,10 +1,10 @@
 <?php
 
 use App\Models\ShootingActivity;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Spatie\LaravelPdf\Facades\Pdf;
 
 new class extends Component {
     use WithPagination;
@@ -84,17 +84,43 @@ new class extends Component {
         $tempPath = $tempDir . DIRECTORY_SEPARATOR . 'activity-letter-' . uniqid() . '.pdf';
 
         try {
-            // Force DomPDF: Spatie laravel-pdf v2 defaults to Browsershot
-            // (Puppeteer/Chrome) which is not available in our container.
-            // The existing PdfDocumentRenderer uses the same fallback.
-            Pdf::view('documents.letters.saps-activity-log', [
+            // Render via Gotenberg (Chrome) — same rendering pipeline as
+            // certificates, so the activity letter looks identical in style.
+            // We POST the rendered HTML to the gotenberg sidecar container
+            // and write the binary PDF response straight to a local temp
+            // file (no R2/S3 round-trip — these PDFs are one-off downloads).
+            $html = view('documents.letters.saps-activity-log', [
                 'user' => $user,
                 'activities' => $activities,
                 'from' => $from,
                 'to' => $to,
-            ])->driver('dompdf')->format('a4')->save($tempPath);
+            ])->render();
 
-            Log::info('Activity letter generated', [
+            $gotenbergUrl = rtrim(env('GOTENBERG_URL', 'http://gotenberg:3000'), '/');
+
+            $response = Http::timeout(30)
+                ->asMultipart()
+                ->post($gotenbergUrl . '/forms/chromium/convert/html', [
+                    ['name' => 'files', 'contents' => $html, 'filename' => 'index.html'],
+                    ['name' => 'printBackground', 'contents' => 'true'],
+                    ['name' => 'marginTop', 'contents' => '0'],
+                    ['name' => 'marginBottom', 'contents' => '0'],
+                    ['name' => 'marginLeft', 'contents' => '0'],
+                    ['name' => 'marginRight', 'contents' => '0'],
+                    ['name' => 'preferCssPageSize', 'contents' => 'true'],
+                ]);
+
+            if (! $response->successful() || strlen($response->body()) < 100) {
+                throw new \RuntimeException(
+                    'Gotenberg returned status ' . $response->status() .
+                    ' (' . strlen($response->body()) . ' bytes): ' .
+                    substr($response->body(), 0, 200)
+                );
+            }
+
+            file_put_contents($tempPath, $response->body());
+
+            Log::info('Activity letter generated via Gotenberg', [
                 'user_id' => $user->id,
                 'from' => $from->toDateString(),
                 'to' => $to->toDateString(),
@@ -120,7 +146,7 @@ new class extends Component {
             }
             session()->flash(
                 'error',
-                'Could not generate the activity letter (' . class_basename($e) . '). Please try a smaller date range or contact admin if this persists.'
+                'Could not generate the activity letter (' . class_basename($e) . '). The PDF rendering service may be unavailable — please contact admin.'
             );
         }
     }
