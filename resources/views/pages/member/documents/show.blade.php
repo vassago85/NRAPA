@@ -60,6 +60,64 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     {
         return $this->document->file_purged_at !== null;
     }
+
+    /**
+     * Whether this document's type has an expiry, so the
+     * "keep until expiry + 1 year" option is meaningful.
+     */
+    public function canChooseRetention(): bool
+    {
+        return (bool) $this->document->documentType?->expires();
+    }
+
+    /**
+     * Update the member's retention preference. Members can switch between
+     * the two options at any time; once the file has been purged we
+     * obviously can't bring it back, but the preference still persists for
+     * any future re-upload tooling.
+     */
+    public function updateRetention(string $choice): void
+    {
+        if ($this->document->user_id !== auth()->id()) {
+            session()->flash('error', 'You can only change retention on your own documents.');
+            return;
+        }
+
+        if (! $this->canChooseRetention()) {
+            session()->flash('error', 'This document type has no expiry date, so retention cannot be extended.');
+            return;
+        }
+
+        $allowed = [
+            MemberDocument::RETENTION_DEFAULT,
+            MemberDocument::RETENTION_EXPIRY_PLUS_1Y,
+        ];
+        if (! in_array($choice, $allowed, true)) {
+            return;
+        }
+
+        // Persist 'default' as NULL so existing rows that pre-date this
+        // feature read the same way as ones explicitly set to default.
+        $this->document->update([
+            'retention_choice' => $choice === MemberDocument::RETENTION_DEFAULT ? null : $choice,
+        ]);
+
+        $this->document->refresh();
+
+        session()->flash(
+            'success',
+            $choice === MemberDocument::RETENTION_EXPIRY_PLUS_1Y
+                ? 'Retention updated. We will keep this file until 1 year after it expires.'
+                : 'Retention updated. This file will be removed 7 days after verification (POPIA standard).'
+        );
+    }
+
+    public function currentRetentionChoice(): string
+    {
+        return $this->document->retention_choice === MemberDocument::RETENTION_EXPIRY_PLUS_1Y
+            ? MemberDocument::RETENTION_EXPIRY_PLUS_1Y
+            : MemberDocument::RETENTION_DEFAULT;
+    }
 }; ?>
 
 <div>
@@ -215,7 +273,61 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                     </div>
                 @endif
             </dl>
-            
+
+            @if(session('success'))
+                <div class="mt-4 p-3 bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-700 rounded-lg text-sm text-emerald-800 dark:text-emerald-200">
+                    {{ session('success') }}
+                </div>
+            @endif
+            @if(session('error'))
+                <div class="mt-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg text-sm text-red-800 dark:text-red-200">
+                    {{ session('error') }}
+                </div>
+            @endif
+
+            {{-- Retention preference (members can change at any time) --}}
+            @if($this->canChooseRetention() && !$this->isFilePurged())
+                @php $current = $this->currentRetentionChoice(); @endphp
+                <div class="mt-6 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                    <h3 class="text-sm font-semibold text-emerald-800 dark:text-emerald-200 mb-2 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        File retention
+                    </h3>
+                    <p class="text-xs text-emerald-700 dark:text-emerald-300 mb-3">
+                        Choose how long we should keep the actual file on our servers. You can change this at any time.
+                    </p>
+
+                    <div class="space-y-2">
+                        <label class="flex items-start gap-3 cursor-pointer p-2 rounded-lg hover:bg-white/50 dark:hover:bg-zinc-800/40 transition-colors">
+                            <input type="radio"
+                                wire:click="updateRetention('default')"
+                                @checked($current === 'default')
+                                class="mt-1 size-4 text-emerald-600 focus:ring-emerald-500 border-zinc-300">
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-zinc-900 dark:text-white">Standard &mdash; remove 7 days after verification</p>
+                                <p class="text-xs text-zinc-600 dark:text-zinc-400">POPIA-conservative. Verification details stay on your record.</p>
+                            </div>
+                        </label>
+
+                        <label class="flex items-start gap-3 cursor-pointer p-2 rounded-lg hover:bg-white/50 dark:hover:bg-zinc-800/40 transition-colors">
+                            <input type="radio"
+                                wire:click="updateRetention('expiry_plus_1y')"
+                                @checked($current === 'expiry_plus_1y')
+                                class="mt-1 size-4 text-emerald-600 focus:ring-emerald-500 border-zinc-300">
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-zinc-900 dark:text-white">
+                                    Keep until 1 year after expiry
+                                    @if($document->expires_at)
+                                        <span class="text-xs text-emerald-700 dark:text-emerald-300">({{ $document->expires_at->copy()->addYear()->format('d M Y') }})</span>
+                                    @endif
+                                </p>
+                                <p class="text-xs text-zinc-600 dark:text-zinc-400">Useful for licences &mdash; re-download during your renewal window.</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            @endif
+
             @if($document->rejection_reason)
                 <div class="mt-6 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
                     <p class="text-sm font-medium text-red-800 dark:text-red-200">Rejection Reason</p>

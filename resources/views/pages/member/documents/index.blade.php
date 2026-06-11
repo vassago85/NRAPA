@@ -33,6 +33,11 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     // Competency metadata fields
     public string $competencyIssueDate = '';
 
+    // Retention preference: 'default' (POPIA 7-day purge after verification)
+    // or 'expiry_plus_1y' (keep until expires_at + 1 year). Only meaningful
+    // when the chosen DocumentType has an expiry.
+    public string $retentionChoice = MemberDocument::RETENTION_DEFAULT;
+
     protected function rules(): array
     {
         $rules = [
@@ -112,6 +117,18 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         return $docType && in_array($docType->slug, MemberDocument::COMPETENCY_DOCUMENT_SLUGS);
     }
 
+    /**
+     * Whether to show the retention-choice picker. Only meaningful when the
+     * selected document type has an expiry — without one, "expiry + 1 year"
+     * is undefined and we silently fall back to default behaviour.
+     */
+    public function showsRetentionPicker(): bool
+    {
+        if (!$this->selectedDocumentType) return false;
+        $docType = DocumentType::find($this->selectedDocumentType);
+        return $docType ? $docType->expires() : false;
+    }
+
     public function with(): array
     {
         $user = auth()->user();
@@ -138,6 +155,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     {
         $this->selectedDocumentType = '';
         $this->uploadFile = null;
+        $this->retentionChoice = MemberDocument::RETENTION_DEFAULT;
         $this->reset([
             'idSurname', 'idNames', 'idSex', 'idNumber', 'idDateOfBirth',
             'addressStreet', 'addressSuburb', 'addressCity', 'addressProvince', 'addressPostalCode',
@@ -200,6 +218,13 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             ];
         }
 
+        // Persist retention preference only if it's meaningful for this
+        // document type (must have an expiry). Otherwise fall back to NULL
+        // so the standard POPIA purge applies.
+        $retentionChoice = ($documentType->expires() && $this->retentionChoice === MemberDocument::RETENTION_EXPIRY_PLUS_1Y)
+            ? MemberDocument::RETENTION_EXPIRY_PLUS_1Y
+            : null;
+
         // Create the document record
         MemberDocument::create([
             'user_id' => $user->id,
@@ -211,6 +236,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             'metadata' => $metadata,
             'status' => 'pending',
             'uploaded_at' => now(),
+            'retention_choice' => $retentionChoice,
         ]);
 
         // Pre-populate users.id_number from ID document metadata so it is
@@ -228,6 +254,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             'addressStreet', 'addressSuburb', 'addressCity', 'addressProvince', 'addressPostalCode',
             'competencyIssueDate',
         ]);
+        $this->retentionChoice = MemberDocument::RETENTION_DEFAULT;
 
         try {
             app(\App\Services\NtfyService::class)->notifyAdmins(
@@ -546,6 +573,45 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                                         @error('addressPostalCode') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                                     </div>
                                 </div>
+                            </div>
+                        @endif
+
+                        {{-- Retention preference (only for documents that have an expiry) --}}
+                        @if($this->showsRetentionPicker())
+                            <div class="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800 space-y-3">
+                                <h3 class="text-sm font-semibold text-emerald-800 dark:text-emerald-200 flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    How long should we keep this document?
+                                </h3>
+                                <p class="text-xs text-emerald-700 dark:text-emerald-300">
+                                    By default we delete the file from our servers 7 days after it has been verified (POPIA). For documents like firearm or hunting licences, you can ask us to hold on to it until a year after it expires, so you can still re-download it during your renewal window.
+                                </p>
+
+                                <label class="flex items-start gap-3 cursor-pointer p-2 rounded-lg hover:bg-white/50 dark:hover:bg-zinc-800/40 transition-colors">
+                                    <input type="radio"
+                                        wire:model.live="retentionChoice"
+                                        value="default"
+                                        class="mt-1 size-4 text-emerald-600 focus:ring-emerald-500 border-zinc-300">
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium text-zinc-900 dark:text-white">Standard (recommended)</p>
+                                        <p class="text-xs text-zinc-600 dark:text-zinc-400">File deleted from our servers 7 days after admin approval. Verification details stay on your record.</p>
+                                    </div>
+                                </label>
+
+                                <label class="flex items-start gap-3 cursor-pointer p-2 rounded-lg hover:bg-white/50 dark:hover:bg-zinc-800/40 transition-colors">
+                                    <input type="radio"
+                                        wire:model.live="retentionChoice"
+                                        value="expiry_plus_1y"
+                                        class="mt-1 size-4 text-emerald-600 focus:ring-emerald-500 border-zinc-300">
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium text-zinc-900 dark:text-white">Keep until 1 year after expiry</p>
+                                        <p class="text-xs text-zinc-600 dark:text-zinc-400">Useful for licences and certificates &mdash; you can still re-download the file during the year after it expires (e.g. for a SAPS renewal).</p>
+                                    </div>
+                                </label>
+
+                                <p class="text-[11px] text-zinc-500 dark:text-zinc-400">
+                                    You can change this at any time from the document's detail page.
+                                </p>
                             </div>
                         @endif
 

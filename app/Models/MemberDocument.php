@@ -37,8 +37,23 @@ class MemberDocument extends Model
         'archived_at',
         'archive_until',
         'file_purged_at',
+        'retention_choice',
         'rejection_reason',
     ];
+
+    /**
+     * Retention choice values stored in `retention_choice`.
+     *
+     * - DEFAULT: standard POPIA behaviour (file purged 7 days after verification).
+     * - EXPIRY_PLUS_1Y: keep the file until expires_at + 1 year, then resume
+     *   the standard 7-day-post-verification purge.
+     *
+     * Only documents whose DocumentType actually has an expiry are
+     * meaningfully affected by EXPIRY_PLUS_1Y; for documents with no
+     * expires_at the choice silently falls back to default behaviour.
+     */
+    public const RETENTION_DEFAULT = 'default';
+    public const RETENTION_EXPIRY_PLUS_1Y = 'expiry_plus_1y';
 
     /**
      * Get the attributes that should be cast.
@@ -253,6 +268,48 @@ class MemberDocument extends Model
     public function isArchived(): bool
     {
         return $this->status === 'archived';
+    }
+
+    /**
+     * Has the member opted in to extended retention (file kept until
+     * expires_at + 1 year)?
+     *
+     * Returns false for documents without an expiry date — the option is
+     * meaningless without one and we fall back to default purge behaviour.
+     */
+    public function hasExtendedRetention(): bool
+    {
+        return $this->retention_choice === self::RETENTION_EXPIRY_PLUS_1Y
+            && $this->expires_at !== null;
+    }
+
+    /**
+     * Is the file currently protected from the POPIA purge by the member's
+     * extended-retention choice?
+     *
+     * True only while expires_at + 1 year is still in the future. Once that
+     * deadline has passed, normal 7-day-post-verification purge resumes.
+     */
+    public function isWithinExtendedRetentionWindow(): bool
+    {
+        if (! $this->hasExtendedRetention()) {
+            return false;
+        }
+
+        return $this->expires_at->copy()->addYear()->isFuture();
+    }
+
+    /**
+     * Effective deadline after which the file may be purged from object
+     * storage. Null when there is no member-set deadline (use default rule).
+     */
+    public function getRetentionDeadline(): ?\Illuminate\Support\Carbon
+    {
+        if (! $this->hasExtendedRetention()) {
+            return null;
+        }
+
+        return $this->expires_at->copy()->addYear();
     }
 
     // ===== Actions =====
