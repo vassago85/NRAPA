@@ -1,8 +1,10 @@
 <?php
 
 use App\Models\ShootingActivity;
+use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Spatie\LaravelPdf\Facades\Pdf;
 
 new class extends Component {
     use WithPagination;
@@ -11,12 +13,75 @@ new class extends Component {
     public string $statusFilter = '';
     public ?int $yearFilter = null;
 
+    // SAPS activity letter (date-range PDF download)
+    public bool $sapsLetterOpen = false;
+    public string $sapsFrom = '';
+    public string $sapsTo = '';
+
     public function mount(): void
     {
         // Check if user has dedicated status membership
         if (!auth()->user()->activeMembership?->type?->allows_dedicated_status) {
             session()->flash('error', 'Your membership type does not allow dedicated status activities.');
         }
+
+        // Default the SAPS activity letter window to the last 24 months,
+        // which matches the typical Section 16 application/renewal lookback.
+        $this->sapsTo = now()->toDateString();
+        $this->sapsFrom = now()->subYears(2)->toDateString();
+    }
+
+    /**
+     * Stream a PDF "Activity Log" letter for the chosen date range,
+     * suitable for attaching to a SAPS firearm motivation. Lists only
+     * NRAPA-verified (status = approved) activities so SAPS can rely on
+     * the contents.
+     */
+    public function downloadSapsLetter()
+    {
+        $validated = $this->validate([
+            'sapsFrom' => ['required', 'date'],
+            'sapsTo' => ['required', 'date', 'after_or_equal:sapsFrom'],
+        ], [
+            'sapsTo.after_or_equal' => 'The "To" date must be on or after the "From" date.',
+        ]);
+
+        $user = auth()->user();
+        $from = \Carbon\Carbon::parse($validated['sapsFrom'])->startOfDay();
+        $to = \Carbon\Carbon::parse($validated['sapsTo'])->endOfDay();
+
+        $activities = ShootingActivity::where('user_id', $user->id)
+            ->where('status', 'approved')
+            ->whereBetween('activity_date', [$from, $to])
+            ->with([
+                'activityType',
+                'firearmType',
+                'userFirearm.firearmCalibre',
+            ])
+            ->orderBy('activity_date')
+            ->get();
+
+        $safeName = preg_replace('/[^A-Za-z0-9]+/', '-', trim($user->getIdName()));
+        $filename = sprintf(
+            'NRAPA-Activity-Log-%s-%s-to-%s.pdf',
+            $safeName !== '' ? $safeName : 'Member',
+            $from->format('Ymd'),
+            $to->format('Ymd'),
+        );
+
+        Log::info('SAPS activity letter generated', [
+            'user_id' => $user->id,
+            'from' => $from->toDateString(),
+            'to' => $to->toDateString(),
+            'activity_count' => $activities->count(),
+        ]);
+
+        return Pdf::view('documents.letters.saps-activity-log', [
+            'user' => $user,
+            'activities' => $activities,
+            'from' => $from,
+            'to' => $to,
+        ])->format('a4')->download($filename);
     }
 
     public function with(): array
@@ -88,17 +153,62 @@ new class extends Component {
 
 <div>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">My Activities</h1>
                 <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Track and manage your shooting activities for dedicated status</p>
             </div>
-            <a href="{{ route('activities.submit') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
-                <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                Submit Activity
-            </a>
+            <div class="flex flex-wrap items-center gap-2">
+                <button type="button" wire:click="$toggle('sapsLetterOpen')" class="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 transition-colors dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200 dark:hover:bg-blue-900/50">
+                    <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    SAPS Activity Letter
+                </button>
+                <a href="{{ route('activities.submit') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
+                    <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    Submit Activity
+                </a>
+            </div>
         </div>
     </x-slot>
+
+    {{-- SAPS Activity Letter — date-range download for firearm licence motivations --}}
+    @if ($sapsLetterOpen)
+        <div class="mb-6 rounded-2xl border border-blue-200 bg-blue-50 p-5 dark:border-blue-800 dark:bg-blue-950/30">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <h2 class="text-sm font-semibold text-blue-900 dark:text-blue-100">Generate Activity Letter for SAPS Firearm Motivation</h2>
+                    <p class="mt-1 text-xs text-blue-700/80 dark:text-blue-300/80">
+                        Download a formatted PDF listing your <strong>NRAPA-verified</strong> shooting activities within
+                        the selected date range, suitable for attaching to a SAPS firearm licence application or motivation.
+                        Pending and rejected activities are excluded.
+                    </p>
+                </div>
+                <button type="button" wire:click="$set('sapsLetterOpen', false)" class="text-blue-700/70 hover:text-blue-900 dark:text-blue-300/70 dark:hover:text-blue-100">
+                    <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <form wire:submit="downloadSapsLetter" class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div>
+                    <label for="sapsFrom" class="block text-xs font-medium text-blue-900 dark:text-blue-100 mb-1">From</label>
+                    <input id="sapsFrom" type="date" wire:model="sapsFrom" class="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:ring-blue-500 dark:border-blue-800 dark:bg-zinc-900 dark:text-white"/>
+                    @error('sapsFrom') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label for="sapsTo" class="block text-xs font-medium text-blue-900 dark:text-blue-100 mb-1">To</label>
+                    <input id="sapsTo" type="date" wire:model="sapsTo" class="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:ring-blue-500 dark:border-blue-800 dark:bg-zinc-900 dark:text-white"/>
+                    @error('sapsTo') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                </div>
+                <div class="flex items-end">
+                    <button type="submit" wire:loading.attr="disabled" wire:target="downloadSapsLetter" class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-wait transition-colors">
+                        <svg class="size-4" wire:loading.remove wire:target="downloadSapsLetter" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        <svg class="size-4 animate-spin" wire:loading wire:target="downloadSapsLetter" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+                        <span wire:loading.remove wire:target="downloadSapsLetter">Download Letter</span>
+                        <span wire:loading wire:target="downloadSapsLetter">Generating PDF…</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    @endif
 
     <!-- Compliance Summary + History -->
     <div class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
