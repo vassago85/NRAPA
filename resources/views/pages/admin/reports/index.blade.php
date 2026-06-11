@@ -1,8 +1,11 @@
 <?php
 
+use App\Models\LadderTest;
+use App\Models\LoadData;
 use App\Models\Membership;
 use App\Models\MembershipType;
 use App\Models\User;
+use App\Models\UserFirearm;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -169,6 +172,78 @@ new #[Title('Membership Reports - Admin')] class extends Component {
                 'total' => $row->total,
             ])
             ->toArray();
+    }
+
+    /**
+     * Adoption metrics for member-facing reloading bench and virtual safe
+     * features. Reports both raw user counts (anyone who has ever used the
+     * feature) and current-active-member counts (users with an active
+     * non-expired membership) so you can read penetration vs lapsed usage.
+     */
+    #[Computed]
+    public function featureUsage(): array
+    {
+        $activeMembersQuery = User::whereHas('memberships', fn ($q) =>
+            $q->where('status', 'active')
+              ->where(fn ($qq) => $qq->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+        );
+        $activeMemberTotal = (clone $activeMembersQuery)->count();
+
+        // Virtual Safe (user_firearms)
+        $safeUsersAll = UserFirearm::query()->distinct('user_id')->count('user_id');
+        $safeFirearmsTotal = UserFirearm::query()->count();
+        $safeFirearmsActive = UserFirearm::query()->where('is_active', true)->count();
+        $safeUsersActiveMember = (clone $activeMembersQuery)->whereHas('firearms')->count();
+
+        // Reloading Bench (load_data + ladder_tests)
+        $loadUsersAll = LoadData::query()->distinct('user_id')->count('user_id');
+        $ladderUsersAll = LadderTest::query()->distinct('user_id')->count('user_id');
+        $loadRecipesTotal = LoadData::query()->count();
+        $ladderTestsTotal = LadderTest::query()->count();
+
+        // Distinct users who have used either reloading feature, regardless
+        // of membership status. Cheaper as two pluck-uniques than as a
+        // union/subquery and the cardinality here is small.
+        $reloadingUserIdsAll = LoadData::query()->pluck('user_id')
+            ->merge(LadderTest::query()->pluck('user_id'))
+            ->unique();
+        $reloadingUsersAll = $reloadingUserIdsAll->count();
+
+        $reloadingUsersActiveMember = (clone $activeMembersQuery)
+            ->whereIn('id', $reloadingUserIdsAll)
+            ->count();
+
+        // Members using BOTH features (active members only)
+        $bothFeaturesActiveMember = (clone $activeMembersQuery)
+            ->whereHas('firearms')
+            ->whereIn('id', $reloadingUserIdsAll)
+            ->count();
+
+        $pct = fn (int $part) => $activeMemberTotal > 0
+            ? round(($part / $activeMemberTotal) * 100, 1)
+            : 0;
+
+        return [
+            'active_member_total' => $activeMemberTotal,
+            'virtual_safe' => [
+                'active_members' => $safeUsersActiveMember,
+                'active_member_pct' => $pct($safeUsersActiveMember),
+                'all_users_ever' => $safeUsersAll,
+                'firearms_total' => $safeFirearmsTotal,
+                'firearms_active' => $safeFirearmsActive,
+            ],
+            'reloading_bench' => [
+                'active_members' => $reloadingUsersActiveMember,
+                'active_member_pct' => $pct($reloadingUsersActiveMember),
+                'all_users_ever' => $reloadingUsersAll,
+                'load_users_ever' => $loadUsersAll,
+                'ladder_users_ever' => $ladderUsersAll,
+                'load_recipes_total' => $loadRecipesTotal,
+                'ladder_tests_total' => $ladderTestsTotal,
+            ],
+            'both_features_active_members' => $bothFeaturesActiveMember,
+            'both_features_pct' => $pct($bothFeaturesActiveMember),
+        ];
     }
 
     public function resetFilters(): void
@@ -433,6 +508,116 @@ new #[Title('Membership Reports - Admin')] class extends Component {
             @else
             <p class="text-center text-sm text-zinc-500 dark:text-zinc-400 py-4">No membership data available.</p>
             @endif
+        </div>
+    </div>
+
+    {{-- Member Feature Usage --}}
+    @php $usage = $this->featureUsage; @endphp
+    <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+        <div class="border-b border-zinc-200 p-6 dark:border-zinc-800">
+            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Member Feature Usage</h2>
+            <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                Adoption of the Virtual Safe and Reloading Bench among active members
+                (denominator: {{ number_format($usage['active_member_total']) }} active members)
+            </p>
+        </div>
+        <div class="grid gap-6 p-6 lg:grid-cols-2">
+            {{-- Virtual Safe --}}
+            <div class="rounded-xl border border-sky-200 bg-sky-50 p-5 dark:border-sky-800 dark:bg-sky-950/30">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="flex size-10 items-center justify-center rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400">
+                            <svg class="size-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2z" />
+                            </svg>
+                        </span>
+                        <div>
+                            <h3 class="text-sm font-semibold text-sky-900 dark:text-sky-100">Virtual Safe</h3>
+                            <p class="text-xs text-sky-700/70 dark:text-sky-300/70">My Firearms / Armoury</p>
+                        </div>
+                    </div>
+                    <span class="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-900/50 dark:text-sky-300">
+                        {{ $usage['virtual_safe']['active_member_pct'] }}%
+                    </span>
+                </div>
+                <div class="mt-4 grid grid-cols-2 gap-3">
+                    <div>
+                        <p class="text-xs text-sky-700/70 dark:text-sky-300/70">Active members using</p>
+                        <p class="text-2xl font-bold text-sky-900 dark:text-sky-100">{{ number_format($usage['virtual_safe']['active_members']) }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-sky-700/70 dark:text-sky-300/70">All-time users (incl. expired)</p>
+                        <p class="text-2xl font-bold text-sky-900 dark:text-sky-100">{{ number_format($usage['virtual_safe']['all_users_ever']) }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-sky-700/70 dark:text-sky-300/70">Firearms tracked (active)</p>
+                        <p class="text-lg font-semibold text-sky-900 dark:text-sky-100">{{ number_format($usage['virtual_safe']['firearms_active']) }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-sky-700/70 dark:text-sky-300/70">Firearms tracked (all)</p>
+                        <p class="text-lg font-semibold text-sky-900 dark:text-sky-100">{{ number_format($usage['virtual_safe']['firearms_total']) }}</p>
+                    </div>
+                </div>
+                <div class="mt-4 h-2 w-full rounded-full bg-white/60 dark:bg-sky-950/60 overflow-hidden">
+                    <div class="h-full rounded-full bg-sky-500" style="width: {{ min($usage['virtual_safe']['active_member_pct'], 100) }}%"></div>
+                </div>
+            </div>
+
+            {{-- Reloading Bench --}}
+            <div class="rounded-xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-800 dark:bg-amber-950/30">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="flex size-10 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                            <svg class="size-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-6a3 3 0 016 0v6m-9 4h12a2 2 0 002-2v-3a2 2 0 00-2-2H6a2 2 0 00-2 2v3a2 2 0 002 2z" />
+                            </svg>
+                        </span>
+                        <div>
+                            <h3 class="text-sm font-semibold text-amber-900 dark:text-amber-100">Reloading Bench</h3>
+                            <p class="text-xs text-amber-700/70 dark:text-amber-300/70">Load data &amp; ladder tests</p>
+                        </div>
+                    </div>
+                    <span class="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">
+                        {{ $usage['reloading_bench']['active_member_pct'] }}%
+                    </span>
+                </div>
+                <div class="mt-4 grid grid-cols-2 gap-3">
+                    <div>
+                        <p class="text-xs text-amber-700/70 dark:text-amber-300/70">Active members using</p>
+                        <p class="text-2xl font-bold text-amber-900 dark:text-amber-100">{{ number_format($usage['reloading_bench']['active_members']) }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-amber-700/70 dark:text-amber-300/70">All-time users (incl. expired)</p>
+                        <p class="text-2xl font-bold text-amber-900 dark:text-amber-100">{{ number_format($usage['reloading_bench']['all_users_ever']) }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-amber-700/70 dark:text-amber-300/70">Load recipes captured</p>
+                        <p class="text-lg font-semibold text-amber-900 dark:text-amber-100">{{ number_format($usage['reloading_bench']['load_recipes_total']) }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-amber-700/70 dark:text-amber-300/70">Ladder tests run</p>
+                        <p class="text-lg font-semibold text-amber-900 dark:text-amber-100">{{ number_format($usage['reloading_bench']['ladder_tests_total']) }}</p>
+                    </div>
+                </div>
+                <div class="mt-4 h-2 w-full rounded-full bg-white/60 dark:bg-amber-950/60 overflow-hidden">
+                    <div class="h-full rounded-full bg-amber-500" style="width: {{ min($usage['reloading_bench']['active_member_pct'], 100) }}%"></div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Cross-feature footer --}}
+        <div class="border-t border-zinc-200 px-6 py-4 dark:border-zinc-800">
+            <div class="flex flex-wrap items-center justify-between gap-3 text-sm">
+                <p class="text-zinc-600 dark:text-zinc-400">
+                    Active members using <strong class="text-zinc-900 dark:text-white">both features</strong>:
+                    <strong class="text-zinc-900 dark:text-white">{{ number_format($usage['both_features_active_members']) }}</strong>
+                    <span class="text-zinc-500 dark:text-zinc-500">({{ $usage['both_features_pct'] }}% of active)</span>
+                </p>
+                <p class="text-xs text-zinc-500 dark:text-zinc-500">
+                    "Reloading bench" counts members with at least one load recipe or ladder test.
+                </p>
+            </div>
         </div>
     </div>
 </div>
