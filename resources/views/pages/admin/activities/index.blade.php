@@ -22,6 +22,20 @@ new class extends Component {
         $this->resetPage(); // Reset pagination to show updated list
     }
 
+    public function delete(int $activityId): void
+    {
+        $activity = ShootingActivity::findOrFail($activityId);
+
+        \App\Models\AuditLog::log('activity_deleted', $activity, $activity->only([
+            'user_id', 'activity_type_id', 'track', 'activity_date', 'status',
+        ]));
+
+        $activity->delete();
+
+        session()->flash('success', 'Activity deleted permanently.');
+        $this->resetPage();
+    }
+
     public function with(): array
     {
         $activities = ShootingActivity::with(['user', 'activityType', 'tags', 'country', 'province'])
@@ -177,6 +191,7 @@ new class extends Component {
                                     @if($activity->status === 'pending')
                                         <button wire:click="approve({{ $activity->id }})" class="ml-4 text-emerald-600 hover:text-emerald-700 transition-colors">Quick Approve</button>
                                     @endif
+                                    <button wire:click="delete({{ $activity->id }})" wire:confirm="Permanently delete this activity submission for {{ addslashes($activity->user?->name ?? 'this member') }}?&#10;&#10;This cannot be undone and may affect the member's compliance record." class="ml-4 text-red-600 hover:text-red-700 transition-colors">Delete</button>
                                 </td>
                             </tr>
                         @endforeach

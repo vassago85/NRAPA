@@ -44,6 +44,18 @@ new class extends Component {
         $this->redirect(route('admin.activities.index'));
     }
 
+    public function delete(): void
+    {
+        \App\Models\AuditLog::log('activity_deleted', $this->activity, $this->activity->only([
+            'user_id', 'activity_type_id', 'track', 'activity_date', 'status',
+        ]));
+
+        $this->activity->delete();
+
+        session()->flash('success', 'Activity deleted permanently.');
+        $this->redirect(route('admin.activities.index'));
+    }
+
     public function getPreviewUrl($document): ?string
     {
         if (!$document) {
@@ -332,6 +344,20 @@ new class extends Component {
                     </div>
                 </div>
             @endif
+
+            <!-- Danger Zone -->
+            <div class="rounded-2xl shadow-sm border border-red-200 dark:border-red-900/50 bg-white dark:bg-zinc-900 p-6">
+                <h2 class="text-lg font-semibold text-red-700 dark:text-red-400 mb-2">Danger Zone</h2>
+                <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+                    Permanently delete this activity submission. This cannot be undone and may affect the member's compliance record.
+                </p>
+                <button wire:click="delete"
+                    wire:confirm="Permanently delete this activity submission for {{ addslashes($activity->user?->name ?? 'this member') }}?&#10;&#10;This cannot be undone and may affect the member's compliance record."
+                    class="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20 px-4 py-2.5 text-sm font-medium text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">
+                    <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a2 2 0 012-2h2a2 2 0 012 2v3"/></svg>
+                    Delete Activity
+                </button>
+            </div>
         </div>
     </div>
 
