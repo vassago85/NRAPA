@@ -2,7 +2,7 @@
 
 @php
     $qrCodeUrl = null;
-    $verifyUrl = '#';
+    $verifyUrl = null;
     if (isset($certificate) && $certificate) {
         $qrCodeUrl = \App\Helpers\DocumentDataHelper::getQrCodeUrl($certificate, 200);
         $verifyUrl = $certificate->getVerificationUrl();
@@ -22,13 +22,15 @@
         isset($certificate) ? $certificate->signatory_signature_path : \App\Helpers\DocumentDataHelper::getDefaultSignaturePath()
     );
 
+    $issuedAt = isset($certificate) && $certificate->issued_at ? $certificate->issued_at : now();
+
     $title = 'Welcome Letter — NRAPA';
 @endphp
 
 @section('document-banner')
 <div class="doc-banner">
     <div class="doc-banner-title">Welcome Letter</div>
-    <div class="doc-banner-subtitle">Informational</div>
+    <div class="doc-banner-subtitle">Welcome to the NRAPA Family</div>
 </div>
 @endsection
 
@@ -38,7 +40,7 @@
             Unable to load member details for this welcome letter.
         </div>
     @else
-        {{-- Info grid: Member + Membership details --}}
+        {{-- Info grid: Member + Letter details --}}
         <table class="layout-table">
             <tr>
                 <td class="half">
@@ -48,8 +50,21 @@
                             <tr><td class="kv-label">Full Name</td><td class="kv-value">{{ $user->getIdName() }}</td></tr>
                             <tr><td class="kv-label">ID / Passport</td><td class="kv-value">{{ $user->getIdNumber() ?? 'N/A' }}</td></tr>
                             @if ($membership)
-                            <tr><td class="kv-label">Membership No.</td><td class="kv-value">{{ $membership->membership_number ?? 'N/A' }}</td></tr>
-                            <tr><td class="kv-label">Membership Type</td><td class="kv-value">{{ $membership->type?->name ?? 'N/A' }}</td></tr>
+                                <tr><td class="kv-label">Membership No.</td><td class="kv-value">{{ $membership->membership_number ?? 'N/A' }}</td></tr>
+                                <tr><td class="kv-label">Membership Type</td><td class="kv-value">
+                                    {{ $membership->type?->name ?? 'N/A' }}
+                                    @if ($membership->type?->dedicated_type)
+                                        <br/><span style="font-size:9px; color:#6a6a6a;">
+                                            @if ($membership->type->dedicated_type === 'both')
+                                                (Dedicated Hunter &amp; Sport Shooter)
+                                            @elseif ($membership->type->dedicated_type === 'hunter')
+                                                (Dedicated Hunter)
+                                            @else
+                                                (Dedicated Sport Shooter)
+                                            @endif
+                                        </span>
+                                    @endif
+                                </td></tr>
                             @endif
                         </table>
                     </div>
@@ -59,11 +74,11 @@
                         <div class="card-title">Letter Details</div>
                         <table class="kv-table">
                             @if (isset($certificate) && $certificate->certificate_number)
-                            <tr><td class="kv-label">Reference</td><td class="kv-value">{{ $certificate->certificate_number }}</td></tr>
+                                <tr><td class="kv-label">Reference</td><td class="kv-value">{{ $certificate->certificate_number }}</td></tr>
                             @endif
-                            <tr><td class="kv-label">Date Issued</td><td class="kv-value">{{ now()->format('d F Y') }}</td></tr>
-                            @if ($membership && $membership->expires_at)
-                            <tr><td class="kv-label">Valid Until</td><td class="kv-value">{{ $membership->expires_at->format('d F Y') }}</td></tr>
+                            <tr><td class="kv-label">Date Issued</td><td class="kv-value">{{ $issuedAt->format('d F Y') }}</td></tr>
+                            @if ($membership)
+                                <tr><td class="kv-label">Valid Until</td><td class="kv-value">{{ $membership->expires_at ? $membership->expires_at->format('d F Y') : 'Lifetime' }}</td></tr>
                             @endif
                         </table>
                     </div>
@@ -71,42 +86,20 @@
             </tr>
         </table>
 
-        {{-- Letter body --}}
+        {{-- Welcome statement --}}
         <div class="letter-body">
-            Dear {{ $user->getIdName() }},<br/><br/>
-
-            On behalf of the National Rifle &amp; Pistol Association of South Africa, I would like to extend a warm welcome
-            to you as a new member of our Association.<br/><br/>
-
-            Your membership has been activated and you are now part of a community dedicated to promoting
-            responsible firearm ownership, marksmanship, and the advancement of shooting sports in South Africa.
-
-            @if ($membership)
-            <table class="kv-table" style="margin:10px 0; padding:10px 14px; background:#f2f8ff; border:1px solid #d0dff0; border-radius:4px;">
-                <tr><td class="kv-label" style="color:#0B4EA2;">Membership Number:</td><td class="kv-value" style="font-weight:700;">{{ $membership->membership_number ?? 'N/A' }}</td></tr>
-                <tr><td class="kv-label" style="color:#0B4EA2;">Membership Type:</td><td class="kv-value">{{ $membership->type?->name ?? 'N/A' }}</td></tr>
-                <tr><td class="kv-label" style="color:#0B4EA2;">Valid Until:</td><td class="kv-value">{{ $membership->expires_at ? $membership->expires_at->format('d F Y') : 'Lifetime' }}</td></tr>
-            </table>
-            @endif
-
-            As a member of NRAPA, you have access to a range of benefits and services, including:<br/>
-            <ul style="margin:4px 0 8px 0; padding-left:18px; line-height:1.6;">
-                <li>Endorsement letters for firearm licence applications</li>
-                <li>Dedicated status certification (subject to meeting requirements)</li>
-                <li>Activity tracking and compliance management</li>
-                <li>Access to member resources and support</li>
-                <li>Participation in NRAPA events and activities</li>
-            </ul>
-
-            We encourage you to explore your member portal where you can manage your membership, submit
-            activities, request endorsements, and access important documents.<br/><br/>
-
-            If you have any questions or need assistance, please do not hesitate to contact our administration team.<br/><br/>
-
-            Once again, welcome to NRAPA. We look forward to supporting you in your shooting journey.
+            Dear <b>{{ $user->getIdName() }}</b>,
+            <br/><br/>
+            On behalf of the National Rifle &amp; Pistol Association of South Africa, I extend a warm welcome to you as a new member.
+            Your membership has been activated and you are now part of a community dedicated to promoting responsible firearm ownership,
+            marksmanship, and the advancement of shooting sports in South Africa.
+            <br/><br/>
+            We encourage you to log in to your member portal to manage your membership, submit activities, request endorsements, and access
+            important documents. If you have any questions or need assistance, please contact our administration team. We look forward to
+            supporting you in your shooting journey.
         </div>
 
-        {{-- Signatory + Verification --}}
+        {{-- Bottom: Signatory + Member Benefits --}}
         <table class="layout-table">
             <tr>
                 <td class="half">
@@ -115,36 +108,32 @@
                         <div class="sig-box">{!! $signatureHtml !!}</div>
                         <div class="sig-name">{{ $signatory['name'] }}</div>
                         <div class="sig-title">{{ $signatory['title'] }}</div>
-                        <div class="sig-date">Issued {{ now()->format('d F Y') }}</div>
+                        <div class="sig-date">Issued {{ $issuedAt->format('d F Y') }}</div>
                     </div>
                 </td>
                 <td class="half">
-                    @if ($qrCodeUrl)
                     <div class="card">
-                        <div class="card-title">Verify Document</div>
-                        <table style="width:100%; border-collapse:collapse; margin-top:4px;">
-                            <tr>
-                                <td style="width:85px; vertical-align:top; padding:0;">
-                                    <div class="qr-box">
-                                        <img src="{{ $qrCodeUrl }}" alt="QR Code"/>
-                                    </div>
-                                </td>
-                                <td class="verify-text" style="vertical-align:top;">
-                                    <strong>Scan to verify</strong>
-                                    Scan the QR code or visit the link below to confirm this document.
-                                    <br/>
-                                    <a href="{{ $verifyUrl }}" style="word-break:break-all; font-size:8px;">{{ $verifyUrl }}</a>
-                                </td>
-                            </tr>
+                        <div class="card-title">Member Benefits</div>
+                        <table class="kv-table">
+                            <tr><td class="kv-value" style="padding:2px 0;">&#10003; Endorsement letters for firearm licence applications</td></tr>
+                            <tr><td class="kv-value" style="padding:2px 0;">&#10003; Dedicated status certification (subject to requirements)</td></tr>
+                            <tr><td class="kv-value" style="padding:2px 0;">&#10003; Activity tracking and compliance management</td></tr>
+                            <tr><td class="kv-value" style="padding:2px 0;">&#10003; Access to member resources and support</td></tr>
+                            <tr><td class="kv-value" style="padding:2px 0;">&#10003; Participation in NRAPA events and activities</td></tr>
                         </table>
                     </div>
-                    @endif
                 </td>
             </tr>
         </table>
 
-        <div style="margin-top:8px; text-align:center; font-size:9px; color:#6a6a6a;">
-            This is an electronically generated document. It can be verified by scanning the QR code above.
-        </div>
+        {{-- Verification strip (full width, horizontal) --}}
+        @if ($qrCodeUrl && $verifyUrl)
+            @include('documents.partials.verify-strip', [
+                'qrCodeUrl' => $qrCodeUrl,
+                'verifyUrl' => $verifyUrl,
+                'verifyStripTitle' => 'Verify This Document',
+                'verifyStripBlurb' => 'Scan the QR code or visit the link below to confirm this welcome letter.',
+            ])
+        @endif
     @endif
 @endsection
