@@ -102,7 +102,7 @@
 
       <h2>3. Dedicated Status (Where Applicable)</h2>
       <p>
-        Dedicated Hunter and/or Dedicated Sport Shooter status is granted in accordance with NRAPA requirements and
+        Dedicated Hunter and/or Dedicated Sports Person (Sport Shooter) status is granted in accordance with NRAPA requirements and
         the Firearms Control Act. It is the sole responsibility of the member to:
       </p>
       <ul>

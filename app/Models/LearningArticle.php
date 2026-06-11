@@ -375,7 +375,7 @@ class LearningArticle extends Model
     {
         return match ($this->effective_dedicated_type) {
             self::DEDICATED_TYPE_HUNTER => 'Dedicated Hunters',
-            self::DEDICATED_TYPE_SPORT => 'Dedicated Sport Shooters',
+            self::DEDICATED_TYPE_SPORT => 'Dedicated Sports Persons (Sport Shooters)',
             self::DEDICATED_TYPE_BOTH => 'All Dedicated Members',
             default => 'General',
         };

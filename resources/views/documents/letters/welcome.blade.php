@@ -56,11 +56,11 @@
                                     @if ($membership->type?->dedicated_type)
                                         <br/><span style="font-size:9px; color:#6a6a6a;">
                                             @if ($membership->type->dedicated_type === 'both')
-                                                (Dedicated Hunter &amp; Sport Shooter)
+                                                (Dedicated Hunter &amp; Sports Person (Sport Shooter))
                                             @elseif ($membership->type->dedicated_type === 'hunter')
                                                 (Dedicated Hunter)
                                             @else
-                                                (Dedicated Sport Shooter)
+                                                (Dedicated Sports Person (Sport Shooter))
                                             @endif
                                         </span>
                                     @endif

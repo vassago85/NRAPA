@@ -138,7 +138,7 @@ class LearningCategory extends Model
     {
         return match ($this->dedicated_type) {
             self::DEDICATED_TYPE_HUNTER => 'Dedicated Hunters',
-            self::DEDICATED_TYPE_SPORT => 'Dedicated Sport Shooters',
+            self::DEDICATED_TYPE_SPORT => 'Dedicated Sports Persons (Sport Shooters)',
             self::DEDICATED_TYPE_BOTH => 'All Dedicated Members',
             default => 'General',
         };

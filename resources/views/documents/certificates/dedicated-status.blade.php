@@ -28,13 +28,13 @@
     $sectionNumber = ($isDedicated && !$isOccasional) ? 16 : 15;
 
     if ($isOccasional) {
-        $dedicatedTitle = $isHunting ? 'Occasional Hunter' : ($isSport ? 'Occasional Sport Shooter' : 'Occasional Member');
+        $dedicatedTitle = $isHunting ? 'Occasional Hunter' : ($isSport ? 'Occasional Sports Person (Sport Shooter)' : 'Occasional Member');
     } elseif ($isBoth) {
-        $dedicatedTitle = 'Dedicated Hunter & Sport Shooter';
+        $dedicatedTitle = 'Dedicated Hunter & Sports Person (Sport Shooter)';
     } elseif ($isHunting) {
         $dedicatedTitle = 'Dedicated Hunter';
     } elseif ($isSport) {
-        $dedicatedTitle = 'Dedicated Sport Shooter';
+        $dedicatedTitle = 'Dedicated Sports Person (Sport Shooter)';
     } else {
         $dedicatedTitle = 'Dedicated Member';
     }

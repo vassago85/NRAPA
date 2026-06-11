@@ -114,8 +114,8 @@ class AffiliatedClub extends Model
     {
         return match ($this->dedicated_type) {
             'hunter' => 'Dedicated Hunter',
-            'sport' => 'Dedicated Sport Shooter',
-            'both' => 'Dedicated Hunter & Sport Shooter',
+            'sport' => 'Dedicated Sports Person (Sport Shooter)',
+            'both' => 'Dedicated Hunter & Sports Person (Sport Shooter)',
             default => 'Unknown',
         };
     }

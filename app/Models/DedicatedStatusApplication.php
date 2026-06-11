@@ -114,7 +114,7 @@ class DedicatedStatusApplication extends Model
     {
         return match ($this->dedicated_type) {
             'hunter' => 'Dedicated Hunter',
-            'sport', 'sport_shooter' => 'Dedicated Sport Shooter',
+            'sport', 'sport_shooter' => 'Dedicated Sports Person (Sport Shooter)',
             default => 'Unknown',
         };
     }

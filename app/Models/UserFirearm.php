@@ -497,7 +497,7 @@ class UserFirearm extends Model
         return [
             'self_defence' => 'Self Defence',
             'occasional_sport' => 'Occasional Sport/Hunting',
-            'dedicated_sport' => 'Dedicated Sport Shooter',
+            'dedicated_sport' => 'Dedicated Sports Person (Sport Shooter)',
             'dedicated_hunting' => 'Dedicated Hunter',
             'business' => 'Business',
             'private_collection' => 'Private Collection',

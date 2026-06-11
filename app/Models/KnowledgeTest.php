@@ -194,9 +194,9 @@ class KnowledgeTest extends Model
     {
         return match ($this->dedicated_type) {
             'hunter' => 'Dedicated Hunter',
-            'sport' => 'Dedicated Sport Shooter',
-            'sport_shooter' => 'Dedicated Sport Shooter', // Legacy support
-            'both' => 'Both (Hunter & Sport Shooter)',
+            'sport' => 'Dedicated Sports Person (Sport Shooter)',
+            'sport_shooter' => 'Dedicated Sports Person (Sport Shooter)', // Legacy support
+            'both' => 'Both (Hunter & Sports Person / Sport Shooter)',
             default => null,
         };
     }
