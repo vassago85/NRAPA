@@ -16,8 +16,8 @@
 
 @section('document-banner')
 <div class="doc-banner">
-    <div class="doc-banner-title">Shooting Activity Log</div>
-    <div class="doc-banner-subtitle">Supporting Document — SAPS Firearm Licence Motivation</div>
+    <div class="doc-banner-title">Activity Letter</div>
+    <div class="doc-banner-subtitle">For SAPS Firearm Licence Application or Motivation</div>
 </div>
 @endsection
 
