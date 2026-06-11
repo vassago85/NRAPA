@@ -53,6 +53,9 @@ class Membership extends Model
         'change_amount',
         'sage_invoice_id',
         'sage_invoice_number',
+        'transfer_competency_document_id',
+        'transfer_membership_document_id',
+        'previous_association_name',
     ];
 
     /**
@@ -262,6 +265,32 @@ class Membership extends Model
     public function affiliatedClub(): BelongsTo
     {
         return $this->belongsTo(AffiliatedClub::class);
+    }
+
+    /**
+     * Competency certificate uploaded for a transfer application.
+     */
+    public function transferCompetencyDocument(): BelongsTo
+    {
+        return $this->belongsTo(MemberDocument::class, 'transfer_competency_document_id');
+    }
+
+    /**
+     * Current-membership certificate from the previous association uploaded
+     * for a transfer application.
+     */
+    public function transferMembershipDocument(): BelongsTo
+    {
+        return $this->belongsTo(MemberDocument::class, 'transfer_membership_document_id');
+    }
+
+    /**
+     * Whether this membership is a transfer from another SAPS-accredited
+     * association. Driven by the source flag, not the type slug.
+     */
+    public function isTransfer(): bool
+    {
+        return $this->source === 'transfer';
     }
 
     /**

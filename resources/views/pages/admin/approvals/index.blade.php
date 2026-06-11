@@ -100,12 +100,13 @@ new #[Title('All Approvals - Admin')] class extends Component {
 
         // --- Memberships ready for admin action ---
 
-        // Applied memberships that are either non-billable (imports) OR have POP/payment confirmed
+        // Applied memberships that are either non-billable (imports / transfers
+        // pending document review) OR have POP/payment confirmed.
         $items = $items->merge(
             Membership::where('status', 'applied')
                 ->whereHas('user')
                 ->where(function ($q) {
-                    $q->whereNotIn('source', ['web', 'admin'])                  // non-billable (imports)
+                    $q->whereNotIn('source', ['web', 'admin'])                  // non-billable (imports / transfers)
                         ->orWhereNotNull('proof_of_payment_path')               // POP uploaded
                         ->orWhereNotNull('payment_confirmed_at');               // admin confirmed payment
                 })
@@ -113,9 +114,11 @@ new #[Title('All Approvals - Admin')] class extends Component {
                 ->orderBy('applied_at', 'asc')
                 ->get()
                 ->map(fn ($m) => [
-                    'type' => 'membership',
+                    'type' => $m->source === 'transfer' ? 'transfer' : 'membership',
                     'id' => $m->id,
-                    'title' => ($m->type?->name ?? 'Membership') . ' Membership',
+                    'title' => $m->source === 'transfer'
+                        ? 'Transfer Application: ' . ($m->type?->name ?? 'Membership')
+                        : ($m->type?->name ?? 'Membership') . ' Membership',
                     'user' => $m->user,
                     'date' => $m->applied_at,
                     'route' => route('admin.approvals.show', $m),
@@ -297,6 +300,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
         return match($type) {
             'document' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
             'membership' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200',
+            'transfer' => 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-200',
             'change_request' => 'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200',
             'change_payment' => 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
             'activity' => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
@@ -311,6 +315,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
         return match($type) {
             'document' => 'Document',
             'membership' => 'Membership',
+            'transfer' => 'Transfer',
             'change_request' => 'Type Change',
             'change_payment' => 'Change Payment',
             'activity' => 'Activity',

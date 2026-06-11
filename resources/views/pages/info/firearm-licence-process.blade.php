@@ -1,8 +1,8 @@
 @extends('layouts.info')
 
-@section('title', 'Firearm Licence Process in South Africa')
-@section('description', 'Complete guide to the South African firearm licence process under the Firearms Control Act 2000, including competency certificates, SAPS 517 forms, and licensing requirements.')
-@section('heading', 'Firearm Licence Process')
+@section('title', 'Firearm Licence Process South Africa | Section 16 & Competency')
+@section('description', 'The firearm licence process in South Africa: SAPS competency, Section 13/15/16 firearm licence categories, supporting motivation, dedicated status and how NRAPA helps you stay compliant.')
+@section('heading', 'Firearm Licence Process in South Africa')
 @section('breadcrumb', 'Firearm Licence Process')
 
 @section('content')
@@ -59,6 +59,16 @@
         <li>Certified competency certificate</li>
         <li>Detailed motivation with references, membership, dedicated status, shooting activities, endorsements, calendars, hunt confirmations</li>
     </ul>
+
+    <h2>Section 13, 15 and 16 firearm licences</h2>
+    <p>Under the Firearms Control Act, the section under which you apply determines what you may use the firearm for and how many you may own. The most common categories for sport shooters and hunters are:</p>
+    <ul class="checklist">
+        <li><strong>Section 13</strong> — for self-defence (one handgun).</li>
+        <li><strong>Section 15</strong> — occasional sport shooting or occasional hunting (limited firearms; needs association membership).</li>
+        <li><strong>Section 16</strong> — dedicated sport shooting or dedicated hunting. With Section 16 status NRAPA confirms your participation each year and you may motivate for additional firearms appropriate to your discipline. <a href="{{ route('info.dedicated-procedure') }}">See how to get dedicated status.</a></li>
+    </ul>
+    <p>Section 16 applications must be supported by a SAPS-accredited association &mdash; that is the standing NRAPA confirms with its FAR 1300122 (sport shooting) and FAR 1300127 (hunting) accreditations.</p>
+    <p>The SAPS application form is the <a href="https://www.saps.gov.za/services/flash/firearms/forms/english/e271.pdf" target="_blank" rel="noopener nofollow">SAPS 271 firearm licence application (PDF)</a>. Download it directly from the SAPS website, complete it in black ink, and submit it in person at your nearest Designated Firearms Officer (DFO) together with the supporting documents listed above.</p>
 
     <h2>Estate Firearms</h2>
     <ul class="checklist">

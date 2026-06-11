@@ -111,6 +111,9 @@ Route::prefix('info')->name('info.')->group(function () {
     Route::get('/membership-benefits', fn () => view('pages.info.membership-benefits'))->name('membership-benefits');
     Route::get('/faq', fn () => view('pages.info.faq'))->name('faq');
     Route::get('/prs-rifle-equipment-selection', fn () => view('pages.info.prs-rifle-equipment-selection'))->name('prs-rifle-equipment-selection');
+    Route::get('/transfer-your-membership', fn () => view('pages.info.transfer-your-membership'))->name('transfer-your-membership');
+    Route::get('/dedicated-hunter-vs-sport-shooter', fn () => view('pages.info.dedicated-hunter-vs-sport-shooter'))->name('dedicated-hunter-vs-sport-shooter');
+    Route::get('/dedicated-status-faq', fn () => view('pages.info.dedicated-status-faq'))->name('dedicated-status-faq');
 });
 
 // Custom email verification route - works WITHOUT authentication

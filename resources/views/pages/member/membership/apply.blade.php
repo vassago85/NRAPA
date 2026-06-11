@@ -1,20 +1,34 @@
 <?php
 
 use App\Mail\PaymentInstructions;
+use App\Mail\TransferApplicationReceived;
+use App\Models\DocumentType;
+use App\Models\MemberDocument;
 use App\Models\Membership;
 use App\Models\MembershipType;
 use App\Models\SystemSetting;
 use App\Services\NtfyService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 new #[Title('Apply for Membership')] class extends Component {
+    use WithFileUploads;
+
     public ?int $selectedTypeId = null;
     public bool $agreedToTerms = false;
     public bool $agreedToDeclaration = false;
+
+    // Transfer-from-another-association uploads
+    public $transferCompetencyDocument = null;
+    public $transferMembershipDocument = null;
+    public string $previousAssociationName = '';
 
     public function mount(?string $type = null): void
     {
@@ -86,6 +100,11 @@ new #[Title('Apply for Membership')] class extends Component {
             return 0;
         }
 
+        // Transfer types are flat-rate (no basic + upgrade stack).
+        if ($this->selectedType->requires_transfer_documents) {
+            return (float) $this->selectedType->initial_price;
+        }
+
         // For basic: initial_price
         // For dedicated: basic initial_price + dedicated upgrade_price
         if ($this->selectedType->hasUpgradeFee()) {
@@ -146,6 +165,16 @@ new #[Title('Apply for Membership')] class extends Component {
         return $this->selectedType?->allows_dedicated_status ?? false;
     }
 
+    /**
+     * Whether the currently selected membership type requires the transfer
+     * document uploads (driven by the type attribute, not the slug).
+     */
+    #[Computed]
+    public function isTransferType(): bool
+    {
+        return (bool) ($this->selectedType?->requires_transfer_documents ?? false);
+    }
+
     public function submit(): void
     {
         if (!$this->canApply) {
@@ -167,25 +196,60 @@ new #[Title('Apply for Membership')] class extends Component {
             $messages['agreedToDeclaration.accepted'] = 'You must accept the Dedicated Status Declaration.';
         }
 
+        if ($this->isTransferType) {
+            $rules['transferCompetencyDocument'] = ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'];
+            $rules['transferMembershipDocument'] = ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'];
+            $rules['previousAssociationName'] = ['required', 'string', 'min:2', 'max:120'];
+            $messages['transferCompetencyDocument.required'] = 'Please upload your competency certificate.';
+            $messages['transferCompetencyDocument.mimes'] = 'Competency certificate must be a PDF, JPG, or PNG file.';
+            $messages['transferCompetencyDocument.max'] = 'Competency certificate must be 10MB or smaller.';
+            $messages['transferMembershipDocument.required'] = 'Please upload your current membership certificate from your previous association.';
+            $messages['transferMembershipDocument.mimes'] = 'Membership certificate must be a PDF, JPG, or PNG file.';
+            $messages['transferMembershipDocument.max'] = 'Membership certificate must be 10MB or smaller.';
+            $messages['previousAssociationName.required'] = 'Please tell us which SAPS-accredited association you are transferring from.';
+        }
+
         $this->validate($rules, $messages);
+
+        $isTransfer = $this->isTransferType;
+
+        $competencyDoc = null;
+        $membershipDoc = null;
+        if ($isTransfer) {
+            $competencyDoc = $this->storeTransferDocument(
+                $this->transferCompetencyDocument,
+                'firearm-competency'
+            );
+            $membershipDoc = $this->storeTransferDocument(
+                $this->transferMembershipDocument,
+                'transfer-membership-certificate'
+            );
+        }
 
         $membership = Membership::create([
             'user_id' => $this->user->id,
             'membership_type_id' => $this->selectedTypeId,
             'status' => 'applied',
             'applied_at' => now(),
-            'source' => 'web',
+            'source' => $isTransfer ? 'transfer' : 'web',
             'dedicated_declaration_accepted_at' => $this->isDedicatedType ? now() : null,
+            'transfer_competency_document_id' => $competencyDoc?->id,
+            'transfer_membership_document_id' => $membershipDoc?->id,
+            'previous_association_name' => $isTransfer ? trim($this->previousAssociationName) : null,
         ]);
 
+        if ($isTransfer) {
+            $this->sendTransferApplicationReceivedEmail($membership);
+        }
         $this->sendPaymentInstructionsEmail($membership);
 
         // Notify admins of new application
         try {
             $typeName = $membership->type?->name ?? 'Unknown';
+            $title = $isTransfer ? 'New Transfer Application' : 'New Membership Application';
             app(NtfyService::class)->notifyAdmins(
                 'new_member',
-                'New Membership Application',
+                $title,
                 "{$this->user->name} applied for {$typeName}.",
                 'default'
             );
@@ -193,9 +257,73 @@ new #[Title('Apply for Membership')] class extends Component {
             // Non-critical — don't block the application
         }
 
-        session()->flash('success', 'Your membership application has been submitted! Payment instructions have been emailed to you.');
+        session()->flash('success', $isTransfer
+            ? 'Your transfer application has been submitted. Our admin team will review your documents and email you with the outcome.'
+            : 'Your membership application has been submitted! Payment instructions have been emailed to you.'
+        );
 
         $this->redirect(route('membership.show', $membership), navigate: true);
+    }
+
+    /**
+     * Store an uploaded transfer document on the private documents disk and
+     * return the corresponding MemberDocument row. Mirrors the storage pattern
+     * used by the member documents page.
+     */
+    protected function storeTransferDocument($uploaded, string $documentTypeSlug): ?MemberDocument
+    {
+        if (! $uploaded) {
+            return null;
+        }
+
+        $type = DocumentType::where('slug', $documentTypeSlug)->first();
+        if (! $type) {
+            return null;
+        }
+
+        $disk = $this->getPrivateDisk();
+        $directory = "documents/{$this->user->uuid}/{$documentTypeSlug}";
+        $filename = Str::random(40) . '.' . $uploaded->getClientOriginalExtension();
+
+        $path = $uploaded->storeAs($directory, $filename, [
+            'disk' => $disk,
+            'visibility' => 'private',
+        ]);
+
+        return MemberDocument::create([
+            'user_id' => $this->user->id,
+            'document_type_id' => $type->id,
+            'file_path' => $path,
+            'original_filename' => $uploaded->getClientOriginalName(),
+            'mime_type' => $uploaded->getMimeType(),
+            'file_size' => $uploaded->getSize(),
+            'status' => 'pending',
+            'uploaded_at' => now(),
+        ]);
+    }
+
+    protected function getPrivateDisk(): string
+    {
+        if (app()->environment(['local', 'development', 'testing'])) {
+            return 'local';
+        }
+        if (config('filesystems.disks.r2.key')) {
+            return 'r2';
+        }
+        return 's3';
+    }
+
+    protected function sendTransferApplicationReceivedEmail(Membership $membership): void
+    {
+        try {
+            Mail::to($membership->user->email)
+                ->send(new TransferApplicationReceived($membership->load('type', 'user')));
+        } catch (\Exception $e) {
+            Log::warning('Failed to send transfer application received email', [
+                'membership_id' => $membership->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     protected function sendPaymentInstructionsEmail(Membership $membership): void
@@ -212,7 +340,7 @@ new #[Title('Apply for Membership')] class extends Component {
 
             $membership->update(['payment_email_sent_at' => now()]);
         } catch (\Exception $e) {
-            \Log::error('Failed to send payment instructions email', [
+            Log::error('Failed to send payment instructions email', [
                 'membership_id' => $membership->id,
                 'error' => $e->getMessage(),
             ]);
@@ -295,18 +423,32 @@ new #[Title('Apply for Membership')] class extends Component {
                         </p>
 
                         <div class="space-y-2 text-sm">
-                            @if($type->isBasic())
-                            {{-- Basic type: show sign-up fee --}}
+                            @if($type->requires_transfer_documents)
+                            {{-- Transfer type: flat fee, no upgrade fee logic --}}
                             <div class="flex items-center justify-between">
                                 <span class="text-zinc-500 dark:text-zinc-400">Sign-up Fee</span>
                                 <span class="font-semibold text-zinc-900 dark:text-white">
-                                    R{{ number_format($type->initial_price, 2) }}
+                                    <x-money :amount="$type->initial_price" :cents="true" />
                                 </span>
                             </div>
                             <div class="flex items-center justify-between">
                                 <span class="text-zinc-500 dark:text-zinc-400">Annual Renewal</span>
                                 <span class="text-zinc-900 dark:text-white">
-                                    R{{ number_format($type->renewal_price, 2) }}<span class="font-normal text-zinc-500">/year</span>
+                                    <x-money :amount="$type->renewal_price" :cents="true" /><span class="font-normal text-zinc-500">/year</span>
+                                </span>
+                            </div>
+                            @elseif($type->isBasic())
+                            {{-- Basic type: show sign-up fee --}}
+                            <div class="flex items-center justify-between">
+                                <span class="text-zinc-500 dark:text-zinc-400">Sign-up Fee</span>
+                                <span class="font-semibold text-zinc-900 dark:text-white">
+                                    <x-money :amount="$type->initial_price" :cents="true" />
+                                </span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-zinc-500 dark:text-zinc-400">Annual Renewal</span>
+                                <span class="text-zinc-900 dark:text-white">
+                                    <x-money :amount="$type->renewal_price" :cents="true" /><span class="font-normal text-zinc-500">/year</span>
                                 </span>
                             </div>
                             @else
@@ -315,13 +457,13 @@ new #[Title('Apply for Membership')] class extends Component {
                             <div class="flex items-center justify-between">
                                 <span class="text-zinc-500 dark:text-zinc-400">Sign-up Fee</span>
                                 <span class="font-semibold text-zinc-900 dark:text-white">
-                                    R{{ number_format($dedicatedSignup, 2) }}
+                                    <x-money :amount="$dedicatedSignup" :cents="true" />
                                 </span>
                             </div>
                             <div class="flex items-center justify-between">
                                 <span class="text-zinc-500 dark:text-zinc-400">Annual Renewal</span>
                                 <span class="text-zinc-900 dark:text-white">
-                                    R{{ number_format($type->renewal_price, 2) }}<span class="font-normal text-zinc-500">/year</span>
+                                    <x-money :amount="$type->renewal_price" :cents="true" /><span class="font-normal text-zinc-500">/year</span>
                                 </span>
                             </div>
                             @endif
@@ -375,7 +517,7 @@ new #[Title('Apply for Membership')] class extends Component {
                     </div>
                     <div class="flex items-center justify-between text-sm">
                         <span class="text-zinc-500 dark:text-zinc-400">Sign-up Fee</span>
-                        <span class="text-zinc-900 dark:text-white">R{{ number_format($this->signupTotal, 2) }}</span>
+                        <span class="text-zinc-900 dark:text-white"><x-money :amount="$this->signupTotal" :cents="true" /></span>
                     </div>
 
                     <div class="flex items-center justify-between">
@@ -389,12 +531,83 @@ new #[Title('Apply for Membership')] class extends Component {
                     <hr class="border-zinc-200 dark:border-zinc-700">
                     <div class="flex items-center justify-between text-lg">
                         <span class="font-semibold text-zinc-900 dark:text-white">Amount Due</span>
-                        <span class="font-bold text-emerald-600 dark:text-emerald-400">R{{ number_format($this->signupTotal, 2) }}</span>
+                        <span class="font-bold text-emerald-600 dark:text-emerald-400"><x-money :amount="$this->signupTotal" :cents="true" /></span>
                     </div>
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">
                         Payment details will be emailed to you and shown on the next page after you submit.
                     </p>
                 </div>
+            </div>
+        </div>
+        @endif
+
+        {{-- Transfer documents (only when a transfer-type membership is selected) --}}
+        @if($this->isTransferType)
+        <div class="rounded-xl border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20">
+            <div class="border-b border-blue-200 p-6 dark:border-blue-800">
+                <h2 class="text-lg font-semibold text-blue-900 dark:text-blue-100">Transferring from another association</h2>
+                <p class="mt-1 text-sm text-blue-800 dark:text-blue-200">
+                    To qualify for the reduced transfer fee we need to confirm your existing standing.
+                    Please upload your competency certificate and your current membership certificate from the
+                    SAPS-accredited association you are transferring from. PDF, JPG or PNG &mdash; up to 10MB each.
+                </p>
+            </div>
+
+            <div class="space-y-5 p-6">
+                <div>
+                    <label for="previousAssociationName" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                        Current association name
+                    </label>
+                    <input type="text"
+                           id="previousAssociationName"
+                           wire:model.blur="previousAssociationName"
+                           placeholder="e.g. SAPS-accredited association name"
+                           class="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                    @error('previousAssociationName')
+                        <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="transferCompetencyDocument" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                        Competency certificate <span class="text-red-500">*</span>
+                    </label>
+                    <input type="file"
+                           id="transferCompetencyDocument"
+                           wire:model="transferCompetencyDocument"
+                           accept=".pdf,.jpg,.jpeg,.png"
+                           class="mt-1 block w-full text-sm text-zinc-700 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-100 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-800 hover:file:bg-blue-200 dark:text-zinc-300 dark:file:bg-blue-900/50 dark:file:text-blue-200">
+                    <div wire:loading wire:target="transferCompetencyDocument" class="mt-1 text-xs text-blue-700 dark:text-blue-300">Uploading...</div>
+                    @if($transferCompetencyDocument)
+                        <p class="mt-1 text-xs text-emerald-700 dark:text-emerald-300">Selected: {{ $transferCompetencyDocument->getClientOriginalName() }}</p>
+                    @endif
+                    @error('transferCompetencyDocument')
+                        <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="transferMembershipDocument" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                        Current membership certificate <span class="text-red-500">*</span>
+                    </label>
+                    <input type="file"
+                           id="transferMembershipDocument"
+                           wire:model="transferMembershipDocument"
+                           accept=".pdf,.jpg,.jpeg,.png"
+                           class="mt-1 block w-full text-sm text-zinc-700 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-100 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-800 hover:file:bg-blue-200 dark:text-zinc-300 dark:file:bg-blue-900/50 dark:file:text-blue-200">
+                    <div wire:loading wire:target="transferMembershipDocument" class="mt-1 text-xs text-blue-700 dark:text-blue-300">Uploading...</div>
+                    @if($transferMembershipDocument)
+                        <p class="mt-1 text-xs text-emerald-700 dark:text-emerald-300">Selected: {{ $transferMembershipDocument->getClientOriginalName() }}</p>
+                    @endif
+                    @error('transferMembershipDocument')
+                        <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <p class="text-xs text-blue-700 dark:text-blue-300">
+                    Your documents are stored privately for verification only and visible solely to NRAPA admin reviewers.
+                    See our <a href="{{ route('privacy-policy') }}" target="_blank" class="underline hover:text-blue-900">privacy policy</a>.
+                </p>
             </div>
         </div>
         @endif

@@ -1,7 +1,7 @@
 @extends('layouts.info')
 
-@section('title', 'About NRAPA - National Rifle & Pistol Association of South Africa')
-@section('description', 'NRAPA is a SAPS-accredited association providing dedicated sport shooter and hunter status, firearm licence administration, and compliance management for South African firearm owners.')
+@section('title', 'About NRAPA | SAPS Accredited Association (FAR 1300122 & 1300127)')
+@section('description', 'NRAPA is a SAPS accredited association (FAR 1300122 sport shooting and FAR 1300127 hunting) providing dedicated status, endorsements and firearm licence administration in South Africa.')
 @section('heading', 'About NRAPA')
 @section('breadcrumb', 'About')
 

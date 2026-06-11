@@ -18,6 +18,7 @@
         <meta name="twitter:image" content="{{ asset('nrapa-icon.png') }}">
         <link rel="icon" href="/nrapa-icon.png" type="image/png">
         <link rel="apple-touch-icon" href="/nrapa-icon.png">
+        <x-organization-schema />
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <style>
             .hero-gradient {
@@ -107,6 +108,7 @@
                         <li><strong>Activity records:</strong> Shooting activity logs, hunting activity records, scores, range session details, competition participation.</li>
                         <li><strong>Endorsement information:</strong> Endorsement applications, supporting motivation, firearm details for endorsement requests.</li>
                         <li><strong>Supporting documents:</strong> ID copies, proof of residence, competency certificates, photographs, and other documents uploaded to the Portal.</li>
+                        <li><strong>Transfer-application documents:</strong> If you are transferring from another SAPS-accredited association, the competency certificate and current membership certificate you upload during application. These documents are stored privately on encrypted, access-controlled storage; only NRAPA admin reviewers can view them, solely for the purpose of verifying your transfer.</li>
                     </ul>
 
                     <h3>3.2 Information Collected Automatically</h3>

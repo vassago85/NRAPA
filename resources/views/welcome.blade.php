@@ -241,7 +241,7 @@
                     {{-- Left: Logo --}}
                     <div class="header-logo" style="flex-shrink: 0;">
                         <a href="https://ranyati.co.za">
-                            <img src="{{ asset('logo-ranyatigroup-white_text.png') }}" alt="Ranyati Group" style="height: 26px; width: auto; object-fit: contain;" />
+                            <img src="{{ asset('logo-ranyatigroup-white_text.png') }}" alt="Ranyati Group logo" width="107" height="26" loading="eager" style="height: 26px; width: auto; object-fit: contain;" />
                         </a>
                     </div>
                     {{-- Center: Division pill buttons --}}
@@ -309,7 +309,7 @@
 
                 {{-- NRAPA Logo --}}
                 <div class="anim" style="display: inline-flex; align-items: center; justify-content: center; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.03); padding: 3px 20px;">
-                    <img src="{{ asset('logo-nrapa-white.png') }}" alt="NRAPA" style="height: 74px; width: auto; object-fit: contain; opacity: 1;" />
+                    <img src="{{ asset('logo-nrapa-white.png') }}" alt="NRAPA logo" width="211" height="74" style="height: 74px; width: auto; object-fit: contain; opacity: 1;" />
                 </div>
 
                 {{-- Heading --}}
@@ -499,6 +499,9 @@
                     <p class="mx-auto mt-5 max-w-xl text-[15px] leading-[1.8] text-white/40">
                         Choose the membership that fits your needs. All packages include full portal access and digital certificates.
                     </p>
+                    <p class="mx-auto mt-3 max-w-xl text-[13px] leading-[1.7] text-white/55">
+                        Coming from another SAPS-accredited association? <a href="{{ route('info.transfer-your-membership') }}" class="text-[#F58220] underline-offset-4 hover:underline">Transfer your membership</a> at a reduced fee.
+                    </p>
                 </div>
 
                 @if($membershipTypes->count() > 0)
@@ -544,17 +547,17 @@
                             @if($type->hasUpgradeFee() && $basicType)
                             @php $totalSignup = ($basicType->initial_price ?? 0) + ($type->upgrade_price ?? 0); @endphp
                             <div class="flex items-baseline gap-1">
-                                <span class="text-4xl font-extrabold tracking-tight text-white">R{{ number_format($totalSignup, 0) }}</span>
+                                <span class="text-4xl font-extrabold tracking-tight text-white"><x-money :amount="$totalSignup" /></span>
                                 <span class="text-[13px] font-medium text-white/30">sign-up</span>
                             </div>
-                            <p class="text-[13px] text-white/35 mt-1">Renewal: R{{ number_format($type->renewal_price, 0) }}/year</p>
+                            <p class="text-[13px] text-white/35 mt-1">Renewal: <x-money :amount="$type->renewal_price" />/year</p>
                             @else
                             <div class="flex items-baseline gap-1">
-                                <span class="text-4xl font-extrabold tracking-tight text-white">R{{ number_format($type->initial_price, 0) }}</span>
+                                <span class="text-4xl font-extrabold tracking-tight text-white"><x-money :amount="$type->initial_price" /></span>
                                 <span class="text-[13px] font-medium text-white/30">/ {{ $type->duration_type === 'lifetime' ? 'once-off' : 'year' }}</span>
                             </div>
                             @if($type->renewal_price > 0 && $type->renewal_price != $type->initial_price)
-                            <p class="text-[13px] text-white/35 mt-1">Renewal: R{{ number_format($type->renewal_price, 0) }}/year</p>
+                            <p class="text-[13px] text-white/35 mt-1">Renewal: <x-money :amount="$type->renewal_price" />/year</p>
                             @endif
                             @endif
                         </div>
@@ -690,7 +693,7 @@
                 <div class="footer-grid">
                     {{-- Left: Ranyati Group --}}
                     <div style="text-align: left;">
-                        <img src="{{ asset('logo-ranyatigroup-white_text.png') }}" alt="Ranyati Group" style="height: 32px; width: auto; object-fit: contain;" />
+                        <img src="{{ asset('logo-ranyatigroup-white_text.png') }}" alt="Ranyati Group logo" width="131" height="32" loading="lazy" style="height: 32px; width: auto; object-fit: contain;" />
                         <p style="margin-top: 16px; font-size: 13px; line-height: 1.7; color: rgba(255,255,255,0.25);">
                             Specialist firearm administration services since 2006.<br>
                             Trading as Ranyati Firearm Motivations (Pty) Ltd.

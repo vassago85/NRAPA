@@ -18,6 +18,7 @@
         <meta name="twitter:image" content="{{ asset('nrapa-icon.png') }}">
         <link rel="icon" href="/nrapa-icon.png" type="image/png">
         <link rel="apple-touch-icon" href="/nrapa-icon.png">
+        <x-organization-schema />
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <style>
             .hero-gradient {

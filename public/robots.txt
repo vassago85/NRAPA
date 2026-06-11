@@ -3,6 +3,11 @@
 # https://nrapa.ranyati.co.za
 
 User-agent: *
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /two-factor-challenge
 Disallow: /dashboard
 Disallow: /admin
 Disallow: /owner

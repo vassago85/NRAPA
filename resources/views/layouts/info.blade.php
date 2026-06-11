@@ -61,12 +61,13 @@
                     'url' => config('app.url'),
                     'publisher' => [
                         '@type' => 'Organization',
-                        'name' => 'Ranyati Group',
+                        'name' => 'Ranyati Firearm Motivations (Pty) Ltd',
                         'url' => 'https://ranyati.co.za',
                     ],
                 ],
             ], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}
         </script>
+        <x-organization-schema />
         @stack('structured_data')
         <style>
             .hero-gradient {
@@ -130,7 +131,7 @@
         <header class="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#061e3c]/80 backdrop-blur-xl">
             <nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-3 lg:px-8" aria-label="Global">
                 <a href="/" class="group">
-                    <img src="{{ asset('logo-nrapa-wiite_text.png') }}" alt="NRAPA" class="h-9 w-auto object-contain transition group-hover:opacity-80" />
+                    <img src="{{ asset('logo-nrapa-wiite_text.png') }}" alt="NRAPA logo" width="117" height="36" class="h-9 w-auto object-contain transition group-hover:opacity-80" />
                 </a>
                 <div class="hidden sm:flex items-center gap-8">
                     <a href="{{ route('home') }}#features" class="text-sm font-medium text-zinc-300 hover:text-white transition">Features</a>
@@ -195,6 +196,9 @@
                 <a href="{{ route('info.endorsements') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.endorsements') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">Endorsements</a>
                 <a href="{{ route('info.membership-benefits') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.membership-benefits') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">Membership benefits</a>
                 <a href="{{ route('info.faq') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.faq') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">FAQ</a>
+                <a href="{{ route('info.dedicated-status-faq') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.dedicated-status-faq') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">Dedicated status FAQ</a>
+                <a href="{{ route('info.dedicated-hunter-vs-sport-shooter') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.dedicated-hunter-vs-sport-shooter') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">Hunter vs sport shooter</a>
+                <a href="{{ route('info.transfer-your-membership') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.transfer-your-membership') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">Transfer your membership</a>
                 <a href="{{ route('info.firearm-licence-process') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.firearm-licence-process') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">Firearm licence process</a>
                 <a href="{{ route('info.minimum-requirements') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.minimum-requirements') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">Minimum requirements</a>
                 <a href="{{ route('info.shooting-exercises') }}" class="rounded-lg px-3 py-1.5 text-sm font-medium transition {{ request()->routeIs('info.shooting-exercises') ? 'bg-nrapa-blue text-white' : 'text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700' }}">Shooting activities</a>
@@ -224,7 +228,7 @@
             <div class="mx-auto max-w-7xl px-6 pt-12 pb-8 lg:px-8">
                 <div class="grid grid-cols-1 gap-10 sm:grid-cols-3 items-start">
                     <div>
-                        <img src="{{ asset('logo-ranyatigroup-white_text.png') }}" alt="Ranyati Group" class="h-8 w-auto" />
+                        <img src="{{ asset('logo-ranyatigroup-white_text.png') }}" alt="Ranyati Group logo" width="131" height="32" loading="lazy" class="h-8 w-auto" />
                         <p class="mt-5 text-[13px] leading-[1.7] text-white/30">
                             Specialist firearm administration services since 2006.<br>
                             Trading as Ranyati Firearm Motivations (Pty) Ltd.

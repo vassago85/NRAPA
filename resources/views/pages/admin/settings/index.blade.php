@@ -514,8 +514,13 @@ new #[Title('Settings - Admin')] class extends Component {
                             <input type="number" step="0.5" wire:model="lateRenewalFeeMultiplier" min="1" max="10"
                                 class="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
                             @error('lateRenewalFeeMultiplier') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
+                            @php
+                                $exampleFee = (float) (\App\Models\MembershipType::where('slug', 'basic')->value('renewal_price') ?? 0);
+                                if ($exampleFee <= 0) { $exampleFee = (float) (\App\Models\MembershipType::active()->value('renewal_price') ?? 0); }
+                                if ($exampleFee <= 0) { $exampleFee = 700; }
+                            @endphp
                             <p class="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-                                Renewal fee is multiplied by {{ $lateRenewalFeeMultiplier }}x (e.g. R700 becomes R{{ number_format(700 * $lateRenewalFeeMultiplier, 0) }}).
+                                Renewal fee is multiplied by {{ $lateRenewalFeeMultiplier }}x (e.g. <x-money :amount="$exampleFee" /> becomes <x-money :amount="$exampleFee * $lateRenewalFeeMultiplier" />).
                             </p>
                         </div>
                     </div>

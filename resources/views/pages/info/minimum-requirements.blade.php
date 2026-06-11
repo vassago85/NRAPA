@@ -1,9 +1,9 @@
 @extends('layouts.info')
 
-@section('title', 'Minimum Membership Requirements')
-@section('description', 'Minimum requirements and conditions for NRAPA membership registration including dedicated, ordinary, senior and junior membership categories.')
-@section('heading', 'Minimum Requirements')
-@section('subheading', 'Conditions for registering as an NRAPA member')
+@section('title', 'Dedicated Sport Shooter & Hunter Requirements')
+@section('description', 'Dedicated sport shooter requirements and dedicated hunter requirements in South Africa: eligibility, supporting documents, knowledge testing and annual activity rules under the Firearms Control Act.')
+@section('heading', 'Dedicated Sport Shooter & Hunter Requirements')
+@section('subheading', 'Eligibility and conditions for NRAPA dedicated, ordinary, senior and junior categories')
 @section('breadcrumb', 'Minimum Requirements')
 
 @section('content')

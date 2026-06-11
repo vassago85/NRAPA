@@ -1,9 +1,9 @@
 @extends('layouts.info')
 
-@section('title', 'Shooting Activities & Participation Records')
-@section('description', 'Learn how structured shooting activities and participation records support dedicated status, endorsements, and firearm compliance in South Africa through NRAPA.')
-@section('heading', 'Shooting Activities & Participation Records')
-@section('subheading', 'Maintain genuine activity records that support dedicated status and firearm compliance in South Africa')
+@section('title', 'Shooting Activity Record for Dedicated Status')
+@section('description', 'How to keep a shooting activity record for dedicated status in South Africa: what counts as a qualifying activity, how to log it in NRAPA, and how the records support your Section 16 motivation.')
+@section('heading', 'Shooting Activity Record for Dedicated Status')
+@section('subheading', 'Capture qualifying participation that supports your dedicated status and Section 16 firearm motivation')
 @section('breadcrumb', 'Shooting activities')
 
 @section('content')

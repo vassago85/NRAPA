@@ -28,6 +28,9 @@ class SitemapController extends Controller
             ['route' => 'info.membership-benefits', 'priority' => '0.8', 'changefreq' => 'monthly', 'file' => resource_path('views/pages/info/membership-benefits.blade.php')],
             ['route' => 'info.faq', 'priority' => '0.8', 'changefreq' => 'weekly', 'file' => resource_path('views/pages/info/faq.blade.php')],
             ['route' => 'info.prs-rifle-equipment-selection', 'priority' => '0.7', 'changefreq' => 'monthly', 'file' => resource_path('views/pages/info/prs-rifle-equipment-selection.blade.php')],
+            ['route' => 'info.transfer-your-membership', 'priority' => '0.85', 'changefreq' => 'monthly', 'file' => resource_path('views/pages/info/transfer-your-membership.blade.php')],
+            ['route' => 'info.dedicated-hunter-vs-sport-shooter', 'priority' => '0.8', 'changefreq' => 'monthly', 'file' => resource_path('views/pages/info/dedicated-hunter-vs-sport-shooter.blade.php')],
+            ['route' => 'info.dedicated-status-faq', 'priority' => '0.85', 'changefreq' => 'monthly', 'file' => resource_path('views/pages/info/dedicated-status-faq.blade.php')],
         ];
 
         $lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'];

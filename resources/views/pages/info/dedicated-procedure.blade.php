@@ -1,9 +1,9 @@
 @extends('layouts.info')
 
-@section('title', 'Dedicated Status Procedure')
-@section('description', 'Guide to obtaining and maintaining NRAPA Dedicated Hunter or Sport Shooter status under the Firearms Control Act, including portal steps, activity reporting, and annual compliance.')
-@section('heading', 'Dedicated Status Procedure')
-@section('subheading', 'How to obtain and maintain your dedicated hunter or sport shooter status')
+@section('title', 'How to Get Dedicated Status in South Africa | Step-by-Step')
+@section('description', 'How to get dedicated status in South Africa with NRAPA: step-by-step process, supporting documents, knowledge tests, and the activities you must record annually.')
+@section('heading', 'How to Get Dedicated Status in South Africa')
+@section('subheading', 'A step-by-step guide to obtaining and maintaining dedicated hunter or sport shooter status')
 @section('breadcrumb', 'Dedicated Procedure')
 
 @section('content')

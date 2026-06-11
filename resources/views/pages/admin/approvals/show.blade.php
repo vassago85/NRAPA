@@ -49,7 +49,14 @@ new #[Title('Review Application - Admin')] class extends Component {
 
     public function mount(Membership $membership): void
     {
-        $this->membership = $membership->load(['user', 'type', 'affiliatedClub', 'previousMembership.type']);
+        $this->membership = $membership->load([
+            'user',
+            'type',
+            'affiliatedClub',
+            'previousMembership.type',
+            'transferCompetencyDocument.documentType',
+            'transferMembershipDocument.documentType',
+        ]);
 
         // Pre-fill change amount with upgrade price
         if ($this->membership->status === 'pending_change') {
@@ -1179,6 +1186,63 @@ new #[Title('Review Application - Admin')] class extends Component {
                     </a>
                 </div>
             @endif
+        </div>
+    </div>
+    @endif
+
+    {{-- Transfer-from-another-association documents --}}
+    @if($this->membership->isTransfer() || $this->membership->transferCompetencyDocument || $this->membership->transferMembershipDocument)
+    <div class="rounded-2xl shadow-sm border border-blue-200 bg-blue-50 p-6 dark:border-blue-800 dark:bg-blue-900/20">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="flex size-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900">
+                <svg class="size-5 text-blue-700 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7l9-4 9 4M4 10v7m16-7v7M4 17h16M9 21h6"/>
+                </svg>
+            </div>
+            <div>
+                <h3 class="font-semibold text-blue-900 dark:text-blue-100">Transfer Application Documents</h3>
+                <p class="text-sm text-blue-800 dark:text-blue-200">
+                    Verify the applicant's competency and current standing with @if($this->membership->previous_association_name) <strong>{{ $this->membership->previous_association_name }}</strong> @else another SAPS-accredited association @endif before approving.
+                </p>
+            </div>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2">
+            @php
+                $transferDocs = [
+                    ['label' => 'Competency Certificate', 'doc' => $this->membership->transferCompetencyDocument],
+                    ['label' => 'Current Membership Certificate', 'doc' => $this->membership->transferMembershipDocument],
+                ];
+            @endphp
+
+            @foreach($transferDocs as $tdoc)
+                <div class="rounded-lg border border-blue-200 bg-white p-4 dark:border-blue-700 dark:bg-zinc-800">
+                    <div class="mb-2 text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">{{ $tdoc['label'] }}</div>
+                    @if($tdoc['doc'])
+                        @php
+                            $tDoc = $tdoc['doc'];
+                            $tExt = strtolower(pathinfo($tDoc->file_path, PATHINFO_EXTENSION));
+                            $isImg = in_array($tExt, ['jpg', 'jpeg', 'png']);
+                            $previewUrl = route('admin.documents.preview', $tDoc);
+                        @endphp
+                        @if($isImg)
+                            <a href="{{ $previewUrl }}" target="_blank" class="block overflow-hidden rounded-md border border-blue-200 dark:border-blue-700">
+                                <img src="{{ $previewUrl }}" alt="{{ $tdoc['label'] }}" class="max-h-72 w-full object-contain bg-white">
+                            </a>
+                        @else
+                            <a href="{{ $previewUrl }}" target="_blank" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
+                                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3v4a1 1 0 001 1h4M5 21h14a2 2 0 002-2V7l-5-5H5a2 2 0 00-2 2v16a2 2 0 002 2z"/>
+                                </svg>
+                                View {{ strtoupper($tExt) }}
+                            </a>
+                        @endif
+                        <p class="mt-2 truncate text-xs text-zinc-600 dark:text-zinc-400" title="{{ $tDoc->original_filename }}">{{ $tDoc->original_filename }}</p>
+                    @else
+                        <p class="text-sm text-amber-700 dark:text-amber-300">Not yet uploaded.</p>
+                    @endif
+                </div>
+            @endforeach
         </div>
     </div>
     @endif
