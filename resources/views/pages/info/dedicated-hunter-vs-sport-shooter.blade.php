@@ -33,7 +33,7 @@
     <p>NRAPA holds <strong>two</strong> accreditations: <strong>FAR 1300122</strong> for sport shooting and <strong>FAR 1300127</strong> for hunting, so a single NRAPA membership can carry either status, or both at once.</p>
 
     <h2>Firearm and ammunition limits at a glance</h2>
-    <p>The Firearms Control Act and its regulations set distinct allowances for each designation. Where regulations have changed or the figure depends on motivation, we mark the value <code>[VERIFY]</code> rather than guessing:</p>
+    <p>These allowances are set by the Firearms Control Act 60 of 2000 (Sections 15, 16 and 91):</p>
 
     <table class="info-table">
         <thead>
@@ -46,18 +46,18 @@
         <tbody>
             <tr>
                 <td>Section under which most firearms are licensed</td>
-                <td>Section 16 (dedicated hunting)</td>
-                <td>Section 16 (dedicated sport shooting)</td>
+                <td>Section 16 (dedicated hunting). Semi-automatic rifles and shotguns are only licensable under Section 16.</td>
+                <td>Section 16 (dedicated sport shooting). Semi-automatic rifles and shotguns are only licensable under Section 16.</td>
             </tr>
             <tr>
                 <td>Number of firearms allowed</td>
-                <td>Reasonable number based on motivation and discipline <code>[VERIFY]</code></td>
-                <td>Reasonable number based on motivation and discipline <code>[VERIFY]</code></td>
+                <td>No fixed statutory limit &mdash; Section 16 exempts dedicated members from the four-firearm cap that applies under Sections 13/15. Each firearm still requires its own motivated licence application.</td>
+                <td>No fixed statutory limit &mdash; Section 16 exempts dedicated members from the four-firearm cap that applies under Sections 13/15. Each firearm still requires its own motivated licence application.</td>
             </tr>
             <tr>
                 <td>Ammunition possession (per calibre, per licensed firearm)</td>
-                <td>Reasonable quantity for hunting use <code>[VERIFY]</code></td>
-                <td>Reasonable quantity for sport-shooting practice and competition <code>[VERIFY]</code></td>
+                <td>No statutory quantity limit &mdash; dedicated status exempts you from the 200-rounds-per-firearm cap in Section 91(1). Ammunition must be in a calibre for which you hold a licence.</td>
+                <td>No statutory quantity limit &mdash; dedicated status exempts you from the 200-rounds-per-firearm cap in Section 91(1). Ammunition must be in a calibre for which you hold a licence.</td>
             </tr>
             <tr>
                 <td>Annual activity requirement (NRAPA)</td>
@@ -67,12 +67,12 @@
             <tr>
                 <td>Typical disciplines</td>
                 <td>Plains-game hunts, varmint, big-game, hunting-style range training</td>
-                <td>IPSC, IDPA, NRL SA, Practical Precision, postal/long-range leagues</td>
+                <td>Precision Rifle Shooting (SAPRF/IPRF), IPSC, IDPA, NRL SA, postal/long-range leagues</td>
             </tr>
         </tbody>
     </table>
 
-    <p>The exact firearm and ammunition limits are set by SAPS and depend on your individual motivation, the discipline, and the firearm category. If you need a definitive number for an application, ask NRAPA support and we will verify it before you submit.</p>
+    <p>While the Act sets no numerical cap for dedicated members, every licence application is assessed individually by SAPS and must be properly motivated. If you need help motivating an application, contact NRAPA support before you submit.</p>
 
     <h2>Which NRAPA package applies?</h2>
     <ul class="checklist">
