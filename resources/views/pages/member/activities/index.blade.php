@@ -84,12 +84,15 @@ new class extends Component {
         $tempPath = $tempDir . DIRECTORY_SEPARATOR . 'activity-letter-' . uniqid() . '.pdf';
 
         try {
+            // Force DomPDF: Spatie laravel-pdf v2 defaults to Browsershot
+            // (Puppeteer/Chrome) which is not available in our container.
+            // The existing PdfDocumentRenderer uses the same fallback.
             Pdf::view('documents.letters.saps-activity-log', [
                 'user' => $user,
                 'activities' => $activities,
                 'from' => $from,
                 'to' => $to,
-            ])->format('a4')->save($tempPath);
+            ])->driver('dompdf')->format('a4')->save($tempPath);
 
             Log::info('Activity letter generated', [
                 'user_id' => $user->id,
@@ -105,12 +108,20 @@ new class extends Component {
         } catch (\Throwable $e) {
             Log::error('Activity letter generation failed', [
                 'user_id' => $user->id,
+                'from' => $from->toDateString(),
+                'to' => $to->toDateString(),
+                'activity_count' => $activities->count(),
                 'error' => $e->getMessage(),
+                'class' => get_class($e),
+                'file' => $e->getFile() . ':' . $e->getLine(),
             ]);
             if (is_file($tempPath)) {
                 @unlink($tempPath);
             }
-            session()->flash('error', 'Could not generate the activity letter. Please try a smaller date range or contact admin.');
+            session()->flash(
+                'error',
+                'Could not generate the activity letter (' . class_basename($e) . '). Please try a smaller date range or contact admin if this persists.'
+            );
         }
     }
 
