@@ -91,9 +91,9 @@
                             <td class="kv-label">Activities</td>
                             <td class="kv-value">
                                 @if ($hasValidActivities)
-                                    <span style="color:#1f6b3a;">&#10003; Met ({{ $activityCheck['approved_count'] }}/{{ $activityCheck['required'] }})</span>
+                                    <span style="color:#1f6b3a;">&#10003; Required activities are up to date</span>
                                 @else
-                                    <span style="color:#c0392b;">&#10007; {{ $activityCheck['approved_count'] }}/{{ $activityCheck['required'] }}</span>
+                                    <span style="color:#c0392b;">&#10007; Required activities not on record</span>
                                 @endif
                             </td>
                         </tr>
