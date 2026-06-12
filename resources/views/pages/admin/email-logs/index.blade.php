@@ -11,11 +11,47 @@ new class extends Component {
 
     public string $search = '';
     public string $statusFilter = '';
+    public string $memberFilter = '';
     public ?string $selectedLog = null;
 
     public function updatingSearch(): void
     {
         $this->resetPage();
+    }
+
+    public function updatingStatusFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingMemberFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    /**
+     * Manually resolve a queued/failed email without sending it — e.g. the
+     * member was contacted another way, has renewed, or the address is dead.
+     * Distinct from "sent" on purpose: the mail never went out.
+     */
+    public function markCompleted(string $uuid): void
+    {
+        $log = EmailLog::where('uuid', $uuid)->first();
+
+        if (! $log || ! in_array($log->status, ['queued', 'failed'], true)) {
+            session()->flash('error', 'Only queued or failed emails can be marked as completed.');
+            return;
+        }
+
+        $log->update([
+            'status' => 'completed',
+            'metadata' => array_merge((array) $log->metadata, [
+                'completed_by' => auth()->id(),
+                'completed_at' => now()->toDateTimeString(),
+            ]),
+        ]);
+
+        session()->flash('success', "Marked as completed (not sent): {$log->subject} to {$log->to_email}.");
     }
 
     /**
@@ -76,7 +112,7 @@ new class extends Component {
 
     public function with(): array
     {
-        $query = EmailLog::with('user')
+        $query = EmailLog::with(['user' => fn ($q) => $q->withCount('memberships')->with('activeMembership')])
             ->when($this->search, function ($q) {
                 $q->where(function ($query) {
                     $query->where('to_email', 'like', "%{$this->search}%")
@@ -88,6 +124,16 @@ new class extends Component {
                 });
             })
             ->when($this->statusFilter, fn($q) => $q->where('status', $this->statusFilter))
+            ->when($this->memberFilter === 'active', function ($q) {
+                $q->whereHas('user', fn ($u) => $u->whereHas('memberships', fn ($m) => $m->where('status', 'active')));
+            })
+            ->when($this->memberFilter === 'expired', function ($q) {
+                // Has memberships, but none currently active (expired / suspended / superseded).
+                $q->whereHas('user', function ($u) {
+                    $u->whereHas('memberships')
+                        ->whereDoesntHave('memberships', fn ($m) => $m->where('status', 'active'));
+                });
+            })
             ->latest();
 
         return [
@@ -176,6 +222,13 @@ new class extends Component {
             <option value="sent">Sent</option>
             <option value="queued">Queued</option>
             <option value="failed">Failed</option>
+            <option value="completed">Completed</option>
+        </select>
+        <select wire:model.live="memberFilter"
+            class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            <option value="">All Members</option>
+            <option value="active">Active Membership</option>
+            <option value="expired">Expired / No Active Membership</option>
         </select>
     </div>
 
@@ -200,7 +253,16 @@ new class extends Component {
                                 {{ $log->sent_at?->format('d M Y H:i') ?? $log->created_at->format('d M Y H:i') }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-medium text-zinc-900 dark:text-white">{{ $log->to_name ?? 'Unknown' }}</div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-medium text-zinc-900 dark:text-white">{{ $log->to_name ?? 'Unknown' }}</span>
+                                    @if($log->user)
+                                        @if($log->user->activeMembership)
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300">Active</span>
+                                        @elseif($log->user->memberships_count > 0)
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300">Expired</span>
+                                        @endif
+                                    @endif
+                                </div>
                                 <div class="text-sm text-zinc-500 dark:text-zinc-400">{{ $log->to_email }}</div>
                             </td>
                             <td class="px-6 py-4">
@@ -218,6 +280,10 @@ new class extends Component {
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300">
                                         Failed
                                     </span>
+                                @elseif($log->status === 'completed')
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
+                                        Completed
+                                    </span>
                                 @else
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300">
                                         {{ ucfirst($log->status) }}
@@ -234,6 +300,13 @@ new class extends Component {
                                             class="text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300 text-sm font-medium transition-colors disabled:opacity-50">
                                             <span wire:loading.remove wire:target="resend('{{ $log->uuid }}')">Resend</span>
                                             <span wire:loading wire:target="resend('{{ $log->uuid }}')">Sending...</span>
+                                        </button>
+                                    @endif
+                                    @if(in_array($log->status, ['queued', 'failed'], true))
+                                        <button wire:click="markCompleted('{{ $log->uuid }}')"
+                                            wire:confirm="Mark this email as completed WITHOUT sending it?"
+                                            class="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 text-sm font-medium transition-colors">
+                                            Complete
                                         </button>
                                     @endif
                                     <button wire:click="viewLog('{{ $log->uuid }}')" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium transition-colors">
@@ -280,6 +353,14 @@ new class extends Component {
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                                         <span wire:loading.remove wire:target="resend('{{ $log->uuid }}')">Resend</span>
                                         <span wire:loading wire:target="resend('{{ $log->uuid }}')">Sending...</span>
+                                    </button>
+                                @endif
+                                @if(in_array($log->status, ['queued', 'failed'], true))
+                                    <button wire:click="markCompleted('{{ $log->uuid }}')"
+                                        wire:confirm="Mark this email as completed WITHOUT sending it?"
+                                        class="inline-flex items-center gap-2 px-3 py-1.5 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 text-sm font-medium rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                        Complete
                                     </button>
                                 @endif
                                 <button wire:click="closeLog" class="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200">
