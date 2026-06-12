@@ -99,6 +99,11 @@ services:
     image: redis:alpine
     container_name: nrapa-redis
     restart: unless-stopped
+    # Append-only persistence: queued mail jobs can sit in Redis for hours
+    # (reminders are staggered 1/minute), and the default snapshot-only mode
+    # silently loses everything since the last snapshot on an unclean stop —
+    # which is how a batch of renewal reminders disappeared without a trace.
+    command: redis-server --appendonly yes
     volumes:
       - redis-data:/data
     networks:

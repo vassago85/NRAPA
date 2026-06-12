@@ -32,7 +32,7 @@ class SendMembershipExpiryNotifications extends Command
 {
     protected $signature = 'nrapa:send-membership-expiry-notifications
                             {--dry-run : Don\'t send mail or write reminder rows; just report what would happen}
-                            {--throttle=2 : Seconds to stagger between queued sends, to keep Mailgun happy on bulk runs}';
+                            {--throttle=60 : Seconds to stagger between queued sends (default 1 per minute), to keep Mailgun happy on bulk runs}';
 
     protected $description = 'Email members whose membership is expiring soon or has just expired (within the grace period).';
 
