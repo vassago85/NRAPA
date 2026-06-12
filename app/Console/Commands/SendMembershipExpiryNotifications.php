@@ -170,28 +170,20 @@ class SendMembershipExpiryNotifications extends Command
             return 'sent';
         }
 
+        $auditRow = null;
+
         try {
             $mail = new MembershipExpiry($user, $membership, $kind);
 
-            if ($delaySeconds > 0) {
-                Mail::to($user->email)->later(now()->addSeconds($delaySeconds), $mail);
-            } else {
-                Mail::to($user->email)->send($mail);
-            }
-
-            MembershipRenewalReminder::create([
-                'membership_id' => $membership->id,
-                'kind' => $kind,
-                'sent_at' => now(),
-            ]);
-
-            // Audit-trail row at dispatch time. The MessageSent listener will write
-            // a separate "sent" row when the queue worker actually delivers the mail
-            // — but we always want a record of the dispatch attempt itself, so the
-            // admin email-logs page never goes dark for bulk runs.
+            // Audit-trail row BEFORE dispatch. Order matters: a synchronous
+            // Mail::send() fires MessageSent *during* the call, and the
+            // LogSentEmail listener promotes this row to "sent" by matching
+            // (to_email, subject, status='queued'). Writing the row after
+            // dispatch (the old behaviour) meant sync sends left a permanently
+            // "queued" row plus a stray duplicate "sent" row.
             $renderedBody = null;
             try {
-                $renderedBody = (new MembershipExpiry($user, $membership, $kind))->render();
+                $renderedBody = $mail->render();
             } catch (\Throwable $e) {
                 // Rendering failure shouldn't break dispatch; we'll log without body.
                 Log::warning('Could not render MembershipExpiry body for audit row', [
@@ -201,7 +193,7 @@ class SendMembershipExpiryNotifications extends Command
                 ]);
             }
 
-            EmailLog::log(
+            $auditRow = EmailLog::log(
                 toEmail: $user->email,
                 subject: $mail->subject,
                 mailableClass: MembershipExpiry::class,
@@ -218,6 +210,18 @@ class SendMembershipExpiryNotifications extends Command
                 status: 'queued',
             );
 
+            if ($delaySeconds > 0) {
+                Mail::to($user->email)->later(now()->addSeconds($delaySeconds), $mail);
+            } else {
+                Mail::to($user->email)->send($mail);
+            }
+
+            MembershipRenewalReminder::create([
+                'membership_id' => $membership->id,
+                'kind' => $kind,
+                'sent_at' => now(),
+            ]);
+
             Log::info('Membership expiry notification queued', [
                 'user_id' => $user->id,
                 'membership_id' => $membership->id,
@@ -230,6 +234,15 @@ class SendMembershipExpiryNotifications extends Command
 
             return 'sent';
         } catch (\Throwable $e) {
+            // Mark the audit row failed so it doesn't sit on "queued" forever.
+            $auditRow?->refresh();
+            if ($auditRow && $auditRow->status === 'queued') {
+                $auditRow->update([
+                    'status' => 'failed',
+                    'error_message' => \Illuminate\Support\Str::limit($e->getMessage(), 500),
+                ]);
+            }
+
             Log::error('Failed to send membership expiry notification', [
                 'user_id' => $user->id,
                 'membership_id' => $membership->id,

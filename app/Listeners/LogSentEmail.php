@@ -40,9 +40,13 @@ class LogSentEmail
         $user = User::where('email', $toEmail)->first()
             ?? User::where('phone', $toEmail)->first();
 
-        // Get the mailable class from the data if available
-        $mailableClass = $event->data['__laravel_notification'] ??
-                         $event->data['mailable'] ??
+        // Laravel injects the mailable's class name into the view data as
+        // '__laravel_mailable' (see Mailable::additionalMessageData()), and
+        // notifications use '__laravel_notification'. The old 'mailable' key
+        // never existed, which is why every directly-sent mail logged as
+        // type "Unknown".
+        $mailableClass = $event->data['__laravel_mailable'] ??
+                         $event->data['__laravel_notification'] ??
                          'Unknown';
         $mailableClass = is_object($mailableClass) ? get_class($mailableClass) : $mailableClass;
 
@@ -54,14 +58,16 @@ class LogSentEmail
         // want to PROMOTE that row to "sent" instead of creating a parallel "Unknown"
         // row, so the admin email-logs page shows a single status per dispatch.
         //
-        // Match on (to_email, subject, status='queued') within the last hour. Subject
-        // disambiguates same-recipient queued mails (e.g. a member with two memberships
-        // both renewing). orderBy created_at asc so the OLDEST queued row gets
-        // promoted first — matches first-in-first-out delivery order.
+        // Match on (to_email, subject, status='queued') within the last 7 days —
+        // wide enough to survive a queue-worker backlog or outage, narrow enough
+        // not to resurrect ancient rows. Subject disambiguates same-recipient
+        // queued mails (e.g. a member with two memberships both renewing).
+        // orderBy created_at asc so the OLDEST queued row gets promoted first —
+        // matches first-in-first-out delivery order.
         $queuedRow = EmailLog::where('to_email', $toEmail)
             ->where('subject', $subject)
             ->where('status', 'queued')
-            ->where('created_at', '>=', now()->subHour())
+            ->where('created_at', '>=', now()->subDays(7))
             ->orderBy('created_at')
             ->first();
 
