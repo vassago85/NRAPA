@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\EmailLog;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -14,6 +16,62 @@ new class extends Component {
     public function updatingSearch(): void
     {
         $this->resetPage();
+    }
+
+    /**
+     * Resend a queued/failed email using the stored body and subject.
+     *
+     * We can't reconstruct the original mailable (its models/state are gone),
+     * but every audit row stores the fully-rendered HTML at dispatch time, so
+     * we replay that verbatim. The row is flipped to 'queued' first so the
+     * LogSentEmail listener promotes THIS row to 'sent' when the message
+     * actually leaves — one row, full history, correct type preserved.
+     */
+    public function resend(string $uuid): void
+    {
+        $log = EmailLog::where('uuid', $uuid)->first();
+
+        if (! $log || ! in_array($log->status, ['queued', 'failed'], true)) {
+            session()->flash('error', 'Only queued or failed emails can be resent.');
+            return;
+        }
+
+        if (empty($log->body)) {
+            session()->flash('error', 'This log entry has no stored email content, so it cannot be resent.');
+            return;
+        }
+
+        try {
+            $log->update([
+                'status' => 'queued',
+                'error_message' => null,
+                'metadata' => array_merge((array) $log->metadata, [
+                    'resent_by' => auth()->id(),
+                    'resent_at' => now()->toDateTimeString(),
+                ]),
+            ]);
+
+            Mail::html($log->body, function ($message) use ($log) {
+                $message->to($log->to_email, $log->to_name ?: null)
+                    ->subject($log->subject);
+            });
+
+            // Synchronous send: the listener has already promoted the row.
+            // Belt-and-braces in case promotion didn't match.
+            $log->refresh();
+            if ($log->status === 'queued') {
+                $log->update(['status' => 'sent', 'sent_at' => now()]);
+            }
+
+            session()->flash('success', "Email resent to {$log->to_email}.");
+        } catch (\Throwable $e) {
+            $log->update([
+                'status' => 'failed',
+                'error_message' => Str::limit($e->getMessage(), 500),
+            ]);
+
+            session()->flash('error', 'Resend failed: ' . $e->getMessage());
+        }
     }
 
     public function with(): array
@@ -55,6 +113,18 @@ new class extends Component {
         <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Email Logs</h1>
         <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">View system email delivery history</p>
     </x-slot>
+
+    <!-- Flash Messages -->
+    @if(session('success'))
+        <div class="mb-4 p-4 bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-700 rounded-xl text-emerald-800 dark:text-emerald-300">
+            {{ session('success') }}
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="mb-4 p-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-xl text-red-800 dark:text-red-200">
+            {{ session('error') }}
+        </div>
+    @endif
 
     <!-- Stats -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -104,6 +174,7 @@ new class extends Component {
             class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             <option value="">All Status</option>
             <option value="sent">Sent</option>
+            <option value="queued">Queued</option>
             <option value="failed">Failed</option>
         </select>
     </div>
@@ -154,9 +225,21 @@ new class extends Component {
                                 @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right">
-                                <button wire:click="viewLog('{{ $log->uuid }}')" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium transition-colors">
-                                    View
-                                </button>
+                                <div class="flex items-center justify-end gap-3">
+                                    @if(in_array($log->status, ['queued', 'failed'], true) && $log->body)
+                                        <button wire:click="resend('{{ $log->uuid }}')"
+                                            wire:confirm="Resend this email to {{ $log->to_email }}?"
+                                            wire:loading.attr="disabled"
+                                            wire:target="resend('{{ $log->uuid }}')"
+                                            class="text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300 text-sm font-medium transition-colors disabled:opacity-50">
+                                            <span wire:loading.remove wire:target="resend('{{ $log->uuid }}')">Resend</span>
+                                            <span wire:loading wire:target="resend('{{ $log->uuid }}')">Sending...</span>
+                                        </button>
+                                    @endif
+                                    <button wire:click="viewLog('{{ $log->uuid }}')" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium transition-colors">
+                                        View
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     @empty
@@ -187,9 +270,22 @@ new class extends Component {
                     <div wire:key="email-detail-{{ $selectedLog }}" class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto">
                         <div class="flex items-center justify-between mb-4">
                             <h2 class="text-xl font-bold text-zinc-900 dark:text-white">Email Details</h2>
-                            <button wire:click="closeLog" class="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                            </button>
+                            <div class="flex items-center gap-3">
+                                @if(in_array($log->status, ['queued', 'failed'], true) && $log->body)
+                                    <button wire:click="resend('{{ $log->uuid }}')"
+                                        wire:confirm="Resend this email to {{ $log->to_email }}?"
+                                        wire:loading.attr="disabled"
+                                        wire:target="resend('{{ $log->uuid }}')"
+                                        class="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                        <span wire:loading.remove wire:target="resend('{{ $log->uuid }}')">Resend</span>
+                                        <span wire:loading wire:target="resend('{{ $log->uuid }}')">Sending...</span>
+                                    </button>
+                                @endif
+                                <button wire:click="closeLog" class="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="space-y-4">

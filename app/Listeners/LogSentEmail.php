@@ -58,16 +58,19 @@ class LogSentEmail
         // want to PROMOTE that row to "sent" instead of creating a parallel "Unknown"
         // row, so the admin email-logs page shows a single status per dispatch.
         //
-        // Match on (to_email, subject, status='queued') within the last 7 days —
-        // wide enough to survive a queue-worker backlog or outage, narrow enough
-        // not to resurrect ancient rows. Subject disambiguates same-recipient
-        // queued mails (e.g. a member with two memberships both renewing).
-        // orderBy created_at asc so the OLDEST queued row gets promoted first —
-        // matches first-in-first-out delivery order.
+        // Match on (to_email, subject, status='queued') touched within the last
+        // 7 days — wide enough to survive a queue-worker backlog or outage,
+        // narrow enough not to resurrect ancient rows. updated_at (not
+        // created_at) so the admin "Resend" action — which flips an old row
+        // back to 'queued' moments before re-sending — also gets promoted.
+        // Subject disambiguates same-recipient queued mails (e.g. a member
+        // with two memberships both renewing). orderBy created_at asc so the
+        // OLDEST queued row gets promoted first — matches first-in-first-out
+        // delivery order.
         $queuedRow = EmailLog::where('to_email', $toEmail)
             ->where('subject', $subject)
             ->where('status', 'queued')
-            ->where('created_at', '>=', now()->subDays(7))
+            ->where('updated_at', '>=', now()->subDays(7))
             ->orderBy('created_at')
             ->first();
 
