@@ -137,6 +137,7 @@
                     <a href="{{ route('home') }}#features" class="text-sm font-medium text-zinc-300 hover:text-white transition">Features</a>
                     <a href="{{ route('home') }}#pricing" class="text-sm font-medium text-zinc-300 hover:text-white transition">Packages</a>
                     <a href="{{ route('info.index') }}" class="text-sm font-medium text-zinc-300 hover:text-white transition">Info &amp; guides</a>
+                    <a href="{{ route('guides.index') }}" class="text-sm font-medium text-zinc-300 hover:text-white transition">Site guides</a>
                 </div>
                 <div class="flex items-center gap-3">
                     @auth

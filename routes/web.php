@@ -116,6 +116,19 @@ Route::prefix('info')->name('info.')->group(function () {
     Route::get('/dedicated-status-faq', fn () => view('pages.info.dedicated-status-faq'))->name('dedicated-status-faq');
 });
 
+// Site Guides (how-to pages). The hub and "How to sign up" are public;
+// the member-action guides require the user to be logged in.
+Route::prefix('guides')->name('guides.')->group(function () {
+    Route::get('/', fn () => view('pages.guides.index'))->name('index');
+    Route::get('/sign-up', fn () => view('pages.guides.sign-up'))->name('sign-up');
+
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/upload-proof-of-payment', fn () => view('pages.guides.upload-proof-of-payment'))->name('upload-proof-of-payment');
+        Route::get('/submit-activities', fn () => view('pages.guides.submit-activities'))->name('submit-activities');
+        Route::get('/request-endorsement', fn () => view('pages.guides.request-endorsement'))->name('request-endorsement');
+    });
+});
+
 // Custom email verification route - works WITHOUT authentication
 // This allows users to verify their email from any device/browser (e.g. phone)
 // without needing to be logged in on that device.
