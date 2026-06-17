@@ -281,7 +281,7 @@ new class extends Component {
                                 <div class="flex flex-wrap gap-2">
                                     @foreach($availableTags as $tag)
                                         <label class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium cursor-pointer transition-colors {{ in_array($tag->id, $editTagIds) ? 'border-nrapa-blue bg-nrapa-blue/10 text-nrapa-blue dark:text-blue-300' : 'border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800' }}">
-                                            <input type="checkbox" wire:model="editTagIds" value="{{ $tag->id }}" class="sr-only">
+                                            <input type="checkbox" wire:model.live="editTagIds" value="{{ $tag->id }}" class="sr-only">
                                             {{ $tag->label }}
                                         </label>
                                     @endforeach

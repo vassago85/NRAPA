@@ -83,6 +83,15 @@ new class extends Component {
         if ($this->firearm_source === 'armoury') {
             $rules['user_firearm_id'] = ['required', Rule::exists('user_firearms', 'id')->where('user_id', auth()->id())];
             $rules['load_data_id'] = ['nullable', Rule::exists('load_data', 'id')->where('user_id', auth()->id())];
+
+            // If the chosen firearm has no calibre on record, require the member
+            // to pick one here so the activity record isn't left without a calibre.
+            $firearm = UserFirearm::where('id', $this->user_firearm_id)
+                ->where('user_id', auth()->id())
+                ->first();
+            if ($firearm && ! $firearm->calibre_display) {
+                $rules['calibre_id'] = ['required', 'exists:firearm_calibres,id'];
+            }
         } else {
             $rules['firearm_type_id'] = ['required', 'exists:firearm_types,id'];
             $rules['calibre_id'] = ['required', 'exists:firearm_calibres,id'];
@@ -145,6 +154,25 @@ new class extends Component {
     {
         $this->load_data_id = null;
         $this->loadLoadDataOptions();
+
+        // Reset any manually-chosen calibre, then prefill from the selected
+        // firearm if it already has one on record. If it doesn't, the form
+        // will prompt the member to add one so the activity isn't left blank.
+        $this->calibre_id = null;
+        $this->calibreSearch = '';
+        $this->showCalibreDropdown = false;
+
+        $firearm = UserFirearm::where('id', $value)
+            ->where('user_id', auth()->id())
+            ->first();
+
+        if ($firearm && $firearm->firearm_calibre_id) {
+            $calibre = FirearmCalibre::find($firearm->firearm_calibre_id);
+            if ($calibre) {
+                $this->calibre_id = $calibre->id;
+                $this->calibreSearch = $calibre->name;
+            }
+        }
     }
 
     public function updatedFirearmSource($value): void
@@ -195,7 +223,9 @@ new class extends Component {
                 ->where('user_id', auth()->id())
                 ->firstOrFail();
             $firearmTypeId = $userFirearm->firearm_type_id;
-            $calibreId = $userFirearm->firearm_calibre_id ?? $userFirearm->calibre_id;
+            // Prefer the firearm's own calibre; fall back to the member-selected
+            // calibre when the registered firearm doesn't have one.
+            $calibreId = $userFirearm->firearm_calibre_id ?? $userFirearm->calibre_id ?? $this->calibre_id;
             if ($calibreId) {
                 $calibre = FirearmCalibre::find($calibreId);
                 if ($calibre) {
@@ -733,12 +763,24 @@ new class extends Component {
                             <div class="mt-2 grid grid-cols-2 gap-2 text-sm text-nrapa-blue/80 dark:text-nrapa-blue/80">
                                 <div><span class="font-medium">Make/Model:</span> {{ $selectedFirearm->make }} {{ $selectedFirearm->model }}</div>
                                 <div><span class="font-medium">Type:</span> {{ $selectedFirearm->firearmType?->name ?? 'N/A' }}</div>
-                                <div><span class="font-medium">Calibre:</span> {{ $selectedFirearm->calibre_display ?? 'N/A' }}</div>
+                                <div><span class="font-medium">Calibre:</span> {{ $selectedFirearm->calibre_display ?? 'Not recorded' }}</div>
                                 @if($selectedFirearm->serial_number)
                                     <div><span class="font-medium">S/N:</span> {{ $selectedFirearm->serial_number }}</div>
                                 @endif
                             </div>
                         </div>
+
+                        @unless($selectedFirearm->calibre_display)
+                            <div class="mt-4 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4">
+                                <div class="flex items-start gap-2 mb-3">
+                                    <svg class="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                    </svg>
+                                    <p class="text-sm text-amber-800 dark:text-amber-200">This firearm has no calibre saved. Please select the calibre so your activity record is complete.</p>
+                                </div>
+                                @include('partials.calibre-search', ['note' => 'Tip: add the calibre to this firearm in your Virtual Safe to skip this step next time.'])
+                            </div>
+                        @endunless
                     @endif
                 @endif
                 @else
@@ -786,57 +828,7 @@ new class extends Component {
                     </div>
 
                     <!-- Calibre -->
-                    <div class="relative" x-data="{ open: @entangle('showCalibreDropdown') }" @click.away="open = false">
-                        <label for="calibre_search" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Calibre / Bore <span class="text-red-500">*</span></label>
-                        <div class="relative">
-                            <input 
-                                type="text"
-                                id="calibre_search"
-                                wire:model.live.debounce.250ms="calibreSearch"
-                                x-on:focus="open = true"
-                                placeholder="Type to search calibre (e.g., 6.5 Creedmoor, .308 Win, 9mm)..."
-                                class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-nrapa-blue focus:ring-nrapa-blue"
-                                autocomplete="off"
-                            />
-                            @if($calibre_id)
-                                <button 
-                                    type="button"
-                                    wire:click="$set('calibre_id', null); $set('calibreSearch', '')"
-                                    class="absolute right-2 top-2 p-1 text-zinc-400 hover:text-red-600 dark:hover:text-red-400"
-                                >
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                    </svg>
-                                </button>
-                            @endif
-                            
-                            @if($showCalibreDropdown && $this->filteredCalibres->count() > 0)
-                                <div class="absolute z-50 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                                    @foreach($this->filteredCalibres as $calibre)
-                                        <button
-                                            type="button"
-                                            wire:click="selectCalibre({{ $calibre->id }})"
-                                            x-on:click="open = false"
-                                            class="w-full text-left px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white flex items-center justify-between"
-                                        >
-                                            <span>{{ $calibre->name }}</span>
-                                            <span class="text-xs text-zinc-500 dark:text-zinc-400 capitalize">{{ $calibre->category }}</span>
-                                        </button>
-                                    @endforeach
-                                </div>
-                            @elseif($showCalibreDropdown && strlen($calibreSearch) >= 1 && $this->filteredCalibres->count() === 0)
-                                <div class="absolute z-50 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-lg shadow-lg p-4 text-sm text-zinc-500 dark:text-zinc-400">
-                                    No calibres found matching "{{ $calibreSearch }}"
-                                </div>
-                            @endif
-                        </div>
-                        @if($calibre_id)
-                            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                                Selected: {{ FirearmCalibre::find($calibre_id)?->name ?? '' }}
-                            </p>
-                        @endif
-                        @error('calibre_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                    </div>
+                    @include('partials.calibre-search')
                 </div>
             @endif
         </div>

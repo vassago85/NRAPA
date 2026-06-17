@@ -160,7 +160,14 @@ class ShootingActivity extends Model
         return $this->belongsTo(FirearmType::class);
     }
 
-    // Legacy calibre relationship removed - ShootingActivity uses calibre_id for legacy data only
+    /**
+     * Get the calibre reference recorded directly on the activity
+     * (used for manual submissions and armoury firearms without a calibre).
+     */
+    public function firearmCalibre(): BelongsTo
+    {
+        return $this->belongsTo(FirearmCalibre::class, 'calibre_id');
+    }
 
     /**
      * Get the user's firearm (from their armoury).
@@ -550,6 +557,10 @@ class ShootingActivity extends Model
     {
         if ($this->userFirearm && $this->userFirearm->calibre_display) {
             return $this->userFirearm->calibre_display;
+        }
+
+        if ($this->calibre_id) {
+            return $this->firearmCalibre?->name;
         }
 
         return null;
