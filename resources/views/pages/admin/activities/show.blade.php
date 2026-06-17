@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\ActivityTag;
+use App\Models\ActivityType;
 use App\Models\ShootingActivity;
 use Livewire\Component;
 
@@ -8,6 +10,12 @@ new class extends Component {
     public string $rejectionReason = '';
     public bool $showEvidencePreview = false;
     public bool $showAdditionalPreview = false;
+
+    // Inline editing of classification (track / type / tags) before approval.
+    public bool $editingDetails = false;
+    public string $editTrack = '';
+    public ?int $editActivityTypeId = null;
+    public array $editTagIds = [];
 
     public function mount(ShootingActivity $activity): void
     {
@@ -24,6 +32,100 @@ new class extends Component {
             'evidenceDocument',
             'additionalDocument',
         ]);
+    }
+
+    /**
+     * Lists for the edit form, scoped to the currently-selected track so the
+     * type and tag options stay consistent with hunting vs sport.
+     */
+    public function with(): array
+    {
+        return [
+            'availableTypes' => ActivityType::active()
+                ->forTrack($this->editTrack ?: null)
+                ->ordered()
+                ->get(),
+            'availableTags' => ActivityTag::active()
+                ->forTrack($this->editTrack ?: null)
+                ->ordered()
+                ->get(),
+        ];
+    }
+
+    public function startEditingDetails(): void
+    {
+        $this->editTrack = $this->activity->track ?? '';
+        $this->editActivityTypeId = $this->activity->activity_type_id;
+        $this->editTagIds = $this->activity->tags->pluck('id')->all();
+        $this->editingDetails = true;
+    }
+
+    public function cancelEditingDetails(): void
+    {
+        $this->editingDetails = false;
+        $this->resetValidation();
+    }
+
+    /**
+     * When the track changes, drop any selected type/tags that no longer
+     * belong to the new track so we never save a mismatched classification.
+     */
+    public function updatedEditTrack(): void
+    {
+        if ($this->editActivityTypeId) {
+            $stillValid = ActivityType::where('id', $this->editActivityTypeId)
+                ->forTrack($this->editTrack ?: null)
+                ->exists();
+            if (! $stillValid) {
+                $this->editActivityTypeId = null;
+            }
+        }
+
+        if (! empty($this->editTagIds)) {
+            $this->editTagIds = ActivityTag::whereIn('id', $this->editTagIds)
+                ->forTrack($this->editTrack ?: null)
+                ->pluck('id')
+                ->all();
+        }
+    }
+
+    public function saveDetails(): void
+    {
+        $validated = $this->validate([
+            'editTrack' => ['required', 'in:hunting,sport'],
+            'editActivityTypeId' => ['nullable', 'exists:activity_types,id'],
+            'editTagIds' => ['array'],
+            'editTagIds.*' => ['integer', 'exists:activity_tags,id'],
+        ]);
+
+        $before = [
+            'track' => $this->activity->track,
+            'activity_type_id' => $this->activity->activity_type_id,
+            'tag_ids' => $this->activity->tags->pluck('id')->sort()->values()->all(),
+        ];
+
+        $this->activity->update([
+            'track' => $validated['editTrack'],
+            'activity_type_id' => $validated['editActivityTypeId'] ?: null,
+        ]);
+
+        $this->activity->tags()->sync($this->editTagIds);
+
+        \App\Models\AuditLog::log(
+            'activity_details_edited',
+            $this->activity,
+            $before,
+            [
+                'track' => $validated['editTrack'],
+                'activity_type_id' => $validated['editActivityTypeId'] ?: null,
+                'tag_ids' => collect($this->editTagIds)->map(fn ($id) => (int) $id)->sort()->values()->all(),
+            ],
+            auth()->user(),
+        );
+
+        $this->activity->load(['activityType', 'tags']);
+        $this->editingDetails = false;
+        session()->flash('success', 'Activity details updated.');
     }
 
     public function approve(): void
@@ -141,8 +243,66 @@ new class extends Component {
 
             <!-- Activity Information -->
             <div class="rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Activity Information</h2>
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Activity Information</h2>
+                    @if($activity->status === 'pending' && !$editingDetails)
+                        <button wire:click="startEditingDetails" class="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 dark:border-zinc-600 px-3 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
+                            <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z"/></svg>
+                            Edit type &amp; tags
+                        </button>
+                    @endif
+                </div>
 
+                @if($editingDetails)
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Track</label>
+                            <select wire:model.live="editTrack" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-2 text-sm text-zinc-900 dark:text-white focus:border-nrapa-blue focus:ring-nrapa-blue">
+                                <option value="hunting">Hunting</option>
+                                <option value="sport">Sport</option>
+                            </select>
+                            @error('editTrack') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Activity Type</label>
+                            <select wire:model="editActivityTypeId" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-3 py-2 text-sm text-zinc-900 dark:text-white focus:border-nrapa-blue focus:ring-nrapa-blue">
+                                <option value="">— None —</option>
+                                @foreach($availableTypes as $type)
+                                    <option value="{{ $type->id }}">{{ $type->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('editActivityTypeId') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Tags</label>
+                            @if($availableTags->count() > 0)
+                                <div class="flex flex-wrap gap-2">
+                                    @foreach($availableTags as $tag)
+                                        <label class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium cursor-pointer transition-colors {{ in_array($tag->id, $editTagIds) ? 'border-nrapa-blue bg-nrapa-blue/10 text-nrapa-blue dark:text-blue-300' : 'border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800' }}">
+                                            <input type="checkbox" wire:model="editTagIds" value="{{ $tag->id }}" class="sr-only">
+                                            {{ $tag->label }}
+                                        </label>
+                                    @endforeach
+                                </div>
+                            @else
+                                <p class="text-sm text-zinc-500 dark:text-zinc-400">No tags available for this track.</p>
+                            @endif
+                            @error('editTagIds') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div class="flex items-center gap-3 pt-2">
+                            <button wire:click="saveDetails" class="inline-flex items-center gap-1.5 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
+                                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                Save changes
+                            </button>
+                            <button wire:click="cancelEditingDetails" class="rounded-lg border border-zinc-300 dark:border-zinc-600 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                @else
                 <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                         <dt class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Date of Activity</dt>
@@ -180,6 +340,7 @@ new class extends Component {
                     </div>
                     @endif
                 </dl>
+                @endif
             </div>
 
             <!-- Location -->
