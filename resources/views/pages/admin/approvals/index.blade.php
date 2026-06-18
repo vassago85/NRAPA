@@ -199,7 +199,9 @@ new #[Title('All Approvals - Admin')] class extends Component {
                     'date' => $m->applied_at,
                     'payment_reference' => $m->payment_reference,
                     'pop_reminder_sent_at' => $m->pop_reminder_sent_at,
+                    'pop_reminder_count' => $m->pop_reminder_count,
                     'payment_email_sent_at' => $m->payment_email_sent_at,
+                    'payment_email_count' => $m->payment_email_count,
                     'amount_due' => $m->amount_due,
                     'route' => route('admin.approvals.show', $m),
                 ])
@@ -224,7 +226,9 @@ new #[Title('All Approvals - Admin')] class extends Component {
                     'date' => $m->applied_at,
                     'payment_reference' => $m->payment_reference,
                     'pop_reminder_sent_at' => $m->pop_reminder_sent_at,
+                    'pop_reminder_count' => $m->pop_reminder_count,
                     'payment_email_sent_at' => $m->payment_email_sent_at,
+                    'payment_email_count' => $m->payment_email_count,
                     'route' => route('admin.approvals.show', $m),
                 ])
         );
@@ -359,7 +363,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
 
         try {
             Mail::to($membership->user->email)->send(new PopFollowupReminder($membership));
-            $membership->update(['pop_reminder_sent_at' => now()]);
+            $membership->recordPopReminderSent();
 
             unset($this->awaitingPayment);
 
@@ -434,7 +438,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
                 $membership->payment_reference,
             ));
 
-            $membership->update(['payment_email_sent_at' => now()]);
+            $membership->recordPaymentEmailSent();
 
             unset($this->awaitingPayment);
 
@@ -527,7 +531,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
             try {
                 $bankAccount = SystemSetting::getBankAccount();
                 Mail::to($membership->user->email)->send(new PaymentInstructions($membership->load('type', 'user', 'affiliatedClub'), $bankAccount, $membership->payment_reference));
-                $membership->update(['payment_email_sent_at' => now()]);
+                $membership->recordPaymentEmailSent();
             } catch (\Exception $e) {
                 Log::warning('Failed to send payment email on inline approval', ['membership_id' => $membership->id, 'error' => $e->getMessage()]);
             }
@@ -625,7 +629,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
                         $bankAccount,
                         $membership->payment_reference,
                     ));
-                    $membership->update(['payment_email_sent_at' => now()]);
+                    $membership->recordPaymentEmailSent();
                 } catch (\Exception $e) {
                     Log::warning('Failed to send payment email on bulk approval', [
                         'membership_id' => $membership->id,
@@ -891,6 +895,29 @@ new #[Title('All Approvals - Admin')] class extends Component {
                             @if(isset($item['amount_due']) && $item['amount_due'] > 0)
                             <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">R{{ number_format($item['amount_due'], 2) }}</span>
                             @endif
+                        </div>
+                        {{-- Email-send tracking: how many were sent and when last sent --}}
+                        <div class="flex items-center gap-2 mt-2 flex-wrap">
+                            <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium {{ ($item['payment_email_count'] ?? 0) > 0 ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200' : 'bg-zinc-100 text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400' }}"
+                                  @if($item['payment_email_sent_at']) title="Last payment email: {{ \Carbon\Carbon::parse($item['payment_email_sent_at'])->format('d M Y, H:i') }}" @endif>
+                                <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                                Payment email:
+                                @if(($item['payment_email_count'] ?? 0) > 0)
+                                    sent {{ $item['payment_email_count'] }}&times;{{ $item['payment_email_sent_at'] ? ' · last ' . \Carbon\Carbon::parse($item['payment_email_sent_at'])->diffForHumans() : '' }}
+                                @else
+                                    never sent
+                                @endif
+                            </span>
+                            <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium {{ ($item['pop_reminder_count'] ?? 0) > 0 ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200' : 'bg-zinc-100 text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400' }}"
+                                  @if($item['pop_reminder_sent_at']) title="Last reminder: {{ \Carbon\Carbon::parse($item['pop_reminder_sent_at'])->format('d M Y, H:i') }}" @endif>
+                                <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                                Reminders:
+                                @if(($item['pop_reminder_count'] ?? 0) > 0)
+                                    sent {{ $item['pop_reminder_count'] }}&times;{{ $item['pop_reminder_sent_at'] ? ' · last ' . \Carbon\Carbon::parse($item['pop_reminder_sent_at'])->diffForHumans() : '' }}
+                                @else
+                                    none sent
+                                @endif
+                            </span>
                         </div>
                     </div>
                 </div>

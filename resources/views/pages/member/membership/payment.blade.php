@@ -43,7 +43,7 @@ new class extends Component {
                 $this->membership->payment_reference,
             ));
 
-            $this->membership->update(['payment_email_sent_at' => now()]);
+            $this->membership->recordPaymentEmailSent();
             $this->emailSent = true;
             session()->flash('success', 'Payment instructions have been sent to your email.');
         } catch (\Exception $e) {

@@ -137,6 +137,13 @@ class SendMembershipExpiryNotifications extends Command
             return 'skipped';
         }
 
+        // The member has already renewed: a newer, currently-valid membership
+        // supersedes this (now-expired/expiring) row. Don't nag them about the
+        // old one — the active membership overrides it.
+        if ($this->isSupersededByCurrentMembership($membership, $today)) {
+            return 'skipped';
+        }
+
         // Compression: when entering a more urgent bucket we want to send that bucket
         // even if earlier buckets were never sent. We don't want to also send the
         // earlier bucket retroactively. The unique-per-kind log + only-fire-current-bucket
@@ -253,6 +260,29 @@ class SendMembershipExpiryNotifications extends Command
 
             return 'skipped';
         }
+    }
+
+    /**
+     * Has the member already renewed? True when they hold another membership row
+     * that is currently valid (status active, and either non-expiring or not yet
+     * past its expiry). In that case the active membership overrides this older
+     * expiring/expired row and we must not send a renewal/expiry reminder for it.
+     */
+    protected function isSupersededByCurrentMembership(Membership $membership, CarbonInterface $today): bool
+    {
+        if (! $membership->user_id) {
+            return false;
+        }
+
+        return Membership::query()
+            ->where('user_id', $membership->user_id)
+            ->where('id', '!=', $membership->id)
+            ->where('status', 'active')
+            ->where(function ($q) use ($today) {
+                $q->whereNull('expires_at')
+                    ->orWhere('expires_at', '>=', $today);
+            })
+            ->exists();
     }
 
     /**

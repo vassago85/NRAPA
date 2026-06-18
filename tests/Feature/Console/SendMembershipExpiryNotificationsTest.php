@@ -110,6 +110,22 @@ test('sends expired reminder for newly expired membership inside grace period', 
     });
 });
 
+test('does not send expired reminder when member has already renewed (active membership overrides)', function () {
+    $user = makeMember();
+
+    // Old row: just expired, would normally hit the 'expired' bucket.
+    $old = makeMembership($user, $this->annualType, now()->subDays(3), 'expired');
+
+    // New row: renewed, currently active, expires next year.
+    $new = makeMembership($user, $this->annualType, now()->addYear(), 'active');
+    $new->update(['previous_membership_id' => $old->id]);
+
+    Artisan::call('nrapa:send-membership-expiry-notifications');
+
+    Mail::assertNothingQueued();
+    expect(MembershipRenewalReminder::where('membership_id', $old->id)->count())->toBe(0);
+});
+
 test('does not re-send the same bucket on a second run the same day', function () {
     $user = makeMember();
     $membership = makeMembership($user, $this->annualType, now()->addDays(7));

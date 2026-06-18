@@ -338,7 +338,7 @@ new #[Title('Apply for Membership')] class extends Component {
                     $membership->payment_reference
                 ));
 
-            $membership->update(['payment_email_sent_at' => now()]);
+            $membership->recordPaymentEmailSent();
         } catch (\Exception $e) {
             Log::error('Failed to send payment instructions email', [
                 'membership_id' => $membership->id,

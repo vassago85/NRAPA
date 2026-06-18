@@ -3,8 +3,10 @@
 namespace App\Providers;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Cache\LockProvider;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Queue\Events\JobFailed;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -68,6 +70,13 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function registerMailEventListeners(): void
     {
+        // Global safety throttle: enforce a minimum gap between any two outgoing
+        // emails so batches/scheduled runs never burst the mail provider. Runs
+        // first (before the logging listener) and blocks until this send's slot.
+        Event::listen(MessageSending::class, function (MessageSending $event) {
+            $this->throttleOutgoingMail();
+        });
+
         // MessageSending fires BEFORE transport dispatch. Useful for observability
         // in logs only; it does not — and cannot — detect send failures.
         Event::listen(MessageSending::class, function (MessageSending $event) {
@@ -128,6 +137,71 @@ class AppServiceProvider extends ServiceProvider
                 Log::warning('[QUEUED_MAIL_FAILED] email_logs status update failed: '.$inner->getMessage());
             }
         });
+    }
+
+    /**
+     * Enforce a global minimum gap between outgoing emails.
+     *
+     * Each send atomically reserves the next available time slot in the cache
+     * (last reserved slot + gap) and then sleeps until that slot arrives. Because
+     * the reservation is monotonic, concurrent senders coordinate without
+     * colliding. Only enforced for CLI / queue-worker / scheduled sends — that is
+     * where bulk and scheduled batches run — so interactive web requests (e.g. a
+     * single admin "resend") are never blocked and can't time out.
+     */
+    protected function throttleOutgoingMail(): void
+    {
+        $gap = (int) config('mail.min_gap_seconds', 15);
+
+        if ($gap <= 0 || ! app()->runningInConsole()) {
+            return;
+        }
+
+        $key = 'mail:next-send-at';
+        $ttl = now()->addHour();
+
+        // Read-modify-write of the next-slot timestamp. Returns seconds to wait.
+        $reserve = function () use ($key, $gap, $ttl): float {
+            $now = microtime(true);
+            $next = (float) (Cache::get($key) ?? 0);
+            $slot = max($now, $next);
+            Cache::put($key, $slot + $gap, $ttl);
+
+            return $slot - $now;
+        };
+
+        $wait = 0.0;
+
+        try {
+            $store = Cache::getStore();
+
+            if ($store instanceof LockProvider) {
+                $lock = $store->lock('mail:send-gap', 10);
+                $lock->block(10);
+
+                try {
+                    $wait = $reserve();
+                } finally {
+                    $lock->release();
+                }
+            } else {
+                // No atomic lock available (e.g. file cache in local dev). The
+                // queue worker is single-process here, so a plain RMW is fine.
+                $wait = $reserve();
+            }
+        } catch (\Throwable $e) {
+            // Never let throttling block delivery if the cache/lock misbehaves.
+            Log::warning('[MAIL_THROTTLE] skipped: '.$e->getMessage());
+
+            return;
+        }
+
+        // Clamp to a sane window so a corrupted cache value can't hang a worker.
+        $wait = max(0.0, min($wait, 3600.0));
+
+        if ($wait > 0) {
+            usleep((int) round($wait * 1_000_000));
+        }
     }
 
     protected function configureDefaults(): void

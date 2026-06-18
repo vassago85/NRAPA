@@ -248,6 +248,7 @@ new #[Title('Review Application - Admin')] class extends Component {
                         reference: $this->membership->payment_reference,
                     )
                 );
+                $this->membership->recordPaymentEmailSent();
             }
         } catch (\Exception $e) {
             Log::warning('Failed to send change request payment email', ['error' => $e->getMessage()]);
@@ -545,7 +546,7 @@ new #[Title('Review Application - Admin')] class extends Component {
                 $this->membership->payment_reference,
             ));
 
-            $this->membership->update(['payment_email_sent_at' => now()]);
+            $this->membership->recordPaymentEmailSent();
         } catch (\Exception $e) {
             Log::warning('Failed to send payment instructions on approval', [
                 'membership_id' => $this->membership->id,
@@ -636,7 +637,7 @@ new #[Title('Review Application - Admin')] class extends Component {
                 $membership->payment_reference,
             ));
 
-            $membership->update(['payment_email_sent_at' => now()]);
+            $membership->recordPaymentEmailSent();
 
             session()->flash('success', 'Payment instructions resent to ' . $membership->user->email);
         } catch (\Exception $e) {
@@ -1116,7 +1117,7 @@ new #[Title('Review Application - Admin')] class extends Component {
                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                     </svg>
-                    <span>Payment email sent {{ $this->membership->payment_email_sent_at->diffForHumans() }}</span>
+                    <span>Payment email sent {{ $this->membership->payment_email_count > 0 ? $this->membership->payment_email_count . '× · last ' : '' }}{{ $this->membership->payment_email_sent_at->diffForHumans() }}</span>
                 </div>
                 @else
                 <div class="flex items-center gap-1 text-zinc-500 dark:text-zinc-400">
@@ -1283,7 +1284,7 @@ new #[Title('Review Application - Admin')] class extends Component {
                         Resend Payment Email
                     </button>
                     @if($this->membership->payment_email_sent_at)
-                    <span class="text-xs text-zinc-500 dark:text-zinc-400">Last sent: {{ $this->membership->payment_email_sent_at->diffForHumans() }}</span>
+                    <span class="text-xs text-zinc-500 dark:text-zinc-400">Sent {{ $this->membership->payment_email_count }}× · last {{ $this->membership->payment_email_sent_at->diffForHumans() }}</span>
                     @elseif(!$this->membership->payment_email_sent_at)
                     <span class="text-xs text-red-500 dark:text-red-400">Payment email never sent</span>
                     @endif
@@ -1509,7 +1510,7 @@ new #[Title('Review Application - Admin')] class extends Component {
                     Resend Payment Email
                 </button>
                 @if($this->membership->payment_email_sent_at)
-                <span class="text-xs text-zinc-500 dark:text-zinc-400">Last sent: {{ $this->membership->payment_email_sent_at->diffForHumans() }}</span>
+                <span class="text-xs text-zinc-500 dark:text-zinc-400">Sent {{ $this->membership->payment_email_count }}× · last {{ $this->membership->payment_email_sent_at->diffForHumans() }}</span>
                 @else
                 <span class="text-xs text-red-500 dark:text-red-400">Payment email never sent</span>
                 @endif

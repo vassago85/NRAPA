@@ -122,4 +122,19 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Minimum Send Gap (global outbound throttle)
+    |--------------------------------------------------------------------------
+    |
+    | A safety floor enforced between any two outgoing emails so the system
+    | never bursts the mail provider. Each send reserves the next time slot
+    | in the cache; the sender then waits until its slot before handing the
+    | message to the transport. Enforced for CLI/queue-worker/scheduled sends
+    | (where bulk and scheduled batches run). Set to 0 to disable.
+    |
+    */
+
+    'min_gap_seconds' => (int) env('MAIL_MIN_GAP_SECONDS', 15),
+
 ];

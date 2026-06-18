@@ -42,11 +42,13 @@ class Membership extends Model
         'dedicated_declaration_accepted_at',
         'source',
         'payment_email_sent_at',
+        'payment_email_count',
         'welcome_email_sent_at',
         'approval_revoked_at',
         'approval_revoked_by',
         'approval_revoked_reason',
         'pop_reminder_sent_at',
+        'pop_reminder_count',
         'payment_confirmed_at',
         'payment_confirmed_by',
         'affiliated_club_id',
@@ -73,13 +75,39 @@ class Membership extends Model
             'suspended_at' => 'datetime',
             'revoked_at' => 'datetime',
             'payment_email_sent_at' => 'datetime',
+            'payment_email_count' => 'integer',
             'welcome_email_sent_at' => 'datetime',
             'approval_revoked_at' => 'datetime',
             'pop_reminder_sent_at' => 'datetime',
+            'pop_reminder_count' => 'integer',
             'payment_confirmed_at' => 'datetime',
             'dedicated_declaration_accepted_at' => 'datetime',
             'change_amount' => 'decimal:2',
         ];
+    }
+
+    /**
+     * Record that a payment-instructions email was sent: stamp the time and
+     * bump the running total so admins can see how many were sent.
+     */
+    public function recordPaymentEmailSent(): void
+    {
+        $this->update([
+            'payment_email_sent_at' => now(),
+            'payment_email_count' => ($this->payment_email_count ?? 0) + 1,
+        ]);
+    }
+
+    /**
+     * Record that a proof-of-payment reminder email was sent: stamp the time
+     * and bump the running total.
+     */
+    public function recordPopReminderSent(): void
+    {
+        $this->update([
+            'pop_reminder_sent_at' => now(),
+            'pop_reminder_count' => ($this->pop_reminder_count ?? 0) + 1,
+        ]);
     }
 
     /**

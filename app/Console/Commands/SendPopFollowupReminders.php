@@ -45,7 +45,7 @@ class SendPopFollowupReminders extends Command
                     new PopFollowupReminder($membership)
                 );
 
-                $membership->update(['pop_reminder_sent_at' => now()]);
+                $membership->recordPopReminderSent();
 
                 $sent++;
                 $this->line("  → Sent reminder to {$membership->user->email} ({$membership->membership_number})");

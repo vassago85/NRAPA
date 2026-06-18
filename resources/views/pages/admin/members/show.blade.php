@@ -2078,6 +2078,9 @@ new #[Title('Member Details - Admin')] class extends Component {
                         <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">
                             @if($membership->expires_at)
                                 {{ $membership->expires_at->format('d M Y') }}
+                            @elseif(in_array($membership->status, ['applied', 'pending_payment', 'pending_change']))
+                                {{-- Not active yet — expiry (incl. "Lifetime") only applies once approved --}}
+                                <span class="text-zinc-400 dark:text-zinc-500">—</span>
                             @else
                                 <span class="text-amber-600 dark:text-amber-400">Lifetime</span>
                             @endif
