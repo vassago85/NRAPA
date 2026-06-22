@@ -5,6 +5,7 @@ use App\Models\Membership;
 use App\Models\MembershipType;
 use App\Models\SystemSetting;
 use App\Services\NtfyService;
+use App\Livewire\Concerns\HandlesMembershipPaymentUpload;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Attributes\Computed;
@@ -12,6 +13,8 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Title('My Membership')] class extends Component {
+    use HandlesMembershipPaymentUpload;
+
     public bool $showChangeModal = false;
     public ?int $selectedNewTypeId = null;
     public string $changeReason = '';
@@ -29,6 +32,20 @@ new #[Title('My Membership')] class extends Component {
     public function memberships()
     {
         return $this->user->memberships()->with('type')->latest()->get();
+    }
+
+    #[Computed]
+    public function awaitingPaymentMembership()
+    {
+        return $this->awaitingPaymentMembershipQuery()
+            ->latest()
+            ->first();
+    }
+
+    #[Computed]
+    public function bankAccount(): array
+    {
+        return SystemSetting::getBankAccount();
     }
 
     #[Computed]
@@ -445,6 +462,11 @@ new #[Title('My Membership')] class extends Component {
             <p class="text-sm text-red-700 dark:text-red-300">{{ session('error') }}</p>
         </div>
     </div>
+    @endif
+
+    {{-- Payment / Proof-of-Payment block (new applications, renewals AND upgrades) --}}
+    @if($this->awaitingPaymentMembership)
+    <x-membership-payment-awaiting :membership="$this->awaitingPaymentMembership" :bankAccount="$this->bankAccount" :proofOfPayment="$proofOfPayment" />
     @endif
 
     {{-- Renewal CTA for users whose previous membership was marked expired --}}
