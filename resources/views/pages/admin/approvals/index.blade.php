@@ -160,6 +160,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
                 ->map(fn ($m) => [
                     'type' => 'change_payment',
                     'id' => $m->id,
+                    'membership_id' => $m->id,
                     'title' => "Change Payment: " . ($m->type?->name ?? 'Unknown') . ($m->proof_of_payment_path ? ' (POP uploaded)' : ' (Payment confirmed)'),
                     'user' => $m->user,
                     'date' => $m->applied_at,
@@ -553,6 +554,108 @@ new #[Title('All Approvals - Admin')] class extends Component {
         session()->flash('success', $membership->user->name . ' approved and activated!');
     }
 
+    /**
+     * Inline approval for a membership type change (upgrade/downgrade) that has
+     * been paid for. Mirrors the detail-page approveChange(): expires the old
+     * membership(s), activates the new type, issues certificates and emails.
+     */
+    public function approveChange(int $membershipId): void
+    {
+        $membership = Membership::with(['user', 'type', 'previousMembership.type'])
+            ->whereHas('user')
+            ->whereHas('type')
+            ->findOrFail($membershipId);
+
+        if ($membership->status !== 'pending_payment') {
+            session()->flash('error', 'This change request is not ready for approval.');
+            return;
+        }
+
+        // Only allow approval once payment is evidenced (POP uploaded or confirmed)
+        if (! $membership->proof_of_payment_path && ! $membership->payment_confirmed_at) {
+            session()->flash('error', 'No proof of payment yet. Mark as paid or wait for the member to upload it.');
+            return;
+        }
+
+        $admin = auth()->user();
+        $previousType = $membership->previousMembership?->type?->name;
+
+        $expiresAt = $membership->type->calculateExpiryDate(now());
+
+        $membership->update([
+            'status' => 'active',
+            'approved_at' => now(),
+            'approved_by' => $admin->id,
+            'activated_at' => now(),
+            'expires_at' => $expiresAt,
+            'payment_confirmed_at' => $membership->payment_confirmed_at ?? now(),
+            'payment_confirmed_by' => $membership->payment_confirmed_by ?? $admin->id,
+        ]);
+
+        // Retire the member's previous active membership(s) — the upgrade replaces them
+        $membership->retireOtherActiveMemberships();
+
+        if (! $membership->membership_number && $membership->user) {
+            $membership->update([
+                'membership_number' => $membership->user->formatted_member_number,
+            ]);
+        }
+
+        // Issue certificates + welcome letter/card for the new type
+        try {
+            $service = app(\App\Services\CertificateIssueService::class);
+            try { $service->issueMembershipCertificate($membership->user, $admin, skipChecks: true); } catch (\Exception $e) {
+                Log::info('Certificate not issued at inline upgrade approval', ['membership_id' => $membership->id, 'reason' => $e->getMessage()]);
+            }
+            try { $service->issueWelcomeLetter($membership->user, $admin); } catch (\Exception $e) {}
+            try { $service->issueMembershipCard($membership->user, $admin); } catch (\Exception $e) {}
+        } catch (\Exception $e) {
+            Log::error('Failed to issue certificates on inline upgrade approval', ['membership_id' => $membership->id, 'error' => $e->getMessage()]);
+        }
+
+        if ($membership->user) {
+            $this->autoCompleteKnowledgeTests($membership->user, $admin, $membership->type);
+        }
+
+        // Clean up proof of payment
+        if ($membership->proof_of_payment_path) {
+            try { \Illuminate\Support\Facades\Storage::disk('r2')->delete($membership->proof_of_payment_path); } catch (\Exception $e) {}
+            $membership->update(['proof_of_payment_path' => null]);
+        }
+
+        // Approval email (no payment instructions — payment already made)
+        try {
+            if ($membership->user) {
+                Mail::to($membership->user->email)->send(new MembershipApproved(membership: $membership, cardUrl: route('card')));
+                $membership->update(['welcome_email_sent_at' => now()]);
+            }
+        } catch (\Exception $e) {
+            Log::warning('Failed to send upgrade approval email', ['membership_id' => $membership->id, 'error' => $e->getMessage()]);
+        }
+
+        try {
+            app(\App\Services\NtfyService::class)->notifyAdmins(
+                'new_member',
+                'Membership Upgrade Approved',
+                "{$admin->name} approved {$membership->user->name}'s upgrade to {$membership->type->name}.",
+            );
+        } catch (\Exception $e) {}
+
+        AuditLog::log(
+            'change_request_approved',
+            $membership,
+            ['status' => 'pending_payment', 'previous_type' => $previousType],
+            ['status' => 'active', 'new_type' => $membership->type?->name],
+            $admin
+        );
+
+        SyncMembershipToSage::dispatch($membership)->afterCommit();
+
+        unset($this->pendingApprovals, $this->awaitingPayment, $this->stats);
+
+        session()->flash('success', $membership->user->name . "'s upgrade to {$membership->type->name} approved and activated!");
+    }
+
     public function clearAllApprovals(): void
     {
         $admin = auth()->user();
@@ -820,6 +923,19 @@ new #[Title('All Approvals - Admin')] class extends Component {
                         <p class="text-sm text-zinc-500 dark:text-zinc-400">Submitted</p>
                         <p class="font-medium text-zinc-900 dark:text-white">{{ $approval['date']->format('d M Y') }}</p>
                     </div>
+                    @if($approval['type'] === 'change_payment')
+                    <button
+                        wire:click="approveChange({{ $approval['membership_id'] }})"
+                        wire:loading.attr="disabled"
+                        wire:target="approveChange({{ $approval['membership_id'] }})"
+                        wire:confirm="Approve this upgrade? The member's previous membership will be expired and the new type activated."
+                        class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                    >
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                        <span wire:loading.remove wire:target="approveChange({{ $approval['membership_id'] }})">Approve Upgrade</span>
+                        <span wire:loading wire:target="approveChange({{ $approval['membership_id'] }})">Approving…</span>
+                    </button>
+                    @endif
                     <a href="{{ $approval['route'] }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                         Review
                         <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
