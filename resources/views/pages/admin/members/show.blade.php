@@ -1205,6 +1205,10 @@ new #[Title('Member Details - Admin')] class extends Component {
             ]);
         }
 
+        $membership->syncPendingUpgradePaymentAmount();
+        $membership->refresh();
+        $membership->load(['type', 'user', 'previousMembership.type', 'affiliatedClub']);
+
         try {
             $bankAccount = SystemSetting::getBankAccount();
 

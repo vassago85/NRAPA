@@ -335,8 +335,30 @@ class Membership extends Model
      */
     public function getAmountDueAttribute(): float
     {
-        // Admin-set amount for membership type changes (upgrades/downgrades)
-        if ($this->change_amount !== null) {
+        $this->loadMissing('type');
+
+        // Pending type-change payment: always quote the upgrade fee unless a valid custom amount was set
+        if ($this->status === 'pending_payment') {
+            if ($this->type?->hasUpgradeFee()) {
+                $upgradeFee = (float) $this->type->upgrade_price;
+                $stored = $this->change_amount !== null ? (float) $this->change_amount : null;
+
+                if ($stored === null || $stored <= 0 || $stored === (float) $this->type->renewal_price) {
+                    return $upgradeFee;
+                }
+
+                return $stored;
+            }
+
+            if ($this->change_amount !== null && (float) $this->change_amount > 0) {
+                return (float) $this->change_amount;
+            }
+
+            return (float) ($this->type?->initial_price ?? 0);
+        }
+
+        // Admin-set amount for other membership payment flows
+        if ($this->change_amount !== null && (float) $this->change_amount > 0) {
             return (float) $this->change_amount;
         }
 
@@ -889,7 +911,7 @@ class Membership extends Model
         $previousTypeId = $this->previousMembership?->membership_type_id;
 
         if ($previousTypeId === null) {
-            $previousTypeId = static::query()
+            $previousTypeId = static::withTrashed()
                 ->whereKey($this->previous_membership_id)
                 ->value('membership_type_id');
         }
@@ -903,7 +925,31 @@ class Membership extends Model
      */
     public function isRenewal(): bool
     {
-        return $this->previous_membership_id !== null && ! $this->isTypeChange();
+        if ($this->previous_membership_id === null) {
+            return false;
+        }
+
+        if (in_array($this->status, ['pending_payment', 'pending_change'], true)) {
+            return false;
+        }
+
+        return ! $this->isTypeChange();
+    }
+
+    /**
+     * Ensure pending upgrade payments quote the upgrade fee (not renewal price).
+     */
+    public function syncPendingUpgradePaymentAmount(): void
+    {
+        if ($this->status !== 'pending_payment' || ! $this->type?->hasUpgradeFee()) {
+            return;
+        }
+
+        $upgradeFee = (float) $this->type->upgrade_price;
+
+        if ($this->change_amount === null || (float) $this->change_amount <= 0 || (float) $this->change_amount === (float) $this->type->renewal_price) {
+            $this->update(['change_amount' => $upgradeFee]);
+        }
     }
 
     /**

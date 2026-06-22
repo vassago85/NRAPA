@@ -146,3 +146,115 @@ test('amount due for type change without change_amount uses upgrade price', func
 
     expect($upgrade->amount_due)->toBe(1200.0);
 });
+
+test('pending upgrade with zero stored amount quotes upgrade fee', function () {
+    $user = User::factory()->create(['role' => User::ROLE_MEMBER]);
+
+    $basic = MembershipType::create([
+        'slug' => 'basic-zero-amount',
+        'name' => 'Basic Membership',
+        'duration_type' => 'annual',
+        'duration_months' => 12,
+        'requires_renewal' => true,
+        'pricing_model' => 'annual',
+        'initial_price' => 700,
+        'renewal_price' => 550,
+        'upgrade_price' => null,
+        'is_active' => true,
+    ]);
+
+    $dedicated = MembershipType::create([
+        'slug' => 'dedicated-zero-amount',
+        'name' => 'Dedicated Hunter & Sport Shooter',
+        'duration_type' => 'annual',
+        'duration_months' => 12,
+        'requires_renewal' => true,
+        'pricing_model' => 'annual',
+        'initial_price' => 0,
+        'renewal_price' => 550,
+        'upgrade_price' => 1200,
+        'is_active' => true,
+    ]);
+
+    $previous = Membership::create([
+        'user_id' => $user->id,
+        'membership_type_id' => $basic->id,
+        'status' => 'active',
+        'applied_at' => now()->subYear(),
+        'approved_at' => now()->subYear(),
+        'activated_at' => now()->subYear(),
+        'expires_at' => now()->addMonth(),
+    ]);
+
+    $upgrade = Membership::create([
+        'user_id' => $user->id,
+        'membership_type_id' => $dedicated->id,
+        'previous_membership_id' => $previous->id,
+        'status' => 'pending_payment',
+        'applied_at' => now(),
+        'change_amount' => 0,
+    ]);
+
+    expect($upgrade->amount_due)->toBe(1200.0);
+
+    $upgrade->syncPendingUpgradePaymentAmount();
+    $upgrade->refresh();
+
+    expect((float) $upgrade->change_amount)->toBe(1200.0);
+});
+
+test('pending upgrade with wrong renewal amount stored quotes upgrade fee', function () {
+    $user = User::factory()->create(['role' => User::ROLE_MEMBER]);
+
+    $basic = MembershipType::create([
+        'slug' => 'basic-wrong-amount',
+        'name' => 'Basic Membership',
+        'duration_type' => 'annual',
+        'duration_months' => 12,
+        'requires_renewal' => true,
+        'pricing_model' => 'annual',
+        'initial_price' => 700,
+        'renewal_price' => 550,
+        'upgrade_price' => null,
+        'is_active' => true,
+    ]);
+
+    $dedicated = MembershipType::create([
+        'slug' => 'dedicated-wrong-amount',
+        'name' => 'Dedicated Hunter & Sport Shooter',
+        'duration_type' => 'annual',
+        'duration_months' => 12,
+        'requires_renewal' => true,
+        'pricing_model' => 'annual',
+        'initial_price' => 0,
+        'renewal_price' => 550,
+        'upgrade_price' => 1200,
+        'is_active' => true,
+    ]);
+
+    $previous = Membership::create([
+        'user_id' => $user->id,
+        'membership_type_id' => $basic->id,
+        'status' => 'active',
+        'applied_at' => now()->subYear(),
+        'approved_at' => now()->subYear(),
+        'activated_at' => now()->subYear(),
+        'expires_at' => now()->addMonth(),
+    ]);
+
+    $upgrade = Membership::create([
+        'user_id' => $user->id,
+        'membership_type_id' => $dedicated->id,
+        'previous_membership_id' => $previous->id,
+        'status' => 'pending_payment',
+        'applied_at' => now(),
+        'change_amount' => 550,
+    ]);
+
+    expect($upgrade->amount_due)->toBe(1200.0);
+
+    $upgrade->syncPendingUpgradePaymentAmount();
+    $upgrade->refresh();
+
+    expect((float) $upgrade->change_amount)->toBe(1200.0);
+});

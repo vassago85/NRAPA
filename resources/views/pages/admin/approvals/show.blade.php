@@ -240,10 +240,13 @@ new #[Title('Review Application - Admin')] class extends Component {
         // Send payment instructions email
         try {
             if ($this->membership->user?->email) {
+                $this->membership->syncPendingUpgradePaymentAmount();
+                $this->membership->refresh();
+
                 $bankAccount = \App\Models\SystemSetting::getBankAccount();
                 Mail::to($this->membership->user->email)->send(
                     new \App\Mail\PaymentInstructions(
-                        membership: $this->membership,
+                        membership: $this->membership->load('type', 'user', 'previousMembership.type'),
                         bankAccount: $bankAccount,
                         reference: $this->membership->payment_reference,
                     )
@@ -254,7 +257,7 @@ new #[Title('Review Application - Admin')] class extends Component {
             Log::warning('Failed to send change request payment email', ['error' => $e->getMessage()]);
         }
 
-        session()->flash('success', 'Amount set to R' . number_format($this->changeAmount, 2) . '. Member has been notified to make payment.');
+        session()->flash('success', 'Amount set to R' . number_format($this->membership->amount_due, 2) . '. Member has been notified to make payment.');
     }
 
     public function approveChange(): void
@@ -629,17 +632,20 @@ new #[Title('Review Application - Admin')] class extends Component {
         }
 
         try {
+            $membership->syncPendingUpgradePaymentAmount();
+            $membership->refresh();
+
             $bankAccount = SystemSetting::getBankAccount();
 
             Mail::to($membership->user->email)->send(new PaymentInstructions(
-                $membership->load('type', 'user', 'affiliatedClub'),
+                $membership->load('type', 'user', 'affiliatedClub', 'previousMembership.type'),
                 $bankAccount,
                 $membership->payment_reference,
             ));
 
             $membership->recordPaymentEmailSent();
 
-            session()->flash('success', 'Payment instructions resent to ' . $membership->user->email);
+            session()->flash('success', 'Payment instructions resent to ' . $membership->user->email . ' (R' . number_format($membership->amount_due, 2) . ').');
         } catch (\Exception $e) {
             Log::warning('Failed to resend payment instructions', [
                 'membership_id' => $membership->id,
@@ -1448,7 +1454,7 @@ new #[Title('Review Application - Admin')] class extends Component {
     <div class="rounded-2xl shadow-sm border border-indigo-200 bg-white p-6 dark:border-indigo-700 dark:bg-zinc-900">
         <h3 class="mb-2 text-lg font-semibold text-zinc-900 dark:text-white">Type Change - Awaiting Payment</h3>
         <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-            Amount set to <strong class="text-zinc-900 dark:text-white">R{{ number_format($this->membership->change_amount ?? 0, 2) }}</strong>.
+            Amount set to <strong class="text-zinc-900 dark:text-white">R{{ number_format($this->membership->amount_due, 2) }}</strong>.
             Payment ref: <strong class="text-zinc-900 dark:text-white">{{ $this->membership->payment_reference }}</strong>.
         </p>
 
