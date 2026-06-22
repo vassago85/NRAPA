@@ -14,10 +14,22 @@
     <p class="tx" style="color: #374151; margin: 0 0 16px 0; font-size: 15px;">Dear {{ $membership->user->name }},</p>
 
     @if($membership->isTypeChange())
-        <p class="tx" style="color: #374151; margin: 0 0 24px 0; font-size: 15px;">
-            Thank you for upgrading your NRAPA membership to <strong>{{ $membership->type->name }}</strong>.
+        <p class="tx" style="color: #374151; margin: 0 0 16px 0; font-size: 15px;">
+            Thank you for upgrading your NRAPA membership.
             Your upgrade is one step away from activation &mdash; complete the EFT payment below, then upload your proof of payment on your membership page.
         </p>
+
+        <div class="bx-neutral" style="background-color: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 10px; padding: 20px; margin: 0 0 24px 0;">
+            <span class="tx" style="font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; color: #6b7280; display: block; margin-bottom: 10px;">Membership Upgrade</span>
+            <p class="tx" style="color: #374151; margin: 0; font-size: 15px; line-height: 1.5;">
+                <strong>{{ $membership->previousMembership?->type?->name ?? 'Previous membership' }}</strong>
+                <span style="color: #6b7280;">&rarr;</span>
+                <strong>{{ $membership->type->name }}</strong>
+            </p>
+            <p class="tx" style="color: #6b7280; margin: 10px 0 0 0; font-size: 13px;">
+                Upgrade fee (once-off): <strong style="color: #166534;">R{{ number_format($membership->amount_due, 2) }}</strong>
+            </p>
+        </div>
     @else
         <p class="tx" style="color: #374151; margin: 0 0 24px 0; font-size: 15px;">
             Thank you for registering with NRAPA. Your <strong>{{ $membership->type->name }}</strong> application is one step away from activation &mdash; just complete the EFT payment below.
@@ -26,7 +38,13 @@
 
     {{-- Amount due --}}
     <div class="bx-success" style="background-color: #dcfce7; border: 1px solid #86efac; border-radius: 10px; padding: 24px; margin: 0 0 24px 0; text-align: center;">
-        <span class="tx" style="font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; color: #166534; display: block; margin-bottom: 8px;">Amount to Pay</span>
+        <span class="tx" style="font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; color: #166534; display: block; margin-bottom: 8px;">
+            @if($membership->isTypeChange())
+                Upgrade Fee to Pay
+            @else
+                Amount to Pay
+            @endif
+        </span>
         <span class="tx" style="font-size: 32px; font-weight: 700; color: #166534; display: block; line-height: 1;">R{{ number_format($membership->amount_due, 2) }}</span>
     </div>
 
@@ -131,5 +149,9 @@
 @endsection
 
 @section('footer')
-    This email was sent to {{ $membership->user->email }} because you registered for a NRAPA membership.
+    @if($membership->isTypeChange())
+        This email was sent to {{ $membership->user->email }} because you requested a membership upgrade with NRAPA.
+    @else
+        This email was sent to {{ $membership->user->email }} because you registered for a NRAPA membership.
+    @endif
 @endsection

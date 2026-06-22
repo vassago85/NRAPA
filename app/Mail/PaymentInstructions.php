@@ -27,8 +27,12 @@ class PaymentInstructions extends Mailable
      */
     public function envelope(): Envelope
     {
+        $this->membership->loadMissing('previousMembership.type', 'type', 'user');
+
         return new Envelope(
-            subject: 'NRAPA Membership Payment Instructions',
+            subject: $this->membership->isTypeChange()
+                ? 'NRAPA Membership Upgrade Payment Instructions'
+                : 'NRAPA Membership Payment Instructions',
         );
     }
 
@@ -37,6 +41,8 @@ class PaymentInstructions extends Mailable
      */
     public function content(): Content
     {
+        $this->membership->loadMissing('previousMembership.type', 'type', 'user');
+
         return new Content(
             view: 'emails.payment-instructions',
         );
