@@ -340,6 +340,10 @@ class Membership extends Model
             return (float) $this->change_amount;
         }
 
+        if (! $this->type) {
+            return 0.0;
+        }
+
         // Affiliated club membership: use club fees
         if ($this->isAffiliatedClubMembership() && $this->affiliatedClub) {
             return $this->isRenewal()

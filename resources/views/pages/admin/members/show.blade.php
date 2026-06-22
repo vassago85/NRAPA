@@ -2170,9 +2170,9 @@ new #[Title('Member Details - Admin')] class extends Component {
                                 )
                                 <button
                                     wire:click="resendPaymentInstructions({{ $membership->id }})"
-                                    wire:confirm="Send payment instructions (R{{ number_format($membership->amount_due, 2) }}) to {{ $this->user->email }}?"
+                                    wire:confirm="Send payment instructions to {{ $this->user->email }}?"
                                     class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors text-xs font-medium"
-                                    title="@if($membership->payment_email_sent_at)Last sent {{ $membership->payment_email_sent_at->diffForHumans() }}@else Payment email not sent yet@endif"
+                                    title="{{ $membership->payment_email_sent_at ? 'Last sent ' . $membership->payment_email_sent_at->diffForHumans() : 'Payment email not sent yet' }}"
                                 >
                                     {{ $membership->payment_email_sent_at ? 'Resend payment email' : 'Send payment email' }}
                                 </button>
