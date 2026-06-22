@@ -14,6 +14,8 @@ use App\Models\KnowledgeTestAttempt;
 use App\Mail\AccountDeleted;
 use App\Mail\ImportWelcome;
 use App\Mail\MemberMessageMail;
+use App\Mail\PaymentInstructions;
+use App\Models\SystemSetting;
 use App\Models\MemberMessage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
@@ -121,6 +123,7 @@ new #[Title('Member Details - Admin')] class extends Component {
     {
         $this->user = $user->load([
             'memberships.type',
+            'memberships.previousMembership.type',
             'memberships.approver',
             'certificates.certificateType',
             'documents.documentType',
@@ -1162,9 +1165,67 @@ new #[Title('Member Details - Admin')] class extends Component {
             $message = 'Membership assigned successfully.';
         }
 
-        $this->user->load(['memberships.type', 'memberships.approver', 'activeMembership.type']);
+        $this->user->load(['memberships.type', 'memberships.previousMembership.type', 'memberships.approver', 'activeMembership.type']);
         $this->showEditMembershipModal = false;
         session()->flash('success', $message);
+    }
+
+    public function resendPaymentInstructions(int $membershipId): void
+    {
+        $membership = $this->user->memberships()
+            ->with(['user', 'type', 'affiliatedClub', 'previousMembership.type'])
+            ->find($membershipId);
+
+        if (!$membership) {
+            session()->flash('error', 'Membership not found.');
+            return;
+        }
+
+        if (!$membership->user?->email) {
+            session()->flash('error', 'Member has no email address.');
+            return;
+        }
+
+        if ($membership->payment_confirmed_at) {
+            session()->flash('error', 'Payment is already confirmed for this membership.');
+            return;
+        }
+
+        $awaitingPayment = $membership->status === 'pending_payment'
+            || ($membership->status === 'applied' && in_array($membership->source, ['web', 'admin']));
+
+        if (!$awaitingPayment) {
+            session()->flash('error', 'This membership is not awaiting payment.');
+            return;
+        }
+
+        if (!$membership->payment_reference) {
+            $membership->update([
+                'payment_reference' => Membership::generatePaymentReference($membership),
+            ]);
+        }
+
+        try {
+            $bankAccount = SystemSetting::getBankAccount();
+
+            Mail::to($membership->user->email)->send(new PaymentInstructions(
+                $membership,
+                $bankAccount,
+                $membership->payment_reference,
+            ));
+
+            $membership->recordPaymentEmailSent();
+
+            $this->user->load(['memberships.type', 'memberships.previousMembership.type', 'memberships.approver', 'activeMembership.type']);
+
+            session()->flash('success', 'Payment instructions sent to ' . $membership->user->email . ' (R' . number_format($membership->amount_due, 2) . ').');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to resend payment instructions from member page', [
+                'membership_id' => $membership->id,
+                'error' => $e->getMessage(),
+            ]);
+            session()->flash('error', 'Failed to send email: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -1199,7 +1260,7 @@ new #[Title('Member Details - Admin')] class extends Component {
 
         $membership->delete();
 
-        $this->user->load(['memberships.type', 'memberships.approver', 'activeMembership.type']);
+        $this->user->load(['memberships.type', 'memberships.previousMembership.type', 'memberships.approver', 'activeMembership.type']);
         session()->flash('success', 'Membership removed. The active and historical records are unaffected.');
     }
 
@@ -1266,7 +1327,7 @@ new #[Title('Member Details - Admin')] class extends Component {
 
         $this->showRevokeApprovalModal = false;
         $this->revokeApprovalMessage = '';
-        $this->user->load(['memberships.type', 'memberships.approver']);
+        $this->user->load(['memberships.type', 'memberships.previousMembership.type', 'memberships.approver']);
         session()->flash('success', 'Membership approval revoked and member notified. They will appear in the pending approvals queue.');
     }
 
@@ -2095,10 +2156,26 @@ new #[Title('Member Details - Admin')] class extends Component {
                                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                                 </span>
                                 @endif
-                                @if($membership->status === 'applied')
-                                <a href="{{ route('admin.approvals.show', $membership) }}" wire:navigate class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
+                                @if(in_array($membership->status, ['applied', 'pending_payment', 'pending_change']))
+                                <a href="{{ route('admin.approvals.show', $membership) }}" wire:navigate class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors text-xs font-medium">
                                     Review
                                 </a>
+                                @endif
+                                @if(
+                                    !$membership->payment_confirmed_at
+                                    && (
+                                        $membership->status === 'pending_payment'
+                                        || ($membership->status === 'applied' && in_array($membership->source, ['web', 'admin']))
+                                    )
+                                )
+                                <button
+                                    wire:click="resendPaymentInstructions({{ $membership->id }})"
+                                    wire:confirm="Send payment instructions (R{{ number_format($membership->amount_due, 2) }}) to {{ $this->user->email }}?"
+                                    class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors text-xs font-medium"
+                                    title="@if($membership->payment_email_sent_at)Last sent {{ $membership->payment_email_sent_at->diffForHumans() }}@else Payment email not sent yet@endif"
+                                >
+                                    {{ $membership->payment_email_sent_at ? 'Resend payment email' : 'Send payment email' }}
+                                </button>
                                 @endif
                                 @if($displayStatus !== 'active')
                                 <button wire:click="deleteMembership({{ $membership->id }})"
