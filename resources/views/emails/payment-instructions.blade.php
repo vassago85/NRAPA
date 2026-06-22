@@ -2,14 +2,27 @@
 
 @section('title', 'Payment Instructions — NRAPA')
 @section('heading', 'Almost There!')
-@section('subtitle', 'Complete your payment to activate your membership')
+@section('subtitle')
+    @if($membership->isTypeChange())
+        Complete your upgrade payment to activate your new membership type
+    @else
+        Complete your payment to activate your membership
+    @endif
+@endsection
 
 @section('content')
     <p class="tx" style="color: #374151; margin: 0 0 16px 0; font-size: 15px;">Dear {{ $membership->user->name }},</p>
 
-    <p class="tx" style="color: #374151; margin: 0 0 24px 0; font-size: 15px;">
-        Thank you for registering with NRAPA. Your <strong>{{ $membership->type->name }}</strong> application is one step away from activation &mdash; just complete the EFT payment below.
-    </p>
+    @if($membership->isTypeChange())
+        <p class="tx" style="color: #374151; margin: 0 0 24px 0; font-size: 15px;">
+            Thank you for upgrading your NRAPA membership to <strong>{{ $membership->type->name }}</strong>.
+            Your upgrade is one step away from activation &mdash; complete the EFT payment below, then upload your proof of payment on your membership page.
+        </p>
+    @else
+        <p class="tx" style="color: #374151; margin: 0 0 24px 0; font-size: 15px;">
+            Thank you for registering with NRAPA. Your <strong>{{ $membership->type->name }}</strong> application is one step away from activation &mdash; just complete the EFT payment below.
+        </p>
+    @endif
 
     {{-- Amount due --}}
     <div class="bx-success" style="background-color: #dcfce7; border: 1px solid #86efac; border-radius: 10px; padding: 24px; margin: 0 0 24px 0; text-align: center;">
@@ -100,7 +113,7 @@
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto 28px auto;" class="btn-primary">
         <tr>
             <td style="border-radius: 8px; text-align: center; background-color: #0B4EA2;">
-                <a href="{{ config('app.url') }}/member/membership" target="_blank"
+                <a href="{{ route('membership.show', $membership) }}" target="_blank"
                    style="display: inline-block; padding: 16px 48px; border-radius: 8px; background-color: #0B4EA2; color: #ffffff; text-decoration: none; font-weight: 700; font-family: Arial, sans-serif; font-size: 16px;">
                     <span style="color: #ffffff;">Upload Proof of Payment</span>
                 </a>

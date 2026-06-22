@@ -335,11 +335,25 @@ class Membership extends Model
      */
     public function getAmountDueAttribute(): float
     {
+        // Admin-set amount for membership type changes (upgrades/downgrades)
+        if ($this->change_amount !== null) {
+            return (float) $this->change_amount;
+        }
+
         // Affiliated club membership: use club fees
         if ($this->isAffiliatedClubMembership() && $this->affiliatedClub) {
             return $this->isRenewal()
                 ? (float) $this->affiliatedClub->renewal_fee
                 : (float) $this->affiliatedClub->initial_fee;
+        }
+
+        // Type change without an explicit admin amount: use upgrade fee or initial price
+        if ($this->isTypeChange()) {
+            if ($this->type->hasUpgradeFee()) {
+                return (float) $this->type->upgrade_price;
+            }
+
+            return (float) $this->type->initial_price;
         }
 
         // Standard membership: use type fees
@@ -860,11 +874,32 @@ class Membership extends Model
     }
 
     /**
-     * Check if this is a renewal.
+     * Membership type change (upgrade/downgrade) linked to a previous membership.
+     */
+    public function isTypeChange(): bool
+    {
+        if (! $this->previous_membership_id) {
+            return false;
+        }
+
+        $previousTypeId = $this->previousMembership?->membership_type_id;
+
+        if ($previousTypeId === null) {
+            $previousTypeId = static::query()
+                ->whereKey($this->previous_membership_id)
+                ->value('membership_type_id');
+        }
+
+        return $previousTypeId !== null
+            && (int) $previousTypeId !== (int) $this->membership_type_id;
+    }
+
+    /**
+     * Check if this is a renewal (same type as the previous membership).
      */
     public function isRenewal(): bool
     {
-        return $this->previous_membership_id !== null;
+        return $this->previous_membership_id !== null && ! $this->isTypeChange();
     }
 
     /**
