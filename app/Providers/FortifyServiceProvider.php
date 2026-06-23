@@ -9,6 +9,7 @@ use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -68,7 +69,32 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::twoFactorChallengeView(fn () => view('pages::auth.two-factor-challenge'));
         Fortify::confirmPasswordView(fn () => view('pages::auth.confirm-password'));
         Fortify::registerView(fn () => view('pages::auth.register'));
-        Fortify::resetPasswordView(fn () => view('pages::auth.reset-password'));
+        // Set-password / reset link landing. We validate the single-use token up
+        // front so older members who reuse an old link get sensible guidance
+        // instead of a confusing form that only errors after submitting.
+        Fortify::resetPasswordView(function (Request $request) {
+            $token = (string) $request->route('token');
+            $email = (string) $request->query('email', '');
+
+            $broker = Password::broker();
+            $user = $email !== '' ? $broker->getUser(['email' => $email]) : null;
+            $tokenValid = $user !== null && $token !== '' && $broker->tokenExists($user, $token);
+
+            if (! $tokenValid) {
+                // Already set a password before? The link was single-use — send them to login.
+                if ($user !== null && $user->hasSetPassword()) {
+                    return redirect()->route('login')->with(
+                        'status',
+                        'You have already set your password. Please sign in below — you do not need the email link again.'
+                    );
+                }
+
+                // Never set a password and the link is expired/used: tell them what to do.
+                return response()->view('pages::auth.password-link-expired');
+            }
+
+            return view('pages::auth.reset-password');
+        });
         Fortify::requestPasswordResetLinkView(fn () => view('pages::auth.forgot-password'));
     }
 

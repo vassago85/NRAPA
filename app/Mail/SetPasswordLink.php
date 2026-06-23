@@ -2,47 +2,44 @@
 
 namespace App\Mail;
 
-use App\Models\Membership;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Password;
 
-class ImportWelcome extends Mailable
+class SetPasswordLink extends Mailable
 {
     use Queueable, SerializesModels;
 
     public function __construct(
         public User $user,
-        public Membership $membership,
-        public string $defaultPassword,
+        public string $token,
     ) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Welcome to NRAPA – Set Up Your Account',
+            subject: $this->user->hasSetPassword()
+                ? 'NRAPA – Reset Your Password'
+                : 'NRAPA – Set Your Password',
         );
     }
 
     public function content(): Content
     {
-        // Generate a single-use, time-limited link so the member sets their own
-        // password instead of relying on a shared temporary password.
-        $token = Password::broker()->createToken($this->user);
         $setPasswordUrl = url(route('password.reset', [
-            'token' => $token,
+            'token' => $this->token,
             'email' => $this->user->email,
         ], false));
 
         return new Content(
-            view: 'emails.import-welcome',
+            view: 'emails.set-password-link',
             with: [
-                'loginUrl' => url('/login'),
                 'setPasswordUrl' => $setPasswordUrl,
+                'loginUrl' => url('/login'),
+                'isReset' => $this->user->hasSetPassword(),
             ],
         );
     }

@@ -71,6 +71,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'physical_address',
         'postal_address',
         'password',
+        'password_set_at',
         'is_admin',
         'role',
         'admin_type',
@@ -106,12 +107,42 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'password_set_at' => 'datetime',
             'date_of_birth' => 'date',
             'is_admin' => 'boolean',
             'nominated_at' => 'datetime',
             'last_2fa_reminder_at' => 'datetime',
             'welcome_letter_seen_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Whether this user has set their own password (as opposed to only having
+     * a temporary/import password or never completing a set-password link).
+     */
+    public function hasSetPassword(): bool
+    {
+        return $this->password_set_at !== null;
+    }
+
+    /**
+     * Mark that the user has set their own password (idempotent).
+     */
+    public function markPasswordSet(): void
+    {
+        if ($this->password_set_at === null) {
+            $this->forceFill(['password_set_at' => now()])->save();
+        }
+    }
+
+    /**
+     * Send the password reset / set-password notification using our branded,
+     * clearly-worded single-use mailable instead of the Laravel default.
+     */
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
+    {
+        \Illuminate\Support\Facades\Mail::to($this->email)
+            ->send(new \App\Mail\SetPasswordLink($this, $token));
     }
 
     /**

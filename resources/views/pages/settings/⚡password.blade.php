@@ -27,6 +27,7 @@ new class extends Component {
 
         Auth::user()->update([
             'password' => $validated['password'],
+            'password_set_at' => now(),
         ]);
 
         $this->reset('current_password', 'password', 'password_confirmation');

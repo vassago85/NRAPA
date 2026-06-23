@@ -81,42 +81,44 @@
         </tr>
     </table>
 
-    {{-- Login credentials --}}
-    <div class="bx-warning" style="background-color: #FFFBEB; border: 1px solid #D97706; border-radius: 10px; padding: 24px; margin: 0 0 24px 0;">
+    {{-- Sign-in identifier --}}
+    <div class="bx-nrapa" style="background-color: #E8F1FB; border: 1px solid #0B4EA2; border-radius: 10px; padding: 20px 24px; margin: 0 0 16px 0;">
         <table role="presentation" style="width: 100%; border-collapse: collapse;">
             <tr>
-                <td style="padding: 0 0 14px 0;">
-                    <span class="tx" style="font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; color: #92400E;">Your Login Details</span>
+                <td style="padding: 0 0 12px 0;">
+                    <span class="tx" style="font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; color: #0B4EA2;">How You’ll Sign In</span>
                 </td>
             </tr>
             @if($user->hasPlaceholderEmail() && $user->phone)
             <tr>
-                <td class="tx" style="padding: 5px 0; color: #92400E; font-size: 14px;">Phone Number</td>
-                <td class="tx" style="padding: 5px 0; text-align: right; font-weight: 700; color: #92400E; font-family: 'Courier New', monospace; font-size: 15px;">{{ $user->phone }}</td>
+                <td class="tx" style="padding: 5px 0; color: #0B4EA2; font-size: 14px;">Phone Number</td>
+                <td class="tx" style="padding: 5px 0; text-align: right; font-weight: 700; color: #0B4EA2; font-family: 'Courier New', monospace; font-size: 15px;">{{ $user->phone }}</td>
             </tr>
             @else
             <tr>
-                <td class="tx" style="padding: 5px 0; color: #92400E; font-size: 14px;">Email</td>
-                <td class="tx" style="padding: 5px 0; text-align: right; font-weight: 700; color: #92400E; font-size: 14px;">{{ $user->email }}</td>
+                <td class="tx" style="padding: 5px 0; color: #0B4EA2; font-size: 14px;">Email</td>
+                <td class="tx" style="padding: 5px 0; text-align: right; font-weight: 700; color: #0B4EA2; font-size: 14px;">{{ $user->email }}</td>
             </tr>
             @if($user->phone)
             <tr>
-                <td class="tx" style="padding: 5px 0; color: #92400E; font-size: 14px;">Phone Number</td>
-                <td class="tx" style="padding: 5px 0; text-align: right; font-weight: 700; color: #92400E; font-family: 'Courier New', monospace; font-size: 15px;">{{ $user->phone }}</td>
+                <td class="tx" style="padding: 5px 0; color: #0B4EA2; font-size: 14px;">Phone Number</td>
+                <td class="tx" style="padding: 5px 0; text-align: right; font-weight: 700; color: #0B4EA2; font-family: 'Courier New', monospace; font-size: 15px;">{{ $user->phone }}</td>
             </tr>
             @endif
             @endif
-            <tr>
-                <td class="tx" style="padding: 5px 0; color: #92400E; font-size: 14px;">Temporary Password</td>
-                <td class="tx" style="padding: 5px 0; text-align: right; font-weight: 700; color: #92400E; font-family: 'Courier New', monospace; font-size: 15px;">{{ $defaultPassword }}</td>
-            </tr>
         </table>
-        <p class="tx" style="color: #92400E; margin: 14px 0 0 0; font-size: 12px; font-style: italic;">
-            @if($user->hasPlaceholderEmail())
-                Sign in using your <strong>phone number</strong> and the password above. Please change your password immediately after your first sign-in.
-            @else
-                You can sign in using your <strong>email or phone number</strong>. Please change your password immediately after your first sign-in.
-            @endif
+    </div>
+
+    {{-- Single-use set-password notice --}}
+    <div class="bx-warning" style="background-color: #FFFBEB; border: 1px solid #D97706; border-radius: 10px; padding: 18px 20px; margin: 0 0 20px 0;">
+        <p class="tx" style="color: #92400E; margin: 0; font-size: 14px; line-height: 1.6;">
+            <strong>Important:</strong> The button below is a <strong>single-use link</strong> that only lets you
+            <strong>set your password</strong>. It expires in <strong>24 hours</strong> and stops working once your
+            password is set.
+            <br><br>
+            After you’ve set your password, <strong>do not use this email to sign in</strong> — just go to the
+            login page and sign in with your
+            {{ $user->hasPlaceholderEmail() ? 'phone number' : 'email or phone number' }} and your new password.
         </p>
     </div>
 
@@ -135,7 +137,7 @@
                 <div style="width: 28px; height: 28px; background-color: #0B4EA2; color: #ffffff; border-radius: 50%; text-align: center; line-height: 28px; font-size: 13px; font-weight: 700;">1</div>
             </td>
             <td class="tx" style="vertical-align: top; padding: 0 0 14px 0; color: #374151; font-size: 14px;">
-                <strong>Sign in</strong> with your {{ $user->hasPlaceholderEmail() ? 'phone number' : 'email or phone number' }} and password above.
+                <strong>Set your password</strong> using the button below (single-use link, valid for 24 hours).
             </td>
         </tr>
         <tr>
@@ -143,7 +145,7 @@
                 <div style="width: 28px; height: 28px; background-color: #0B4EA2; color: #ffffff; border-radius: 50%; text-align: center; line-height: 28px; font-size: 13px; font-weight: 700;">2</div>
             </td>
             <td class="tx" style="vertical-align: top; padding: 0 0 14px 0; color: #374151; font-size: 14px;">
-                <strong>Change your password</strong> to something secure.
+                <strong>Sign in</strong> at the login page with your {{ $user->hasPlaceholderEmail() ? 'phone number' : 'email or phone number' }} and new password.
             </td>
         </tr>
         <tr>
@@ -164,21 +166,42 @@
         </tr>
     </table>
 
-    {{-- CTA Button --}}
-    <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto 28px auto;" class="btn-primary">
+    {{-- CTA: Set password (single-use link) --}}
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto 12px auto;" class="btn-primary">
         <tr>
             <td style="border-radius: 8px; text-align: center; background-color: #0B4EA2;">
-                <a href="{{ $loginUrl }}" target="_blank"
+                <a href="{{ $setPasswordUrl }}" target="_blank"
                    style="display: inline-block; padding: 16px 48px; border-radius: 8px; background-color: #0B4EA2; color: #ffffff; text-decoration: none; font-weight: 700; font-family: Arial, sans-serif; font-size: 16px; letter-spacing: 0.3px; mso-padding-alt: 0; text-align: center;">
                     <!--[if mso]><i style="mso-font-width: -100%; mso-text-raise: 24pt;">&nbsp;</i><![endif]-->
-                    <span style="color: #ffffff;">Explore My Account</span>
+                    <span style="color: #ffffff;">Set My Password</span>
                     <!--[if mso]><i style="mso-font-width: -100%;">&nbsp;</i><![endif]-->
                 </a>
             </td>
         </tr>
     </table>
 
-    <p class="tx" style="color: #6b7280; margin: 0 0 6px 0; font-size: 13px; text-align: center;">
+    <p class="tx" style="color: #6b7280; margin: 0 0 24px 0; font-size: 12px; text-align: center;">
+        This link expires in 24 hours and can only be used once.
+    </p>
+
+    {{-- Secondary: login link for after the password is set --}}
+    <div style="border-top: 1px solid #e5e7eb; padding-top: 18px; margin: 0 0 12px 0;">
+        <p class="tx" style="color: #374151; margin: 0 0 12px 0; font-size: 14px; text-align: center;">
+            Already set your password? Sign in here:
+        </p>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto;">
+            <tr>
+                <td style="border-radius: 8px; text-align: center; border: 1px solid #0B4EA2;">
+                    <a href="{{ $loginUrl }}" target="_blank"
+                       style="display: inline-block; padding: 12px 36px; border-radius: 8px; color: #0B4EA2; text-decoration: none; font-weight: 700; font-family: Arial, sans-serif; font-size: 15px; text-align: center;">
+                        <span style="color: #0B4EA2;">Go to Login</span>
+                    </a>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <p class="tx" style="color: #6b7280; margin: 16px 0 6px 0; font-size: 13px; text-align: center;">
         Need help? Contact us at <a href="mailto:info@nrapa.co.za" style="color: #0B4EA2; text-decoration: underline;">info@nrapa.co.za</a>
     </p>
 
