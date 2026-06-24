@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Endorsements\AutoVerifyEndorsementDocuments;
+use App\Jobs\IssueEndorsementLetter;
 use App\Models\AuditLog;
 use App\Models\EndorsementFirearm;
 use App\Models\EndorsementRequest;
@@ -154,40 +155,20 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
                 'user_agent' => request()->userAgent(),
             ]);
 
-            // Generate and issue the signed letter
-            $letterReference = EndorsementRequest::generateLetterReference();
-            $renderer = app(\App\Contracts\DocumentRenderer::class);
-            $letterPath = $renderer->renderEndorsementLetter(
-                $request->fresh(['firearm', 'user']),
-                'documents.letters.endorsement'
-            );
+            $dedicatedCategory = $this->dedicatedCategory ?: 'Dedicated Sport Shooter';
 
-            $request->issue(
-                $admin,
-                $letterReference,
-                $letterPath,
+            IssueEndorsementLetter::dispatch(
+                $request->id,
+                $admin->id,
+                $dedicatedCategory,
                 true,
-                $this->dedicatedCategory ?: 'Dedicated Sport Shooter',
-            );
+                true,
+                request()->ip(),
+                request()->userAgent(),
+                'admin_create_form',
+            )->afterCommit();
 
-            AuditLog::create([
-                'user_id' => $admin->id,
-                'event' => 'endorsement_issued',
-                'auditable_type' => EndorsementRequest::class,
-                'auditable_id' => $request->id,
-                'old_values' => ['status' => 'approved'],
-                'new_values' => [
-                    'status' => 'issued',
-                    'letter_reference' => $letterReference,
-                    'dedicated_category' => $this->dedicatedCategory,
-                    'auto_issued' => true,
-                    'issued_via' => 'admin_create_form',
-                ],
-                'ip_address' => request()->ip(),
-                'user_agent' => request()->userAgent(),
-            ]);
-
-            session()->flash('success', 'Endorsement created, approved, and letter issued for ' . $request->user->name . '. Reference: ' . $letterReference);
+            session()->flash('success', 'Endorsement created and approved for ' . $request->user->name . '. The letter is being generated — the member will receive it by email shortly.');
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Admin create-and-approve endorsement failed mid-flow', [
                 'request_id' => $request->id,

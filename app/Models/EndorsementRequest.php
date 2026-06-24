@@ -67,6 +67,40 @@ class EndorsementRequest extends Model
 
     public const PURPOSE_OTHER = 'other';
 
+    // Dedicated category labels (also the stored values, kept human-readable for the letter)
+    public const DEDICATED_CATEGORY_SPORT = 'Dedicated Sport Shooter';
+
+    public const DEDICATED_CATEGORY_HUNTER = 'Dedicated Hunter';
+
+    public const DEDICATED_CATEGORY_BOTH = 'Dedicated Sport Shooter & Dedicated Hunter';
+
+    /**
+     * Map a membership type's dedicated_type to the endorsement dedicated category label.
+     */
+    public static function dedicatedCategoryForType(?string $dedicatedType): ?string
+    {
+        return match ($dedicatedType) {
+            'sport', 'sport_shooter' => self::DEDICATED_CATEGORY_SPORT,
+            'hunter' => self::DEDICATED_CATEGORY_HUNTER,
+            'both' => self::DEDICATED_CATEGORY_BOTH,
+            default => null,
+        };
+    }
+
+    /**
+     * Valid stored dedicated category values for an issued endorsement.
+     *
+     * @return list<string>
+     */
+    public static function validDedicatedCategories(): array
+    {
+        return [
+            self::DEDICATED_CATEGORY_SPORT,
+            self::DEDICATED_CATEGORY_HUNTER,
+            self::DEDICATED_CATEGORY_BOTH,
+        ];
+    }
+
     /**
      * The attributes that are mass assignable.
      */
@@ -922,11 +956,7 @@ class EndorsementRequest extends Model
             $dedicatedType = $membership?->type?->dedicated_type ?? null;
 
             if ($dedicatedCategory === null) {
-                $dedicatedCategory = match ($dedicatedType) {
-                    'sport' => 'Dedicated Sport Shooter',
-                    'hunter' => 'Dedicated Hunter',
-                    default => null,
-                };
+                $dedicatedCategory = self::dedicatedCategoryForType($dedicatedType);
             }
         }
 
@@ -935,13 +965,13 @@ class EndorsementRequest extends Model
             throw new \Exception('Dedicated Status is not compliant. Endorsement cannot be issued.');
         }
 
-        // Ensure dedicated category is set and is a single category (not both)
+        // Ensure dedicated category is set
         if (empty($dedicatedCategory)) {
             throw new \Exception('Dedicated Category must be specified before endorsement can be issued.');
         }
 
-        if (!in_array($dedicatedCategory, ['Dedicated Sport Shooter', 'Dedicated Hunter'])) {
-            throw new \Exception('Dedicated Category must be either "Dedicated Sport Shooter" or "Dedicated Hunter".');
+        if (! in_array($dedicatedCategory, self::validDedicatedCategories(), true)) {
+            throw new \Exception('Dedicated Category must be Dedicated Sport Shooter, Dedicated Hunter, or both.');
         }
 
         $issuedAt = now();
@@ -986,7 +1016,7 @@ class EndorsementRequest extends Model
         }
 
         try {
-            Mail::to($user->email)->send(new EndorsementApproved(
+            Mail::to($user->email)->queue(new EndorsementApproved(
                 endorsement: $this->load('firearm', 'user'),
             ));
         } catch (\Exception $e) {
@@ -1008,7 +1038,7 @@ class EndorsementRequest extends Model
         }
 
         try {
-            Mail::to($user->email)->send(new EndorsementRejected(
+            Mail::to($user->email)->queue(new EndorsementRejected(
                 endorsement: $this->load('firearm', 'user'),
                 reason: $reason,
             ));
@@ -1029,6 +1059,55 @@ class EndorsementRequest extends Model
             'status' => self::STATUS_CANCELLED,
             'cancelled_at' => now(),
         ]);
+    }
+
+    /**
+     * Populate in-memory letter fields so the PDF template matches what issue() will persist.
+     * Required before renderEndorsementLetter() when status is still approved.
+     */
+    public function applyLetterRenderSnapshot(
+        string $letterReference,
+        bool $dedicatedStatusCompliant,
+        string $dedicatedCategory,
+        ?\Carbon\Carbon $issuedAt = null,
+    ): void {
+        $this->letter_reference = $letterReference;
+        $this->dedicated_status_compliant = $dedicatedStatusCompliant;
+        $this->dedicated_category = $dedicatedCategory;
+        $this->issued_at = $issuedAt ?? now();
+    }
+
+    /**
+     * Infer letter display fields for HTML preview of not-yet-issued requests.
+     */
+    public function applyLetterPreviewAttributes(): void
+    {
+        if ($this->isIssued()) {
+            return;
+        }
+
+        $this->loadMissing(['user', 'user.activeMembership', 'user.activeMembership.type']);
+
+        if (! $this->letter_reference) {
+            $this->letter_reference = 'PREVIEW';
+        }
+
+        if ($this->dedicated_status_compliant === null) {
+            $eligibility = self::getEligibilitySummary($this->user);
+            $this->dedicated_status_compliant = $eligibility['eligible'] ?? false;
+        }
+
+        if (empty($this->dedicated_category)) {
+            $dedicatedType = $this->user?->activeMembership?->type?->dedicated_type;
+            $inferred = self::dedicatedCategoryForType($dedicatedType);
+            if ($inferred) {
+                $this->dedicated_category = $inferred;
+            }
+        }
+
+        if (! $this->issued_at) {
+            $this->issued_at = now();
+        }
     }
 
     /**

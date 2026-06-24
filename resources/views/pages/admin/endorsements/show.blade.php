@@ -3,8 +3,8 @@
 use App\Models\EndorsementRequest;
 use App\Models\EndorsementFirearm;
 use App\Models\AuditLog;
+use App\Jobs\IssueEndorsementLetter;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -70,12 +70,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
         } else {
             $membership = $request->user->activeMembership;
             $dedicatedType = $membership?->type?->dedicated_type ?? null;
-            $this->selectedDedicatedCategory = match($dedicatedType) {
-                'sport' => 'Dedicated Sport Shooter',
-                'hunter' => 'Dedicated Hunter',
-                'both' => '',
-                default => '',
-            };
+            $this->selectedDedicatedCategory = EndorsementRequest::dedicatedCategoryForType($dedicatedType) ?? '';
         }
     }
 
@@ -183,9 +178,22 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
      */
     protected function autoIssueEndorsementLetter(): void
     {
-        // Determine dedicated category: admin override > member's choice > membership status
+        $category = $this->resolveDedicatedCategory();
+        $this->selectedDedicatedCategory = $category;
+
+        $this->dispatchIssueEndorsementLetter(
+            dedicatedCategory: $category,
+            dedicatedStatusCompliant: true,
+            autoIssued: true,
+        );
+
+        session()->flash('success', 'Endorsement approved. The letter is being generated — the member will receive it by email shortly.');
+    }
+
+    protected function resolveDedicatedCategory(): string
+    {
         $category = $this->selectedDedicatedCategory ?: null;
-        
+
         if (empty($category)) {
             $category = $this->request->dedicated_category ?: null;
         }
@@ -194,68 +202,30 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             $status = $this->memberDedicatedStatus;
             $category = $status['category'] ?? null;
         }
-        
+
         if (empty($category)) {
             $category = 'Dedicated Sport Shooter';
         }
-        
-        // Update selectedDedicatedCategory for consistency
-        $this->selectedDedicatedCategory = $category;
 
-        try {
-            $letterReference = EndorsementRequest::generateLetterReference();
-            $renderer = app(\App\Contracts\DocumentRenderer::class);
-            $letterPath = $renderer->renderEndorsementLetter($this->request, 'documents.letters.endorsement');
-            
-            $this->request->issue(
-                auth()->user(),
-                $letterReference,
-                $letterPath,
-                true, // Approved = compliant for letter purposes
-                $category
-            );
-            
-            AuditLog::create([
-                'user_id' => auth()->id(),
-                'event' => 'endorsement_issued',
-                'auditable_type' => EndorsementRequest::class,
-                'auditable_id' => $this->request->id,
-                'old_values' => ['status' => 'approved'],
-                'new_values' => [
-                    'status' => 'issued',
-                    'letter_reference' => $letterReference,
-                    'dedicated_status_compliant' => true,
-                    'dedicated_category' => $category,
-                    'auto_issued' => true,
-                ],
-                'ip_address' => request()->ip(),
-                'user_agent' => request()->userAgent(),
-            ]);
-            
-            session()->flash('success', 'Endorsement approved and letter issued automatically. Reference: ' . $letterReference);
-        } catch (\Exception $e) {
-            Log::error('Auto-issue endorsement letter after approval failed', [
-                'request_id' => $this->request->id,
-                'category' => $category,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
+        return $category;
+    }
 
-            // Auto-issue failed — send the "approved" email so the member still knows
-            $this->request->refresh();
-            try {
-                Mail::to($this->request->user->email)->send(new \App\Mail\EndorsementApproved(
-                    endorsement: $this->request->load('firearm', 'user'),
-                ));
-            } catch (\Exception $mailEx) {
-                Log::error('Failed to send endorsement approval fallback email', [
-                    'endorsement_id' => $this->request->id,
-                    'error' => $mailEx->getMessage(),
-                ]);
-            }
-
-            session()->flash('warning', 'Endorsement approved but letter could not be generated automatically: ' . $e->getMessage() . '. You can manually issue it using the button below.');
-        }
+    protected function dispatchIssueEndorsementLetter(
+        string $dedicatedCategory,
+        bool $dedicatedStatusCompliant,
+        bool $autoIssued = false,
+        ?string $issuedVia = null,
+    ): void {
+        IssueEndorsementLetter::dispatch(
+            $this->request->id,
+            auth()->id(),
+            $dedicatedCategory,
+            $dedicatedStatusCompliant,
+            $autoIssued,
+            request()->ip(),
+            request()->userAgent(),
+            $issuedVia,
+        )->afterCommit();
     }
 
     #[Computed]
@@ -266,12 +236,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
         $membership = $user->activeMembership;
         $dedicatedType = $membership?->type?->dedicated_type ?? null;
         
-        $category = match($dedicatedType) {
-            'sport' => 'Dedicated Sport Shooter',
-            'hunter' => 'Dedicated Hunter',
-            'both' => null,
-            default => null,
-        };
+        $category = EndorsementRequest::dedicatedCategoryForType($dedicatedType);
         
         return [
             'compliant' => $eligibility['eligible'] ?? false,
@@ -395,40 +360,13 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
         }
 
         try {
-            // Generate letter reference
-            $letterReference = EndorsementRequest::generateLetterReference();
-            
-            // Generate endorsement letter using DocumentRenderer
-            $renderer = app(\App\Contracts\DocumentRenderer::class);
-            $letterPath = $renderer->renderEndorsementLetter($this->request, 'documents.letters.endorsement');
-
-            // Issue with dedicated status snapshot
-            $this->request->issue(
-                auth()->user(), 
-                $letterReference, 
-                $letterPath,
-                $status['compliant'],
-                $this->selectedDedicatedCategory
+            $this->dispatchIssueEndorsementLetter(
+                dedicatedCategory: $this->selectedDedicatedCategory,
+                dedicatedStatusCompliant: $status['compliant'],
             );
-        
-            AuditLog::create([
-                'user_id' => auth()->id(),
-                'event' => 'endorsement_issued',
-                'auditable_type' => EndorsementRequest::class,
-                'auditable_id' => $this->request->id,
-                'old_values' => ['status' => 'approved'],
-                'new_values' => [
-                    'status' => 'issued', 
-                    'letter_reference' => $letterReference,
-                    'dedicated_status_compliant' => $status['compliant'],
-                    'dedicated_category' => $this->selectedDedicatedCategory,
-                ],
-                'ip_address' => request()->ip(),
-                'user_agent' => request()->userAgent(),
-            ]);
 
             $this->showIssueModal = false;
-            session()->flash('success', 'Endorsement letter issued successfully! Reference: ' . $letterReference);
+            session()->flash('success', 'Endorsement letter is being generated — the member will receive it by email shortly.');
             $this->request->refresh();
         } catch (\Exception $e) {
             Log::error('Failed to generate endorsement letter', [
@@ -448,7 +386,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
 
     public function saveDedicatedCategory(): void
     {
-        if (!in_array($this->editDedicatedCategoryValue, ['Dedicated Sport Shooter', 'Dedicated Hunter'])) {
+        if (!in_array($this->editDedicatedCategoryValue, EndorsementRequest::validDedicatedCategories(), true)) {
             session()->flash('error', 'Please select a valid dedicated category.');
             return;
         }
@@ -914,6 +852,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                                             <option value="">Select...</option>
                                             <option value="Dedicated Sport Shooter">Dedicated Sport Shooter</option>
                                             <option value="Dedicated Hunter">Dedicated Hunter</option>
+                                            <option value="Dedicated Sport Shooter & Dedicated Hunter">Dedicated Sport Shooter &amp; Dedicated Hunter</option>
                                         </select>
                                         <button wire:click="saveDedicatedCategory" class="text-xs px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700">Save</button>
                                         <button wire:click="$set('editingDedicatedCategory', false)" class="text-xs px-2 py-1 bg-zinc-200 dark:bg-zinc-600 text-zinc-700 dark:text-zinc-200 rounded hover:bg-zinc-300 dark:hover:bg-zinc-500">Cancel</button>
@@ -1553,6 +1492,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                             <option value="">Select category...</option>
                             <option value="Dedicated Sport Shooter">Dedicated Sport Shooter</option>
                             <option value="Dedicated Hunter">Dedicated Hunter</option>
+                            <option value="Dedicated Sport Shooter & Dedicated Hunter">Dedicated Sport Shooter &amp; Dedicated Hunter</option>
                         </select>
                         @error('selectedDedicatedCategory') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
