@@ -966,7 +966,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                     <div class="p-6">
                         <dl class="grid grid-cols-2 gap-4 text-sm">
                             <div>
-                                <dt class="text-zinc-500">Type</dt>
+                                <dt class="text-zinc-500">Application Type</dt>
+                                <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->self_defence_application_label }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-zinc-500">Firearm Type</dt>
                                 <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->firearm_type_label }}</dd>
                             </div>
                             <div>

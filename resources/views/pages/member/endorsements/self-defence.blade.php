@@ -12,6 +12,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Layout('layouts.app.sidebar')] #[Title('Self-Defence Supporting Letter')] class extends Component {
+    public string $applicationType = 'new'; // new | renewal
     public string $firearmMake = '';
     public string $firearmModel = '';
     public string $firearmCalibre = '';
@@ -154,6 +155,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Self-Defence Supporting Letter')] 
 
         // 2. Validate the firearm fields.
         $validated = $this->validate([
+            'applicationType' => 'required|in:new,renewal',
             'firearmMake' => 'required|string|max:255',
             'firearmModel' => 'required|string|max:255',
             'firearmCalibre' => 'required|string|max:255',
@@ -189,7 +191,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Self-Defence Supporting Letter')] 
         $request = new EndorsementRequest;
         $request->fill([
             'user_id' => $user->id,
-            'request_type' => EndorsementRequest::TYPE_NEW,
+            'request_type' => $this->applicationType === 'renewal' ? EndorsementRequest::TYPE_RENEWAL : EndorsementRequest::TYPE_NEW,
             'endorsement_type' => EndorsementRequest::ENDORSEMENT_TYPE_SELF_DEFENCE,
             'status' => EndorsementRequest::STATUS_DRAFT,
             'firearm_make' => $this->firearmMake,
@@ -278,6 +280,29 @@ new #[Layout('layouts.app.sidebar')] #[Title('Self-Defence Supporting Letter')] 
         </div>
 
         <form wire:submit="submit" class="space-y-6">
+            {{-- Application type --}}
+            <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
+                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-1">Application Type</h2>
+                <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4">Is this for a new Section 13 self-defence licence, or the renewal of an existing one?</p>
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <label class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer {{ $applicationType === 'new' ? 'border-nrapa-blue bg-nrapa-blue/5' : 'border-zinc-200 dark:border-zinc-700' }}">
+                        <input type="radio" wire:model.live="applicationType" value="new" class="mt-1 h-4 w-4 text-nrapa-blue focus:ring-nrapa-blue shrink-0" />
+                        <span>
+                            <span class="block text-sm font-medium text-zinc-900 dark:text-white">New Application</span>
+                            <span class="block text-xs text-zinc-500 dark:text-zinc-400">First-time Section 13 self-defence licence application.</span>
+                        </span>
+                    </label>
+                    <label class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer {{ $applicationType === 'renewal' ? 'border-nrapa-blue bg-nrapa-blue/5' : 'border-zinc-200 dark:border-zinc-700' }}">
+                        <input type="radio" wire:model.live="applicationType" value="renewal" class="mt-1 h-4 w-4 text-nrapa-blue focus:ring-nrapa-blue shrink-0" />
+                        <span>
+                            <span class="block text-sm font-medium text-zinc-900 dark:text-white">Renewal</span>
+                            <span class="block text-xs text-zinc-500 dark:text-zinc-400">Renewal of an existing Section 13 self-defence licence.</span>
+                        </span>
+                    </label>
+                </div>
+                @error('applicationType') <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+            </div>
+
             {{-- Firearm details --}}
             <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-1">Firearm Details</h2>

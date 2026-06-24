@@ -68,8 +68,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
                                 <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $request->endorsement_type_label }}</dd>
                             </div>
                             <div>
-                                <dt class="text-zinc-500 dark:text-zinc-400">Purpose</dt>
-                                <dd class="mt-1 font-medium text-zinc-900 dark:text-white">Section 13 (self-defence) licence application</dd>
+                                <dt class="text-zinc-500 dark:text-zinc-400">Application Type</dt>
+                                <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $request->self_defence_application_label }}</dd>
                             </div>
                         @else
                             <div>

@@ -638,17 +638,28 @@ class EndorsementRequest extends Model
      * The individually-ticked acknowledgement clauses for the self-defence
      * variant. Returned as clause_key => clause_text. All are required; each is
      * stored as its own immutable acknowledgement row at submission time.
+     *
+     * The "single Section 13" clause is worded generically ("no other") so it
+     * holds for both a new application and a renewal.
      */
     public static function selfDefenceClauses(): array
     {
         return [
             'dedicated_compliant' => 'I am a currently registered and compliant dedicated hunter and/or dedicated sports person in good standing with NRAPA; my dedicated status is active and is not lapsed, suspended or under review.',
-            'single_section_13' => 'I do not currently hold, and do not have a pending application for, any firearm licensed in terms of Section 13 of the Firearms Control Act, 2000 (Act 60 of 2000). I understand a person may hold only one licence issued under Section 13, and that the firearm to which this request relates is the only self-defence firearm I am applying for.',
+            'single_section_13' => 'The firearm to which this request relates is the only Section 13 (self-defence) firearm I hold or am applying for, and I hold no other firearm licensed in terms of Section 13 of the Firearms Control Act, 2000 (Act 60 of 2000). I understand a person may hold only one licence issued under Section 13.',
             'true_declaration' => 'The information I have provided is true, complete and correct to the best of my knowledge. I understand a false declaration to NRAPA and/or the SAPS Designated Firearms Officer is a serious offence.',
             'based_on_declaration' => "I understand NRAPA's endorsement is based solely on my declaration, that NRAPA cannot independently verify my full firearm holdings with SAPS, and that remaining compliant with the Act at all times is my responsibility.",
             'indemnity' => 'I indemnify NRAPA, its office bearers and administrators against any loss, claim or liability arising from any inaccurate, incomplete or false declaration made by me.',
             'not_legal_requirement' => 'I understand that an association endorsement letter is not a legal requirement for a Section 13 self-defence licence application, that NRAPA is providing this letter voluntarily at my request, and that it confirms only my dedicated status and activity with NRAPA — not the merits of my self-defence application.',
         ];
+    }
+
+    /**
+     * Self-defence application type label (New / Renewal).
+     */
+    public function getSelfDefenceApplicationLabelAttribute(): string
+    {
+        return $this->request_type === self::TYPE_RENEWAL ? 'Section 13 Licence Renewal' : 'New Section 13 Application';
     }
 
     /**

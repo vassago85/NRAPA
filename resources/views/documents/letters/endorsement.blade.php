@@ -120,9 +120,14 @@
         </table>
     </div>
 
+    @php
+        $sdApplicationPhrase = $request->isRenewal()
+            ? 'the renewal of a firearm licence for self-defence'
+            : 'an application for a firearm for self-defence';
+    @endphp
     <div class="letter-body">
         To whom it may concern,<br/><br/>
-        This letter is issued by NRAPA at the written request of the above member in support of an application for a firearm for self-defence in terms of Section 13 of the Firearms Control Act, 2000 (Act 60 of 2000).
+        This letter is issued by NRAPA at the written request of the above member in support of {{ $sdApplicationPhrase }} in terms of Section 13 of the Firearms Control Act, 2000 (Act 60 of 2000).
         <br/><br/>
         <div style="background:#f5f7fb; border-left:3px solid #0B4EA2; padding:6px 10px; margin:2px 0 8px 0; font-size:11px;">
             <b>Firearm to which this letter relates:</b> {{ $sdType }}@if($sdMakeModel) &mdash; {{ $sdMakeModel }}@endif@if($sdCalibre), {{ $sdCalibre }}@endif ({{ $sdSerial }}).
