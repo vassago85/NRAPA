@@ -32,6 +32,16 @@
                 </td>
             </tr>
             <tr>
+                <td class="tx" style="padding: 5px 0; color: #166534; font-size: 14px;">Letter Type</td>
+                <td class="tx" style="padding: 5px 0; text-align: right; font-weight: 700; color: #166534; font-size: 14px;">{{ $endorsement->endorsement_type_label }}</td>
+            </tr>
+            @if($endorsement->isSelfDefence())
+            <tr>
+                <td class="tx" style="padding: 5px 0; color: #166534; font-size: 14px;">Firearm</td>
+                <td class="tx" style="padding: 5px 0; text-align: right; font-weight: 700; color: #166534; font-size: 14px;">{{ trim(($endorsement->firearm_make ?? '') . ' ' . ($endorsement->firearm_model ?? '')) ?: 'N/A' }}</td>
+            </tr>
+            @else
+            <tr>
                 <td class="tx" style="padding: 5px 0; color: #166534; font-size: 14px;">Request Type</td>
                 <td class="tx" style="padding: 5px 0; text-align: right; font-weight: 700; color: #166534; font-size: 14px;">{{ $endorsement->request_type_label }}</td>
             </tr>
@@ -44,6 +54,7 @@
                 <td class="tx" style="padding: 5px 0; color: #166534; font-size: 14px;">Firearm</td>
                 <td class="tx" style="padding: 5px 0; text-align: right; font-weight: 700; color: #166534; font-size: 14px;">{{ trim(($firearm->make ?? '') . ' ' . ($firearm->model ?? '')) ?: 'N/A' }}</td>
             </tr>
+            @endif
             @endif
             <tr>
                 <td class="tx" style="padding: 5px 0; color: #166534; font-size: 14px;">Status</td>

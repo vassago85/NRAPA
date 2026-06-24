@@ -22,6 +22,18 @@ class EndorsementRequest extends Model
 
     public const TYPE_RENEWAL = 'renewal';
 
+    // Endorsement type (variant) constants — discriminates the letter produced.
+    public const ENDORSEMENT_TYPE_DEDICATED_STATUS = 'dedicated_status';
+
+    public const ENDORSEMENT_TYPE_SELF_DEFENCE = 'self_defence';
+
+    // Self-defence firearm type options
+    public const FIREARM_TYPE_HANDGUN = 'handgun';
+
+    public const FIREARM_TYPE_RIFLE = 'rifle';
+
+    public const FIREARM_TYPE_SHOTGUN = 'shotgun';
+
     // Minimum activity requirements (can be overridden via SystemSetting)
     public const DEFAULT_MIN_ACTIVITIES_SPORT = 2; // per 12 months
 
@@ -62,6 +74,13 @@ class EndorsementRequest extends Model
         'uuid',
         'user_id',
         'request_type',
+        'endorsement_type',
+        'firearm_make',
+        'firearm_model',
+        'firearm_calibre',
+        'firearm_type',
+        'firearm_serial',
+        'motivation_note',
         'status',
         'purpose',
         'purpose_other_text',
@@ -163,6 +182,14 @@ class EndorsementRequest extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(EndorsementDocument::class);
+    }
+
+    /**
+     * Get the per-clause acknowledgements (self-defence variant audit trail).
+     */
+    public function acknowledgements(): HasMany
+    {
+        return $this->hasMany(EndorsementAcknowledgement::class);
     }
 
     /**
@@ -569,6 +596,62 @@ class EndorsementRequest extends Model
     }
 
     /**
+     * Check if this is the self-defence supporting-letter variant.
+     */
+    public function isSelfDefence(): bool
+    {
+        return $this->endorsement_type === self::ENDORSEMENT_TYPE_SELF_DEFENCE;
+    }
+
+    /**
+     * Check if this is the standard dedicated-status endorsement variant.
+     */
+    public function isDedicatedStatus(): bool
+    {
+        return $this->endorsement_type !== self::ENDORSEMENT_TYPE_SELF_DEFENCE;
+    }
+
+    /**
+     * Endorsement type (variant) options.
+     */
+    public static function getEndorsementTypeOptions(): array
+    {
+        return [
+            self::ENDORSEMENT_TYPE_DEDICATED_STATUS => 'Dedicated Status Endorsement',
+            self::ENDORSEMENT_TYPE_SELF_DEFENCE => 'Self-Defence Supporting Letter',
+        ];
+    }
+
+    /**
+     * Self-defence firearm type options.
+     */
+    public static function getSelfDefenceFirearmTypeOptions(): array
+    {
+        return [
+            self::FIREARM_TYPE_HANDGUN => 'Handgun',
+            self::FIREARM_TYPE_RIFLE => 'Rifle',
+            self::FIREARM_TYPE_SHOTGUN => 'Shotgun',
+        ];
+    }
+
+    /**
+     * The individually-ticked acknowledgement clauses for the self-defence
+     * variant. Returned as clause_key => clause_text. All are required; each is
+     * stored as its own immutable acknowledgement row at submission time.
+     */
+    public static function selfDefenceClauses(): array
+    {
+        return [
+            'dedicated_compliant' => 'I am a currently registered and compliant dedicated hunter and/or dedicated sports person in good standing with NRAPA; my dedicated status is active and is not lapsed, suspended or under review.',
+            'single_section_13' => 'I do not currently hold, and do not have a pending application for, any firearm licensed in terms of Section 13 of the Firearms Control Act, 2000 (Act 60 of 2000). I understand a person may hold only one licence issued under Section 13, and that the firearm to which this request relates is the only self-defence firearm I am applying for.',
+            'true_declaration' => 'The information I have provided is true, complete and correct to the best of my knowledge. I understand a false declaration to NRAPA and/or the SAPS Designated Firearms Officer is a serious offence.',
+            'based_on_declaration' => "I understand NRAPA's endorsement is based solely on my declaration, that NRAPA cannot independently verify my full firearm holdings with SAPS, and that remaining compliant with the Act at all times is my responsibility.",
+            'indemnity' => 'I indemnify NRAPA, its office bearers and administrators against any loss, claim or liability arising from any inaccurate, incomplete or false declaration made by me.',
+            'not_legal_requirement' => 'I understand that an association endorsement letter is not a legal requirement for a Section 13 self-defence licence application, that NRAPA is providing this letter voluntarily at my request, and that it confirms only my dedicated status and activity with NRAPA — not the merits of my self-defence application.',
+        ];
+    }
+
+    /**
      * Check if component requests are allowed.
      */
     public function allowsComponents(): bool
@@ -594,6 +677,22 @@ class EndorsementRequest extends Model
         // Must be in draft status
         if (! $this->isDraft()) {
             return false;
+        }
+
+        // Self-defence variant: inline firearm fields + every clause ticked.
+        if ($this->isSelfDefence()) {
+            if (empty($this->firearm_make) || empty($this->firearm_model) || empty($this->firearm_calibre) || empty($this->firearm_type)) {
+                return false;
+            }
+
+            if (! $this->hasDeclaration()) {
+                return false;
+            }
+
+            $requiredClauses = count(self::selfDefenceClauses());
+            $accepted = $this->acknowledgements()->where('accepted', true)->count();
+
+            return $accepted >= $requiredClauses;
         }
 
         // Must have either firearm or at least one component (component-only requests allowed)
@@ -1036,6 +1135,22 @@ class EndorsementRequest extends Model
     public function getRequestTypeLabelAttribute(): string
     {
         return self::getRequestTypeOptions()[$this->request_type] ?? ucfirst($this->request_type);
+    }
+
+    /**
+     * Get the endorsement type (variant) label.
+     */
+    public function getEndorsementTypeLabelAttribute(): string
+    {
+        return self::getEndorsementTypeOptions()[$this->endorsement_type] ?? 'Dedicated Status Endorsement';
+    }
+
+    /**
+     * Get the self-defence firearm type label.
+     */
+    public function getFirearmTypeLabelAttribute(): string
+    {
+        return self::getSelfDefenceFirearmTypeOptions()[$this->firearm_type] ?? ($this->firearm_type ?? '');
     }
 
     /**

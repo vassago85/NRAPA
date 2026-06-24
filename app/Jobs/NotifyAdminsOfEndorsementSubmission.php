@@ -40,10 +40,16 @@ class NotifyAdminsOfEndorsementSubmission implements ShouldQueue
             return;
         }
 
-        $title = 'New Endorsement Request Submitted';
-        $subject = $request->firearm
-            ? (trim(($request->firearm->make ?? '').' '.($request->firearm->model ?? '')) ?: 'a firearm')
-            : ($request->components->first()?->summary ?? 'a component');
+        $title = $request->isSelfDefence()
+            ? 'New Self-Defence Supporting Letter Request'
+            : 'New Endorsement Request Submitted';
+        if ($request->isSelfDefence()) {
+            $subject = trim(($request->firearm_make ?? '').' '.($request->firearm_model ?? '')) ?: 'a self-defence firearm';
+        } else {
+            $subject = $request->firearm
+                ? (trim(($request->firearm->make ?? '').' '.($request->firearm->model ?? '')) ?: 'a firearm')
+                : ($request->components->first()?->summary ?? 'a component');
+        }
         $message = sprintf(
             '%s has submitted an endorsement request for %s. Review and approve at: %s',
             $request->user->name,

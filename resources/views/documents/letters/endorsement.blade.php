@@ -27,7 +27,7 @@
 @section('document-banner')
 <div class="doc-banner">
     <div class="doc-banner-title">Endorsement Letter</div>
-    <div class="doc-banner-subtitle">Issued for firearm licence application purposes</div>
+    <div class="doc-banner-subtitle">{{ $request->isSelfDefence() ? 'Self-defence supporting letter — issued voluntarily at the member\'s request' : 'Issued for firearm licence application purposes' }}</div>
 </div>
 @endsection
 
@@ -84,6 +84,57 @@
         </tr>
     </table>
 
+    @if($request->isSelfDefence())
+    {{-- ===== Self-defence variant ===== --}}
+    @php
+        $sdType = $request->firearm_type_label;
+        $sdMakeModel = trim(($request->firearm_make ?? '') . ' ' . ($request->firearm_model ?? ''));
+        $sdCalibre = $request->firearm_calibre;
+        $sdSerial = $request->firearm_serial ? strtoupper($request->firearm_serial) : 'Serial to be confirmed';
+    @endphp
+    <div class="card components-card">
+        <div class="card-title">Firearm This Letter Relates To</div>
+        <table class="fg-table">
+            <tr>
+                <td>
+                    <span class="fg-label">Type</span>
+                    <span class="fg-value">{{ $sdType }}</span>
+                </td>
+                @if($sdMakeModel)
+                <td>
+                    <span class="fg-label">Make / Model</span>
+                    <span class="fg-value">{{ $sdMakeModel }}</span>
+                </td>
+                @endif
+                @if($sdCalibre)
+                <td>
+                    <span class="fg-label">Calibre</span>
+                    <span class="fg-value">{{ $sdCalibre }}</span>
+                </td>
+                @endif
+                <td>
+                    <span class="fg-label">Serial</span>
+                    <span class="fg-value">{{ $sdSerial }}</span>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="letter-body">
+        To whom it may concern,<br/><br/>
+        This letter is issued by NRAPA at the written request of the above member in support of an application for a firearm for self-defence in terms of Section 13 of the Firearms Control Act, 2000 (Act 60 of 2000).
+        <br/><br/>
+        <div style="background:#f5f7fb; border-left:3px solid #0B4EA2; padding:6px 10px; margin:2px 0 8px 0; font-size:11px;">
+            <b>Firearm to which this letter relates:</b> {{ $sdType }}@if($sdMakeModel) &mdash; {{ $sdMakeModel }}@endif@if($sdCalibre), {{ $sdCalibre }}@endif ({{ $sdSerial }}).
+        </div>
+        <div style="font-size:10.5px; line-height:1.45; color:#333;">
+            <div style="font-weight:700; color:#0B4EA2; margin-bottom:3px;">Please note the nature and scope of this endorsement:</div>
+            <p style="margin:0 0 6px 0;">Based on the information available to NRAPA and as declared by the member, this is the only Section 13 (self-defence) firearm of which NRAPA is aware; the member has declared they hold no other firearm licensed under Section 13. This endorsement relies on information provided by the member, does not warrant their complete firearm holdings, and does not relieve the SAPS of its own verification obligations. It speaks only as at the date of issue, and the licensing decision remains within the sole discretion of the Registrar of Firearms.</p>
+            <p style="margin:0;">An association endorsement is not a legal requirement for a Section 13 (self-defence) licence application. NRAPA provides this letter voluntarily, at the member's request, for the limited purpose of confirming that the member is a registered dedicated hunter and/or dedicated sports person, in good standing and active in their dedicated activities as at the date of issue. It is a confirmation of association status only, and does not constitute a motivation for the self-defence licence. The motivation rests with the member; the SAPS assesses it and the Registrar decides, and NRAPA expresses no view on its merits.</p>
+        </div>
+    </div>
+    @else
+    {{-- ===== Dedicated status variant (unchanged) ===== --}}
     {{-- Endorsed items --}}
     @php
         $hasComponents = $request->components && $request->components->isNotEmpty();
@@ -185,6 +236,7 @@
         <br/><br/>
         The Association confirms that the firearm or component(s) described above is suitable for the stated purpose in accordance with the Firearms Control Act (Act 60 of 2000, as amended) and relevant Regulations.
     </div>
+    @endif
 
     {{-- Bottom: Signatory + Commissioner of Oaths (table layout) --}}
     <table class="layout-table">

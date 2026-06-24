@@ -199,13 +199,22 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                 <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Manage your dedicated status and request endorsement letters for firearm applications.</p>
             </div>
             @if($this->dedicatedType)
-                <a href="{{ route('member.endorsements.create') }}" wire:navigate
-                    class="inline-flex items-center gap-2 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                    </svg>
-                    Request Endorsement
-                </a>
+                <div class="flex flex-wrap items-center gap-2">
+                    <a href="{{ route('member.endorsements.create') }}" wire:navigate
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Request Endorsement
+                    </a>
+                    <a href="{{ route('member.endorsements.self-defence') }}" wire:navigate
+                        class="inline-flex items-center gap-2 px-4 py-2 border border-nrapa-blue text-nrapa-blue hover:bg-nrapa-blue/10 dark:text-nrapa-blue-light rounded-lg transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z"/>
+                        </svg>
+                        Self-Defence Letter
+                    </a>
+                </div>
             @endif
         </div>
     </x-slot>
@@ -640,14 +649,23 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                                 <div>
                                     <div class="flex items-center gap-3 flex-wrap">
                                         <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">
-                                            {{ $request->request_type_label }}
+                                            {{ $request->isSelfDefence() ? 'Self-Defence Supporting Letter' : $request->request_type_label }}
                                         </h3>
                                         <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $request->status_badge_class }}">
                                             {{ $request->status_label }}
                                         </span>
+                                        @if($request->isSelfDefence())
+                                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
+                                                Section 13
+                                            </span>
+                                        @endif
                                     </div>
 
-                                    @if($request->firearm)
+                                    @if($request->isSelfDefence())
+                                        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                                            {{ trim($request->firearm_make . ' ' . $request->firearm_model) }}@if($request->firearm_calibre) — {{ $request->firearm_calibre }}@endif
+                                        </p>
+                                    @elseif($request->firearm)
                                         <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                                             {{ $request->firearm->summary }}
                                         </p>

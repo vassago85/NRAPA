@@ -16,7 +16,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
             abort(403);
         }
         
-        $this->request = $request->load(['firearm', 'firearm.firearmCalibre', 'firearm.firearmMake', 'firearm.firearmModel', 'components', 'documents']);
+        $this->request = $request->load(['firearm', 'firearm.firearmCalibre', 'firearm.firearmMake', 'firearm.firearmModel', 'components', 'documents', 'acknowledgements']);
     }
 
 }; ?>
@@ -32,7 +32,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
                 </a>
                 <div>
                     <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Endorsement Request</h1>
-                    <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{{ $request->request_type_label }}</p>
+                    <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{{ $request->isSelfDefence() ? 'Self-Defence Supporting Letter (Section 13)' : $request->request_type_label }}</p>
                 </div>
             </div>
             <span class="inline-flex items-center rounded-full px-4 py-2 text-sm font-medium {{ $request->status_badge_class }}">
@@ -62,14 +62,25 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
                 </div>
                 <div class="p-6">
                     <dl class="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                            <dt class="text-zinc-500 dark:text-zinc-400">Request Type</dt>
-                            <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $request->request_type_label }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-zinc-500 dark:text-zinc-400">Purpose</dt>
-                            <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $request->purpose_label }}</dd>
-                        </div>
+                        @if($request->isSelfDefence())
+                            <div>
+                                <dt class="text-zinc-500 dark:text-zinc-400">Letter Type</dt>
+                                <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $request->endorsement_type_label }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-zinc-500 dark:text-zinc-400">Purpose</dt>
+                                <dd class="mt-1 font-medium text-zinc-900 dark:text-white">Section 13 (self-defence) licence application</dd>
+                            </div>
+                        @else
+                            <div>
+                                <dt class="text-zinc-500 dark:text-zinc-400">Request Type</dt>
+                                <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $request->request_type_label }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-zinc-500 dark:text-zinc-400">Purpose</dt>
+                                <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $request->purpose_label }}</dd>
+                            </div>
+                        @endif
                         <div>
                             <dt class="text-zinc-500 dark:text-zinc-400">Created</dt>
                             <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $request->created_at->format('d M Y H:i') }}</dd>
@@ -115,6 +126,61 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
                     @endif
                 </div>
             </div>
+
+            {{-- Self-Defence Firearm Details --}}
+            @if($request->isSelfDefence())
+                <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+                        <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Firearm Details</h2>
+                    </div>
+                    <div class="p-6">
+                        <dl class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <dt class="text-zinc-500 dark:text-zinc-400">Type</dt>
+                                <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $request->firearm_type_label }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-zinc-500 dark:text-zinc-400">Make / Model</dt>
+                                <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ trim($request->firearm_make . ' ' . $request->firearm_model) }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-zinc-500 dark:text-zinc-400">Calibre</dt>
+                                <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $request->firearm_calibre }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-zinc-500 dark:text-zinc-400">Serial Number</dt>
+                                <dd class="mt-1 font-mono font-medium text-zinc-900 dark:text-white">{{ $request->firearm_serial ?: 'To be confirmed' }}</dd>
+                            </div>
+                            @if($request->motivation_note)
+                                <div class="col-span-2">
+                                    <dt class="text-zinc-500 dark:text-zinc-400">Motivation Note</dt>
+                                    <dd class="mt-1 text-zinc-900 dark:text-white">{{ $request->motivation_note }}</dd>
+                                </div>
+                            @endif
+                        </dl>
+                    </div>
+                </div>
+
+                {{-- Acknowledgements --}}
+                @if($request->acknowledgements->count() > 0)
+                    <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+                        <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+                            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Your Acknowledgements</h2>
+                            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Accepted {{ $request->acknowledgements->first()->accepted_at?->format('d M Y H:i') }}</p>
+                        </div>
+                        <div class="p-6 space-y-3">
+                            @foreach($request->acknowledgements as $ack)
+                                <div class="flex items-start gap-3">
+                                    <svg class="w-5 h-5 text-emerald-500 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <span class="text-sm text-zinc-700 dark:text-zinc-300">{{ $ack->clause_text }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+            @endif
 
             {{-- Firearm Details --}}
             @if($request->firearm)

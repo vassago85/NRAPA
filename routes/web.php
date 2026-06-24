@@ -553,6 +553,8 @@ Route::middleware(['auth', 'verified', 'membership.required', 'terms.accepted'])
     // Endorsement Letters
     Route::livewire('endorsements', 'pages::member.endorsements.index')->name('member.endorsements.index');
     Route::livewire('endorsements/create', 'pages::member.endorsements.create')->name('member.endorsements.create');
+    // Self-defence supporting-letter variant (registered before the {request} catch-all)
+    Route::livewire('endorsements/self-defence', 'pages::member.endorsements.self-defence')->name('member.endorsements.self-defence');
     Route::livewire('endorsements/{request}/edit', 'pages::member.endorsements.create')->name('member.endorsements.edit');
     Route::livewire('endorsements/{request}', 'pages::member.endorsements.show')->name('member.endorsements.show');
 

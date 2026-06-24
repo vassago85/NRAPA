@@ -207,12 +207,23 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Requests - Admin')] cl
                                 </div>
                             </td>
                             <td class="px-6 py-4">
-                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $request->request_type === 'new' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' }}">
-                                    {{ $request->request_type_label }}
-                                </span>
+                                @if($request->isSelfDefence())
+                                    <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
+                                        Self-Defence
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $request->request_type === 'new' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' }}">
+                                        {{ $request->request_type_label }}
+                                    </span>
+                                @endif
                             </td>
                             <td class="px-6 py-4">
-                                @if($request->firearm)
+                                @if($request->isSelfDefence())
+                                    <p class="text-sm text-zinc-900 dark:text-white">{{ $request->firearm_type_label }}</p>
+                                    @if($request->firearm_calibre)
+                                        <p class="text-xs text-zinc-500">{{ $request->firearm_calibre }}</p>
+                                    @endif
+                                @elseif($request->firearm)
                                     <p class="text-sm text-zinc-900 dark:text-white">{{ $request->firearm->category_label }}</p>
                                     @if($request->firearm->calibre_display)
                                         <p class="text-xs text-zinc-500">{{ $request->firearm->calibre_display }}</p>

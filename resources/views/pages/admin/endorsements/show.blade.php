@@ -53,6 +53,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             'documents',
             'reviewer',
             'issuer',
+            'acknowledgements',
         ];
         
         // Only load comments if the table exists
@@ -954,6 +955,67 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                     @endif
                 </div>
             </div>
+
+            {{-- Self-Defence Firearm + Acknowledgements --}}
+            @if($request->isSelfDefence())
+                <div class="bg-white dark:bg-zinc-900 rounded-2xl border border-indigo-200 dark:border-indigo-800 shadow-sm overflow-hidden">
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 bg-indigo-50/50 dark:bg-indigo-900/10">
+                        <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Self-Defence Firearm (Section 13)</h2>
+                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">Self-Defence Letter</span>
+                    </div>
+                    <div class="p-6">
+                        <dl class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <dt class="text-zinc-500">Type</dt>
+                                <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->firearm_type_label }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-zinc-500">Make / Model</dt>
+                                <dd class="font-medium text-zinc-900 dark:text-white">{{ trim($request->firearm_make . ' ' . $request->firearm_model) }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-zinc-500">Calibre</dt>
+                                <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->firearm_calibre }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-zinc-500">Serial Number</dt>
+                                <dd class="font-mono font-medium text-zinc-900 dark:text-white">{{ $request->firearm_serial ?: 'To be confirmed' }}</dd>
+                            </div>
+                            @if($request->motivation_note)
+                                <div class="col-span-2">
+                                    <dt class="text-zinc-500">Member Motivation Note</dt>
+                                    <dd class="mt-1 text-zinc-900 dark:text-white">{{ $request->motivation_note }}</dd>
+                                </div>
+                            @endif
+                        </dl>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                        <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Member Acknowledgements</h2>
+                        @if($request->acknowledgements->count() > 0)
+                            @php $firstAck = $request->acknowledgements->first(); @endphp
+                            <p class="mt-1 text-xs text-zinc-500">
+                                Accepted {{ $firstAck->accepted_at?->format('d M Y H:i') }}
+                                @if($firstAck->ip_address) · IP {{ $firstAck->ip_address }} @endif
+                            </p>
+                        @endif
+                    </div>
+                    <div class="p-6 space-y-3">
+                        @forelse($request->acknowledgements as $ack)
+                            <div class="flex items-start gap-3">
+                                <svg class="w-5 h-5 {{ $ack->accepted ? 'text-emerald-500' : 'text-zinc-300' }} mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                                <span class="text-sm text-zinc-700 dark:text-zinc-300">{{ $ack->clause_text }}</span>
+                            </div>
+                        @empty
+                            <p class="text-sm text-zinc-500">No acknowledgements recorded.</p>
+                        @endforelse
+                    </div>
+                </div>
+            @endif
 
             {{-- Firearm Details --}}
             @if($request->firearm)
