@@ -2,6 +2,9 @@
 
 use App\Models\EndorsementAcknowledgement;
 use App\Models\EndorsementRequest;
+use App\Models\FirearmCalibre;
+use App\Models\FirearmMake;
+use App\Models\FirearmModel;
 use App\Models\MembershipType;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -56,6 +59,73 @@ new #[Layout('layouts.app.sidebar')] #[Title('Self-Defence Supporting Letter')] 
     public function clauseTexts(): array
     {
         return EndorsementRequest::selfDefenceClauses();
+    }
+
+    /**
+     * Resolve the typed make name to a reference make id (if it matches one).
+     */
+    protected function matchedMakeId(): ?int
+    {
+        $name = trim($this->firearmMake);
+        if ($name === '') {
+            return null;
+        }
+
+        return FirearmMake::active()
+            ->where('normalized_name', FirearmMake::normalize($name))
+            ->value('id');
+    }
+
+    #[Computed]
+    public function makeSuggestions()
+    {
+        $term = trim($this->firearmMake);
+        if (strlen($term) < 1) {
+            return collect();
+        }
+
+        return FirearmMake::active()
+            ->search($term)
+            ->orderBy('name')
+            ->limit(8)
+            ->get();
+    }
+
+    #[Computed]
+    public function modelSuggestions()
+    {
+        $term = trim($this->firearmModel);
+        if (strlen($term) < 1) {
+            return collect();
+        }
+
+        $query = FirearmModel::active()->search($term);
+
+        // Narrow to the selected make when the typed make matches a known one.
+        $makeId = $this->matchedMakeId();
+        if ($makeId) {
+            $query->forMake($makeId);
+        }
+
+        return $query->orderBy('name')->limit(8)->get();
+    }
+
+    #[Computed]
+    public function calibreSuggestions()
+    {
+        $term = trim($this->firearmCalibre);
+        if (strlen($term) < 1) {
+            return collect();
+        }
+
+        $query = FirearmCalibre::active()->notObsolete()->search($term);
+
+        // Filter by firearm type where it maps cleanly to a calibre category.
+        if (in_array($this->firearmType, ['handgun', 'rifle', 'shotgun'], true)) {
+            $query->where('category', $this->firearmType);
+        }
+
+        return $query->orderBy('name')->limit(8)->get();
     }
 
     #[Computed]
@@ -213,25 +283,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Self-Defence Supporting Letter')] 
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-1">Firearm Details</h2>
                 <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4">The firearm you are applying to license for self-defence.</p>
 
+                <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-4">Start typing to search the NRAPA reference list. If your firearm isn't listed, just type it in &mdash; your entry will still be used.</p>
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Make <span class="text-red-500">*</span></label>
-                        <input type="text" wire:model="firearmMake" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white" />
-                        @error('firearmMake') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Model <span class="text-red-500">*</span></label>
-                        <input type="text" wire:model="firearmModel" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white" />
-                        @error('firearmModel') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Calibre <span class="text-red-500">*</span></label>
-                        <input type="text" wire:model="firearmCalibre" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white" />
-                        @error('firearmCalibre') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                    </div>
-                    <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Type <span class="text-red-500">*</span></label>
-                        <select wire:model="firearmType" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                        <select wire:model.live="firearmType" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
                             <option value="">Select type…</option>
                             @foreach(EndorsementRequest::getSelfDefenceFirearmTypeOptions() as $value => $label)
                                 <option value="{{ $value }}">{{ $label }}</option>
@@ -239,6 +295,55 @@ new #[Layout('layouts.app.sidebar')] #[Title('Self-Defence Supporting Letter')] 
                         </select>
                         @error('firearmType') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                     </div>
+
+                    {{-- Make (searchable) --}}
+                    <div x-data="{ open: false }" @click.away="open = false" class="relative">
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Make <span class="text-red-500">*</span></label>
+                        <input type="text" wire:model.live.debounce.250ms="firearmMake" @focus="open = true" autocomplete="off" placeholder="Start typing…"
+                            class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white" />
+                        <div x-show="open" x-cloak class="absolute z-30 mt-1 w-full max-h-56 overflow-auto rounded-lg border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 shadow-lg">
+                            @forelse($this->makeSuggestions as $m)
+                                <button type="button" @mousedown.prevent="$wire.set('firearmMake', @js($m->name)); open = false"
+                                    class="block w-full text-left px-3 py-2 text-sm text-zinc-700 dark:text-zinc-200 hover:bg-nrapa-blue/10">{{ $m->name }}</button>
+                            @empty
+                                <div class="px-3 py-2 text-xs text-zinc-500 dark:text-zinc-400">No matches — your typed value will be used.</div>
+                            @endforelse
+                        </div>
+                        @error('firearmMake') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    </div>
+
+                    {{-- Model (searchable) --}}
+                    <div x-data="{ open: false }" @click.away="open = false" class="relative">
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Model <span class="text-red-500">*</span></label>
+                        <input type="text" wire:model.live.debounce.250ms="firearmModel" @focus="open = true" autocomplete="off" placeholder="Start typing…"
+                            class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white" />
+                        <div x-show="open" x-cloak class="absolute z-30 mt-1 w-full max-h-56 overflow-auto rounded-lg border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 shadow-lg">
+                            @forelse($this->modelSuggestions as $m)
+                                <button type="button" @mousedown.prevent="$wire.set('firearmModel', @js($m->name)); open = false"
+                                    class="block w-full text-left px-3 py-2 text-sm text-zinc-700 dark:text-zinc-200 hover:bg-nrapa-blue/10">{{ $m->name }}</button>
+                            @empty
+                                <div class="px-3 py-2 text-xs text-zinc-500 dark:text-zinc-400">No matches — your typed value will be used.</div>
+                            @endforelse
+                        </div>
+                        @error('firearmModel') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    </div>
+
+                    {{-- Calibre (searchable) --}}
+                    <div x-data="{ open: false }" @click.away="open = false" class="relative">
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Calibre <span class="text-red-500">*</span></label>
+                        <input type="text" wire:model.live.debounce.250ms="firearmCalibre" @focus="open = true" autocomplete="off" placeholder="Start typing…"
+                            class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white" />
+                        <div x-show="open" x-cloak class="absolute z-30 mt-1 w-full max-h-56 overflow-auto rounded-lg border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 shadow-lg">
+                            @forelse($this->calibreSuggestions as $c)
+                                <button type="button" @mousedown.prevent="$wire.set('firearmCalibre', @js($c->name)); open = false"
+                                    class="block w-full text-left px-3 py-2 text-sm text-zinc-700 dark:text-zinc-200 hover:bg-nrapa-blue/10">{{ $c->name }}</button>
+                            @empty
+                                <div class="px-3 py-2 text-xs text-zinc-500 dark:text-zinc-400">No matches — your typed value will be used.</div>
+                            @endforelse
+                        </div>
+                        @error('firearmCalibre') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    </div>
+
                     <div class="sm:col-span-2">
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Serial Number <span class="text-zinc-400 font-normal">(optional — may be unknown at application stage)</span></label>
                         <input type="text" wire:model="firearmSerial" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white" />
@@ -260,23 +365,28 @@ new #[Layout('layouts.app.sidebar')] #[Title('Self-Defence Supporting Letter')] 
                 <div class="space-y-3">
                     @foreach($this->clauseTexts as $key => $text)
                         <label class="flex items-start gap-3 p-3 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700/30 cursor-pointer">
-                            <input type="checkbox" wire:model="clauses.{{ $key }}" class="mt-1 h-4 w-4 rounded border-zinc-300 text-nrapa-blue focus:ring-nrapa-blue shrink-0" />
+                            <input type="checkbox" wire:model.live="clauses.{{ $key }}" class="mt-1 h-4 w-4 rounded border-zinc-300 text-nrapa-blue focus:ring-nrapa-blue shrink-0" />
                             <span class="text-sm text-zinc-700 dark:text-zinc-300">{{ $text }}</span>
                         </label>
                     @endforeach
                 </div>
             </div>
 
-            <div class="flex items-center justify-between gap-4">
-                <a href="{{ route('member.endorsements.index') }}" wire:navigate class="text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white">
-                    Cancel
-                </a>
-                <button type="submit"
-                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                    @disabled(! $this->allClausesAccepted)>
-                    <span wire:loading.remove wire:target="submit">Submit Request</span>
-                    <span wire:loading wire:target="submit">Submitting…</span>
-                </button>
+            <div class="flex flex-col items-end gap-2">
+                @unless($this->allClausesAccepted)
+                    <p class="text-xs text-amber-600 dark:text-amber-400">Tick all acknowledgement clauses above to enable submission.</p>
+                @endunless
+                <div class="flex items-center justify-between gap-4 w-full">
+                    <a href="{{ route('member.endorsements.index') }}" wire:navigate class="text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white">
+                        Cancel
+                    </a>
+                    <button type="submit"
+                        class="inline-flex items-center gap-2 px-5 py-2.5 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                        @disabled(! $this->allClausesAccepted)>
+                        <span wire:loading.remove wire:target="submit">Submit Request</span>
+                        <span wire:loading wire:target="submit">Submitting…</span>
+                    </button>
+                </div>
             </div>
         </form>
     @endif
