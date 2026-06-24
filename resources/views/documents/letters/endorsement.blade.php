@@ -90,7 +90,7 @@
         $sdType = $request->firearm_type_label;
         $sdMakeModel = trim(($request->firearm_make ?? '') . ' ' . ($request->firearm_model ?? ''));
         $sdCalibre = $request->firearm_calibre;
-        $sdSerial = $request->firearm_serial ? strtoupper($request->firearm_serial) : 'Serial to be confirmed';
+        $sdSerial = $request->firearm_serial ?: 'Serial to be confirmed';
     @endphp
     <div class="card components-card">
         <div class="card-title">Firearm This Letter Relates To</div>

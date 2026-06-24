@@ -17,7 +17,9 @@ new #[Layout('layouts.app.sidebar')] #[Title('Self-Defence Supporting Letter')] 
     public string $firearmModel = '';
     public string $firearmCalibre = '';
     public string $firearmType = '';
-    public string $firearmSerial = '';
+    public string $firearmBarrelSerial = '';
+    public string $firearmFrameSerial = '';
+    public string $firearmReceiverSerial = '';
     public string $motivationNote = '';
 
     /** Per-clause acceptance, keyed by clause_key. */
@@ -154,13 +156,15 @@ new #[Layout('layouts.app.sidebar')] #[Title('Self-Defence Supporting Letter')] 
         }
 
         // 2. Validate the firearm fields.
-        $validated = $this->validate([
+        $this->validate([
             'applicationType' => 'required|in:new,renewal',
             'firearmMake' => 'required|string|max:255',
             'firearmModel' => 'required|string|max:255',
             'firearmCalibre' => 'required|string|max:255',
             'firearmType' => 'required|in:handgun,rifle,shotgun',
-            'firearmSerial' => 'nullable|string|max:255',
+            'firearmBarrelSerial' => 'nullable|string|max:255',
+            'firearmFrameSerial' => 'nullable|string|max:255',
+            'firearmReceiverSerial' => 'nullable|string|max:255',
             'motivationNote' => 'nullable|string|max:2000',
         ], [], [
             'firearmMake' => 'firearm make',
@@ -168,6 +172,19 @@ new #[Layout('layouts.app.sidebar')] #[Title('Self-Defence Supporting Letter')] 
             'firearmCalibre' => 'firearm calibre',
             'firearmType' => 'firearm type',
         ]);
+
+        // At least one serial number (barrel, frame, or receiver) is required.
+        $serials = array_filter([
+            'Barrel' => trim($this->firearmBarrelSerial),
+            'Frame' => trim($this->firearmFrameSerial),
+            'Receiver' => trim($this->firearmReceiverSerial),
+        ], fn ($v) => $v !== '');
+        if (empty($serials)) {
+            $this->addError('firearmBarrelSerial', 'Enter at least one serial number (barrel, frame, or receiver).');
+
+            return;
+        }
+        $serialString = collect($serials)->map(fn ($v, $k) => "{$k}: {$v}")->implode(', ');
 
         // 3. Every clause must be individually accepted.
         if (! $this->allClausesAccepted) {
@@ -198,7 +215,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Self-Defence Supporting Letter')] 
             'firearm_model' => $this->firearmModel,
             'firearm_calibre' => $this->firearmCalibre,
             'firearm_type' => $this->firearmType,
-            'firearm_serial' => $this->firearmSerial ?: null,
+            'firearm_serial' => $serialString,
             'motivation_note' => $this->motivationNote ?: null,
             'declaration_accepted_at' => $now,
             'declaration_text' => implode("\n\n", $clauseTexts),
@@ -370,9 +387,23 @@ new #[Layout('layouts.app.sidebar')] #[Title('Self-Defence Supporting Letter')] 
                     </div>
 
                     <div class="sm:col-span-2">
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Serial Number <span class="text-zinc-400 font-normal">(optional — may be unknown at application stage)</span></label>
-                        <input type="text" wire:model="firearmSerial" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white" />
-                        @error('firearmSerial') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Serial Number(s) <span class="text-red-500">*</span></label>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-2">Enter at least one serial number. A firearm may carry a serial on the barrel, frame and/or receiver &mdash; complete whichever apply.</p>
+                        <div class="grid gap-3 sm:grid-cols-3">
+                            <div>
+                                <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">Barrel Serial</label>
+                                <input type="text" wire:model="firearmBarrelSerial" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">Frame Serial</label>
+                                <input type="text" wire:model="firearmFrameSerial" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">Receiver Serial</label>
+                                <input type="text" wire:model="firearmReceiverSerial" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white" />
+                            </div>
+                        </div>
+                        @error('firearmBarrelSerial') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                     </div>
                     <div class="sm:col-span-2">
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Motivation Note <span class="text-zinc-400 font-normal">(optional)</span></label>
