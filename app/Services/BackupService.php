@@ -392,11 +392,29 @@ class BackupService
         $disk = Storage::disk($diskName);
         $remotePath = "backups/{$backupName}.zip";
 
-        // Read file and upload
-        $fileContents = File::get($zipPath);
-        $disk->put($remotePath, $fileContents);
+        // Stream the archive to avoid loading the whole (potentially large) zip
+        // into memory, which can blow PHP's memory_limit and abort the upload.
+        $stream = fopen($zipPath, 'r');
+        if ($stream === false) {
+            throw new Exception("Unable to open backup archive for upload: {$zipPath}");
+        }
 
-        Log::info("Backup: Full backup uploaded to {$diskName}", ['path' => $remotePath]);
+        try {
+            $written = $disk->writeStream($remotePath, $stream);
+        } finally {
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }
+
+        if ($written === false || ! $disk->exists($remotePath)) {
+            throw new Exception("Backup upload to {$diskName} did not complete (path: {$remotePath}).");
+        }
+
+        Log::info("Backup: Full backup uploaded to {$diskName}", [
+            'path' => $remotePath,
+            'bytes' => $disk->size($remotePath),
+        ]);
 
         // Generate signed URL for download (valid for 1 hour)
         try {
