@@ -12,6 +12,12 @@ use ZipArchive;
 
 class BackupService
 {
+    /** Cached resolved backup disk name (null = local only). */
+    protected ?string $resolvedBackupDisk = null;
+
+    /** Whether the backup disk has been resolved this instance. */
+    protected bool $backupDiskResolved = false;
+
     /**
      * Create a complete backup of the system.
      *
@@ -294,49 +300,77 @@ class BackupService
     /**
      * Resolve the best available cloud disk for backups.
      *
-     * Priority: r2_backup (dedicated bucket) > r2 > s3 > local
-     * Returns the disk name string, or null if only local is available.
+     * Priority: r2_backup (dedicated bucket) > r2 > s3 > local.
+     * Each candidate is probed with a real write so a configured-but-missing or
+     * unwritable bucket (e.g. a dedicated backup bucket that was never created in
+     * R2) is skipped and the next working disk is used instead of hard-failing.
+     * Returns the disk name string, or null if only local is available. Result is
+     * cached so list/upload/cleanup all agree on the same disk.
      */
     protected function getBackupDisk(): ?string
     {
+        if ($this->backupDiskResolved) {
+            return $this->resolvedBackupDisk;
+        }
+
         // Apply any database-stored backup bucket config at runtime
         $this->applyBackupBucketConfig();
 
-        // 1. Try dedicated R2 backup bucket (preferred)
+        $candidates = [];
         if (config('filesystems.disks.r2_backup.key') && config('filesystems.disks.r2_backup.bucket')) {
-            try {
-                Storage::disk('r2_backup')->path('');
-
-                return 'r2_backup';
-            } catch (Exception $e) {
-                Log::warning('Backup: R2 backup disk unavailable, trying fallback', ['error' => $e->getMessage()]);
-            }
+            $candidates[] = 'r2_backup';
         }
-
-        // 2. Try main R2 bucket
         if (config('filesystems.disks.r2.key') && config('filesystems.disks.r2.bucket')) {
-            try {
-                Storage::disk('r2')->path('');
-
-                return 'r2';
-            } catch (Exception $e) {
-                Log::warning('Backup: R2 disk unavailable, trying fallback', ['error' => $e->getMessage()]);
-            }
+            $candidates[] = 'r2';
         }
-
-        // 3. Try S3/MinIO
         if (config('filesystems.disks.s3.key') && config('filesystems.disks.s3.bucket')) {
-            try {
-                Storage::disk('s3')->path('');
-
-                return 's3';
-            } catch (Exception $e) {
-                Log::warning('Backup: S3 disk unavailable, falling back to local', ['error' => $e->getMessage()]);
-            }
+            $candidates[] = 's3';
         }
 
-        // 4. No cloud disk available
+        foreach ($candidates as $diskName) {
+            if ($this->diskIsWritable($diskName)) {
+                $this->resolvedBackupDisk = $diskName;
+                $this->backupDiskResolved = true;
+
+                return $diskName;
+            }
+
+            Log::warning('Backup: disk not writable, trying next', [
+                'disk' => $diskName,
+                'bucket' => config("filesystems.disks.{$diskName}.bucket"),
+            ]);
+        }
+
+        // No cloud disk available/writable
+        $this->resolvedBackupDisk = null;
+        $this->backupDiskResolved = true;
+
         return null;
+    }
+
+    /**
+     * Probe a disk by writing and deleting a tiny object. Confirms the bucket
+     * exists and credentials allow writes before we commit a full backup to it.
+     */
+    protected function diskIsWritable(string $diskName): bool
+    {
+        try {
+            $disk = Storage::disk($diskName);
+            $probe = 'backups/.write-test-'.uniqid('', true);
+
+            $disk->put($probe, 'ok');
+            $ok = $disk->exists($probe);
+            $disk->delete($probe);
+
+            return $ok;
+        } catch (\Throwable $e) {
+            Log::warning('Backup: write probe failed', [
+                'disk' => $diskName,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
     }
 
     /**
