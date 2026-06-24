@@ -6,6 +6,7 @@ use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use ZipArchive;
 
@@ -208,12 +209,16 @@ class BackupService
         $csvPath = "{$tempDir}/users.csv";
         $file = fopen($csvPath, 'w');
 
-        // Write CSV header
-        $headers = [
-            'id', 'name', 'email', 'role', 'email_verified_at', 'created_at', 'updated_at',
-            'nominated_by', 'nominated_at', 'phone', 'id_number', 'date_of_birth',
-            'address_line_1', 'address_line_2', 'city', 'province', 'postal_code', 'country',
+        // Derive the column list from the live schema so the export never breaks
+        // when the users table changes. Sensitive/credential fields are excluded.
+        $sensitive = [
+            'password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes',
+            'two_factor_confirmed_at', 'api_token',
         ];
+        $headers = array_values(array_diff(
+            Schema::getColumnListing('users'),
+            $sensitive,
+        ));
         fputcsv($file, $headers);
 
         // Export user data (excluding sensitive fields like password)
