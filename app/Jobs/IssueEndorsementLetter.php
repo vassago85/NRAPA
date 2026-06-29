@@ -30,6 +30,18 @@ class IssueEndorsementLetter implements ShouldQueue, ShouldBeUnique
 
     public int $backoff = 30;
 
+    /**
+     * How long (seconds) the uniqueness lock is held before it auto-expires.
+     *
+     * Without a TTL, a worker that is killed mid-job (e.g. during a deploy /
+     * container recreate) leaves an orphaned lock in the cache forever, which
+     * silently drops every subsequent dispatch — including the admin
+     * "Retry Auto-Generate" button — leaving the endorsement stuck on
+     * "Approved - Letter Pending". A short TTL lets the lock self-heal well
+     * after the job's own timeout/backoff window has elapsed.
+     */
+    public int $uniqueFor = 600;
+
     public function __construct(
         public int $endorsementRequestId,
         public int $adminUserId,
