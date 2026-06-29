@@ -165,7 +165,8 @@ new #[Title('Members - Admin')] class extends Component {
                         ->orWhere('email', 'like', '%' . $this->search . '%')
                         ->orWhere('id_number', 'like', '%' . $this->search . '%')
                         ->orWhereHas('memberships', function ($mq) {
-                            $mq->where('membership_number', 'like', '%' . $this->search . '%');
+                            $mq->where('membership_number', 'like', '%' . $this->search . '%')
+                                ->orWhere('payment_reference', 'like', '%' . $this->search . '%');
                         });
                 });
             })
@@ -201,6 +202,27 @@ new #[Title('Members - Admin')] class extends Component {
                       ->orWhereHas('memberships', fn ($mq) => $mq->where('status', 'active')->whereNotNull('expires_at')->where('expires_at', '<=', now()));
                 })->count(),
             ];
+        });
+    }
+
+    /**
+     * Return the membership this user is currently awaiting payment for (if any),
+     * mirroring the "Awaiting Payment" logic on the Approvals page:
+     * status applied (web/admin) or pending_payment, with no proof of payment
+     * and no confirmed payment yet.
+     */
+    public function getAwaitingPaymentMembership($user)
+    {
+        return $user->memberships->first(function ($membership) {
+            if (! is_null($membership->proof_of_payment_path) || ! is_null($membership->payment_confirmed_at)) {
+                return false;
+            }
+
+            if ($membership->status === 'pending_payment') {
+                return true;
+            }
+
+            return $membership->status === 'applied' && in_array($membership->source, ['web', 'admin']);
         });
     }
 
@@ -413,7 +435,7 @@ new #[Title('Members - Admin')] class extends Component {
             <input
                 type="text"
                 wire:model.live.debounce.300ms="search"
-                placeholder="Search by name, email, ID number, or membership number..."
+                placeholder="Search by name, email, ID number, membership number, or payment reference..."
                 class="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white dark:placeholder-zinc-400"
             >
         </div>
@@ -474,6 +496,7 @@ new #[Title('Members - Admin')] class extends Component {
                     @forelse($this->members as $user)
                     @php
                         $membershipStatus = $this->getMembershipStatus($user);
+                        $awaitingPaymentMembership = $this->getAwaitingPaymentMembership($user);
                     @endphp
                     <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 {{ in_array($user->id, $selectedUserIds) ? 'bg-blue-50 dark:bg-blue-900/10' : '' }}">
                         <td class="w-10 px-4 py-4">
@@ -488,6 +511,12 @@ new #[Title('Members - Admin')] class extends Component {
                                 <div>
                                     <a href="{{ route('admin.members.show', $user) }}" wire:navigate class="font-medium text-blue-600 dark:text-blue-400 hover:underline">{{ $user->name }}</a>
                                     <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ $user->email }}</p>
+                                    @if($awaitingPaymentMembership && $awaitingPaymentMembership->payment_reference)
+                                        <p class="mt-1 inline-flex items-center gap-1.5 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                                            <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                                            Awaiting payment · <span class="font-mono">{{ $awaitingPaymentMembership->payment_reference }}</span>
+                                        </p>
+                                    @endif
                                 </div>
                             </div>
                         </td>
