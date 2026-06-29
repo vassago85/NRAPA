@@ -1069,7 +1069,7 @@ class EndorsementRequest extends Model
         string $letterReference,
         bool $dedicatedStatusCompliant,
         string $dedicatedCategory,
-        ?\Carbon\Carbon $issuedAt = null,
+        ?\Carbon\CarbonInterface $issuedAt = null,
     ): void {
         $this->letter_reference = $letterReference;
         $this->dedicated_status_compliant = $dedicatedStatusCompliant;
