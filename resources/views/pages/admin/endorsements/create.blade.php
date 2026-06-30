@@ -1,7 +1,7 @@
 <?php
 
 use App\Actions\Endorsements\AutoVerifyEndorsementDocuments;
-use App\Jobs\IssueEndorsementLetter;
+use App\Services\EndorsementLetterIssuer;
 use App\Models\AuditLog;
 use App\Models\EndorsementFirearm;
 use App\Models\EndorsementRequest;
@@ -157,19 +157,19 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
 
             $dedicatedCategory = $this->dedicatedCategory ?: 'Dedicated Sport Shooter';
 
-            IssueEndorsementLetter::dispatch(
-                $request->id,
-                $admin->id,
+            app(EndorsementLetterIssuer::class)->issueApprovedLetter(
+                $request,
+                $admin,
                 $dedicatedCategory,
-                true,
                 true,
                 request()->ip(),
                 request()->userAgent(),
+                true,
                 'admin_create_form',
-            )->afterCommit();
+            );
 
-            session()->flash('success', 'Endorsement created and approved for ' . $request->user->name . '. The letter is being generated — the member will receive it by email shortly.');
-        } catch (\Exception $e) {
+            session()->flash('success', 'Endorsement created and approved for ' . $request->user->name . '. The signed letter has been emailed to the member.');
+        } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('Admin create-and-approve endorsement failed mid-flow', [
                 'request_id' => $request->id,
                 'error' => $e->getMessage(),

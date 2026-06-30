@@ -3,7 +3,7 @@
 use App\Models\EndorsementRequest;
 use App\Models\EndorsementFirearm;
 use App\Models\AuditLog;
-use App\Jobs\IssueEndorsementLetter;
+use App\Services\EndorsementLetterIssuer;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -181,13 +181,22 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
         $category = $this->resolveDedicatedCategory();
         $this->selectedDedicatedCategory = $category;
 
-        $this->dispatchIssueEndorsementLetter(
-            dedicatedCategory: $category,
-            dedicatedStatusCompliant: true,
-            autoIssued: true,
-        );
+        try {
+            $this->dispatchIssueEndorsementLetter(
+                dedicatedCategory: $category,
+                dedicatedStatusCompliant: true,
+                autoIssued: true,
+            );
 
-        session()->flash('success', 'Endorsement approved. The letter is being generated — the member will receive it by email shortly.');
+            session()->flash('success', 'Endorsement approved and letter issued — the member has been emailed the letter.');
+        } catch (\Throwable $e) {
+            Log::error('Auto-issue endorsement letter failed', [
+                'request_id' => $this->request->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            session()->flash('error', 'Endorsement approved, but letter generation failed: ' . $e->getMessage() . ' — use "Retry Auto-Generate" to try again.');
+        }
     }
 
     protected function resolveDedicatedCategory(): string
@@ -210,22 +219,32 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
         return $category;
     }
 
+    /**
+     * Render and issue the endorsement letter synchronously.
+     *
+     * Previously this queued IssueEndorsementLetter, but the queued path proved
+     * unreliable in production — jobs silently failed to complete (and were not
+     * recorded as failed), leaving endorsements stuck on "Approved - Letter
+     * Pending". Rendering is fast and is the same in-request path certificates
+     * and welcome letters already use successfully, so we issue inline and let
+     * the caller surface any error.
+     */
     protected function dispatchIssueEndorsementLetter(
         string $dedicatedCategory,
         bool $dedicatedStatusCompliant,
         bool $autoIssued = false,
         ?string $issuedVia = null,
     ): void {
-        IssueEndorsementLetter::dispatch(
-            $this->request->id,
-            auth()->id(),
+        app(EndorsementLetterIssuer::class)->issueApprovedLetter(
+            $this->request,
+            auth()->user(),
             $dedicatedCategory,
             $dedicatedStatusCompliant,
-            $autoIssued,
             request()->ip(),
             request()->userAgent(),
+            $autoIssued,
             $issuedVia,
-        )->afterCommit();
+        );
     }
 
     #[Computed]
@@ -366,9 +385,9 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             );
 
             $this->showIssueModal = false;
-            session()->flash('success', 'Endorsement letter is being generated — the member will receive it by email shortly.');
+            session()->flash('success', 'Endorsement letter issued — the member has been emailed the letter.');
             $this->request->refresh();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Failed to generate endorsement letter', [
                 'request_id' => $this->request->id,
                 'error' => $e->getMessage(),
