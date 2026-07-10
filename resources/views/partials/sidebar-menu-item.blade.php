@@ -104,7 +104,7 @@
                 <a 
                     href="{{ route($childRoute, $childParams ?? []) }}" 
                     wire:navigate 
-                    @click="sidebarOpen = false"
+                    @click="$dispatch('close-sidebar')"
                     class="flex items-center justify-between gap-3 px-3 py-2 text-sm rounded-lg transition-colors {{ $childActive ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-white' : 'text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700' }}"
                 >
                     <span>{{ $child['label'] }}</span>
@@ -120,7 +120,7 @@
     <a 
         href="{{ $route ? route($route, $routeParams ?? []) : '#' }}" 
         wire:navigate 
-        @click="sidebarOpen = false"
+        @click="$dispatch('close-sidebar')"
         class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors {{ $isActive ? 'bg-zinc-200 dark:bg-zinc-700 dark:bg-nrapa-blue/15 text-zinc-900 dark:text-white' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700' }}"
     >
         @if($iconPath)

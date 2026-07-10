@@ -24,7 +24,23 @@
         </script>
         @include('partials.head')
     </head>
-    <body class="min-h-screen bg-zinc-100 dark:bg-zinc-900" x-data="{ sidebarOpen: false }">
+    <body
+        class="min-h-screen bg-zinc-100 dark:bg-zinc-900"
+        x-data="{
+            sidebarOpen: false,
+            openSidebar() {
+                this.sidebarOpen = true;
+                document.documentElement.classList.add('overflow-hidden');
+            },
+            closeSidebar() {
+                this.sidebarOpen = false;
+                document.documentElement.classList.remove('overflow-hidden');
+            },
+        }"
+        @close-sidebar.window="closeSidebar()"
+        @keydown.escape.window="closeSidebar()"
+        x-on:livewire:navigated.window="closeSidebar()"
+    >
         {{-- Impersonation Banner --}}
         @if(session('impersonating_from'))
             <div class="bg-red-600 text-white px-4 py-2 text-center text-sm">
@@ -46,23 +62,26 @@
                 x-transition:leave-start="opacity-100"
                 x-transition:leave-end="opacity-0"
                 class="fixed inset-0 z-40 bg-zinc-900/80 lg:hidden" 
-                @click="sidebarOpen = false"
+                @click="closeSidebar()"
                 x-cloak
             ></div>
 
-            <!-- Sidebar -->
+            <!-- Sidebar
+                 Default -translate-x-full so the drawer stays off-screen even if Alpine
+                 is slow/unavailable (otherwise mobile users see a stuck-open sidebar).
+                 !translate-x-0 wins over the default when opened. -->
             <aside 
-                :class="{ 'translate-x-0': sidebarOpen, '-translate-x-full': !sidebarOpen }"
-                class="fixed inset-y-0 left-0 z-50 w-72 flex flex-col bg-zinc-50 dark:bg-zinc-800 border-r border-zinc-200 dark:border-zinc-700 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:w-64 lg:flex-shrink-0"
+                :class="{ '!translate-x-0': sidebarOpen }"
+                class="fixed inset-y-0 left-0 z-50 w-72 flex flex-col bg-zinc-50 dark:bg-zinc-800 border-r border-zinc-200 dark:border-zinc-700 -translate-x-full transform transition-transform duration-300 ease-in-out lg:!translate-x-0 lg:static lg:w-64 lg:flex-shrink-0"
             >
                 
                 <!-- Logo -->
                 <div class="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-700 flex-shrink-0">
-                    <a href="{{ route('dashboard') }}" class="block" wire:navigate @click="sidebarOpen = false">
+                    <a href="{{ route('dashboard') }}" class="block" wire:navigate @click="closeSidebar()">
                         <img src="{{ asset('logo-nrapa-blue-text.png') }}" alt="NRAPA" class="h-10 w-auto object-contain dark:hidden" />
                         <img src="{{ asset('logo-nrapa-wiite_text.png') }}" alt="NRAPA" class="h-10 w-auto object-contain hidden dark:block" />
                     </a>
-                    <button @click="sidebarOpen = false" class="lg:hidden p-2 -mr-2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700">
+                    <button type="button" @click="closeSidebar()" class="lg:hidden p-2 -mr-2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
@@ -137,7 +156,7 @@
                     </div>
                     
                     <div class="mt-3 flex gap-2">
-                        <a href="{{ route('profile.edit') }}" wire:navigate @click="sidebarOpen = false" class="flex-1 px-3 py-2 text-xs font-medium text-center text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
+                        <a href="{{ route('profile.edit') }}" wire:navigate @click="closeSidebar()" class="flex-1 px-3 py-2 text-xs font-medium text-center text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
                             Settings
                         </a>
                         <form method="POST" action="{{ route('logout') }}" class="flex-1">
@@ -154,7 +173,7 @@
             <div class="flex-1 flex flex-col min-h-screen">
                 <!-- Mobile Header -->
                 <header class="sticky top-0 z-30 flex items-center justify-between h-16 px-4 bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-600 lg:hidden">
-                    <button @click="sidebarOpen = true" class="p-2 -ml-2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
+                    <button type="button" @click="openSidebar()" class="p-2 -ml-2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                         </svg>
