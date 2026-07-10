@@ -158,7 +158,10 @@ new #[Title('Members - Admin')] class extends Component {
     public function members()
     {
         return User::query()
-            ->with(['memberships.type', 'activeMembership.type'])
+            ->with([
+                'memberships' => fn ($q) => $q->with('type')->latest('id'),
+                'activeMembership.type',
+            ])
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
                     $q->where('name', 'like', '%' . $this->search . '%')
@@ -177,9 +180,37 @@ new #[Title('Members - Admin')] class extends Component {
                 $query->whereHas('memberships', fn ($q) => $q->where('status', 'applied'));
             })
             ->when($this->status === 'expired', function ($query) {
+                // Match the Status badge: only members whose *current* membership is expired.
+                // Having an old expired row must not pull in someone who later renewed/activated.
                 $query->where(function ($q) {
-                    $q->whereHas('memberships', fn ($mq) => $mq->where('status', 'expired'))
-                      ->orWhereHas('memberships', fn ($mq) => $mq->where('status', 'active')->whereNotNull('expires_at')->where('expires_at', '<=', now()));
+                    // Case 1: has status=active membership(s), but none are still valid
+                    // (activeMembership exists but expires_at is past → badge shows Expired)
+                    $q->where(function ($inner) {
+                        $inner->whereHas('memberships', fn ($mq) => $mq->where('status', 'active'))
+                            ->whereDoesntHave('memberships', fn ($mq) => $mq
+                                ->where('status', 'active')
+                                ->where(fn ($sq) => $sq->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+                            );
+                    })
+                    // Case 2: no active memberships at all, and the most recent membership is expired
+                    ->orWhere(function ($inner) {
+                        $inner->whereDoesntHave('memberships', fn ($mq) => $mq->where('status', 'active'))
+                            ->whereRaw(
+                                'EXISTS (
+                                    SELECT 1 FROM memberships AS latest
+                                    WHERE latest.user_id = users.id
+                                      AND latest.deleted_at IS NULL
+                                      AND latest.status = ?
+                                      AND latest.id = (
+                                          SELECT MAX(m2.id)
+                                          FROM memberships AS m2
+                                          WHERE m2.user_id = users.id
+                                            AND m2.deleted_at IS NULL
+                                      )
+                                )',
+                                ['expired']
+                            );
+                    });
                 });
             })
             ->when($this->status === 'none', function ($query) {
@@ -192,14 +223,36 @@ new #[Title('Members - Admin')] class extends Component {
     #[Computed]
     public function stats()
     {
-        return \Illuminate\Support\Facades\Cache::remember('admin_members_stats', 120, function () {
+        return \Illuminate\Support\Facades\Cache::remember('admin_members_stats_v2', 120, function () {
             return [
                 'total' => User::where('role', User::ROLE_MEMBER)->count(),
                 'active' => User::whereHas('memberships', fn ($q) => $q->where('status', 'active')->where(fn ($sq) => $sq->whereNull('expires_at')->orWhere('expires_at', '>', now())))->count(),
                 'pending' => User::whereHas('memberships', fn ($q) => $q->where('status', 'applied'))->count(),
-                'expired' => User::where(function ($q) {
-                    $q->whereHas('memberships', fn ($mq) => $mq->where('status', 'expired'))
-                      ->orWhereHas('memberships', fn ($mq) => $mq->where('status', 'active')->whereNotNull('expires_at')->where('expires_at', '<=', now()));
+                'expired' => User::query()->where(function ($q) {
+                    $q->where(function ($inner) {
+                        $inner->whereHas('memberships', fn ($mq) => $mq->where('status', 'active'))
+                            ->whereDoesntHave('memberships', fn ($mq) => $mq
+                                ->where('status', 'active')
+                                ->where(fn ($sq) => $sq->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+                            );
+                    })->orWhere(function ($inner) {
+                        $inner->whereDoesntHave('memberships', fn ($mq) => $mq->where('status', 'active'))
+                            ->whereRaw(
+                                'EXISTS (
+                                    SELECT 1 FROM memberships AS latest
+                                    WHERE latest.user_id = users.id
+                                      AND latest.deleted_at IS NULL
+                                      AND latest.status = ?
+                                      AND latest.id = (
+                                          SELECT MAX(m2.id)
+                                          FROM memberships AS m2
+                                          WHERE m2.user_id = users.id
+                                            AND m2.deleted_at IS NULL
+                                      )
+                                )',
+                                ['expired']
+                            );
+                    });
                 })->count(),
             ];
         });

@@ -137,6 +137,7 @@ class Membership extends Model
                 \Illuminate\Support\Facades\Cache::forget('sidebar_pending_total');
                 \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats');
                 \Illuminate\Support\Facades\Cache::forget('admin_members_stats');
+                \Illuminate\Support\Facades\Cache::forget('admin_members_stats_v2');
 
                 if ($membership->status === 'active') {
                     $user = $membership->user;
