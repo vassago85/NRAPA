@@ -173,6 +173,12 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      # Must match the queue worker. Without this, Mail::later() from scheduled
+      # commands falls back to the database driver while the worker only listens
+      # on redis — leaving renewal emails stuck on "queued" forever.
+      - QUEUE_CONNECTION=redis
+      - CACHE_DRIVER=redis
+      - CACHE_STORE=redis
       # S3/MinIO Storage
       - FILESYSTEM_DISK=s3
       - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER:-nrapa}
@@ -188,6 +194,15 @@ services:
       - CLOUDFLARE_R2_BACKUP_BUCKET=${CLOUDFLARE_R2_BACKUP_BUCKET:-}
       - CLOUDFLARE_R2_ENDPOINT=${CLOUDFLARE_R2_ENDPOINT:-}
       - CLOUDFLARE_R2_REGION=${CLOUDFLARE_R2_REGION:-auto}
+      # Mail Settings (first sync send of each scheduled batch runs in this container)
+      - MAIL_MAILER=${MAIL_MAILER:-smtp}
+      - MAIL_HOST=${MAIL_HOST:-}
+      - MAIL_PORT=${MAIL_PORT:-587}
+      - MAIL_USERNAME=${MAIL_USERNAME:-}
+      - MAIL_PASSWORD=${MAIL_PASSWORD:-}
+      - MAIL_ENCRYPTION=${MAIL_ENCRYPTION:-tls}
+      - MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS:-noreply@nrapa.co.za}
+      - MAIL_FROM_NAME=${MAIL_FROM_NAME:-NRAPA}
       # NTFY Notifications
       - NTFY_URL=${NTFY_URL:-https://ntfy.sh}
       - NTFY_DEVELOPER_TOPIC=${NTFY_DEVELOPER_TOPIC:-}

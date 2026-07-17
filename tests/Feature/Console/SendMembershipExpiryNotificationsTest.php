@@ -64,9 +64,9 @@ test('sends thirty_days reminder when membership expires in 30 days', function (
     $user = makeMember();
     $membership = makeMembership($user, $this->annualType, now()->addDays(30));
 
-    Artisan::call('nrapa:send-membership-expiry-notifications');
+    Artisan::call('nrapa:send-membership-expiry-notifications', ['--throttle' => 0]);
 
-    Mail::assertQueued(MembershipExpiry::class, function ($mail) use ($user) {
+    Mail::assertSent(MembershipExpiry::class, function ($mail) use ($user) {
         return $mail->hasTo($user->email)
             && $mail->kind === MembershipRenewalReminder::KIND_THIRTY_DAYS;
     });
@@ -78,9 +78,9 @@ test('sends seven_days reminder when membership expires in 7 days', function () 
     $user = makeMember();
     $membership = makeMembership($user, $this->annualType, now()->addDays(7));
 
-    Artisan::call('nrapa:send-membership-expiry-notifications');
+    Artisan::call('nrapa:send-membership-expiry-notifications', ['--throttle' => 0]);
 
-    Mail::assertQueued(MembershipExpiry::class, function ($mail) {
+    Mail::assertSent(MembershipExpiry::class, function ($mail) {
         return $mail->kind === MembershipRenewalReminder::KIND_SEVEN_DAYS;
     });
 
@@ -91,21 +91,21 @@ test('compresses on first run: imported member already at 5 days only gets the s
     $user = makeMember();
     $membership = makeMembership($user, $this->annualType, now()->addDays(5));
 
-    Artisan::call('nrapa:send-membership-expiry-notifications');
+    Artisan::call('nrapa:send-membership-expiry-notifications', ['--throttle' => 0]);
 
     expect(MembershipRenewalReminder::where('membership_id', $membership->id)->pluck('kind')->all())
         ->toBe(['seven_days']);
 
-    Mail::assertQueuedCount(1);
+    Mail::assertSentCount(1);
 });
 
 test('sends expired reminder for newly expired membership inside grace period', function () {
     $user = makeMember();
     $membership = makeMembership($user, $this->annualType, now()->subDays(3));
 
-    Artisan::call('nrapa:send-membership-expiry-notifications');
+    Artisan::call('nrapa:send-membership-expiry-notifications', ['--throttle' => 0]);
 
-    Mail::assertQueued(MembershipExpiry::class, function ($mail) {
+    Mail::assertSent(MembershipExpiry::class, function ($mail) {
         return $mail->kind === MembershipRenewalReminder::KIND_EXPIRED;
     });
 });
@@ -120,9 +120,9 @@ test('does not send expired reminder when member has already renewed (active mem
     $new = makeMembership($user, $this->annualType, now()->addYear(), 'active');
     $new->update(['previous_membership_id' => $old->id]);
 
-    Artisan::call('nrapa:send-membership-expiry-notifications');
+    Artisan::call('nrapa:send-membership-expiry-notifications', ['--throttle' => 0]);
 
-    Mail::assertNothingQueued();
+    Mail::assertNothingSent();
     expect(MembershipRenewalReminder::where('membership_id', $old->id)->count())->toBe(0);
 });
 
@@ -130,10 +130,10 @@ test('does not re-send the same bucket on a second run the same day', function (
     $user = makeMember();
     $membership = makeMembership($user, $this->annualType, now()->addDays(7));
 
-    Artisan::call('nrapa:send-membership-expiry-notifications');
-    Artisan::call('nrapa:send-membership-expiry-notifications');
+    Artisan::call('nrapa:send-membership-expiry-notifications', ['--throttle' => 0]);
+    Artisan::call('nrapa:send-membership-expiry-notifications', ['--throttle' => 0]);
 
-    Mail::assertQueuedCount(1);
+    Mail::assertSentCount(1);
     expect(MembershipRenewalReminder::where('membership_id', $membership->id)->count())->toBe(1);
 });
 
@@ -141,9 +141,9 @@ test('skips lifetime memberships entirely', function () {
     $user = makeMember();
     makeMembership($user, $this->lifetimeType, null);
 
-    Artisan::call('nrapa:send-membership-expiry-notifications');
+    Artisan::call('nrapa:send-membership-expiry-notifications', ['--throttle' => 0]);
 
-    Mail::assertNothingQueued();
+    Mail::assertNothingSent();
 });
 
 test('skips members with placeholder phone-fallback email', function () {
@@ -154,9 +154,9 @@ test('skips members with placeholder phone-fallback email', function () {
     ]);
     makeMembership($user, $this->annualType, now()->addDays(7));
 
-    Artisan::call('nrapa:send-membership-expiry-notifications');
+    Artisan::call('nrapa:send-membership-expiry-notifications', ['--throttle' => 0]);
 
-    Mail::assertNothingQueued();
+    Mail::assertNothingSent();
 });
 
 test('skips members who have opted out via notify_membership_expiry = false', function () {
@@ -168,9 +168,9 @@ test('skips members who have opted out via notify_membership_expiry = false', fu
         'notify_membership_expiry' => false,
     ]);
 
-    Artisan::call('nrapa:send-membership-expiry-notifications');
+    Artisan::call('nrapa:send-membership-expiry-notifications', ['--throttle' => 0]);
 
-    Mail::assertNothingQueued();
+    Mail::assertNothingSent();
 });
 
 test('skips memberships expired beyond the grace period', function () {
@@ -178,23 +178,22 @@ test('skips memberships expired beyond the grace period', function () {
     $graceDays = Membership::renewalGracePeriodDays();
     makeMembership($user, $this->annualType, now()->subDays($graceDays + 5), 'expired');
 
-    Artisan::call('nrapa:send-membership-expiry-notifications');
+    Artisan::call('nrapa:send-membership-expiry-notifications', ['--throttle' => 0]);
 
-    Mail::assertNothingQueued();
+    Mail::assertNothingSent();
 });
 
-test('dry-run does not queue mail or write reminder rows', function () {
+test('dry-run does not send mail or write reminder rows', function () {
     $user = makeMember();
     $membership = makeMembership($user, $this->annualType, now()->addDays(7));
 
-    Artisan::call('nrapa:send-membership-expiry-notifications', ['--dry-run' => true]);
+    Artisan::call('nrapa:send-membership-expiry-notifications', ['--dry-run' => true, '--throttle' => 0]);
 
-    Mail::assertNothingQueued();
+    Mail::assertNothingSent();
     expect(MembershipRenewalReminder::where('membership_id', $membership->id)->count())->toBe(0);
 });
 
-test('staggers queued sends so we do not burst Mailgun', function () {
-    // Three members, all hitting the seven_days bucket today.
+test('sends all reminders synchronously so delivery does not depend on the queue', function () {
     $u1 = makeMember();
     $u2 = makeMember();
     $u3 = makeMember();
@@ -202,41 +201,8 @@ test('staggers queued sends so we do not burst Mailgun', function () {
     makeMembership($u2, $this->annualType, now()->addDays(7));
     makeMembership($u3, $this->annualType, now()->addDays(7));
 
-    Artisan::call('nrapa:send-membership-expiry-notifications', ['--throttle' => 5]);
-
-    // First mail goes out immediately (delay = null), the next two are delayed
-    // by 5 and 10 seconds respectively.
-    Mail::assertQueuedCount(3);
-
-    $delays = collect();
-    Mail::assertQueued(MembershipExpiry::class, function ($mail) use ($delays) {
-        $delays->push($mail->delay);
-        return true;
-    });
-
-    $secs = $delays
-        ->map(fn ($d) => $d instanceof \DateTimeInterface
-            ? max(0, $d->getTimestamp() - now()->getTimestamp())
-            : (int) ($d ?? 0))
-        ->sort()
-        ->values()
-        ->all();
-
-    expect($secs[0])->toBe(0);
-    expect($secs[1])->toBeGreaterThanOrEqual(4)->toBeLessThanOrEqual(6);
-    expect($secs[2])->toBeGreaterThanOrEqual(9)->toBeLessThanOrEqual(11);
-});
-
-test('throttle=0 disables staggering', function () {
-    $u1 = makeMember();
-    $u2 = makeMember();
-    makeMembership($u1, $this->annualType, now()->addDays(7));
-    makeMembership($u2, $this->annualType, now()->addDays(7));
-
     Artisan::call('nrapa:send-membership-expiry-notifications', ['--throttle' => 0]);
 
-    Mail::assertQueuedCount(2);
-    Mail::assertQueued(MembershipExpiry::class, function ($mail) {
-        return $mail->delay === null || $mail->delay === 0;
-    });
+    Mail::assertSentCount(3);
+    Mail::assertNothingQueued();
 });

@@ -32,13 +32,15 @@ class SendMembershipExpiryNotifications extends Command
 {
     protected $signature = 'nrapa:send-membership-expiry-notifications
                             {--dry-run : Don\'t send mail or write reminder rows; just report what would happen}
-                            {--throttle=60 : Seconds to stagger between queued sends (default 1 per minute), to keep Mailgun happy on bulk runs}';
+                            {--throttle=60 : Seconds to sleep between sends (default 1 per minute), to keep Mailgun happy on bulk runs}';
 
     protected $description = 'Email members whose membership is expiring soon or has just expired (within the grace period).';
 
     /**
-     * Counter used to compute per-message delay so successive queued mails are
-     * staggered (avoids hammering Mailgun on first run after a bulk import).
+     * Counter of successfully dispatched sends. Used to sleep between messages
+     * so we don't burst Mailgun. Sends are synchronous (Mail::send) — delayed
+     * Mail::later() jobs previously went to the wrong queue from the scheduler
+     * and sat as "queued" forever.
      */
     protected int $sendIndex = 0;
 
@@ -156,19 +158,13 @@ class SendMembershipExpiryNotifications extends Command
             return 'skipped';
         }
 
-        // Stagger successive queued sends so we don't burst-dispatch hundreds of jobs
-        // at Mailgun the moment the worker drains the queue.
-        $delaySeconds = $throttleSeconds * $this->sendIndex;
-        $delayLabel = $delaySeconds > 0 ? sprintf(' (+%ds)', $delaySeconds) : '';
-
         $this->line(sprintf(
-            '  - %s [%s]  %s  expires %s  -> %s%s',
+            '  - %s [%s]  %s  expires %s  -> %s',
             $membership->membership_number ?? "ID#{$membership->id}",
             $kind,
             $user->email,
             $membership->expires_at->format('Y-m-d'),
-            $dryRun ? '[would send]' : 'queueing',
-            $delayLabel
+            $dryRun ? '[would send]' : 'sending'
         ));
 
         if ($dryRun) {
@@ -177,22 +173,23 @@ class SendMembershipExpiryNotifications extends Command
             return 'sent';
         }
 
+        // Sleep between real sends (not before the first) so Mailgun isn't burst.
+        if ($this->sendIndex > 0 && $throttleSeconds > 0) {
+            sleep($throttleSeconds);
+        }
+
         $auditRow = null;
 
         try {
             $mail = new MembershipExpiry($user, $membership, $kind);
 
-            // Audit-trail row BEFORE dispatch. Order matters: a synchronous
-            // Mail::send() fires MessageSent *during* the call, and the
-            // LogSentEmail listener promotes this row to "sent" by matching
-            // (to_email, subject, status='queued'). Writing the row after
-            // dispatch (the old behaviour) meant sync sends left a permanently
-            // "queued" row plus a stray duplicate "sent" row.
+            // Audit-trail row BEFORE send. Order matters: Mail::send() fires
+            // MessageSent *during* the call, and LogSentEmail promotes this row
+            // to "sent" by matching (to_email, subject, status='queued').
             $renderedBody = null;
             try {
                 $renderedBody = $mail->render();
             } catch (\Throwable $e) {
-                // Rendering failure shouldn't break dispatch; we'll log without body.
                 Log::warning('Could not render MembershipExpiry body for audit row', [
                     'user_id' => $user->id,
                     'membership_id' => $membership->id,
@@ -212,16 +209,15 @@ class SendMembershipExpiryNotifications extends Command
                     'membership_number' => $membership->membership_number,
                     'kind' => $kind,
                     'expires_at' => $membership->expires_at->toDateString(),
-                    'delay_seconds' => $delaySeconds,
+                    'throttle_seconds' => $throttleSeconds,
                 ],
                 status: 'queued',
             );
 
-            if ($delaySeconds > 0) {
-                Mail::to($user->email)->later(now()->addSeconds($delaySeconds), $mail);
-            } else {
-                Mail::to($user->email)->send($mail);
-            }
+            // Always send synchronously. Mail::later() depended on the queue
+            // worker seeing the job; when the scheduler used a different queue
+            // connection those jobs never ran and sat as "queued" for days.
+            Mail::to($user->email)->send($mail);
 
             MembershipRenewalReminder::create([
                 'membership_id' => $membership->id,
@@ -229,12 +225,11 @@ class SendMembershipExpiryNotifications extends Command
                 'sent_at' => now(),
             ]);
 
-            Log::info('Membership expiry notification queued', [
+            Log::info('Membership expiry notification sent', [
                 'user_id' => $user->id,
                 'membership_id' => $membership->id,
                 'kind' => $kind,
                 'expires_at' => $membership->expires_at->toDateString(),
-                'delay_seconds' => $delaySeconds,
             ]);
 
             $this->sendIndex++;

@@ -27,7 +27,7 @@ Schedule::command('nrapa:send-license-expiry-notifications')
     ->runInBackground();
 
 // Send membership renewal reminders daily at 8:10 AM (offset from licence job).
-// Staggered 1 per minute so bulk runs trickle out instead of bursting at Mailgun.
+// Sleeps 60s between sync sends so bulk runs trickle out instead of bursting at Mailgun.
 Schedule::command('nrapa:send-membership-expiry-notifications --throttle=60')
     ->dailyAt('08:10')
     ->timezone('Africa/Johannesburg')

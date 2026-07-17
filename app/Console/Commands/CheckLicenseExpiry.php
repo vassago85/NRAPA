@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Mail;
 class CheckLicenseExpiry extends Command
 {
     protected $signature = 'nrapa:send-license-expiry-notifications
-                            {--throttle=2 : Seconds to stagger between queued sends, to keep Mailgun happy on bulk runs}';
+                            {--throttle=2 : Seconds to sleep between sends, to keep Mailgun happy on bulk runs}';
 
     protected $description = 'Check for expiring firearm licenses and send notifications';
 
@@ -20,8 +20,9 @@ class CheckLicenseExpiry extends Command
     protected array $defaultIntervals = [18, 12, 6];
 
     /**
-     * Counter used to compute per-message delay so successive queued mails are
-     * staggered (avoids hammering Mailgun on first run).
+     * Counter of successfully dispatched sends. Used to sleep between messages.
+     * Sends are synchronous — delayed Mail::later() jobs previously went to the
+     * wrong queue from the scheduler and never left "queued".
      */
     protected int $sendIndex = 0;
 
@@ -105,28 +106,24 @@ class CheckLicenseExpiry extends Command
             return;
         }
 
-        $delaySeconds = $throttleSeconds * $this->sendIndex;
-        $delayLabel = $delaySeconds > 0 ? sprintf(' (+%ds)', $delaySeconds) : '';
-
-        $this->line("  - Queueing {$months}-month expiry notice to {$user->email} for {$firearm->display_name}{$delayLabel}");
+        $this->line("  - Sending {$months}-month expiry notice to {$user->email} for {$firearm->display_name}");
 
         try {
+            if ($this->sendIndex > 0 && $throttleSeconds > 0) {
+                sleep($throttleSeconds);
+            }
+
             $daysUntilExpiry = max(0, (int) now()->startOfDay()->diffInDays($firearm->license_expiry_date, false));
 
             $mail = new LicenseExpiry($user, $firearm, $daysUntilExpiry);
 
-            if ($delaySeconds > 0) {
-                Mail::to($user->email)->later(now()->addSeconds($delaySeconds), $mail);
-            } else {
-                Mail::to($user->email)->send($mail);
-            }
+            Mail::to($user->email)->send($mail);
 
-            Log::info('License expiry notification queued', [
+            Log::info('License expiry notification sent', [
                 'user_id' => $user->id,
                 'firearm_id' => $firearm->id,
                 'months_until_expiry' => $months,
                 'expiry_date' => $firearm->license_expiry_date->toDateString(),
-                'delay_seconds' => $delaySeconds,
             ]);
 
             $this->sendIndex++;

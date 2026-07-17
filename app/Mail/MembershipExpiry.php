@@ -12,11 +12,9 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 // NOTE: Intentionally NOT implementing ShouldQueue on the Mailable itself.
-// Whether to queue is decided by the dispatcher (Mail::send vs Mail::later vs Mail::queue),
-// so the command can choose synchronous-send (--throttle=0) vs staggered-queue (--throttle>0)
-// without the Mailable forcing one path. Implementing ShouldQueue here causes Mail::send()
-// to silently dispatch to the queue, which made --throttle=0 not actually send synchronously
-// and hid Mailgun delivery failures behind the queue worker.
+// The renewal command always uses Mail::send() (with an optional sleep between
+// messages for throttling). Implementing ShouldQueue here would silently push
+// to the queue and hide Mailgun delivery failures behind the worker.
 class MembershipExpiry extends Mailable
 {
     use Queueable, SerializesModels;
