@@ -150,19 +150,12 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             }
 
             $certificateNumber = $this->certificate->certificate_number;
+            $backUrl = $this->fallbackBackUrl();
             $this->certificate->delete();
 
             session()->flash('success', "Certificate {$certificateNumber} has been deleted.");
-            
-            // Redirect to certificates index
-            $indexRoute = 'certificates.index';
-            if ($user->isDeveloper()) {
-                $indexRoute = 'developer.certificates.index';
-            } elseif ($user->isOwner() || $user->isAdmin()) {
-                $indexRoute = 'admin.certificates.index';
-            }
-            
-            $this->redirect(route($indexRoute), navigate: true);
+
+            $this->redirect($backUrl, navigate: true);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Failed to delete certificate', [
                 'certificate_id' => $this->certificate->id,
@@ -171,24 +164,76 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             session()->flash('error', 'Failed to delete certificate: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Prefer the real previous page (member profile, certificates list, etc.).
+     * Fall back to a context-aware destination when previous is missing/unsafe.
+     *
+     * Previously this always used role → admin.certificates.index, so:
+     * - viewing a cert from a member profile sent you to the global list
+     * - admins in member-mode were sent to the admin list instead of member certificates
+     */
+    #[Computed]
+    public function backUrl(): string
+    {
+        $fallback = $this->fallbackBackUrl();
+        $previous = url()->previous();
+        $current = url()->current();
+
+        if (! is_string($previous) || $previous === '' || $previous === $current) {
+            return $fallback;
+        }
+
+        $appUrl = rtrim((string) config('app.url'), '/');
+        if ($appUrl !== '' && ! str_starts_with($previous, $appUrl)) {
+            return $fallback;
+        }
+
+        $path = parse_url($previous, PHP_URL_PATH) ?? '';
+
+        if (preg_match('#/(login|logout|register)(/|$)#', $path)) {
+            return $fallback;
+        }
+
+        // Preview/download/wallet endpoints and other certificate-show URLs are not useful "back" targets
+        if (preg_match('#/certificates/[^/]+/(preview|download|wallet)#', $path)) {
+            return $fallback;
+        }
+        if (preg_match('#/certificates/[^/]+/?$#', $path)) {
+            return $fallback;
+        }
+
+        return $previous;
+    }
+
+    protected function fallbackBackUrl(): string
+    {
+        $routeName = request()->route()?->getName() ?? '';
+        $viewer = auth()->user();
+        $owner = $this->certificate->user;
+
+        // Admin area viewing another member's certificate → their profile
+        if (str_starts_with($routeName, 'admin.') && $owner && $viewer && $owner->id !== $viewer->id) {
+            return route('admin.members.show', $owner);
+        }
+
+        // Use the current route prefix so member-mode admins stay in the member area
+        return match (true) {
+            str_starts_with($routeName, 'developer.') => route('developer.certificates.index'),
+            str_starts_with($routeName, 'admin.') => route('admin.certificates.index'),
+            default => route('certificates.index'),
+        };
+    }
 }; ?>
 
 <div class="flex flex-col gap-6">
 
     {{-- Header with blue accent --}}
-    @php
-        $backRoute = 'certificates.index';
-        if (auth()->user()->isDeveloper()) {
-            $backRoute = 'developer.certificates.index';
-        } elseif (auth()->user()->isOwner() || auth()->user()->isAdmin()) {
-            $backRoute = 'admin.certificates.index';
-        }
-    @endphp
     <div class="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-700">
         {{-- Blue header bar --}}
         <div class="flex items-center justify-between bg-gradient-to-br from-[#0B4EA2] to-[#0a3d80] px-5 py-4 sm:px-6">
             <div class="flex items-center gap-4 min-w-0">
-                <a href="{{ route($backRoute) }}" wire:navigate
+                <a href="{{ $this->backUrl }}" wire:navigate
                     class="flex size-8 flex-shrink-0 items-center justify-center rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                 </a>

@@ -48,13 +48,23 @@ class AdminMemberContext
     {
         $name = request()->route()?->getName() ?? '';
 
+        // Certificate show: prefer the member profile over the global certificates
+        // list — admins usually open these from a member page.
+        if ($name === 'admin.certificates.show') {
+            $member = self::resolve();
+            if ($member) {
+                return ['Profile', 'admin.members.show', [$member]];
+            }
+
+            return ['Certificates', 'admin.certificates.index', []];
+        }
+
         return match ($name) {
             'admin.members.show' => ['Members', 'admin.members.index', []],
             'admin.endorsements.show' => ['Endorsements', 'admin.endorsements.index', []],
             'admin.approvals.show' => ['Approvals', 'admin.approvals.index', []],
             'admin.documents.show' => ['Documents', 'admin.documents.index', []],
             'admin.activities.show' => ['Activities', 'admin.activities.index', []],
-            'admin.certificates.show' => ['Certificates', 'admin.certificates.index', []],
             'admin.knowledge-tests.mark-attempt' => ['Knowledge Tests', 'admin.knowledge-tests.index', []],
             'admin.messages.show' => ['Inbox', 'admin.messages.index', []],
             default => null,
