@@ -1127,6 +1127,23 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Whether a verified ID document has captured surname/names for official use.
+     */
+    public function hasConfirmedIdName(): bool
+    {
+        $idDoc = $this->getVerifiedIdDocument();
+
+        if (! $idDoc || ! is_array($idDoc->metadata)) {
+            return false;
+        }
+
+        $surname = trim((string) ($idDoc->metadata['surname'] ?? ''));
+        $names = trim((string) ($idDoc->metadata['names'] ?? ''));
+
+        return $surname !== '' || $names !== '';
+    }
+
+    /**
      * Get the official name from ID document (surname + names).
      * Falls back to user's display name if no verified ID document.
      */
