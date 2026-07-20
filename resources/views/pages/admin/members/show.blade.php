@@ -1887,21 +1887,27 @@ new #[Title('Member Details - Admin')] class extends Component {
                         <dt class="text-xs text-zinc-500 dark:text-zinc-400">Member Number</dt>
                         <dd class="font-mono font-medium text-zinc-900 dark:text-white">{{ $this->user->formatted_member_number }}</dd>
                     </div>
-                    @if($this->user->hasConfirmedIdName())
-                    <div class="col-span-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 dark:border-emerald-800 dark:bg-emerald-900/20">
+                    <div class="col-span-2 rounded-lg border px-3 py-2.5 {{ $this->user->hasConfirmedIdName() ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800/50' }}">
                         <div class="flex items-start justify-between gap-2">
                             <div class="min-w-0">
-                                <dt class="text-xs font-medium text-emerald-700 dark:text-emerald-300">Name as per ID</dt>
-                                <dd class="mt-0.5 font-semibold text-emerald-950 dark:text-emerald-100 break-words">{{ $this->user->getIdName() }}</dd>
-                                <p class="mt-1 text-[11px] text-emerald-700/80 dark:text-emerald-300/80">Confirmed from verified ID — shown on certificates and official documents</p>
+                                <dt class="text-xs font-medium {{ $this->user->hasConfirmedIdName() ? 'text-emerald-700 dark:text-emerald-300' : 'text-zinc-500 dark:text-zinc-400' }}">Name as per ID</dt>
+                                <dd class="mt-0.5 font-semibold break-words {{ $this->user->hasConfirmedIdName() ? 'text-emerald-950 dark:text-emerald-100' : 'text-zinc-900 dark:text-white' }}">{{ $this->user->getIdName() }}</dd>
+                                <p class="mt-1 text-[11px] {{ $this->user->hasConfirmedIdName() ? 'text-emerald-700/80 dark:text-emerald-300/80' : 'text-zinc-500 dark:text-zinc-400' }}">
+                                    @if($this->user->hasConfirmedIdName())
+                                        Confirmed from verified ID — shown on certificates and official documents
+                                    @else
+                                        Shown on certificates and official documents (not yet confirmed from a verified ID)
+                                    @endif
+                                </p>
                             </div>
+                            @if($this->user->hasConfirmedIdName())
                             <span class="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200">
                                 <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                 Confirmed
                             </span>
+                            @endif
                         </div>
                     </div>
-                    @endif
                     <div class="col-span-2">
                         <dt class="text-xs text-zinc-500 dark:text-zinc-400">Email</dt>
                         <dd class="font-medium text-zinc-900 dark:text-white truncate">{{ $this->user->email }}</dd>
