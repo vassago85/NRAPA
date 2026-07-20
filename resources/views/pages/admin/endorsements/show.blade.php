@@ -1,10 +1,12 @@
 <?php
 
+use App\Mail\EndorsementDeleted;
 use App\Models\EndorsementRequest;
 use App\Models\EndorsementFirearm;
 use App\Models\AuditLog;
 use App\Services\EndorsementLetterIssuer;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -621,10 +623,77 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
 
     public bool $showDeleteModal = false;
 
+    public bool $showReissueModal = false;
+
+    /**
+     * Reissue the current issued endorsement as a new letter dated today, valid one year,
+     * with a fresh END-{YEAR}-{#####} reference. The original letter row is not modified —
+     * admins should delete it explicitly if it should no longer verify.
+     */
+    public function reissueEndorsement(): void
+    {
+        if (!$this->request->isIssued()) {
+            session()->flash('error', 'Only issued endorsements can be reissued.');
+            $this->showReissueModal = false;
+            return;
+        }
+
+        try {
+            $sourceReference = $this->request->letter_reference;
+            $sourceId = $this->request->id;
+
+            $newRequest = $this->request->reissueAsNewLetter(auth()->user());
+
+            $category = $newRequest->dedicated_category
+                ?: $this->resolveDedicatedCategory();
+
+            app(EndorsementLetterIssuer::class)->issueApprovedLetter(
+                $newRequest,
+                auth()->user(),
+                $category,
+                (bool) ($newRequest->dedicated_status_compliant ?? true),
+                request()->ip(),
+                request()->userAgent(),
+                false,
+                'reissue',
+            );
+
+            $newRequest->refresh();
+
+            AuditLog::create([
+                'user_id' => auth()->id(),
+                'event' => 'endorsement_reissued',
+                'auditable_type' => EndorsementRequest::class,
+                'auditable_id' => $newRequest->id,
+                'old_values' => [
+                    'source_id' => $sourceId,
+                    'source_letter_reference' => $sourceReference,
+                ],
+                'new_values' => [
+                    'new_letter_reference' => $newRequest->letter_reference,
+                    'issued_at' => optional($newRequest->issued_at)->toIso8601String(),
+                    'expires_at' => optional($newRequest->expires_at)->toIso8601String(),
+                ],
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
+
+            session()->flash('success', "New endorsement letter issued: {$newRequest->letter_reference}. The member has been emailed.");
+            $this->redirect(route('admin.endorsements.show', $newRequest), navigate: true);
+        } catch (\Throwable $e) {
+            Log::error('Endorsement reissue failed', [
+                'source_request_id' => $this->request->id,
+                'error' => $e->getMessage(),
+            ]);
+            $this->showReissueModal = false;
+            session()->flash('error', 'Failed to reissue endorsement: ' . $e->getMessage());
+        }
+    }
+
     public function deleteEndorsement(): void
     {
         try {
-            // Log the deletion
+            // Log the deletion (letter_reference captured so we can trace QR verify failures back)
             AuditLog::create([
                 'user_id' => auth()->id(),
                 'event' => 'endorsement_deleted',
@@ -635,11 +704,19 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                     'status' => $this->request->status,
                     'user_id' => $this->request->user_id,
                     'request_type' => $this->request->request_type,
+                    'letter_reference' => $this->request->letter_reference,
+                    'issued_at' => optional($this->request->issued_at)->toIso8601String(),
+                    'expires_at' => optional($this->request->expires_at)->toIso8601String(),
                 ],
                 'new_values' => ['deleted' => true],
                 'ip_address' => request()->ip(),
                 'user_agent' => request()->userAgent(),
             ]);
+
+            // Notify the member before deleting so they know their letter's QR verification
+            // will now show as invalid — sent synchronously (see AGENTS.md: queued endorsement
+            // mail has bitten us in production) and wrapped so mail failure doesn't block delete.
+            $this->notifyMemberOfDeletion();
 
             // Delete associated file if exists
             if ($this->request->letter_file_path) {
@@ -650,7 +727,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             $requestUuid = $this->request->uuid;
             $this->request->delete(); // Soft delete
 
-            session()->flash('success', "Endorsement request {$requestUuid} has been deleted.");
+            session()->flash('success', "Endorsement request {$requestUuid} has been deleted. The member has been notified.");
             $this->redirect(route('admin.endorsements.index'), navigate: true);
         } catch (\Exception $e) {
             Log::error('Failed to delete endorsement request', [
@@ -658,6 +735,49 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                 'error' => $e->getMessage(),
             ]);
             session()->flash('error', 'Failed to delete endorsement request: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Email the member that their endorsement has been removed. For issued letters, the
+     * email carries a prominent warning that any printed copies will now fail QR verification
+     * and should not be submitted. Failures are logged but do not block the deletion itself.
+     */
+    protected function notifyMemberOfDeletion(): void
+    {
+        $member = $this->request->user;
+        if (! $member?->email) {
+            return;
+        }
+
+        try {
+            $this->request->loadMissing(['firearm']);
+            $firearm = $this->request->firearm;
+
+            $firearmSummary = null;
+            if ($firearm) {
+                $firearmSummary = trim(($firearm->make ?? '') . ' ' . ($firearm->model ?? '')) ?: null;
+            }
+            if (! $firearmSummary) {
+                $firearmSummary = trim(($this->request->firearm_make ?? '') . ' ' . ($this->request->firearm_model ?? '')) ?: null;
+            }
+
+            Mail::to($member->email)->send(new EndorsementDeleted(
+                memberName: $member->name ?: 'Member',
+                memberEmail: $member->email,
+                letterReference: $this->request->letter_reference,
+                endorsementTypeLabel: $this->request->endorsement_type_label ?? $this->request->request_type_label ?? null,
+                firearmSummary: $firearmSummary,
+                issuedAtDisplay: optional($this->request->issued_at)->format('d F Y'),
+                expiresAtDisplay: optional($this->request->expires_at)->format('d F Y'),
+                wasIssued: $this->request->isIssued(),
+            ));
+        } catch (\Throwable $e) {
+            Log::error('Failed to send endorsement deletion notification', [
+                'request_id' => $this->request->id,
+                'member_id' => $member->id,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 }; ?>
@@ -1273,17 +1393,6 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                                 Reject Request
                             </button>
                         @endif
-
-                        {{-- Delete button (always available for admin) --}}
-                        <div class="border-t border-zinc-200 dark:border-zinc-800 mt-4 pt-4">
-                            <button wire:click="$set('showDeleteModal', true)"
-                                class="w-full px-4 py-2 border border-red-500 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center justify-center gap-2">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                </svg>
-                                Delete Request
-                            </button>
-                        </div>
                     @endif
 
                     {{-- Show approved status (letter not yet generated) --}}
@@ -1366,6 +1475,19 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                                     Use this after editing firearm details to refresh the cached letter.
                                 </p>
 
+                                {{-- Reissue: clone into a new endorsement dated today, valid one year, new letter reference --}}
+                                <button type="button"
+                                    wire:click="$set('showReissueModal', true)"
+                                    class="w-full mt-3 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors flex items-center justify-center gap-2 text-sm font-medium">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                    </svg>
+                                    Create new letter from this one
+                                </button>
+                                <p class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 text-center">
+                                    Copies all details into a new endorsement dated today, valid for one year, with a new document number.
+                                </p>
+
                                 @if($request->letter_reference)
                                     <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
                                         Reference: {{ $request->letter_reference }}
@@ -1400,6 +1522,17 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                             <p class="text-sm text-zinc-400 mt-1">Not yet submitted by member</p>
                         </div>
                     @endif
+
+                    {{-- Delete button (always available for admin, regardless of status) --}}
+                    <div class="border-t border-zinc-200 dark:border-zinc-800 mt-4 pt-4">
+                        <button wire:click="$set('showDeleteModal', true)"
+                            class="w-full px-4 py-2 border border-red-500 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                            Delete Request
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -1533,6 +1666,53 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
         </div>
     @endif
 
+    {{-- Reissue Confirmation Modal --}}
+    @if($showReissueModal)
+        <div class="fixed inset-0 z-50 overflow-y-auto">
+            <div class="flex min-h-screen items-center justify-center p-4">
+                <div wire:click="$set('showReissueModal', false)" class="fixed inset-0 bg-black/50"></div>
+                <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-nrapa-blue/10 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-nrapa-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Create new letter from this one</h3>
+                    </div>
+
+                    <div class="text-sm text-zinc-600 dark:text-zinc-300 space-y-3 mb-6">
+                        <p>A new endorsement letter will be created for this member using all details from the current letter, with:</p>
+                        <ul class="list-disc list-inside space-y-1 text-zinc-600 dark:text-zinc-400">
+                            <li>Today's date ({{ now()->format('d M Y') }}) as the issue date</li>
+                            <li>Valid for one year (expires {{ now()->addYear()->format('d M Y') }})</li>
+                            <li>A new document reference number</li>
+                            <li>The member will be emailed the new letter</li>
+                        </ul>
+                        @if($request->letter_reference)
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400 pt-1">
+                                The original letter (<span class="font-mono">{{ $request->letter_reference }}</span>) is <span class="font-medium">not</span> changed by this action. Delete it separately if it should no longer verify.
+                            </p>
+                        @endif
+                    </div>
+
+                    <div class="flex gap-3 justify-end">
+                        <button wire:click="$set('showReissueModal', false)"
+                            class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
+                            Cancel
+                        </button>
+                        <button wire:click="reissueEndorsement"
+                            wire:loading.attr="disabled"
+                            class="px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors disabled:opacity-50">
+                            <span wire:loading.remove wire:target="reissueEndorsement">Create new letter</span>
+                            <span wire:loading wire:target="reissueEndorsement">Creating…</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     {{-- Delete Confirmation Modal --}}
     @if($showDeleteModal)
         <div class="fixed inset-0 z-50 overflow-y-auto">
@@ -1547,10 +1727,20 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                         </div>
                         <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Delete Endorsement Request</h3>
                     </div>
-                    <p class="text-zinc-600 dark:text-zinc-400 mb-6">
-                        Are you sure you want to delete this endorsement request? 
-                        This action will soft-delete the request and can be restored from the database if needed. 
-                        The associated letter file will also be deleted.
+
+                    @if($request->isIssued() && $request->letter_reference)
+                        <div class="mb-4 p-3 rounded-lg border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20">
+                            <p class="text-sm font-semibold text-red-800 dark:text-red-200 mb-1">
+                                QR verification will stop working
+                            </p>
+                            <p class="text-xs text-red-700 dark:text-red-300">
+                                This endorsement has an issued letter (<span class="font-mono">{{ $request->letter_reference }}</span>). Deleting it means anyone scanning the QR code or opening the verification URL on a printed copy will see <span class="font-medium">"not found"</span>. Only delete if the letter should no longer be considered valid.
+                            </p>
+                        </div>
+                    @endif
+
+                    <p class="text-zinc-600 dark:text-zinc-400 mb-6 text-sm">
+                        This action will soft-delete the request (recoverable from the database) and remove the associated letter file from storage. Are you sure you want to continue?
                     </p>
                     <div class="flex gap-3 justify-end">
                         <button wire:click="$set('showDeleteModal', false)" 
@@ -1558,8 +1748,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                             Cancel
                         </button>
                         <button wire:click="deleteEndorsement" 
-                            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
-                            Delete Request
+                            wire:loading.attr="disabled"
+                            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50">
+                            <span wire:loading.remove wire:target="deleteEndorsement">Delete Request</span>
+                            <span wire:loading wire:target="deleteEndorsement">Deleting…</span>
                         </button>
                     </div>
                 </div>

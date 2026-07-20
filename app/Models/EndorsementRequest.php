@@ -1062,6 +1062,83 @@ class EndorsementRequest extends Model
     }
 
     /**
+     * Clone this issued endorsement into a fresh approved request ready for immediate
+     * (re)issue with a new letter reference and today's date.
+     *
+     * Callers should then pass the returned request to EndorsementLetterIssuer so it
+     * gets a new END-{YEAR}-{#####} reference, a rendered PDF, issued_at = now(), and
+     * expires_at = now()->addYear(). The source request is not mutated — the old letter
+     * remains issued until the admin explicitly deletes it.
+     */
+    public function reissueAsNewLetter(User $admin): self
+    {
+        if (! $this->isIssued()) {
+            throw new \Exception('Only issued endorsements can be reissued.');
+        }
+
+        $this->loadMissing(['firearm', 'components', 'acknowledgements']);
+
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($admin): self {
+            $new = self::create([
+                'user_id' => $this->user_id,
+                'request_type' => self::TYPE_RENEWAL,
+                'endorsement_type' => $this->endorsement_type,
+                'firearm_make' => $this->firearm_make,
+                'firearm_model' => $this->firearm_model,
+                'firearm_calibre' => $this->firearm_calibre,
+                'firearm_type' => $this->firearm_type,
+                'firearm_serial' => $this->firearm_serial,
+                'motivation_note' => $this->motivation_note,
+                'status' => self::STATUS_APPROVED,
+                'purpose' => $this->purpose,
+                'purpose_other_text' => $this->purpose_other_text,
+                'declaration_accepted_at' => $this->declaration_accepted_at,
+                'declaration_text' => $this->declaration_text,
+                'submitted_at' => now(),
+                'reviewed_at' => now(),
+                'reviewer_id' => $admin->id,
+                'member_notes' => $this->member_notes,
+                'admin_notes' => trim(($this->admin_notes ? $this->admin_notes . "\n\n" : '') .
+                    '[REISSUED] Created from ' . ($this->letter_reference ?? ('request #' . $this->id)) . ' by admin on ' . now()->toDateString() . '.'),
+                'dedicated_status_compliant' => $this->dedicated_status_compliant,
+                'dedicated_category' => $this->dedicated_category,
+                'dedicated_status_snapshot_at' => $this->dedicated_status_snapshot_at,
+            ]);
+
+            if ($this->firearm) {
+                $firearmAttrs = collect($this->firearm->getAttributes())
+                    ->except(['id', 'uuid', 'endorsement_request_id', 'created_at', 'updated_at'])
+                    ->toArray();
+                $firearmAttrs['endorsement_request_id'] = $new->id;
+                EndorsementFirearm::create($firearmAttrs);
+            }
+
+            foreach ($this->components as $component) {
+                $componentAttrs = collect($component->getAttributes())
+                    ->except(['id', 'uuid', 'endorsement_request_id', 'created_at', 'updated_at'])
+                    ->toArray();
+                $componentAttrs['endorsement_request_id'] = $new->id;
+                EndorsementComponent::create($componentAttrs);
+            }
+
+            foreach ($this->acknowledgements as $ack) {
+                EndorsementAcknowledgement::create([
+                    'endorsement_request_id' => $new->id,
+                    'user_id' => $ack->user_id,
+                    'clause_key' => $ack->clause_key,
+                    'clause_text' => $ack->clause_text,
+                    'accepted' => $ack->accepted,
+                    'accepted_at' => $ack->accepted_at,
+                    'ip_address' => $ack->ip_address,
+                    'user_agent' => $ack->user_agent,
+                ]);
+            }
+
+            return $new->fresh(['firearm', 'components', 'acknowledgements']);
+        });
+    }
+
+    /**
      * Populate in-memory letter fields so the PDF template matches what issue() will persist.
      * Required before renderEndorsementLetter() when status is still approved.
      */
