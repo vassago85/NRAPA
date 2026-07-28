@@ -325,7 +325,7 @@ test('regenerate command targets good-standing certificates only and skips revok
     expect($exit)->toBe(0);
 
     $output = Artisan::output();
-    expect($output)->toContain('Found 1 membership certificate(s) to regenerate.');
+    expect($output)->toContain('Found 1 membership certificate(s) to regenerate');
     expect($output)->toContain("#{$targeted->id}");
     expect($output)->not->toContain("#{$revoked->id}");
     expect($output)->not->toContain("#{$dedicated->id}");
@@ -335,4 +335,103 @@ test('regenerate command reports zero when there are no matching certificates', 
     $exit = Artisan::call('nrapa:regenerate-membership-certificates', ['--dry-run' => true]);
     expect($exit)->toBe(0);
     expect(Artisan::output())->toContain('No membership certificates found to regenerate.');
+});
+
+test('regenerate command --start-from skips earlier certificate ids so a crashed run can resume', function () {
+    $user = makeUser();
+    $type = makeAnnualType();
+    $certType = makeGoodStandingType('membership-certificate');
+
+    $membership = makeMembershipRow(
+        $user,
+        $type,
+        appliedAt: now()->subYear(),
+        activatedAt: now()->subYear(),
+        expiresAt: now()->addMonths(6),
+    );
+
+    $first = Certificate::create([
+        'user_id' => $user->id,
+        'membership_id' => $membership->id,
+        'certificate_type_id' => $certType->id,
+        'issued_by' => $user->id,
+        'valid_from' => now(),
+        'valid_until' => now()->addYear(),
+        'signatory_name' => 'S', 'signatory_title' => 'T',
+    ]);
+    $second = Certificate::create([
+        'user_id' => $user->id,
+        'membership_id' => $membership->id,
+        'certificate_type_id' => $certType->id,
+        'issued_by' => $user->id,
+        'valid_from' => now(),
+        'valid_until' => now()->addYear(),
+        'signatory_name' => 'S', 'signatory_title' => 'T',
+    ]);
+    $third = Certificate::create([
+        'user_id' => $user->id,
+        'membership_id' => $membership->id,
+        'certificate_type_id' => $certType->id,
+        'issued_by' => $user->id,
+        'valid_from' => now(),
+        'valid_until' => now()->addYear(),
+        'signatory_name' => 'S', 'signatory_title' => 'T',
+    ]);
+
+    $exit = Artisan::call('nrapa:regenerate-membership-certificates', [
+        '--dry-run' => true,
+        '--start-from' => $second->id,
+    ]);
+
+    expect($exit)->toBe(0);
+
+    $output = Artisan::output();
+    expect($output)->toContain("Resuming from certificate #{$second->id}");
+    expect($output)->toContain('Found 2 membership certificate(s) to regenerate');
+    expect($output)->not->toContain("#{$first->id}");
+    expect($output)->toContain("#{$second->id}");
+    expect($output)->toContain("#{$third->id}");
+});
+
+test('regenerate command --limit caps the number of certificates processed', function () {
+    $user = makeUser();
+    $type = makeAnnualType();
+    $certType = makeGoodStandingType('membership-certificate');
+
+    $membership = makeMembershipRow(
+        $user,
+        $type,
+        appliedAt: now()->subYear(),
+        activatedAt: now()->subYear(),
+        expiresAt: now()->addMonths(6),
+    );
+
+    for ($i = 0; $i < 3; $i++) {
+        Certificate::create([
+            'user_id' => $user->id,
+            'membership_id' => $membership->id,
+            'certificate_type_id' => $certType->id,
+            'issued_by' => $user->id,
+            'valid_from' => now(),
+            'valid_until' => now()->addYear(),
+            'signatory_name' => 'S', 'signatory_title' => 'T',
+        ]);
+    }
+
+    $exit = Artisan::call('nrapa:regenerate-membership-certificates', [
+        '--dry-run' => true,
+        '--limit' => 2,
+    ]);
+
+    expect($exit)->toBe(0);
+    expect(Artisan::output())->toContain('processing 2');
+});
+
+test('regenerate command with unknown --certificate-id exits with failure', function () {
+    $exit = Artisan::call('nrapa:regenerate-membership-certificates', [
+        '--certificate-id' => 999999,
+    ]);
+
+    expect($exit)->toBe(1);
+    expect(Artisan::output())->toContain('Certificate #999999 not found.');
 });
