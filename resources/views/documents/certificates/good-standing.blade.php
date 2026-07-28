@@ -41,6 +41,14 @@
                                 </span>
                             @endif
                         </td></tr>
+                        <tr><td class="kv-label">Joined On</td><td class="kv-value">{{ $certificate->user->joinedOn()?->format('d F Y') ?? 'N/A' }}</td></tr>
+                        <tr><td class="kv-label">Membership Expires On</td><td class="kv-value">
+                            @if($certificate->membership?->type?->isLifetime())
+                                Lifetime
+                            @else
+                                {{ $certificate->membership?->expires_at?->format('d F Y') ?? 'N/A' }}
+                            @endif
+                        </td></tr>
                     </table>
                 </div>
             </td>

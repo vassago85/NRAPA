@@ -541,6 +541,26 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->firstJoinedYear() === now()->year;
     }
 
+    /**
+     * The date the member joined NRAPA. Uses the earliest membership activation
+     * date (which the Excel importer populates from the legacy "Date Joined"
+     * column), so it survives renewals that create a new membership row.
+     * Falls back to earliest applied_at, then account created_at.
+     *
+     * Returns CarbonInterface (not the concrete Carbon class) because the app
+     * globally uses CarbonImmutable via Date::use() — $this->created_at is an
+     * immutable instance.
+     */
+    public function joinedOn(): ?\Carbon\CarbonInterface
+    {
+        $earliest = $this->memberships()->min('activated_at')
+            ?? $this->memberships()->min('applied_at');
+
+        return $earliest
+            ? \Illuminate\Support\Facades\Date::parse($earliest)
+            : $this->created_at;
+    }
+
     public function messages(): HasMany
     {
         return $this->hasMany(MemberMessage::class)->latest();
