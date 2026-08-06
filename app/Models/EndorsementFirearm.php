@@ -194,7 +194,7 @@ class EndorsementFirearm extends Model
             self::CATEGORY_SELF_LOADING_RIFLE => 'Self-Loading Rifle (S/L Rifle)',
             self::CATEGORY_SHOTGUN => 'Shotgun',
             self::CATEGORY_HANDGUN => 'Handgun',
-            self::CATEGORY_COMBINATION => 'Combination (Rifle/Shotgun)',
+            self::CATEGORY_COMBINATION => 'Combination',
             self::CATEGORY_BARREL => 'Main Firearm Component',
             self::CATEGORY_ACTION => 'Action (component)',
         ];
