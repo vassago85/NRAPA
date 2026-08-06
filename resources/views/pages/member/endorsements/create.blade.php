@@ -505,6 +505,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     public function canProceedToNextStep(): bool
     {
         $isComponent = EndorsementFirearm::isComponentCategory($this->firearmCategory);
+        $isCombination = $this->firearmCategory === 'combination';
 
         return match($this->currentStep) {
             1 => !empty($this->requestType) && in_array($this->requestType, ['new', 'renewal']),
@@ -513,8 +514,12 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                     ? (!empty($this->make) 
                         && !empty($this->serialNumber)
                         && ($this->firearmCategory !== 'barrel' || !empty($this->componentDiameter)))
-                    : (!empty($this->actionType)
+                    : (
+                        // Combination firearms don't need an action.
+                        ($isCombination || !empty($this->actionType))
                         && (!empty($this->calibreId) || !empty($this->calibreManual) || !empty($this->firearmCalibreId) || !empty($this->calibreTextOverride))
+                        // Combination firearms require a second calibre.
+                        && (!$isCombination || !empty($this->firearmCalibreId2) || !empty($this->calibreTextOverride2))
                         && (!empty($this->make) || !empty($this->firearmMakeId) || !empty($this->makeTextOverride))
                         && $this->hasAtLeastOneSerial)
             ),
