@@ -28,6 +28,9 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     // New reference system fields
     public ?int $firearmCalibreId = null;
     public ?string $calibreTextOverride = null;
+    // Second calibre (combination firearms)
+    public ?int $firearmCalibreId2 = null;
+    public ?string $calibreTextOverride2 = null;
     public ?int $firearmMakeId = null;
     public ?string $makeTextOverride = null;
     public ?int $firearmModelId = null;
@@ -165,6 +168,9 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             // New reference system fields
             $this->firearmCalibreId = $firearm->firearm_calibre_id;
             $this->calibreTextOverride = $firearm->calibre_text_override;
+            // Second calibre (combination firearms)
+            $this->firearmCalibreId2 = $firearm->firearm_calibre_id_2;
+            $this->calibreTextOverride2 = $firearm->calibre_text_override_2;
             $this->firearmMakeId = $firearm->firearm_make_id;
             $this->makeTextOverride = $firearm->make_text_override;
             $this->firearmModelId = $firearm->firearm_model_id;
@@ -244,6 +250,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         return [
             'firearm_calibre_id' => $this->firearmCalibreId,
             'calibre_text_override' => $this->calibreTextOverride,
+            'firearm_calibre_id_2' => $this->firearmCalibreId2,
+            'calibre_text_override_2' => $this->calibreTextOverride2,
             'firearm_make_id' => $this->firearmMakeId,
             'make_text_override' => $this->makeTextOverride ?: ($this->make ?: null),
             'firearm_model_id' => $this->firearmModelId,
@@ -271,6 +279,9 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         // Calibre, Make/Model from FirearmSearchPanel
         $this->firearmCalibreId = $data['firearm_calibre_id'] ?? null;
         $this->calibreTextOverride = $data['calibre_text_override'] ?? null;
+        // Second calibre (combination firearms)
+        $this->firearmCalibreId2 = $data['firearm_calibre_id_2'] ?? null;
+        $this->calibreTextOverride2 = $data['calibre_text_override_2'] ?? null;
         $this->firearmMakeId = $data['firearm_make_id'] ?? null;
         $this->makeTextOverride = $data['make_text_override'] ?? null;
         $this->firearmModelId = $data['firearm_model_id'] ?? null;
@@ -409,6 +420,18 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
     {
         $isComponent = EndorsementFirearm::isComponentCategory($this->firearmCategory);
 
+        $isCombination = $this->firearmCategory === 'combination';
+
+        // Full-firearm rules: combination firearms do not need an action.
+        $fullFirearmRules = [
+            'firearmCategory' => 'required|in:rifle,self_loading_rifle,shotgun,handgun,combination,other,barrel,action',
+            'make' => 'required|string|max:255',
+            'model' => 'nullable|string|max:255',
+        ];
+        if (!$isCombination) {
+            $fullFirearmRules['actionType'] = 'required';
+        }
+
         $rules = match($this->currentStep) {
             1 => ['requestType' => 'required|in:new,renewal'],
             2 => $isComponent 
@@ -417,12 +440,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                     'make' => 'required|string|max:255',
                     'serialNumber' => 'required|string|max:255',
                 ]
-                : [
-                    'firearmCategory' => 'required|in:rifle,self_loading_rifle,shotgun,handgun,combination,other,barrel,action',
-                    'actionType' => 'required',
-                    'make' => 'required|string|max:255',
-                    'model' => 'nullable|string|max:255',
-                ],
+                : $fullFirearmRules,
             3 => [
                 'dedicatedCategory' => 'required|in:Dedicated Sport Shooter,Dedicated Hunter',
             ],
@@ -464,7 +482,14 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                         'calibre' => 'Calibre/Gauge is required (select from list or enter manually).',
                     ]);
                 }
-                
+
+                // Combination firearms have two barrels/chamberings — require both calibres.
+                if ($isCombination && empty($this->firearmCalibreId2) && empty($this->calibreTextOverride2)) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'calibre2' => 'Second calibre is required for combination firearms (select from list or enter manually).',
+                    ]);
+                }
+
                 if (!$this->hasAtLeastOneSerial) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
                         'serial' => 'At least one serial number is required (barrel, frame, or receiver).',
@@ -729,8 +754,12 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             if ($this->firearmCategory === 'barrel' && empty($this->componentDiameter)) return false;
         } else {
             // Full firearm endorsements
-            if (empty($this->actionType)) return false;
+            $isCombination = $this->firearmCategory === 'combination';
+            // Combination firearms don't need an action.
+            if (!$isCombination && empty($this->actionType)) return false;
             if (empty($this->calibreId) && empty($this->calibreManual) && empty($this->firearmCalibreId) && empty($this->calibreTextOverride)) return false;
+            // Combination firearms require a second calibre.
+            if ($isCombination && empty($this->firearmCalibreId2) && empty($this->calibreTextOverride2)) return false;
             if (empty($this->make) && empty($this->firearmMakeId) && empty($this->makeTextOverride)) return false;
             if (!$this->hasAtLeastOneSerial) return false;
         }
@@ -768,11 +797,15 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                 $errors[] = 'Barrel diameter is required.';
             }
         } else {
-            if (empty($this->actionType)) {
+            $isCombination = $this->firearmCategory === 'combination';
+            if (!$isCombination && empty($this->actionType)) {
                 $errors[] = 'Action type is required.';
             }
             if (empty($this->calibreId) && empty($this->calibreManual) && empty($this->firearmCalibreId) && empty($this->calibreTextOverride)) {
                 $errors[] = 'Calibre/Gauge is required (select from list or enter manually).';
+            }
+            if ($isCombination && empty($this->firearmCalibreId2) && empty($this->calibreTextOverride2)) {
+                $errors[] = 'Second calibre is required for combination firearms.';
             }
             if (empty($this->make) && empty($this->firearmMakeId) && empty($this->makeTextOverride)) {
                 $errors[] = 'Firearm make is required.';
@@ -936,6 +969,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                 'action_other_specify' => null,
                 'metal_engraving' => null,
                 'model' => null,
+                'firearm_calibre_id_2' => null,
+                'calibre_text_override_2' => null,
             ]);
         } else {
             // Full firearm endorsement - use parent properties directly
@@ -955,6 +990,13 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                 // New reference system
                 'firearm_calibre_id' => $firearmData['firearm_calibre_id'] ?? $this->firearmCalibreId,
                 'calibre_text_override' => $firearmData['calibre_text_override'] ?? $this->calibreTextOverride,
+                // Second calibre — only meaningful for combination firearms; otherwise clear.
+                'firearm_calibre_id_2' => $this->firearmCategory === 'combination'
+                    ? ($firearmData['firearm_calibre_id_2'] ?? $this->firearmCalibreId2)
+                    : null,
+                'calibre_text_override_2' => $this->firearmCategory === 'combination'
+                    ? ($firearmData['calibre_text_override_2'] ?? $this->calibreTextOverride2)
+                    : null,
                 'firearm_make_id' => $firearmData['firearm_make_id'] ?? $this->firearmMakeId,
                 'make_text_override' => $firearmData['make_text_override'] ?? $this->makeTextOverride,
                 'firearm_model_id' => $firearmData['firearm_model_id'] ?? $this->firearmModelId,
@@ -1251,13 +1293,21 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                         {{-- FirearmSearchPanel: Calibre, Make/Model, Serial Numbers --}}
                         @php
                             $firearmPanelData = $this->firearmPanelData ?? [];
+                            $isCombination = $firearmCategory === 'combination';
+                            // Combination firearms accept any rifle or shotgun calibre for both barrels.
+                            $panelCalibreCategories = $isCombination ? ['rifle', 'shotgun'] : null;
                         @endphp
                         <livewire:firearm-search-panel 
                             wire:key="endorsement-firearm-panel-{{ $firearmCategory }}-{{ $editingRequest?->id ?? 'new' }}"
                             :initial-data="$firearmPanelData"
+                            :allow-second-calibre="$isCombination"
+                            :calibre-categories="$panelCalibreCategories"
                         />
 
-                        {{-- Action Type --}}
+                        @error('calibre2') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+
+                        {{-- Action Type (combination firearms don't need an action) --}}
+                        @if(!$isCombination)
                         <div class="grid gap-6 md:grid-cols-2">
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
@@ -1279,6 +1329,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                 </div>
                             @endif
                         </div>
+                        @endif
 
                         {{-- Metal Engraving --}}
                         <div>
@@ -1484,12 +1535,25 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                     </div>
                                 @endif
                             @else
-                                @if($calibreId || $calibreManual)
+                                @php
+                                    $isCombination = $firearmCategory === 'combination';
+                                    $calibre1Display = $firearmCalibreId
+                                        ? \App\Models\FirearmCalibre::find($firearmCalibreId)?->name
+                                        : ($calibreTextOverride ?: ($calibreId ? \App\Models\FirearmCalibre::find($calibreId)?->name : $calibreManual));
+                                    $calibre2Display = $firearmCalibreId2
+                                        ? \App\Models\FirearmCalibre::find($firearmCalibreId2)?->name
+                                        : $calibreTextOverride2;
+                                @endphp
+                                @if($calibre1Display)
                                     <div>
-                                        <dt class="text-zinc-500">Calibre</dt>
-                                        <dd class="font-medium text-zinc-900 dark:text-white">
-                                            {{ $calibreId ? \App\Models\FirearmCalibre::find($calibreId)?->name : $calibreManual }}
-                                        </dd>
+                                        <dt class="text-zinc-500">{{ $isCombination ? 'Calibre 1' : 'Calibre' }}</dt>
+                                        <dd class="font-medium text-zinc-900 dark:text-white">{{ $calibre1Display }}</dd>
+                                    </div>
+                                @endif
+                                @if($isCombination && $calibre2Display)
+                                    <div>
+                                        <dt class="text-zinc-500">Calibre 2</dt>
+                                        <dd class="font-medium text-zinc-900 dark:text-white">{{ $calibre2Display }}</dd>
                                     </div>
                                 @endif
                                 @if($make || $model)

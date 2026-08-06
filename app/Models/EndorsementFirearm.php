@@ -93,6 +93,9 @@ class EndorsementFirearm extends Model
         'calibre_text_override',
         'make_text_override',
         'model_text_override',
+        // Second calibre (for combination firearms)
+        'firearm_calibre_id_2',
+        'calibre_text_override_2',
     ];
 
     /**
@@ -148,6 +151,14 @@ class EndorsementFirearm extends Model
     }
 
     /**
+     * Get the second firearm calibre reference (combination firearms).
+     */
+    public function firearmCalibre2(): BelongsTo
+    {
+        return $this->belongsTo(FirearmCalibre::class, 'firearm_calibre_id_2');
+    }
+
+    /**
      * Get the firearm make reference.
      */
     public function firearmMake(): BelongsTo
@@ -183,6 +194,7 @@ class EndorsementFirearm extends Model
             self::CATEGORY_SELF_LOADING_RIFLE => 'Self-Loading Rifle (S/L Rifle)',
             self::CATEGORY_SHOTGUN => 'Shotgun',
             self::CATEGORY_HANDGUN => 'Handgun',
+            self::CATEGORY_COMBINATION => 'Combination (Rifle/Shotgun)',
             self::CATEGORY_BARREL => 'Main Firearm Component',
             self::CATEGORY_ACTION => 'Action (component)',
         ];
@@ -194,6 +206,14 @@ class EndorsementFirearm extends Model
     public static function isComponentCategory(?string $category): bool
     {
         return in_array($category, [self::CATEGORY_BARREL, self::CATEGORY_ACTION]);
+    }
+
+    /**
+     * Whether this firearm is a "combination" (two calibres in one firearm).
+     */
+    public function isCombination(): bool
+    {
+        return $this->firearm_category === self::CATEGORY_COMBINATION;
     }
 
     /**
@@ -459,6 +479,18 @@ class EndorsementFirearm extends Model
 
         // Fallback to override or manual
         return $this->calibre_text_override ?? $this->calibre_manual;
+    }
+
+    /**
+     * Get the second calibre display name (combination firearms).
+     */
+    public function getCalibreDisplay2Attribute(): ?string
+    {
+        if ($this->firearmCalibre2) {
+            return $this->firearmCalibre2->name;
+        }
+
+        return $this->calibre_text_override_2;
     }
 
     /**

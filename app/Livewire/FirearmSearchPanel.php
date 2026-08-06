@@ -18,6 +18,17 @@ class FirearmSearchPanel extends Component
 
     public ?string $calibreTextOverride = null;
 
+    // Optional second calibre (for combination firearms)
+    public bool $allowSecondCalibre = false;
+
+    public string $calibreSearch2 = '';
+
+    public ?int $firearmCalibreId2 = null;
+
+    public ?string $calibreTextOverride2 = null;
+
+    public bool $showCalibreOverride2 = false;
+
     // Make/Model search
     public string $makeSearch = '';
 
@@ -60,6 +71,10 @@ class FirearmSearchPanel extends Component
     // Category filter for calibres
     public ?string $calibreCategory = null;
 
+    // Multi-category filter (used for combination firearms → ['rifle','shotgun']).
+    // When set, takes precedence over $calibreCategory.
+    public ?array $calibreCategories = null;
+
     // Show override option
     public bool $showCalibreOverride = false;
 
@@ -70,8 +85,11 @@ class FirearmSearchPanel extends Component
     /**
      * Mount the component with optional initial values.
      */
-    public function mount($initialData = []): void
+    public function mount($initialData = [], bool $allowSecondCalibre = false, ?array $calibreCategories = null): void
     {
+        $this->allowSecondCalibre = $allowSecondCalibre;
+        $this->calibreCategories = $calibreCategories;
+
         if (is_array($initialData) && ! empty($initialData)) {
             $this->hydrateFromData($initialData);
         }
@@ -104,6 +122,10 @@ class FirearmSearchPanel extends Component
         // Derive calibre category from firearm type
         $this->calibreCategory = $this->mapFirearmTypeToCategory($this->firearmType);
 
+        // Second calibre (combination firearms)
+        $this->firearmCalibreId2 = $data['firearm_calibre_id_2'] ?? null;
+        $this->calibreTextOverride2 = $data['calibre_text_override_2'] ?? null;
+
         // Set search terms from selected items
         if ($this->firearmCalibreId) {
             $calibre = FirearmCalibre::find($this->firearmCalibreId);
@@ -113,6 +135,16 @@ class FirearmSearchPanel extends Component
         } elseif ($this->calibreTextOverride) {
             $this->calibreSearch = $this->calibreTextOverride;
             $this->showCalibreOverride = true;
+        }
+
+        if ($this->firearmCalibreId2) {
+            $calibre2 = FirearmCalibre::find($this->firearmCalibreId2);
+            if ($calibre2) {
+                $this->calibreSearch2 = $calibre2->name;
+            }
+        } elseif ($this->calibreTextOverride2) {
+            $this->calibreSearch2 = $this->calibreTextOverride2;
+            $this->showCalibreOverride2 = true;
         }
 
         if ($this->firearmMakeId) {
@@ -142,7 +174,25 @@ class FirearmSearchPanel extends Component
     #[Computed]
     public function calibreSuggestions()
     {
-        if (strlen($this->calibreSearch) < 2) {
+        return $this->buildCalibreSuggestions($this->calibreSearch);
+    }
+
+    /**
+     * Get second calibre suggestions (combination firearms).
+     */
+    #[Computed]
+    public function calibreSuggestions2()
+    {
+        return $this->buildCalibreSuggestions($this->calibreSearch2);
+    }
+
+    /**
+     * Shared query builder for calibre typeaheads.
+     * Honours $calibreCategories (multi) or $calibreCategory (single).
+     */
+    protected function buildCalibreSuggestions(string $term)
+    {
+        if (strlen($term) < 2) {
             return collect();
         }
 
@@ -154,9 +204,11 @@ class FirearmSearchPanel extends Component
         try {
             $query = FirearmCalibre::active()
                 ->notObsolete()
-                ->search($this->calibreSearch);
+                ->search($term);
 
-            if ($this->calibreCategory) {
+            if (! empty($this->calibreCategories)) {
+                $query->whereIn('category', $this->calibreCategories);
+            } elseif ($this->calibreCategory) {
                 $query->forCategory($this->calibreCategory);
             }
 
@@ -240,17 +292,30 @@ class FirearmSearchPanel extends Component
     #[Computed]
     public function selectedCalibre()
     {
-        if (! $this->firearmCalibreId) {
+        return $this->resolveSelectedCalibre($this->firearmCalibreId);
+    }
+
+    /**
+     * Get selected second calibre metadata.
+     */
+    #[Computed]
+    public function selectedCalibre2()
+    {
+        return $this->resolveSelectedCalibre($this->firearmCalibreId2);
+    }
+
+    protected function resolveSelectedCalibre(?int $id)
+    {
+        if (! $id) {
             return null;
         }
 
-        // Check if table exists
         if (! Schema::hasTable('firearm_calibres')) {
             return null;
         }
 
         try {
-            return FirearmCalibre::with('aliases')->find($this->firearmCalibreId);
+            return FirearmCalibre::with('aliases')->find($id);
         } catch (\Exception $e) {
             return null;
         }
@@ -290,6 +355,43 @@ class FirearmSearchPanel extends Component
             $this->calibreTextOverride = $this->calibreSearch;
             $this->firearmCalibreId = null;
             $this->showCalibreOverride = true;
+        }
+    }
+
+    /**
+     * Select the second calibre (combination firearms).
+     */
+    public function selectCalibre2(int $calibreId): void
+    {
+        $calibre = FirearmCalibre::find($calibreId);
+        if ($calibre) {
+            $this->firearmCalibreId2 = $calibreId;
+            $this->calibreSearch2 = $calibre->name;
+            $this->calibreTextOverride2 = null;
+            $this->showCalibreOverride2 = false;
+        }
+    }
+
+    /**
+     * Clear the second calibre selection.
+     */
+    public function clearCalibre2(): void
+    {
+        $this->firearmCalibreId2 = null;
+        $this->calibreSearch2 = '';
+        $this->calibreTextOverride2 = null;
+        $this->showCalibreOverride2 = false;
+    }
+
+    /**
+     * Use custom text for the second calibre.
+     */
+    public function useCustomCalibre2(): void
+    {
+        if (! empty($this->calibreSearch2)) {
+            $this->calibreTextOverride2 = $this->calibreSearch2;
+            $this->firearmCalibreId2 = null;
+            $this->showCalibreOverride2 = true;
         }
     }
 
@@ -397,9 +499,22 @@ class FirearmSearchPanel extends Component
             $calibreOverride = trim($this->calibreSearch);
         }
 
+        // Second calibre (only surfaced when the parent enabled it)
+        $calibreOverride2 = null;
+        $firearmCalibreId2 = null;
+        if ($this->allowSecondCalibre) {
+            $firearmCalibreId2 = $this->firearmCalibreId2;
+            $calibreOverride2 = $this->calibreTextOverride2;
+            if (! $firearmCalibreId2 && ! $calibreOverride2 && trim($this->calibreSearch2) !== '') {
+                $calibreOverride2 = trim($this->calibreSearch2);
+            }
+        }
+
         return [
             'firearm_calibre_id' => $this->firearmCalibreId,
             'calibre_text_override' => $calibreOverride,
+            'firearm_calibre_id_2' => $firearmCalibreId2,
+            'calibre_text_override_2' => $calibreOverride2,
             'firearm_make_id' => $this->firearmMakeId,
             'make_text_override' => $makeOverride,
             'firearm_model_id' => $this->firearmModelId,

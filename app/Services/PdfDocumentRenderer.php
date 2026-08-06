@@ -211,7 +211,7 @@ class PdfDocumentRenderer implements DocumentRenderer
     public function renderEndorsementLetter(EndorsementRequest $request, string $template): string
     {
         // Ensure relationships are loaded (EndorsementRequest has no direct 'membership' relationship)
-        $request->loadMissing(['user', 'firearm', 'firearm.firearmCalibre', 'firearm.firearmMake', 'firearm.firearmModel', 'components']);
+        $request->loadMissing(['user', 'firearm', 'firearm.firearmCalibre', 'firearm.firearmCalibre2', 'firearm.firearmMake', 'firearm.firearmModel', 'components']);
 
         // Map template if needed
         if ($template === 'documents.endorsement-letter') {

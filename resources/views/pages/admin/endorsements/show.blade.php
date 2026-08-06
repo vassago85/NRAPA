@@ -31,6 +31,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
     public string $editFirearmMake = '';
     public string $editFirearmModel = '';
     public string $editFirearmCalibreManual = '';
+    // Second calibre (combination firearms — manual entry only in admin edit)
+    public string $editFirearmCalibreManual2 = '';
     public string $editFirearmSapsReference = '';
     public string $editFirearmLicenceSection = '';
 
@@ -49,6 +51,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             'user', 
             'firearm', 
             'firearm.firearmCalibre',
+            'firearm.firearmCalibre2',
             'firearm.firearmMake',
             'firearm.firearmModel',
             'components', 
@@ -449,6 +452,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
         $this->editFirearmMake = $firearm->make_display ?? '';
         $this->editFirearmModel = $firearm->model_display ?? '';
         $this->editFirearmCalibreManual = $firearm->calibre_display ?? '';
+        $this->editFirearmCalibreManual2 = $firearm->calibre_display_2 ?? '';
         $this->editFirearmSapsReference = $firearm->saps_reference ?? '';
         $this->editFirearmLicenceSection = $firearm->licence_section ?? '';
 
@@ -502,6 +506,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             'firearm_calibre_id' => $firearm->firearm_calibre_id,
             'calibre_id' => $firearm->calibre_id,
             'calibre_text_override' => $firearm->calibre_text_override,
+            'firearm_calibre_id_2' => $firearm->firearm_calibre_id_2,
+            'calibre_text_override_2' => $firearm->calibre_text_override_2,
             'firearm_make_id' => $firearm->firearm_make_id,
             'make_text_override' => $firearm->make_text_override,
             'firearm_model_id' => $firearm->firearm_model_id,
@@ -529,9 +535,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
         // these fields here, we MUST clear the reference FKs and any *_text_override
         // values, otherwise the legacy values we just wrote will lose the priority
         // contest in the display and the edit appears to do nothing.
+        $isCombinationEdit = $this->editFirearmCategory === EndorsementFirearm::CATEGORY_COMBINATION;
         $newValues = [
             'firearm_category' => $this->editFirearmCategory,
-            'action_type' => $this->editFirearmActionType ?: null,
+            // Combination firearms don't carry an action.
+            'action_type' => $isCombinationEdit ? null : ($this->editFirearmActionType ?: null),
             'ignition_type' => $this->editFirearmIgnitionType ?: null,
             'make' => $this->editFirearmMake ?: null,
             'model' => $this->editFirearmModel ?: null,
@@ -539,6 +547,12 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             'firearm_calibre_id' => null,
             'calibre_id' => null,
             'calibre_text_override' => null,
+            // Second calibre — only meaningful for combination firearms; otherwise clear it.
+            'firearm_calibre_id_2' => null,
+            'calibre_text_override_2' => ($this->editFirearmCategory === EndorsementFirearm::CATEGORY_COMBINATION
+                && trim($this->editFirearmCalibreManual2) !== '')
+                ? trim($this->editFirearmCalibreManual2)
+                : null,
             'firearm_make_id' => null,
             'make_text_override' => null,
             'firearm_model_id' => null,
@@ -570,7 +584,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
 
         $this->showEditFirearmModal = false;
         $this->request->refresh();
-        $this->request->load('firearm', 'firearm.firearmCalibre', 'firearm.firearmMake', 'firearm.firearmModel');
+        $this->request->load('firearm', 'firearm.firearmCalibre', 'firearm.firearmCalibre2', 'firearm.firearmMake', 'firearm.firearmModel');
         session()->flash('success', 'Firearm details updated.');
     }
 
@@ -1125,8 +1139,14 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                             @endif
                             @if($request->firearm->calibre_display)
                                 <div>
-                                    <dt class="text-zinc-500">Calibre</dt>
+                                    <dt class="text-zinc-500">{{ $request->firearm->isCombination() && $request->firearm->calibre_display_2 ? 'Calibre 1' : 'Calibre' }}</dt>
                                     <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->firearm->calibre_display }}</dd>
+                                </div>
+                            @endif
+                            @if($request->firearm->isCombination() && $request->firearm->calibre_display_2)
+                                <div>
+                                    <dt class="text-zinc-500">Calibre 2</dt>
+                                    <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->firearm->calibre_display_2 }}</dd>
                                 </div>
                             @endif
                             @if($request->firearm->ignition_type)
@@ -1782,7 +1802,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                         @error('editFirearmCategory') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
 
-                    @if(!empty($this->editFirearmActionOptions))
+                    @if(!empty($this->editFirearmActionOptions) && $editFirearmCategory !== \App\Models\EndorsementFirearm::CATEGORY_COMBINATION)
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Action Type</label>
                         <select wire:model="editFirearmActionType" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
@@ -1816,9 +1836,19 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Calibre (manual)</label>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                            {{ $editFirearmCategory === \App\Models\EndorsementFirearm::CATEGORY_COMBINATION ? 'Calibre 1 (manual)' : 'Calibre (manual)' }}
+                        </label>
                         <input type="text" wire:model="editFirearmCalibreManual" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
                     </div>
+
+                    @if($editFirearmCategory === \App\Models\EndorsementFirearm::CATEGORY_COMBINATION)
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Calibre 2 (manual)</label>
+                        <input type="text" wire:model="editFirearmCalibreManual2" placeholder="Second calibre for combination firearm" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
+                        <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Combination firearms have two barrels/chamberings — both are printed on the letter.</p>
+                    </div>
+                    @endif
 
                     <div class="pt-2 border-t border-zinc-200 dark:border-zinc-700">
                         <div class="flex items-center justify-between mb-2">

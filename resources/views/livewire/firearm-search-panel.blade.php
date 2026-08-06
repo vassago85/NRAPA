@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Schema;
     
     {{-- Calibre Search Section --}}
     <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
-        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Calibre</h3>
+        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">{{ $allowSecondCalibre ? 'Calibre 1' : 'Calibre' }}</h3>
         
         <div class="space-y-4">
             {{-- Calibre Search Input --}}
@@ -148,6 +148,115 @@ use Illuminate\Support\Facades\Schema;
             </div>
         </div>
     </div>
+
+    @if($allowSecondCalibre)
+    {{-- Second Calibre Search Section (combination firearms) --}}
+    <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
+        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Calibre 2</h3>
+        <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+            Combination firearms have two barrels/chamberings — enter both calibres. Any rifle or shotgun calibre is allowed.
+        </p>
+
+        <div class="space-y-4">
+            {{-- Calibre 2 Search Input --}}
+            <div class="relative">
+                <input
+                    type="text"
+                    wire:model.live.debounce.250ms="calibreSearch2"
+                    placeholder="Search calibre (e.g., .308 Win, 12 Gauge, .22 LR)..."
+                    class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    @focus="$wire.calibreSearch2 = $event.target.value"
+                />
+
+                @if($firearmCalibreId2 || $calibreTextOverride2)
+                    <button
+                        wire:click="clearCalibre2"
+                        class="absolute right-2 top-2 p-1 text-zinc-400 hover:text-red-600 dark:hover:text-red-400"
+                        type="button"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                @endif
+
+                {{-- Suggestions Dropdown --}}
+                @if(strlen($calibreSearch2) >= 2 && !$firearmCalibreId2 && !$calibreTextOverride2)
+                    <div class="absolute z-50 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        @forelse($this->calibreSuggestions2 as $calibre)
+                            <button
+                                type="button"
+                                wire:click="selectCalibre2({{ $calibre->id }})"
+                                class="w-full px-4 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center justify-between"
+                            >
+                                <div>
+                                    <div class="font-medium text-zinc-900 dark:text-white">{{ $calibre->name }}</div>
+                                    @if($calibre->family)
+                                        <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ $calibre->family }}</div>
+                                    @endif
+                                </div>
+                                <span class="text-xs text-zinc-400">{{ $calibre->category_label }}</span>
+                            </button>
+                        @empty
+                            <div class="px-4 py-2 text-sm text-zinc-500 dark:text-zinc-400">
+                                No calibres found.
+                                <button
+                                    type="button"
+                                    wire:click="useCustomCalibre2"
+                                    class="text-emerald-600 dark:text-emerald-400 hover:underline"
+                                >
+                                    Use custom value
+                                </button>
+                            </div>
+                        @endforelse
+                    </div>
+                @endif
+            </div>
+
+            {{-- Selected Calibre 2 Metadata --}}
+            @if($this->selectedCalibre2)
+                <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                            <span class="text-zinc-500 dark:text-zinc-400">Category:</span>
+                            <span class="font-medium text-zinc-900 dark:text-white ml-2">{{ $this->selectedCalibre2->category_label }}</span>
+                        </div>
+                        @if($this->selectedCalibre2->family)
+                            <div>
+                                <span class="text-zinc-500 dark:text-zinc-400">Family:</span>
+                                <span class="font-medium text-zinc-900 dark:text-white ml-2">{{ $this->selectedCalibre2->family }}</span>
+                            </div>
+                        @endif
+                        @if($bulletDiameter2 = $this->selectedCalibre2->bullet_diameter_display)
+                            <div>
+                                <span class="text-zinc-500 dark:text-zinc-400">Bullet Diameter:</span>
+                                <span class="font-medium text-zinc-900 dark:text-white ml-2">{{ $bulletDiameter2['value'] }}{{ $bulletDiameter2['unit'] }}</span>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            @endif
+
+            {{-- Custom Calibre 2 Override --}}
+            @if($calibreTextOverride2 || $showCalibreOverride2)
+                <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-amber-800 dark:text-amber-200">
+                            Using custom calibre: <strong>{{ $calibreTextOverride2 }}</strong>
+                        </span>
+                        <button
+                            wire:click="clearCalibre2"
+                            class="text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200"
+                            type="button"
+                        >
+                            Clear
+                        </button>
+                    </div>
+                </div>
+            @endif
+        </div>
+    </div>
+    @endif
 
     {{-- Make/Model Search Section --}}
     <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">

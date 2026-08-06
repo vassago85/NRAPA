@@ -155,6 +155,8 @@
             $makeName = $firearm->make_display ?? '';
             $modelName = $firearm->model_display ?? '';
             $calibreName = $firearm->calibre_display ?? '';
+            $isCombination = $firearm->isCombination();
+            $calibreName2 = $isCombination ? ($firearm->calibre_display_2 ?? null) : null;
             $actionLabel = $firearm->action_type_label;
             $serialNumbers = $firearm->serial_numbers;
         @endphp
@@ -172,8 +174,14 @@
                 @endif
                 @if($calibreName)
                 <td>
-                    <span class="fg-label">Calibre</span>
+                    <span class="fg-label">{{ $isCombination && $calibreName2 ? 'Calibre 1' : 'Calibre' }}</span>
                     <span class="fg-value">{{ $calibreName }}</span>
+                </td>
+                @endif
+                @if($isCombination && $calibreName2)
+                <td>
+                    <span class="fg-label">Calibre 2</span>
+                    <span class="fg-value">{{ $calibreName2 }}</span>
                 </td>
                 @endif
             </tr>

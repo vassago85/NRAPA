@@ -27,6 +27,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
     public string $make = '';
     public string $model = '';
     public string $calibreManual = '';
+    // Second calibre (for combination firearms)
+    public string $calibreManual2 = '';
     public string $sapsReference = '';
     public string $licenceSection = '16';
     public string $componentDiameter = '';
@@ -228,11 +230,17 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
             $firearmData['make'] = $this->make ?: null;
             $firearmData['serial_number'] = $this->serialNumber ?: null;
         } else {
+            $isCombination = $this->firearmCategory === EndorsementFirearm::CATEGORY_COMBINATION;
             $firearmData['ignition_type'] = $this->ignitionType ?: null;
-            $firearmData['action_type'] = $this->actionType ?: null;
+            // Combination firearms don't record an action.
+            $firearmData['action_type'] = $isCombination ? null : ($this->actionType ?: null);
             $firearmData['make'] = $this->make ?: null;
             $firearmData['model'] = $this->model ?: null;
             $firearmData['calibre_manual'] = $this->calibreManual ?: null;
+            // Second calibre — only meaningful for combination firearms.
+            $firearmData['calibre_text_override_2'] = ($isCombination && trim($this->calibreManual2) !== '')
+                ? trim($this->calibreManual2)
+                : null;
             $firearmData['barrel_serial_number'] = $this->barrelSerial ?: null;
             $firearmData['frame_serial_number'] = $this->frameSerial ?: null;
             $firearmData['receiver_serial_number'] = $this->receiverSerial ?: null;
@@ -382,7 +390,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
                     </div>
 
                     @if($firearmCategory && !EndorsementFirearm::isComponentCategory($firearmCategory))
-                        @if(!empty($this->actionTypeOptions))
+                        @if(!empty($this->actionTypeOptions) && $firearmCategory !== EndorsementFirearm::CATEGORY_COMBINATION)
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Action Type</label>
                                 <select wire:model="actionType" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
@@ -416,9 +424,19 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Calibre</label>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                {{ $firearmCategory === EndorsementFirearm::CATEGORY_COMBINATION ? 'Calibre 1' : 'Calibre' }}
+                            </label>
                             <input type="text" wire:model="calibreManual" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white" placeholder="e.g. .308 Winchester">
                         </div>
+
+                        @if($firearmCategory === EndorsementFirearm::CATEGORY_COMBINATION)
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Calibre 2</label>
+                            <input type="text" wire:model="calibreManual2" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white" placeholder="e.g. 12 Gauge">
+                            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Combination firearms have two barrels/chamberings — both are printed on the letter.</p>
+                        </div>
+                        @endif
 
                         {{-- Serial Numbers (SAPS 271) --}}
                         <div class="border-t border-zinc-200 dark:border-zinc-700 pt-4">
