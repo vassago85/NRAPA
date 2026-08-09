@@ -28,7 +28,7 @@ class UserFactory extends Factory
             'name' => $this->faker->name(),
             'email' => $this->faker->unique()->safeEmail(),
             'id_number' => $this->faker->unique()->numerify('#############'),
-            'phone' => $this->faker->phoneNumber(),
+            'phone' => '0'.$this->faker->numberBetween(6, 8).$this->faker->unique()->numerify('########'),
             'date_of_birth' => $this->faker->dateTimeBetween('-70 years', '-18 years'),
             'physical_address' => $this->faker->address(),
             'postal_address' => $this->faker->optional(0.5)->address(),

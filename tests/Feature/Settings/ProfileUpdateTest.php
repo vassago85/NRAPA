@@ -56,9 +56,9 @@ test('user can delete their account', function () {
         ->assertHasNoErrors()
         ->assertRedirect('/');
 
-    // User model uses soft deletes, so check for trashed status instead of null
-    expect($user->fresh())->not->toBeNull();
-    expect($user->fresh()->trashed())->toBeTrue();
+    // Account deletion is permanent (User has no soft deletes; the UI states it
+    // is irreversible), so the record is gone and the session is logged out.
+    expect($user->fresh())->toBeNull();
     expect(auth()->check())->toBeFalse();
 });
 

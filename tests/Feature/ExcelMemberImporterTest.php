@@ -65,11 +65,13 @@ test('excel importer can generate template', function () {
     $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($tempPath);
     $headers = $spreadsheet->getActiveSheet()->toArray()[0];
 
+    // Column B is the (ignored) member number; initials/surname follow it.
     expect($headers[0])->toContain('Date Joined');
-    expect($headers[1])->toBe('Initials');
-    expect($headers[2])->toBe('Surname');
-    expect($headers[5])->toBe('Email');
-    expect($headers[6])->toBe('Membership Type');
+    expect($headers[1])->toContain('Member Number');
+    expect($headers[2])->toBe('Initials');
+    expect($headers[3])->toBe('Surname');
+    expect($headers[6])->toBe('Email');
+    expect($headers[7])->toBe('Membership Type');
 
     File::delete($tempPath);
 });
@@ -269,15 +271,17 @@ test('excel importer parses row in expected column format', function () {
     $method = $reflection->getMethod('parseRow');
     $method->setAccessible(true);
 
-    // Test row matching user's actual spreadsheet format
-    $row = ['24/11/2025', 'SP', 'Basson', '0010165037085', '084 407 6112', 'spbasson123@example.com', 'Dedicated Life Membership', 'Life Member', 'Active'];
+    // Test row matching the actual spreadsheet format: column B is the
+    // (ignored) member number, so initials/surname start at column C.
+    $row = ['24/11/2025', '001', 'SP', 'Basson', '0010165037085', '084 407 6112', 'spbasson123@example.com', 'Dedicated Life Membership', 'Life Member', 'Active'];
 
     $parsed = $method->invoke($importer, $row);
 
     expect($parsed['name'])->toBe('SP Basson');
     expect($parsed['email'])->toBe('spbasson123@example.com');
     expect($parsed['id_number'])->toBe('0010165037085');
-    expect($parsed['phone'])->toBe('084 407 6112');
+    // parseRow normalizes phones to compact 10-digit SA format.
+    expect($parsed['phone'])->toBe('0844076112');
     expect($parsed['date_of_birth'])->toBe('2000-10-16');
     expect($parsed['membership_type_raw'])->toBe('Dedicated Life Membership');
     expect($parsed['status'])->toBe('active');
