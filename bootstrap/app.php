@@ -58,11 +58,15 @@ return Application::configure(basePath: dirname(__DIR__))
             try {
                 $req = request();
                 $sess = $req->hasSession() ? $req->session() : null;
+                // NEVER log session_token / cookie values here — a leaked log
+                // becomes a session-hijack primitive. Presence-only booleans
+                // and a short session-id fingerprint are enough to diagnose
+                // CSRF drift without disclosing credentials.
+                $sessionId = $sess?->getId();
                 \Illuminate\Support\Facades\Log::warning('[CSRF_MISMATCH] '.$e->getMessage(), [
                     'path' => $req->path(),
                     'method' => $req->method(),
-                    'session_id' => $sess?->getId(),
-                    'session_token' => $sess?->token(),
+                    'session_id_fp' => $sessionId ? substr(hash('sha256', $sessionId), 0, 12) : null,
                     'header_X-XSRF-TOKEN_present' => (bool) $req->header('X-XSRF-TOKEN'),
                     'header_X-CSRF-TOKEN_present' => (bool) $req->header('X-CSRF-TOKEN'),
                     'input_token_present' => (bool) $req->input('_token'),

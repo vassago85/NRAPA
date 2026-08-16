@@ -5,6 +5,7 @@ namespace App\Actions\Fortify;
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
 use App\Models\User;
+use App\Rules\TurnstileToken;
 use App\Services\NtfyService;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
@@ -25,6 +26,16 @@ class CreateNewUser implements CreatesNewUsers
         Validator::make($input, [
             ...$this->profileRules(),
             'password' => $this->passwordRules(),
+            // POPIA: registrants must actively accept T&Cs and the privacy
+            // policy before we store any personal data. Fortify posts the
+            // form as `terms_accepted=1` when the box is ticked.
+            'terms_accepted' => ['accepted'],
+            // Bot protection. See App\Rules\TurnstileToken — a blank secret
+            // (local/CI) makes this a no-op so tests keep working without
+            // needing a Cloudflare account.
+            'cf-turnstile-response' => [new TurnstileToken(request()->ip())],
+        ], [
+            'terms_accepted.accepted' => 'You must accept the Terms & Conditions and Privacy Policy to create an account.',
         ])->validate();
 
         $user = User::create([

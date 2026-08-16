@@ -128,6 +128,45 @@
                 @enderror
             </div>
 
+            {{-- POPIA / T&C consent. Required — the accepted rule in CreateNewUser rejects a missing checkbox. --}}
+            <div>
+                <label for="terms_accepted" class="flex items-start gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+                    <input
+                        type="checkbox"
+                        name="terms_accepted"
+                        id="terms_accepted"
+                        value="1"
+                        required
+                        @checked(old('terms_accepted'))
+                        class="mt-0.5 h-4 w-4 rounded border-zinc-300 text-nrapa-blue focus:ring-nrapa-blue"
+                    />
+                    <span>
+                        {{ __('I agree to the') }}
+                        <a href="{{ route('terms-and-conditions') }}" target="_blank" rel="noopener" class="font-medium text-nrapa-blue dark:text-nrapa-orange hover:underline">{{ __('Terms & Conditions') }}</a>
+                        {{ __('and') }}
+                        <a href="{{ route('privacy-policy') }}" target="_blank" rel="noopener" class="font-medium text-nrapa-blue dark:text-nrapa-orange hover:underline">{{ __('Privacy Policy (POPIA)') }}</a>{{ __(', and I consent to NRAPA processing my personal information for membership administration.') }}
+                    </span>
+                </label>
+                @error('terms_accepted')
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                @enderror
+            </div>
+
+            {{-- Cloudflare Turnstile — bot protection. If the site key isn't
+                 configured (local/CI) we skip rendering the widget and the
+                 server-side rule short-circuits too. --}}
+            @if (config('services.turnstile.site_key'))
+                <div>
+                    <div class="cf-turnstile"
+                         data-sitekey="{{ config('services.turnstile.site_key') }}"
+                         data-theme="auto"
+                         data-appearance="always"></div>
+                    @error('cf-turnstile-response')
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                    @enderror
+                </div>
+            @endif
+
             <button 
                 type="submit" 
                 x-bind:disabled="submitted"
@@ -138,6 +177,10 @@
                 <span x-show="submitted" x-cloak>{{ __('Creating account...') }}</span>
             </button>
         </form>
+
+        @if (config('services.turnstile.site_key'))
+            <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+        @endif
 
         <p class="text-sm text-center text-zinc-600 dark:text-zinc-400">
             {{ __('Already have an account?') }}

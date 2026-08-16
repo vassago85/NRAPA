@@ -131,5 +131,14 @@ class FortifyServiceProvider extends ServiceProvider
 
             return Limit::perMinute(5)->by($throttleKey);
         });
+
+        // `throttle:api` is referenced by routes/api.php but Laravel 11+ no
+        // longer registers a default `api` limiter, so hitting any /api/*
+        // route was 500-ing before the controller even ran. Public typeahead
+        // endpoints (calibres/makes suggest) don't need auth, so we key on
+        // user id when signed in and fall back to IP for anonymous callers.
+        RateLimiter::for('api', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
     }
 }

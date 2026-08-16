@@ -47,4 +47,13 @@ return [
         'developer_topic' => env('NTFY_DEVELOPER_TOPIC'),
     ],
 
+    // Cloudflare Turnstile (bot protection on public forms — e.g. register).
+    // When `secret` is empty, verification is skipped so local dev and tests
+    // don't require live keys. Set both keys in production.
+    'turnstile' => [
+        'site_key' => env('TURNSTILE_SITE_KEY'),
+        'secret' => env('TURNSTILE_SECRET_KEY'),
+        'verify_url' => env('TURNSTILE_VERIFY_URL', 'https://challenges.cloudflare.com/turnstile/v0/siteverify'),
+    ],
+
 ];
