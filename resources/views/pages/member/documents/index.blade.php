@@ -678,7 +678,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                                     </div>
                                 </div>
                             </label>
-                            <input id="member-upload-file-input" wire:model="uploadFile" type="file" class="sr-only" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp">
+                            <input id="member-upload-file-input" wire:model="uploadFile" type="file" class="sr-only" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif,.pdf">
                             @error('uploadFile') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             
                             @if($uploadFile)

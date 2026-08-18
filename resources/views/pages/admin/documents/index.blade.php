@@ -152,6 +152,33 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         // Use Laravel proxy route to stream file (bypasses R2 signed URL issues)
         return route('admin.documents.preview', $document);
     }
+
+    /**
+     * Best-effort classification for preview rendering. Falls back to the
+     * original filename extension when the stored mime_type is missing or
+     * generic (e.g. application/octet-stream), so a phone-uploaded photo
+     * still previews as an image.
+     */
+    public function previewKind(MemberDocument $document): string
+    {
+        $mime = strtolower((string) $document->mime_type);
+        if (str_contains($mime, 'image')) {
+            return 'image';
+        }
+        if (str_contains($mime, 'pdf')) {
+            return 'pdf';
+        }
+
+        $ext = strtolower(pathinfo((string) $document->original_filename, PATHINFO_EXTENSION));
+        if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) {
+            return 'image';
+        }
+        if ($ext === 'pdf') {
+            return 'pdf';
+        }
+
+        return 'other';
+    }
 }; ?>
 
 <div>
@@ -308,12 +335,12 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" style="min-height: 70vh;">
                         {{-- Document Preview --}}
                         <div class="bg-zinc-100 dark:bg-zinc-900 rounded-lg overflow-hidden flex flex-col" style="min-height: 65vh;">
-                            @php $previewUrl = $this->getPreviewUrl($reviewingDocument); @endphp
-                            @if($previewUrl && str_contains($reviewingDocument->mime_type, 'image'))
+                            @php $previewUrl = $this->getPreviewUrl($reviewingDocument); $previewKind = $this->previewKind($reviewingDocument); @endphp
+                            @if($previewUrl && $previewKind === 'image')
                                 <div class="p-4 flex-1 flex items-center justify-center">
                                     <img src="{{ $previewUrl }}" alt="Document preview" class="max-w-full max-h-full mx-auto rounded-lg object-contain">
                                 </div>
-                            @elseif($previewUrl && str_contains($reviewingDocument->mime_type, 'pdf'))
+                            @elseif($previewUrl && $previewKind === 'pdf')
                                 <div class="relative flex-1 flex flex-col" style="min-height: 65vh;">
                                     {{-- Embedded PDF Viewer --}}
                                     <iframe 
