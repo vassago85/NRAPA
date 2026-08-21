@@ -45,6 +45,18 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
     public string $editFirearmReceiverMake = '';
     public string $editFirearmGeneralSerial = '';
 
+    // Self-defence firearm details live on the request (no EndorsementFirearm row)
+    public bool $showEditSelfDefenceModal = false;
+    public string $editSdFirearmType = '';
+    public string $editSdFirearmMake = '';
+    public string $editSdFirearmModel = '';
+    public string $editSdFirearmCalibre = '';
+    public string $editSdFirearmActionType = '';
+    public string $editSdFirearmIgnitionType = '';
+    public string $editSdBarrelSerial = '';
+    public string $editSdFrameSerial = '';
+    public string $editSdReceiverSerial = '';
+
     public function mount(EndorsementRequest $request): void
     {
         $relationships = [
@@ -588,6 +600,115 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
         session()->flash('success', 'Firearm details updated.');
     }
 
+    public function openEditSelfDefenceModal(): void
+    {
+        if (!$this->request->isSelfDefence()) {
+            session()->flash('error', 'This is not a self-defence supporting letter.');
+            return;
+        }
+
+        $serials = EndorsementRequest::parseSelfDefenceSerials($this->request->firearm_serial);
+
+        $this->editSdFirearmType = $this->request->firearm_type ?? '';
+        $this->editSdFirearmMake = $this->request->firearm_make ?? '';
+        $this->editSdFirearmModel = $this->request->firearm_model ?? '';
+        $this->editSdFirearmCalibre = $this->request->firearm_calibre ?? '';
+        $this->editSdFirearmActionType = $this->request->firearm_action_type ?? '';
+        $this->editSdFirearmIgnitionType = $this->request->firearm_ignition_type ?? '';
+        $this->editSdBarrelSerial = $serials['barrel'];
+        $this->editSdFrameSerial = $serials['frame'];
+        $this->editSdReceiverSerial = $serials['receiver'];
+
+        $this->showEditSelfDefenceModal = true;
+    }
+
+    #[Computed]
+    public function editSdActionOptions(): array
+    {
+        return EndorsementRequest::getSelfDefenceActionTypeOptions($this->editSdFirearmType ?: null);
+    }
+
+    public function updatedEditSdFirearmType(): void
+    {
+        $available = EndorsementRequest::getSelfDefenceActionTypeOptions($this->editSdFirearmType ?: null);
+        if (!array_key_exists($this->editSdFirearmActionType, $available)) {
+            $this->editSdFirearmActionType = '';
+        }
+    }
+
+    public function saveSelfDefenceFirearmDetails(): void
+    {
+        if (!$this->request->isSelfDefence()) {
+            session()->flash('error', 'This is not a self-defence supporting letter.');
+            return;
+        }
+
+        $this->validate([
+            'editSdFirearmType' => 'required|in:handgun,rifle,shotgun',
+            'editSdFirearmMake' => 'required|string|max:255',
+            'editSdFirearmModel' => 'required|string|max:255',
+            'editSdFirearmCalibre' => 'required|string|max:255',
+            'editSdFirearmActionType' => 'nullable|string|max:50',
+            'editSdFirearmIgnitionType' => 'nullable|in:rimfire,centerfire',
+            'editSdBarrelSerial' => 'nullable|string|max:255',
+            'editSdFrameSerial' => 'nullable|string|max:255',
+            'editSdReceiverSerial' => 'nullable|string|max:255',
+        ], [], [
+            'editSdFirearmType' => 'firearm type',
+            'editSdFirearmMake' => 'make',
+            'editSdFirearmModel' => 'model',
+            'editSdFirearmCalibre' => 'calibre',
+        ]);
+
+        $serialString = EndorsementRequest::formatSelfDefenceSerials([
+            'barrel' => $this->editSdBarrelSerial,
+            'frame' => $this->editSdFrameSerial,
+            'receiver' => $this->editSdReceiverSerial,
+        ]);
+
+        if ($serialString === null) {
+            $this->addError('editSdBarrelSerial', 'Enter at least one serial number (barrel, frame, or receiver).');
+            return;
+        }
+
+        $oldValues = [
+            'firearm_type' => $this->request->firearm_type,
+            'firearm_make' => $this->request->firearm_make,
+            'firearm_model' => $this->request->firearm_model,
+            'firearm_calibre' => $this->request->firearm_calibre,
+            'firearm_action_type' => $this->request->firearm_action_type,
+            'firearm_ignition_type' => $this->request->firearm_ignition_type,
+            'firearm_serial' => $this->request->firearm_serial,
+        ];
+
+        $newValues = [
+            'firearm_type' => $this->editSdFirearmType,
+            'firearm_make' => trim($this->editSdFirearmMake),
+            'firearm_model' => trim($this->editSdFirearmModel),
+            'firearm_calibre' => trim($this->editSdFirearmCalibre),
+            'firearm_action_type' => $this->editSdFirearmActionType ?: null,
+            'firearm_ignition_type' => $this->editSdFirearmIgnitionType ?: null,
+            'firearm_serial' => $serialString,
+        ];
+
+        $this->request->update($newValues);
+
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'event' => 'endorsement_self_defence_firearm_edited',
+            'auditable_type' => EndorsementRequest::class,
+            'auditable_id' => $this->request->id,
+            'old_values' => $oldValues,
+            'new_values' => $newValues,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+
+        $this->showEditSelfDefenceModal = false;
+        $this->request->refresh();
+        session()->flash('success', 'Self-defence firearm details updated. If a letter has already been issued, regenerate the PDF so the correction appears on the letter.');
+    }
+
     public function rejectRequest(): void
     {
         $this->validate([
@@ -1053,7 +1174,13 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                 <div class="bg-white dark:bg-zinc-900 rounded-2xl border border-indigo-200 dark:border-indigo-800 shadow-sm overflow-hidden">
                     <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 bg-indigo-50/50 dark:bg-indigo-900/10">
                         <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Self-Defence Firearm (Section 13)</h2>
-                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">Self-Defence Letter</span>
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">Self-Defence Letter</span>
+                            <button wire:click="openEditSelfDefenceModal" class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600 transition-colors">
+                                <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/></svg>
+                                Edit
+                            </button>
+                        </div>
                     </div>
                     <div class="p-6">
                         <dl class="grid grid-cols-2 gap-4 text-sm">
@@ -1073,6 +1200,18 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                                 <dt class="text-zinc-500">Calibre</dt>
                                 <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->firearm_calibre }}</dd>
                             </div>
+                            @if($request->firearm_action_type)
+                            <div>
+                                <dt class="text-zinc-500">Action</dt>
+                                <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->firearm_action_type_label }}</dd>
+                            </div>
+                            @endif
+                            @if($request->firearm_ignition_type)
+                            <div>
+                                <dt class="text-zinc-500">Ignition</dt>
+                                <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->firearm_ignition_type_label }}</dd>
+                            </div>
+                            @endif
                             <div>
                                 <dt class="text-zinc-500">Serial Number</dt>
                                 <dd class="font-mono font-medium text-zinc-900 dark:text-white">{{ $request->firearm_serial ?: 'To be confirmed' }}</dd>
@@ -1925,6 +2064,110 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                         Cancel
                     </button>
                     <button wire:click="saveFirearmDetails" class="px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors text-sm font-medium">
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Edit Self-Defence Firearm Details Modal --}}
+    @if($showEditSelfDefenceModal)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" wire:click.self="$set('showEditSelfDefenceModal', false)">
+            <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Edit Self-Defence Firearm</h3>
+                    <button wire:click="$set('showEditSelfDefenceModal', false)" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                        <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Firearm Type</label>
+                        <select wire:model.live="editSdFirearmType" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
+                            <option value="">— Select —</option>
+                            @foreach(EndorsementRequest::getSelfDefenceFirearmTypeOptions() as $val => $label)
+                                <option value="{{ $val }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        @error('editSdFirearmType') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Action Type</label>
+                        <select wire:model="editSdFirearmActionType" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
+                            <option value="">— Select —</option>
+                            @foreach($this->editSdActionOptions as $val => $label)
+                                <option value="{{ $val }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Ignition Type</label>
+                        <select wire:model="editSdFirearmIgnitionType" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
+                            <option value="">— Select —</option>
+                            @foreach(EndorsementRequest::getSelfDefenceIgnitionTypeOptions() as $val => $label)
+                                <option value="{{ $val }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Make</label>
+                            <input type="text" wire:model="editSdFirearmMake" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
+                            @error('editSdFirearmMake') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Model</label>
+                            <input type="text" wire:model="editSdFirearmModel" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
+                            @error('editSdFirearmModel') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Calibre</label>
+                        <input type="text" wire:model="editSdFirearmCalibre" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
+                        @error('editSdFirearmCalibre') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div class="pt-2 border-t border-zinc-200 dark:border-zinc-700">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Serial Numbers</h4>
+                            <span class="text-[11px] text-zinc-500 dark:text-zinc-400">At least one is required. For a handgun, the serial is usually on the frame.</span>
+                        </div>
+
+                        @foreach ([
+                            ['label' => 'Barrel',   'field' => 'editSdBarrelSerial'],
+                            ['label' => 'Frame',    'field' => 'editSdFrameSerial'],
+                            ['label' => 'Receiver', 'field' => 'editSdReceiverSerial'],
+                        ] as $row)
+                            <div class="grid grid-cols-12 gap-2 mb-2 items-end">
+                                <div class="col-span-10">
+                                    <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">{{ $row['label'] }} Serial</label>
+                                    <input type="text" wire:model="{{ $row['field'] }}" placeholder="Leave blank to remove"
+                                        class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-mono dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
+                                </div>
+                                <div class="col-span-2">
+                                    <button type="button"
+                                        wire:click="$set('{{ $row['field'] }}', '')"
+                                        class="w-full px-2 py-2 text-xs font-medium text-red-700 dark:text-red-300 border border-red-300 dark:border-red-700 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                                        Clear
+                                    </button>
+                                </div>
+                            </div>
+                        @endforeach
+                        @error('editSdBarrelSerial') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+
+                <div class="flex gap-3 justify-end mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                    <button wire:click="$set('showEditSelfDefenceModal', false)" class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors text-sm">
+                        Cancel
+                    </button>
+                    <button wire:click="saveSelfDefenceFirearmDetails" class="px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors text-sm font-medium">
                         Save Changes
                     </button>
                 </div>

@@ -113,6 +113,8 @@ class EndorsementRequest extends Model
         'firearm_model',
         'firearm_calibre',
         'firearm_type',
+        'firearm_action_type',
+        'firearm_ignition_type',
         'firearm_serial',
         'motivation_note',
         'status',
@@ -669,6 +671,71 @@ class EndorsementRequest extends Model
     }
 
     /**
+     * Action options for the self-defence form, filtered by firearm type.
+     * Reuses the dedicated-status SAPS-271 labels (e.g. Cylinder for revolvers).
+     *
+     * @return array<string, string>
+     */
+    public static function getSelfDefenceActionTypeOptions(?string $firearmType = null): array
+    {
+        return EndorsementFirearm::getActionTypeOptions($firearmType);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function getSelfDefenceIgnitionTypeOptions(): array
+    {
+        return EndorsementFirearm::getIgnitionTypeOptions();
+    }
+
+    /**
+     * Parse the stored "Barrel: X, Frame: Y, Receiver: Z" serial string.
+     *
+     * @return array{barrel: string, frame: string, receiver: string}
+     */
+    public static function parseSelfDefenceSerials(?string $serial): array
+    {
+        $result = ['barrel' => '', 'frame' => '', 'receiver' => ''];
+
+        if ($serial === null || trim($serial) === '') {
+            return $result;
+        }
+
+        foreach (['barrel' => 'Barrel', 'frame' => 'Frame', 'receiver' => 'Receiver'] as $key => $label) {
+            if (preg_match('/'.preg_quote($label, '/').':\s*([^,]+)/i', $serial, $matches)) {
+                $result[$key] = trim($matches[1]);
+            }
+        }
+
+        // Unlabelled legacy values — keep them so an edit cannot silently drop a serial.
+        if ($result['barrel'] === '' && $result['frame'] === '' && $result['receiver'] === '') {
+            $result['barrel'] = trim($serial);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Build the stored serial string from the three part fields.
+     *
+     * @param  array{barrel?: string, frame?: string, receiver?: string}  $serials
+     */
+    public static function formatSelfDefenceSerials(array $serials): ?string
+    {
+        $parts = [];
+
+        foreach (['Barrel' => $serials['barrel'] ?? '', 'Frame' => $serials['frame'] ?? '', 'Receiver' => $serials['receiver'] ?? ''] as $label => $value) {
+            $value = trim((string) $value);
+            if ($value !== '') {
+                $parts[] = "{$label}: {$value}";
+            }
+        }
+
+        return $parts === [] ? null : implode(', ', $parts);
+    }
+
+    /**
      * The individually-ticked acknowledgement clauses for the self-defence
      * variant. Returned as clause_key => clause_text. All are required; each is
      * stored as its own immutable acknowledgement row at submission time.
@@ -1087,6 +1154,8 @@ class EndorsementRequest extends Model
                 'firearm_model' => $this->firearm_model,
                 'firearm_calibre' => $this->firearm_calibre,
                 'firearm_type' => $this->firearm_type,
+                'firearm_action_type' => $this->firearm_action_type,
+                'firearm_ignition_type' => $this->firearm_ignition_type,
                 'firearm_serial' => $this->firearm_serial,
                 'motivation_note' => $this->motivation_note,
                 'status' => self::STATUS_APPROVED,
@@ -1318,6 +1387,29 @@ class EndorsementRequest extends Model
     public function getFirearmTypeLabelAttribute(): string
     {
         return self::getSelfDefenceFirearmTypeOptions()[$this->firearm_type] ?? ($this->firearm_type ?? '');
+    }
+
+    public function getFirearmActionTypeLabelAttribute(): string
+    {
+        if (! $this->firearm_action_type) {
+            return '';
+        }
+
+        $options = self::getSelfDefenceActionTypeOptions($this->firearm_type);
+
+        return $options[$this->firearm_action_type]
+            ?? EndorsementFirearm::getActionTypeOptions()[$this->firearm_action_type]
+            ?? ucfirst(str_replace('_', ' ', $this->firearm_action_type));
+    }
+
+    public function getFirearmIgnitionTypeLabelAttribute(): string
+    {
+        if (! $this->firearm_ignition_type) {
+            return '';
+        }
+
+        return self::getSelfDefenceIgnitionTypeOptions()[$this->firearm_ignition_type]
+            ?? ucfirst($this->firearm_ignition_type);
     }
 
     /**

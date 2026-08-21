@@ -17,6 +17,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Self-Defence Supporting Letter')] 
     public string $firearmModel = '';
     public string $firearmCalibre = '';
     public string $firearmType = '';
+    public string $firearmActionType = '';
+    public string $firearmIgnitionType = '';
     public string $firearmBarrelSerial = '';
     public string $firearmFrameSerial = '';
     public string $firearmReceiverSerial = '';
@@ -132,6 +134,20 @@ new #[Layout('layouts.app.sidebar')] #[Title('Self-Defence Supporting Letter')] 
     }
 
     #[Computed]
+    public function actionOptions(): array
+    {
+        return EndorsementRequest::getSelfDefenceActionTypeOptions($this->firearmType ?: null);
+    }
+
+    public function updatedFirearmType(): void
+    {
+        $available = EndorsementRequest::getSelfDefenceActionTypeOptions($this->firearmType ?: null);
+        if (! array_key_exists($this->firearmActionType, $available)) {
+            $this->firearmActionType = '';
+        }
+    }
+
+    #[Computed]
     public function allClausesAccepted(): bool
     {
         foreach (EndorsementRequest::selfDefenceClauses() as $key => $text) {
@@ -162,6 +178,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Self-Defence Supporting Letter')] 
             'firearmModel' => 'required|string|max:255',
             'firearmCalibre' => 'required|string|max:255',
             'firearmType' => 'required|in:handgun,rifle,shotgun',
+            'firearmActionType' => 'nullable|string|max:50',
+            'firearmIgnitionType' => 'nullable|in:rimfire,centerfire',
             'firearmBarrelSerial' => 'nullable|string|max:255',
             'firearmFrameSerial' => 'nullable|string|max:255',
             'firearmReceiverSerial' => 'nullable|string|max:255',
@@ -173,18 +191,16 @@ new #[Layout('layouts.app.sidebar')] #[Title('Self-Defence Supporting Letter')] 
             'firearmType' => 'firearm type',
         ]);
 
-        // At least one serial number (barrel, frame, or receiver) is required.
-        $serials = array_filter([
-            'Barrel' => trim($this->firearmBarrelSerial),
-            'Frame' => trim($this->firearmFrameSerial),
-            'Receiver' => trim($this->firearmReceiverSerial),
-        ], fn ($v) => $v !== '');
-        if (empty($serials)) {
+        $serialString = EndorsementRequest::formatSelfDefenceSerials([
+            'barrel' => $this->firearmBarrelSerial,
+            'frame' => $this->firearmFrameSerial,
+            'receiver' => $this->firearmReceiverSerial,
+        ]);
+        if ($serialString === null) {
             $this->addError('firearmBarrelSerial', 'Enter at least one serial number (barrel, frame, or receiver).');
 
             return;
         }
-        $serialString = collect($serials)->map(fn ($v, $k) => "{$k}: {$v}")->implode(', ');
 
         // 3. Every clause must be individually accepted.
         if (! $this->allClausesAccepted) {
@@ -215,6 +231,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Self-Defence Supporting Letter')] 
             'firearm_model' => $this->firearmModel,
             'firearm_calibre' => $this->firearmCalibre,
             'firearm_type' => $this->firearmType,
+            'firearm_action_type' => $this->firearmActionType ?: null,
+            'firearm_ignition_type' => $this->firearmIgnitionType ?: null,
             'firearm_serial' => $serialString,
             'motivation_note' => $this->motivationNote ?: null,
             'declaration_accepted_at' => $now,
@@ -386,9 +404,31 @@ new #[Layout('layouts.app.sidebar')] #[Title('Self-Defence Supporting Letter')] 
                         @error('firearmCalibre') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                     </div>
 
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Action</label>
+                        <select wire:model="firearmActionType" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                            <option value="">Select action…</option>
+                            @foreach($this->actionOptions as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        @error('firearmActionType') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Ignition</label>
+                        <select wire:model="firearmIgnitionType" class="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                            <option value="">Select ignition…</option>
+                            @foreach(EndorsementRequest::getSelfDefenceIgnitionTypeOptions() as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        @error('firearmIgnitionType') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    </div>
+
                     <div class="sm:col-span-2">
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Serial Number(s) <span class="text-red-500">*</span></label>
-                        <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-2">Enter at least one serial number. A firearm may carry a serial on the barrel, frame and/or receiver &mdash; complete whichever apply.</p>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-2">Enter at least one serial number. A firearm may carry a serial on the barrel, frame and/or receiver &mdash; complete whichever apply. For a handgun, the serial is usually on the <strong>frame</strong>.</p>
                         <div class="grid gap-3 sm:grid-cols-3">
                             <div>
                                 <label class="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">Barrel Serial</label>

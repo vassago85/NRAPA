@@ -90,6 +90,8 @@
         $sdType = $request->firearm_type_label;
         $sdMakeModel = trim(($request->firearm_make ?? '') . ' ' . ($request->firearm_model ?? ''));
         $sdCalibre = $request->firearm_calibre;
+        $sdAction = $request->firearm_action_type_label;
+        $sdIgnition = $request->firearm_ignition_type_label;
         $sdSerial = $request->firearm_serial ?: 'Serial to be confirmed';
     @endphp
     <div class="card components-card">
@@ -117,6 +119,22 @@
                     <span class="fg-value">{{ $sdSerial }}</span>
                 </td>
             </tr>
+            @if($sdAction || $sdIgnition)
+            <tr>
+                @if($sdAction)
+                <td>
+                    <span class="fg-label">Action</span>
+                    <span class="fg-value">{{ $sdAction }}</span>
+                </td>
+                @endif
+                @if($sdIgnition)
+                <td>
+                    <span class="fg-label">Ignition</span>
+                    <span class="fg-value">{{ $sdIgnition }}</span>
+                </td>
+                @endif
+            </tr>
+            @endif
         </table>
     </div>
 
@@ -130,7 +148,7 @@
         This letter is issued by NRAPA at the written request of the above member in support of {{ $sdApplicationPhrase }} in terms of Section 13 of the Firearms Control Act, 2000 (Act 60 of 2000).
         <br/><br/>
         <div style="background:#f5f7fb; border-left:3px solid #0B4EA2; padding:6px 10px; margin:2px 0 8px 0; font-size:11px;">
-            <b>Firearm to which this letter relates:</b> {{ $sdType }}@if($sdMakeModel) &mdash; {{ $sdMakeModel }}@endif@if($sdCalibre), {{ $sdCalibre }}@endif ({{ $sdSerial }}).
+            <b>Firearm to which this letter relates:</b> {{ $sdType }}@if($sdAction) {{ $sdAction }}@endif@if($sdIgnition) {{ $sdIgnition }}@endif@if($sdMakeModel) &mdash; {{ $sdMakeModel }}@endif@if($sdCalibre), {{ $sdCalibre }}@endif ({{ $sdSerial }}).
         </div>
         <div style="font-size:10.5px; line-height:1.45; color:#333;">
             <div style="font-weight:700; color:#0B4EA2; margin-bottom:3px;">Please note the nature and scope of this endorsement:</div>

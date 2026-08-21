@@ -147,6 +147,18 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Request')] class exten
                                 <dt class="text-zinc-500 dark:text-zinc-400">Calibre</dt>
                                 <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $request->firearm_calibre }}</dd>
                             </div>
+                            @if($request->firearm_action_type)
+                            <div>
+                                <dt class="text-zinc-500 dark:text-zinc-400">Action</dt>
+                                <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $request->firearm_action_type_label }}</dd>
+                            </div>
+                            @endif
+                            @if($request->firearm_ignition_type)
+                            <div>
+                                <dt class="text-zinc-500 dark:text-zinc-400">Ignition</dt>
+                                <dd class="mt-1 font-medium text-zinc-900 dark:text-white">{{ $request->firearm_ignition_type_label }}</dd>
+                            </div>
+                            @endif
                             <div>
                                 <dt class="text-zinc-500 dark:text-zinc-400">Serial Number</dt>
                                 <dd class="mt-1 font-mono font-medium text-zinc-900 dark:text-white">{{ $request->firearm_serial ?: 'To be confirmed' }}</dd>
