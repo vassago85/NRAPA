@@ -77,3 +77,10 @@ Schedule::command('notifications:process')
     ->timezone('Africa/Johannesburg')
     ->withoutOverlapping()
     ->runInBackground();
+
+// Daily Laravel error-log digest for anyone with System Errors ntfy enabled
+Schedule::command('nrapa:scan-error-logs')
+    ->dailyAt('07:30')
+    ->timezone('Africa/Johannesburg')
+    ->withoutOverlapping()
+    ->runInBackground();
