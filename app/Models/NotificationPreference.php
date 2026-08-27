@@ -136,8 +136,6 @@ class NotificationPreference extends Model
             'new_member' => 'New Member Registration',
             'payment_received' => 'Payment Received',
             'document_uploaded' => 'Document Uploaded',
-            'document_rejected' => 'Document Rejected',
-            'membership_expiring' => 'Membership Expiring',
             'activity_submitted' => 'Activity Submitted',
             'knowledge_test_completed' => 'Knowledge Test Completed',
             'endorsement_request' => 'Endorsement Request Submitted',

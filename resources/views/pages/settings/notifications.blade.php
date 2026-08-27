@@ -319,10 +319,8 @@ new class extends Component {
                     <div class="space-y-3">
                         @foreach([
                             'notify_new_member' => ['New Member Registration', 'Get notified when a new member registers'],
-                            'notify_payment_received' => ['Payment Received', 'Get notified when payment is confirmed'],
+                            'notify_payment_received' => ['Payment Received', 'Get notified when a member uploads proof of payment'],
                             'notify_document_uploaded' => ['Document Uploaded', 'Get notified when a member uploads a document'],
-                            'notify_document_rejected' => ['Document Rejected', 'Get notified when a member\'s document is rejected'],
-                            'notify_membership_expiring' => ['Membership Expiring', 'Get notified about expiring memberships'],
                             'notify_activity_submitted' => ['Activity Submitted', 'Get notified when an activity is submitted for review'],
                             'notify_knowledge_test_completed' => ['Knowledge Test Completed', 'Get notified when a member completes their test'],
                             'notify_endorsement_request' => ['Endorsement Request', 'Get notified when a member submits an endorsement request'],
