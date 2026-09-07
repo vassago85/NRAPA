@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Carbon\Carbon;
+use DateTimeInterface;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -61,6 +63,43 @@ class NotificationPreference extends Model
     }
 
     /**
+     * MySQL TIME and HTML time inputs often include seconds (H:i:s).
+     * The settings form validates H:i, so always expose/store HH:MM.
+     */
+    public static function normalizeTime(mixed $value, string $fallback = '08:00'): string
+    {
+        if ($value instanceof DateTimeInterface) {
+            return $value->format('H:i');
+        }
+
+        if (! is_string($value) || trim($value) === '') {
+            return $fallback;
+        }
+
+        if (preg_match('/^(\d{1,2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/', trim($value), $matches)) {
+            return sprintf('%02d:%02d', (int) $matches[1], (int) $matches[2]);
+        }
+
+        return $fallback;
+    }
+
+    protected function workingHoursStart(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?string $value) => self::normalizeTime($value, '08:00'),
+            set: fn (mixed $value) => self::normalizeTime($value, '08:00'),
+        );
+    }
+
+    protected function workingHoursEnd(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?string $value) => self::normalizeTime($value, '17:00'),
+            set: fn (mixed $value) => self::normalizeTime($value, '17:00'),
+        );
+    }
+
+    /**
      * Check if currently within working hours.
      */
     public function isWithinWorkingHours(): bool
@@ -79,8 +118,8 @@ class NotificationPreference extends Model
 
         // Check time
         $currentTime = $now->format('H:i');
-        $start = $this->working_hours_start ?? '08:00';
-        $end = $this->working_hours_end ?? '17:00';
+        $start = self::normalizeTime($this->working_hours_start, '08:00');
+        $end = self::normalizeTime($this->working_hours_end, '17:00');
 
         return $currentTime >= $start && $currentTime <= $end;
     }

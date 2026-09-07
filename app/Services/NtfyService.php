@@ -170,8 +170,19 @@ class NtfyService
                 continue;
             }
 
-            // Try to send
-            $topic = $prefs?->ntfy_topic;
+            if (! $prefs || ! $prefs->ntfy_enabled) {
+                $notification->markAsFailed('NTFY notifications disabled');
+
+                continue;
+            }
+
+            if (! $prefs->wantsNotification($notification->type)) {
+                $notification->markAsFailed('Notification type disabled');
+
+                continue;
+            }
+
+            $topic = $prefs->ntfy_topic;
             if (! $topic) {
                 $notification->markAsFailed('No NTFY topic configured');
 
