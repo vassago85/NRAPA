@@ -216,7 +216,7 @@ class UserFirearm extends Model
      */
     public function getPrimarySerialAttribute(): ?string
     {
-        // Priority: receiver > frame > barrel
+        // Priority: receiver > frame > barrel (components), then SAPS columns, then legacy
         $receiver = $this->receiverComponent();
         if ($receiver && $receiver->serial) {
             return $receiver->serial;
@@ -232,8 +232,10 @@ class UserFirearm extends Model
             return $barrel->serial;
         }
 
-        // Fallback to legacy serial_number for backwards compatibility
-        return $this->serial_number;
+        return $this->receiver_serial_number
+            ?: $this->frame_serial_number
+            ?: $this->barrel_serial_number
+            ?: $this->serial_number;
     }
 
     /**
@@ -256,7 +258,18 @@ class UserFirearm extends Model
             $this->calibre_display,
         ]);
 
-        return implode(' ', $parts) ?: 'Unnamed Firearm';
+        if ($parts !== []) {
+            return implode(' ', $parts);
+        }
+
+        // Armoury create stores type + SAPS serials without requiring make/model.
+        // Fall back so emails/UI don't show "Unnamed Firearm" for real guns.
+        $fallback = array_filter([
+            $this->firearm_type_label,
+            $this->primary_serial ? "S/N {$this->primary_serial}" : null,
+        ]);
+
+        return $fallback !== [] ? implode(' · ', $fallback) : 'Unnamed Firearm';
     }
 
     public function getFullDescriptionAttribute(): string

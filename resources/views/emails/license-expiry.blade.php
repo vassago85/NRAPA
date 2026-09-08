@@ -42,16 +42,21 @@
                 <td class="tx-muted" style="padding: 5px 0; color: #6b7280; font-size: 14px;">Firearm</td>
                 <td class="tx" style="padding: 5px 0; text-align: right; font-weight: 700; color: #374151; font-size: 14px;">{{ $firearm->display_name }}</td>
             </tr>
-            @if($firearm->make && $firearm->model)
+            @if(($firearm->make_display ?? $firearm->make) || ($firearm->model_display ?? $firearm->model))
             <tr>
                 <td class="tx-muted" style="padding: 5px 0; color: #6b7280; font-size: 14px;">Make / Model</td>
-                <td class="tx" style="padding: 5px 0; text-align: right; font-weight: 700; color: #374151; font-size: 14px;">{{ $firearm->make }} {{ $firearm->model }}</td>
+                <td class="tx" style="padding: 5px 0; text-align: right; font-weight: 700; color: #374151; font-size: 14px;">{{ trim(($firearm->make_display ?? $firearm->make).' '.($firearm->model_display ?? $firearm->model)) }}</td>
+            </tr>
+            @elseif($firearm->firearm_type_label)
+            <tr>
+                <td class="tx-muted" style="padding: 5px 0; color: #6b7280; font-size: 14px;">Type</td>
+                <td class="tx" style="padding: 5px 0; text-align: right; font-weight: 700; color: #374151; font-size: 14px;">{{ $firearm->firearm_type_label }}@if($firearm->action_label) ({{ $firearm->action_label }})@endif</td>
             </tr>
             @endif
-            @if($firearm->serial_number)
+            @if($firearm->primary_serial)
             <tr>
                 <td class="tx-muted" style="padding: 5px 0; color: #6b7280; font-size: 14px;">Serial Number</td>
-                <td class="tx" style="padding: 5px 0; text-align: right; font-weight: 700; color: #374151; font-family: 'Courier New', monospace; font-size: 14px;">{{ $firearm->serial_number }}</td>
+                <td class="tx" style="padding: 5px 0; text-align: right; font-weight: 700; color: #374151; font-family: 'Courier New', monospace; font-size: 14px;">{{ $firearm->primary_serial }}</td>
             </tr>
             @endif
             @if($firearm->license_number)
