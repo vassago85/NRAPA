@@ -13,6 +13,7 @@ new class extends Component {
     // Essential fields only
     public string $nickname = '';
     public string $firearm_type = '';
+    public string $firearm_type_other = '';
     public string $action = '';
     public ?int $firearm_calibre_id = null;
     public ?int $firearm_make_id = null;
@@ -30,7 +31,8 @@ new class extends Component {
     public function rules(): array
     {
         return [
-            'firearm_type' => ['required', 'in:rifle,shotgun,handgun,hand_machine_carbine,combination'],
+            'firearm_type' => ['required', 'in:rifle,shotgun,handgun,combination,other'],
+            'firearm_type_other' => ['required_if:firearm_type,other', 'nullable', 'string', 'max:255'],
             'action' => ['required', 'in:semi_automatic,automatic,bolt_action,pump_action,lever_action,manual,other'],
             'serial_number' => ['required', 'string', 'max:255'],
             'nickname' => ['nullable', 'string', 'max:255'],
@@ -78,6 +80,7 @@ new class extends Component {
         $data = [
             'user_id' => auth()->id(),
             'firearm_type' => $this->firearm_type,
+            'firearm_type_other' => $this->firearm_type === 'other' ? ($this->firearm_type_other ?: null) : null,
             'action' => $this->action,
             'firearm_calibre_id' => $this->firearm_calibre_id,
             'firearm_make_id' => $this->firearm_make_id,
@@ -118,8 +121,8 @@ new class extends Component {
                 'rifle' => 'rifle',
                 'shotgun' => 'shotgun',
                 'handgun' => 'handgun',
-                'hand_machine_carbine' => 'handgun',
                 'combination' => null,
+                'other' => null,
             ];
             $cat = $categoryMap[$this->firearm_type] ?? null;
             if ($cat) {
@@ -176,10 +179,15 @@ new class extends Component {
                             <option value="rifle">Rifle</option>
                             <option value="shotgun">Shotgun</option>
                             <option value="handgun">Handgun</option>
-                            <option value="hand_machine_carbine">Hand Machine Carbine</option>
                             <option value="combination">Combination</option>
+                            <option value="other">Other (specify)</option>
                         </select>
                         @error('firearm_type') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        @if ($firearm_type === 'other')
+                            <input type="text" wire:model="firearm_type_other" placeholder="e.g., Hand Machine Carbine"
+                                   class="mt-2 w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2 text-sm text-zinc-900 dark:text-white">
+                            @error('firearm_type_other') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        @endif
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Action *</label>

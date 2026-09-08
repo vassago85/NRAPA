@@ -17,7 +17,8 @@ class UserFirearm extends Model
         'uuid',
         'user_id',
         'firearm_type_id', // Legacy FK, kept for backwards compatibility
-        'firearm_type',    // SAPS 271 canonical: rifle|shotgun|handgun|hand_machine_carbine|combination
+        'firearm_type',    // SAPS 271 canonical: rifle|shotgun|handgun|combination|other
+        'firearm_type_other', // Free-text specification when firearm_type = 'other'
         'action',          // semi_automatic|automatic|bolt_action|pump_action|lever_action|manual|other
         'other_action_text', // When action = 'other'
         'calibre_code',    // SAPS calibre code
