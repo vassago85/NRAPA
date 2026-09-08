@@ -55,6 +55,13 @@ Schedule::command('nrapa:purge-verified-document-files')
     ->withoutOverlapping()
     ->runInBackground();
 
+// Hard-delete email_logs rows older than 30 days (bodies are longText and grow indefinitely)
+Schedule::command('nrapa:purge-email-logs')
+    ->dailyAt('03:45')
+    ->timezone('Africa/Johannesburg')
+    ->withoutOverlapping()
+    ->runInBackground();
+
 // Send follow-up reminders for revoked approvals with no POP after 7 days
 Schedule::command('nrapa:send-pop-followup-reminders')
     ->dailyAt('09:00')
