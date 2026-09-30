@@ -709,7 +709,11 @@ new #[Title('Learning Center - Admin')] class extends Component {
                 <div class="mt-2">
                     @if($categoryImage)
                     <div class="relative inline-block">
+                        @if(method_exists($categoryImage, 'isPreviewable') && $categoryImage->isPreviewable())
                         <img src="{{ $categoryImage->temporaryUrl() }}" alt="Preview" class="h-24 w-40 rounded-lg border border-zinc-200 object-cover dark:border-zinc-700">
+                        @else
+                        <p class="text-sm text-zinc-600 dark:text-zinc-300">{{ $categoryImage->getClientOriginalName() }}</p>
+                        @endif
                         <button type="button" wire:click="$set('categoryImage', null)" class="absolute -right-2 -top-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600">
                             <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -813,7 +817,11 @@ new #[Title('Learning Center - Admin')] class extends Component {
                 <div class="mt-2">
                     @if($articleFeaturedImage)
                     <div class="relative inline-block">
+                        @if(method_exists($articleFeaturedImage, 'isPreviewable') && $articleFeaturedImage->isPreviewable())
                         <img src="{{ $articleFeaturedImage->temporaryUrl() }}" alt="Preview" class="h-32 rounded-lg border border-zinc-200 object-cover dark:border-zinc-700">
+                        @else
+                        <p class="text-sm text-zinc-600 dark:text-zinc-300">{{ $articleFeaturedImage->getClientOriginalName() }}</p>
+                        @endif
                         <button type="button" wire:click="$set('articleFeaturedImage', null)" class="absolute -right-2 -top-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600">
                             <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -875,7 +883,9 @@ new #[Title('Learning Center - Admin')] class extends Component {
                         </svg>
                         <div class="flex-1">
                             <p class="text-sm font-medium text-zinc-900 dark:text-white">{{ $articleDocument->getClientOriginalName() }}</p>
-                            <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ number_format($articleDocument->getSize() / 1024, 2) }} KB</p>
+                            @if(($articleDocumentBytes = \App\Helpers\StorageHelper::temporaryFileSize($articleDocument)) !== null)
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ number_format($articleDocumentBytes / 1024, 2) }} KB</p>
+                            @endif
                         </div>
                         <button type="button" wire:click="$set('articleDocument', null)" class="rounded-lg bg-red-500 p-1.5 text-white hover:bg-red-600">
                             <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -1331,7 +1341,9 @@ new #[Title('Learning Center - Admin')] class extends Component {
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                             </svg>
                             <span class="flex-1 text-sm text-zinc-900 dark:text-white">{{ $wordDocumentFile->getClientOriginalName() }}</span>
-                            <span class="text-xs text-zinc-500 dark:text-zinc-400">{{ number_format($wordDocumentFile->getSize() / 1024, 2) }} KB</span>
+                            @if(($wordDocumentBytes = \App\Helpers\StorageHelper::temporaryFileSize($wordDocumentFile)) !== null)
+                            <span class="text-xs text-zinc-500 dark:text-zinc-400">{{ number_format($wordDocumentBytes / 1024, 2) }} KB</span>
+                            @endif
                             <button type="button" wire:click="$set('wordDocumentFile', null)" class="text-red-500 hover:text-red-700">
                                 <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>

@@ -65,6 +65,13 @@ new class extends Component {
 
     public function save(): void
     {
+        if ($this->firearm_image && method_exists($this->firearm_image, 'exists') && ! $this->firearm_image->exists()) {
+            $this->firearm_image = null;
+            $this->addError('firearm_image', 'That photo expired. Please choose it again.');
+
+            return;
+        }
+
         $this->validate();
 
         // Build display values from reference IDs
@@ -97,7 +104,7 @@ new class extends Component {
         ];
 
         if ($this->firearm_image) {
-            $data['image_path'] = $this->firearm_image->store('firearms', 'public');
+            $data['image_path'] = $this->firearm_image->storeAs('firearms', $this->firearm_image->hashName(), ['disk' => 'public', 'visibility' => 'public']);
         }
 
         $firearm = UserFirearm::create($data);
@@ -273,11 +280,13 @@ new class extends Component {
 
                     @error('firearm_image') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
 
-                    @if($firearm_image && method_exists($firearm_image, 'temporaryUrl'))
+                    @if($firearm_image && method_exists($firearm_image, 'isPreviewable') && $firearm_image->isPreviewable())
                         <div class="mt-2" wire:loading.remove wire:target="firearm_image">
                             <img src="{{ $firearm_image->temporaryUrl() }}" alt="Preview"
                                  class="h-24 w-auto rounded-lg object-cover border border-zinc-200 dark:border-zinc-600">
                         </div>
+                    @elseif($firearm_image && method_exists($firearm_image, 'getClientOriginalName'))
+                        <p class="mt-2 text-xs text-zinc-500">{{ $firearm_image->getClientOriginalName() }}</p>
                     @endif
                 </div>
 

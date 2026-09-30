@@ -219,7 +219,11 @@ new #[Title('Manage Pages - Learning Center')] class extends Component {
                 <div class="mt-2">
                     @if($pageImage)
                     <div class="relative inline-block">
+                        @if(method_exists($pageImage, 'isPreviewable') && $pageImage->isPreviewable())
                         <img src="{{ $pageImage->temporaryUrl() }}" alt="Preview" class="max-h-48 rounded-lg border border-zinc-200 object-contain dark:border-zinc-700">
+                        @else
+                        <p class="text-sm text-zinc-600 dark:text-zinc-300">{{ $pageImage->getClientOriginalName() }}</p>
+                        @endif
                         <button type="button" wire:click="$set('pageImage', null)" class="absolute -right-2 -top-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600">
                             <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />

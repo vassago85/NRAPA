@@ -23,6 +23,7 @@ new class extends Component {
     // Form fields
     public ?string $track = null;
     public ?int $activity_type_id = null;
+    public ?int $activity_tag_id = null;
     public array $activity_tag_ids = [];
     public ?string $activity_date = null;
     public ?int $firearm_type_id = null;

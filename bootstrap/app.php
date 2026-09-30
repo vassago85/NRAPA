@@ -51,6 +51,8 @@ return Application::configure(basePath: dirname(__DIR__))
                     'file' => $e->getFile().':'.$e->getLine(),
                     'trace' => collect($e->getTrace())->take(5)->map(fn ($t) => ($t['file'] ?? '?').':'.($t['line'] ?? '?').' '.($t['class'] ?? '').($t['type'] ?? '').($t['function'] ?? ''))->all(),
                 ]);
+
+                return false;
             }
         });
 

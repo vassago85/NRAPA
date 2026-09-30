@@ -296,7 +296,7 @@ new #[Title('Manage Questions - Admin')] class extends Component {
             if ($this->existingImagePath) {
                 Storage::disk('public')->delete($this->existingImagePath);
             }
-            $imagePath = $this->questionImage->store('knowledge-test-images', 'public');
+            $imagePath = $this->questionImage->storeAs('knowledge-test-images', $this->questionImage->hashName(), ['disk' => 'public', 'visibility' => 'public']);
         }
 
         // Prepare options array with letter keys (A, B, C, D, ...)
@@ -737,7 +737,11 @@ new #[Title('Manage Questions - Admin')] class extends Component {
                     @if($questionImage)
                         {{-- Preview of new upload --}}
                         <div class="relative inline-block">
+                            @if(method_exists($questionImage, 'isPreviewable') && $questionImage->isPreviewable())
                             <img src="{{ $questionImage->temporaryUrl() }}" alt="Preview" class="max-h-48 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                            @else
+                            <p class="text-sm text-zinc-600 dark:text-zinc-300">{{ $questionImage->getClientOriginalName() }}</p>
+                            @endif
                             <button type="button" wire:click="$set('questionImage', null)" class="absolute -right-2 -top-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600">
                                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />

@@ -33,8 +33,8 @@ class NtfyService
                 'Priority' => $priority,
                 'Tags' => implode(',', $tags),
             ])
-              ->connectTimeout(2)
-              ->timeout(3)
+              ->connectTimeout(5)
+              ->timeout(10)
               ->withBody($message, 'text/plain')
               ->post("{$this->baseUrl}/{$topic}");
 

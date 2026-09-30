@@ -106,7 +106,9 @@ new #[Title('Create Knowledge Test - Admin')] class extends Component {
                             </svg>
                             <div class="flex-1">
                                 <p class="text-sm font-medium text-zinc-900 dark:text-white">{{ $testDocument->getClientOriginalName() }}</p>
-                                <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ number_format($testDocument->getSize() / 1024, 2) }} KB</p>
+                                @if(($testDocumentBytes = \App\Helpers\StorageHelper::temporaryFileSize($testDocument)) !== null)
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ number_format($testDocumentBytes / 1024, 2) }} KB</p>
+                                @endif
                             </div>
                             <button type="button" wire:click="$set('testDocument', null)" class="rounded-lg bg-red-500 p-1.5 text-white hover:bg-red-600">
                                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">

@@ -3,6 +3,7 @@
 namespace App\Helpers;
 
 use Illuminate\Support\Facades\Storage;
+use League\Flysystem\UnableToRetrieveMetadata;
 
 class StorageHelper
 {
@@ -161,5 +162,26 @@ class StorageHelper
         $disk = static::getPublicDisk();
 
         return Storage::disk($disk)->exists($path);
+    }
+
+    /**
+     * Byte size of a Livewire temporary upload, or null when the temp file is already gone.
+     * Calling getSize() on a missing livewire-tmp file throws and takes down the page.
+     */
+    public static function temporaryFileSize(mixed $file): ?int
+    {
+        if (! is_object($file) || ! method_exists($file, 'getSize')) {
+            return null;
+        }
+
+        try {
+            if (method_exists($file, 'exists') && ! $file->exists()) {
+                return null;
+            }
+
+            return $file->getSize();
+        } catch (UnableToRetrieveMetadata) {
+            return null;
+        }
     }
 }

@@ -178,6 +178,16 @@ new class extends Component {
 
     public function save(): void
     {
+        foreach (['firearm_image', 'license_document'] as $upload) {
+            $file = $this->{$upload};
+            if ($file && method_exists($file, 'exists') && ! $file->exists()) {
+                $this->{$upload} = null;
+                $this->addError($upload, 'That file expired. Please choose it again.');
+
+                return;
+            }
+        }
+
         $this->validate();
 
         $make = $this->firearm_make_id ? FirearmMake::find($this->firearm_make_id) : null;
@@ -225,7 +235,7 @@ new class extends Component {
         ];
 
         if ($this->firearm_image) {
-            $data['image_path'] = $this->firearm_image->store('firearms', 'public');
+            $data['image_path'] = $this->firearm_image->storeAs('firearms', $this->firearm_image->hashName(), ['disk' => 'public', 'visibility' => 'public']);
         }
 
         if ($this->license_document) {
@@ -445,10 +455,12 @@ new class extends Component {
 
                     @error('firearm_image') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
 
-                    @if($firearm_image && !is_string($firearm_image) && method_exists($firearm_image, 'temporaryUrl'))
+                    @if($firearm_image && !is_string($firearm_image) && method_exists($firearm_image, 'isPreviewable') && $firearm_image->isPreviewable())
                         <div class="mt-2" wire:loading.remove wire:target="firearm_image">
                             <img src="{{ $firearm_image->temporaryUrl() }}" alt="Preview" class="h-24 w-auto rounded-lg object-cover border border-zinc-200 dark:border-zinc-600">
                         </div>
+                    @elseif($firearm_image && !is_string($firearm_image) && method_exists($firearm_image, 'getClientOriginalName'))
+                        <p class="mt-2 text-xs text-zinc-500">{{ $firearm_image->getClientOriginalName() }}</p>
                     @elseif($firearm->image_path)
                         <div class="mt-2 flex items-center gap-2">
                             <img src="{{ Storage::disk('public')->url($firearm->image_path) }}" alt="Current photo" class="h-24 w-auto rounded-lg object-cover border border-zinc-200 dark:border-zinc-600">

@@ -166,6 +166,13 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
 
     public function uploadDocument(): void
     {
+        if ($this->uploadFile && method_exists($this->uploadFile, 'exists') && ! $this->uploadFile->exists()) {
+            $this->uploadFile = null;
+            $this->addError('uploadFile', 'That file expired. Please choose it again.');
+
+            return;
+        }
+
         $this->validate();
 
         $user = auth()->user();
@@ -686,7 +693,9 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
                                     <svg class="w-8 h-8 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></svg>
                                     <div class="flex-1 min-w-0">
                                         <p class="text-sm font-medium text-zinc-900 dark:text-white truncate">{{ $uploadFile->getClientOriginalName() }}</p>
-                                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ number_format($uploadFile->getSize() / 1024, 1) }} KB</p>
+                                        @if(($uploadBytes = \App\Helpers\StorageHelper::temporaryFileSize($uploadFile)) !== null)
+                                            <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ number_format($uploadBytes / 1024, 1) }} KB</p>
+                                        @endif
                                     </div>
                                     <button type="button" wire:click="$set('uploadFile', null)" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
                                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
