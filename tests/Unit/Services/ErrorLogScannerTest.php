@@ -52,6 +52,24 @@ LOG);
         ->and($fingerprints->values()->sum())->toBe(4);
 });
 
+test('ignores interactive tinker PsySH parse errors', function () {
+    $now = Carbon::parse('2026-09-09 07:30:00');
+    writeLog($this->logDir, <<<'LOG'
+[2026-09-08 15:29:38] production.ERROR: PHP Parse error: Syntax error, unexpected ';' on line 3 {"exception":"[object] (Psy\\Exception\\ParseErrorException(code: 0): PHP Parse error: Syntax error, unexpected ';' on line 3 at /var/www/html/vendor/psy/psysh/src/Exception/ParseErrorException.php:44)
+[2026-09-08 15:29:56] production.ERROR: PHP Parse error: Syntax error, unexpected ';' on line 6 {"exception":"[object] (Psy\\Exception\\ParseErrorException(code: 0): PHP Parse error: Syntax error, unexpected ';' on line 6 at /var/www/html/vendor/psy/psysh/src/Exception/ParseErrorException.php:44)
+[2026-09-09 02:00:48] production.ERROR: Daily database backup failed {"message":"Database backup failed: Database connection failed. Please verify the password."}
+LOG);
+
+    $report = (new ErrorLogScanner($this->logDir))->scan(
+        since: $now->copy()->subDay(),
+        until: $now,
+    );
+
+    expect($report->total)->toBe(1)
+        ->and($report->uniqueCount)->toBe(1)
+        ->and($report->groups[0]['fingerprint'])->toBe('Daily database backup failed');
+});
+
 test('returns an empty report when the log has no recent errors', function () {
     $now = Carbon::parse('2026-08-26 08:00:00');
     writeLog($this->logDir, <<<'LOG'

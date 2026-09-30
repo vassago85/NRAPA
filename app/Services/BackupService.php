@@ -152,18 +152,7 @@ class BackupService
 
             // Temporarily update config with provided password to verify connection
             $originalPassword = $config['password'];
-            config(["database.connections.{$connection}.password" => $dbPassword]);
-            DB::purge($connection);
-
-            // Verify password by testing connection
-            try {
-                DB::connection($connection)->getPdo();
-            } catch (Exception $e) {
-                // Restore original config
-                config(["database.connections.{$connection}.password" => $originalPassword]);
-                DB::purge($connection);
-                throw new Exception('Database connection failed. Please verify the password.');
-            }
+            $dbPassword = $this->assertBackupConnection($connection, $dbPassword, $originalPassword);
 
             // Try using mysqldump command first (more reliable)
             $mysqldumpPath = $this->findMysqldumpPath();
@@ -506,6 +495,51 @@ class BackupService
         $sql .= "SET FOREIGN_KEY_CHECKS=1;\n";
 
         File::put($backupPath, $sql);
+    }
+
+    /**
+     * Confirm the dump can connect, falling back to the live config password
+     * when a caller-supplied (often stale stored) password is rejected.
+     */
+    protected function assertBackupConnection(string $connection, string $dbPassword, mixed $originalPassword): string
+    {
+        config(["database.connections.{$connection}.password" => $dbPassword]);
+        DB::purge($connection);
+
+        try {
+            DB::connection($connection)->getPdo();
+
+            return $dbPassword;
+        } catch (Exception $e) {
+            $canRetry = is_string($originalPassword)
+                && $originalPassword !== ''
+                && $originalPassword !== $dbPassword;
+
+            if ($canRetry) {
+                Log::warning('Backup: provided password failed, retrying with live connection password', [
+                    'error' => $e->getMessage(),
+                ]);
+
+                config(["database.connections.{$connection}.password" => $originalPassword]);
+                DB::purge($connection);
+
+                try {
+                    DB::connection($connection)->getPdo();
+
+                    return $originalPassword;
+                } catch (Exception $retry) {
+                    config(["database.connections.{$connection}.password" => $originalPassword]);
+                    DB::purge($connection);
+
+                    throw new Exception('Database connection failed: '.$retry->getMessage());
+                }
+            }
+
+            config(["database.connections.{$connection}.password" => $originalPassword]);
+            DB::purge($connection);
+
+            throw new Exception('Database connection failed: '.$e->getMessage());
+        }
     }
 
     /**

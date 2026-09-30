@@ -112,7 +112,18 @@ class ErrorLogScanner
     {
         return in_array($entry['level'], self::ERROR_LEVELS, true)
             && $entry['timestamp']->gte($since)
-            && $entry['timestamp']->lte($until);
+            && $entry['timestamp']->lte($until)
+            && ! $this->isOperatorTinkerNoise($entry['message']);
+    }
+
+    /**
+     * Interactive `php artisan tinker` typos are logged as ERROR by PsySH
+     * but are not application failures. They previously paged the daily digest.
+     */
+    private function isOperatorTinkerNoise(string $message): bool
+    {
+        return str_contains($message, 'ParseErrorException')
+            && (str_contains($message, 'Psy\\') || str_contains($message, 'Psy\\\\'));
     }
 
     private function fingerprint(string $message): string

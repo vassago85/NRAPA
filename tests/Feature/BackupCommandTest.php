@@ -33,3 +33,39 @@ test('daily backup command succeeds with valid password', function () {
     // Should not contain password error
     expect($output)->not->toContain('password is not configured');
 });
+
+test('daily backup prefers the live config password over a stale stored override', function () {
+    $command = app(\App\Console\Commands\DailyDatabaseBackup::class);
+    $method = new ReflectionMethod($command, 'resolveDatabasePassword');
+    $connection = config('database.default');
+
+    config(["database.connections.{$connection}.password" => 'live-correct-password']);
+
+    SystemSetting::set(
+        'database_backup_password',
+        Crypt::encryptString('stale-wrong-password'),
+        'string',
+        'backup',
+        'Stale override',
+    );
+
+    expect($method->invoke($command))->toBe('live-correct-password');
+});
+
+test('daily backup uses the stored password only when live config password is empty', function () {
+    $command = app(\App\Console\Commands\DailyDatabaseBackup::class);
+    $method = new ReflectionMethod($command, 'resolveDatabasePassword');
+    $connection = config('database.default');
+
+    config(["database.connections.{$connection}.password" => '']);
+
+    SystemSetting::set(
+        'database_backup_password',
+        Crypt::encryptString('stored-fallback-password'),
+        'string',
+        'backup',
+        'Fallback override',
+    );
+
+    expect($method->invoke($command))->toBe('stored-fallback-password');
+});

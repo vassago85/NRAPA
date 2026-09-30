@@ -97,19 +97,27 @@ class DailyDatabaseBackup extends Command
      * Resolve the database password to use for the backup.
      *
      * Priority:
-     *   1. Explicit override via the encrypted `database_backup_password`
-     *      system setting (only used if it decrypts cleanly — drift-prone
-     *      values are silently ignored and we fall back to the live config).
-     *   2. The live database connection password from `config()`. This is
+     *   1. The live database connection password from `config()`. This is
      *      always correct because it's what the running app uses to connect.
+     *   2. Encrypted `database_backup_password` system setting — only if the
+     *      live password is empty. A stored override that decrypts but no
+     *      longer matches DB_PASSWORD is what produced the daily
+     *      "Database connection failed. Please verify the password." errors.
      *
      * Returns null only if neither source yields a non-empty string.
      */
     protected function resolveDatabasePassword(): ?string
     {
+        $connection = config('database.default');
+        $password = config("database.connections.{$connection}.password");
+
+        if (is_string($password) && $password !== '') {
+            return $password;
+        }
+
         $encrypted = SystemSetting::get('database_backup_password');
 
-        if (! empty($encrypted)) {
+        if ($encrypted !== null && $encrypted !== '' && $encrypted !== false) {
             try {
                 $decrypted = \Illuminate\Support\Facades\Crypt::decryptString($encrypted);
 
@@ -117,17 +125,10 @@ class DailyDatabaseBackup extends Command
                     return $decrypted;
                 }
             } catch (\Exception $e) {
-                Log::warning('Daily database backup: stored password could not be decrypted, falling back to live config', [
+                Log::warning('Daily database backup: stored password could not be decrypted', [
                     'error' => $e->getMessage(),
                 ]);
             }
-        }
-
-        $connection = config('database.default');
-        $password = config("database.connections.{$connection}.password");
-
-        if (is_string($password) && $password !== '') {
-            return $password;
         }
 
         return null;

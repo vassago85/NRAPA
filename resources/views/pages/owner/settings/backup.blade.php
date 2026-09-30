@@ -266,6 +266,7 @@ new class extends Component {
                                 <p class="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">Automatic Backup Schedule</p>
                                 <ul class="text-sm text-blue-700 dark:text-blue-300 space-y-1 list-disc list-inside">
                                     <li>Database backups run automatically every day at 2:00 AM (SAST)</li>
+                                    <li>Daily backups use the live database password from the server config. A separately stored password is only used if that config value is empty.</li>
                                     <li>Backups are compressed and uploaded to your configured cloud storage</li>
                                     <li>Only the last 30 days of backups are kept (older backups are automatically deleted)</li>
                                     <li>Backups are stored in: <code class="px-1 py-0.5 bg-blue-100 dark:bg-blue-800 rounded text-xs">backups/database/</code></li>
@@ -302,7 +303,7 @@ new class extends Component {
 
                         <div>
                             <label for="databaseBackupPassword" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                Database Password for Automatic Backups <span class="text-red-500">*</span>
+                                Database Password Override (optional)
                             </label>
                             <div class="relative">
                                 <input 
@@ -322,7 +323,7 @@ new class extends Component {
                                     @endif
                                 </button>
                             </div>
-                            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">This password is stored securely and used for automatic daily backups. It will not be shown again after saving.</p>
+                            <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Leave empty. Daily backups use the live server database password. A stored override is only used if that config value is missing — a stale value here is what used to fail the 02:00 job.</p>
                             @error('databaseBackupPassword') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                         </div>
 
