@@ -1503,7 +1503,7 @@ new #[Title('Dashboard')] class extends Component {
                 </div>
                 <div>
                     <span class="text-xs uppercase tracking-wider text-zinc-500">Member since</span>
-                    <p class="text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ $this->activeMembership->approved_at?->format('M d, Y') ?? $this->activeMembership->created_at->format('M d, Y') }}</p>
+                    <p class="text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ $this->user->joinedOn()?->format('M d, Y') }}</p>
                 </div>
             </div>
         </div>

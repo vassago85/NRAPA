@@ -563,6 +563,10 @@ class Membership extends Model
      * The grace-period helpers (`renewalGracePeriodDays`, `isExpiredBeyondGracePeriod`,
      * `isInRenewalWindow`) still exist and are used to surface guidance to admins
      * — they no longer hard-block the renewal flow.
+     *
+     * Early renewals are allowed at any point in the current cycle (SAPS needs
+     * 3+ months of remaining validity on applications). The only block is a
+     * member who is already paid up more than one full cycle ahead.
      */
     public function isRenewable(): bool
     {
@@ -578,7 +582,24 @@ class Membership extends Model
             return false;
         }
 
+        if ($this->isPaidAheadBeyondOneCycle()) {
+            return false;
+        }
+
         return true;
+    }
+
+    /**
+     * True when expires_at is more than one duration cycle away, i.e. the
+     * member has already renewed early for the coming cycle.
+     */
+    public function isPaidAheadBeyondOneCycle(): bool
+    {
+        $months = $this->type?->duration_months;
+
+        return $months
+            && $this->expires_at
+            && $this->expires_at->gt(now()->addMonths($months));
     }
 
     /**
@@ -659,7 +680,8 @@ class Membership extends Model
     }
 
     /**
-     * Check if the membership will eventually require renewal but is not yet in the window.
+     * Check if the membership will require renewal but cannot be renewed yet
+     * because it is already paid up more than one cycle ahead.
      * Useful for showing "renewal opens on X" messaging.
      */
     public function isRenewalUpcoming(): bool
@@ -676,18 +698,11 @@ class Membership extends Model
             return false;
         }
 
-        if (! $this->expires_at) {
-            return false;
-        }
-
-        $windowDays = static::renewalWindowDays();
-
-        // Has an expiry in the future but more than the configured window away
-        return ! $this->expires_at->isPast() && now()->diffInDays($this->expires_at, false) > $windowDays;
+        return $this->isPaidAheadBeyondOneCycle();
     }
 
     /**
-     * Get the date when the renewal window opens.
+     * Get the date from which the member can renew again.
      */
     public function getRenewalWindowOpensAtAttribute(): ?\DateTimeInterface
     {
@@ -695,7 +710,11 @@ class Membership extends Model
             return null;
         }
 
-        return $this->expires_at->copy()->subDays(static::renewalWindowDays());
+        $months = $this->type?->duration_months;
+
+        return $months
+            ? $this->expires_at->copy()->subMonths($months)
+            : $this->expires_at->copy()->subDays(static::renewalWindowDays());
     }
 
     /**
@@ -960,10 +979,10 @@ class Membership extends Model
      * anniversary) instead of "today". For first-time applications, falls back
      * to a normal {@see MembershipType::calculateExpiryDate()} from now.
      *
-     * The result is always capped at `now() + duration_months` so that a
-     * non-lifetime member can never be active for longer than one full cycle
-     * from this activation moment. This prevents an early renewer from
-     * effectively buying ~2 years of active membership in one go.
+     * Early renewals are NOT capped at now() + duration_months: a member whose
+     * membership expires in November and renews in October must keep the
+     * November anniversary. Stacking multiple cycles is prevented upstream by
+     * {@see self::isRenewable()}.
      *
      * Always returns a fresh Carbon instance (or null for non-expiring types).
      */
@@ -973,22 +992,9 @@ class Membership extends Model
             return null;
         }
 
-        $expiry = $this->isRenewal()
+        return $this->isRenewal()
             ? $this->type->calculateRenewalExpiryDate($this->previousMembership?->expires_at)
             : $this->type->calculateExpiryDate(now());
-
-        if ($expiry === null) {
-            return null;
-        }
-
-        if ($this->type->duration_months) {
-            $cap = now()->addMonths($this->type->duration_months);
-            $expiryCarbon = \Carbon\Carbon::parse($expiry);
-
-            return $expiryCarbon->gt($cap) ? $cap : $expiryCarbon;
-        }
-
-        return $expiry;
     }
 
     /**

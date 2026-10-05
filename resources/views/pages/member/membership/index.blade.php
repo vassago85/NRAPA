@@ -629,7 +629,7 @@ new #[Title('My Membership')] class extends Component {
                 {{-- Member Since --}}
                 <div>
                     <span class="text-zinc-500 dark:text-zinc-400">Member Since</span>
-                    <p class="font-medium text-zinc-900 dark:text-white mt-0.5">{{ $membership->activated_at?->format('d M Y') ?? 'Pending' }}</p>
+                    <p class="font-medium text-zinc-900 dark:text-white mt-0.5">{{ $membership->activated_at ? $this->user->joinedOn()?->format('d M Y') : 'Pending' }}</p>
                 </div>
             </div>
         </div>
@@ -888,6 +888,14 @@ new #[Title('My Membership')] class extends Component {
                             <span class="text-zinc-500 dark:text-zinc-400">Current Expiry</span>
                             <span class="text-zinc-900 dark:text-white">{{ $renewalMembership->expires_at?->format('d M Y') ?? 'N/A' }}</span>
                         </div>
+                        @php $newExpiry = $renewalMembership->type->calculateRenewalExpiryDate($renewalMembership->expires_at); @endphp
+                        @if($newExpiry)
+                        <div class="flex items-center justify-between">
+                            <span class="text-zinc-500 dark:text-zinc-400">New Expiry</span>
+                            <span class="font-medium text-zinc-900 dark:text-white">{{ \Carbon\Carbon::parse($newExpiry)->format('d M Y') }}</span>
+                        </div>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">Your join date and renewal anniversary stay the same, even if you renew early.</p>
+                        @endif
                         <hr class="border-zinc-200 dark:border-zinc-700">
                         <div class="flex items-center justify-between text-base">
                             <span class="font-semibold text-zinc-900 dark:text-white">Renewal Amount</span>
