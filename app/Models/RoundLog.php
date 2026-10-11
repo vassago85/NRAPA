@@ -29,9 +29,4 @@ class RoundLog extends Model
     {
         return $this->belongsTo(UserFirearm::class);
     }
-
-    public function scopeForFirearm($query, int $firearmId)
-    {
-        return $query->where('user_firearm_id', $firearmId);
-    }
 }

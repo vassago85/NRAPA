@@ -108,18 +108,6 @@ class DedicatedStatusApplication extends Model
     // ===== Dedicated Type =====
 
     /**
-     * Get the dedicated type display name.
-     */
-    public function getDedicatedTypeDisplayAttribute(): string
-    {
-        return match ($this->dedicated_type) {
-            'hunter' => 'Dedicated Hunter',
-            'sport', 'sport_shooter' => 'Dedicated Sports Person (Sport Shooter)',
-            default => 'Unknown',
-        };
-    }
-
-    /**
      * Check if the user has passed ALL required knowledge tests for their membership type.
      * Falls back to checking dedicated_type if no specific tests are configured.
      */
@@ -151,14 +139,6 @@ class DedicatedStatusApplication extends Model
             })
             ->where('passed', true)
             ->exists();
-    }
-
-    /**
-     * Legacy method name for backwards compatibility.
-     */
-    public function hasPassedRequiredTest(): bool
-    {
-        return $this->hasPassedRequiredTests();
     }
 
     /**

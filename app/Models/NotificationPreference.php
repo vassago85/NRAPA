@@ -165,20 +165,4 @@ class NotificationPreference extends Model
 
         return $this->{$attribute} ?? false;
     }
-
-    /**
-     * Get notification types as array for display.
-     */
-    public static function getNotificationTypes(): array
-    {
-        return [
-            'new_member' => 'New Member Registration',
-            'payment_received' => 'Payment Received',
-            'document_uploaded' => 'Document Uploaded',
-            'activity_submitted' => 'Activity Submitted',
-            'knowledge_test_completed' => 'Knowledge Test Completed',
-            'endorsement_request' => 'Endorsement Request Submitted',
-            'system_errors' => 'System Errors (Developer Only)',
-        ];
-    }
 }

@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Helpers\StorageHelper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -129,14 +128,6 @@ class LearningArticle extends Model
     }
 
     /**
-     * Get the first page of the article.
-     */
-    public function getFirstPageAttribute(): ?LearningArticlePage
-    {
-        return $this->pages()->orderBy('page_number')->first();
-    }
-
-    /**
      * Check how many pages a user has read.
      */
     public function getPagesReadByUser(User $user): int
@@ -224,19 +215,6 @@ class LearningArticle extends Model
     public function hasDocument(): bool
     {
         return ! empty($this->document_path);
-    }
-
-    /**
-     * Get the document URL.
-     * Learning center documents are always served from local storage.
-     */
-    public function getDocumentUrlAttribute(): ?string
-    {
-        if (! $this->hasDocument()) {
-            return null;
-        }
-
-        return StorageHelper::getLearningCenterUrl($this->document_path);
     }
 
     /**

@@ -129,7 +129,7 @@ test('joinedOn falls back to earliest applied_at when no membership has activate
     Membership::create([
         'user_id' => $user->id,
         'membership_type_id' => $type->id,
-        'status' => 'submitted',
+        'status' => 'applied',
         'applied_at' => now()->subMonths(4),
         'activated_at' => null,
     ]);
@@ -137,7 +137,7 @@ test('joinedOn falls back to earliest applied_at when no membership has activate
     Membership::create([
         'user_id' => $user->id,
         'membership_type_id' => $type->id,
-        'status' => 'submitted',
+        'status' => 'applied',
         'applied_at' => now()->subMonths(2),
         'activated_at' => null,
     ]);

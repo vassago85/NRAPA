@@ -107,14 +107,6 @@ class KnowledgeTestAttempt extends Model
     // ===== Status Checks =====
 
     /**
-     * Check if the attempt is in progress.
-     */
-    public function isInProgress(): bool
-    {
-        return $this->submitted_at === null;
-    }
-
-    /**
      * Check if the attempt is submitted.
      */
     public function isSubmitted(): bool

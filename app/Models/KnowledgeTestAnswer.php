@@ -51,14 +51,6 @@ class KnowledgeTestAnswer extends Model
     }
 
     /**
-     * Check if the answer has been marked.
-     */
-    public function isMarked(): bool
-    {
-        return $this->points_awarded !== null;
-    }
-
-    /**
      * Mark the answer (for written questions).
      */
     public function mark(int $points, ?string $feedback = null): void

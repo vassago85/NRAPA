@@ -1192,7 +1192,7 @@ new #[Title('Member Details - Admin')] class extends Component {
         }
 
         $awaitingPayment = $membership->status === 'pending_payment'
-            || ($membership->status === 'applied' && in_array($membership->source, ['web', 'admin']));
+            || ($membership->status === 'applied' && $membership->isBillable());
 
         if (!$awaitingPayment) {
             session()->flash('error', 'This membership is not awaiting payment.');
@@ -2179,7 +2179,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                                     !$membership->payment_confirmed_at
                                     && (
                                         $membership->status === 'pending_payment'
-                                        || ($membership->status === 'applied' && in_array($membership->source, ['web', 'admin']))
+                                        || ($membership->status === 'applied' && $membership->isBillable())
                                     )
                                 )
                                 <button

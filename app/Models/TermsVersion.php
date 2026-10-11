@@ -67,16 +67,6 @@ class TermsVersion extends Model
     }
 
     /**
-     * Check if a user has accepted this version.
-     */
-    public function isAcceptedBy(User $user): bool
-    {
-        return $this->acceptances()
-            ->where('user_id', $user->id)
-            ->exists();
-    }
-
-    /**
      * Activate this version (deactivates all others).
      */
     public function activate(): void

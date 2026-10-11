@@ -212,26 +212,6 @@ class FirearmType extends Model
     }
 
     /**
-     * Scope to firearm types for a specific ignition type.
-     */
-    public function scopeForIgnitionType($query, string $ignitionType)
-    {
-        return $query->where(function ($q) use ($ignitionType) {
-            $q->where('ignition_type', $ignitionType)
-                ->orWhere('ignition_type', 'both')
-                ->orWhereNull('ignition_type');
-        });
-    }
-
-    /**
-     * Scope to firearm types for a specific action type.
-     */
-    public function scopeForActionType($query, string $actionType)
-    {
-        return $query->where('action_type', $actionType);
-    }
-
-    /**
      * Scope ordered by sort order.
      */
     public function scopeOrdered($query)

@@ -62,14 +62,6 @@ class UserSecurityQuestion extends Model
     }
 
     /**
-     * Get the question text from the key.
-     */
-    public static function getQuestionText(string $key): ?string
-    {
-        return self::AVAILABLE_QUESTIONS[$key] ?? null;
-    }
-
-    /**
      * Get available questions formatted for a dropdown.
      */
     public static function getQuestionOptions(): array

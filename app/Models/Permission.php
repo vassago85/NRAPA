@@ -219,14 +219,6 @@ class Permission extends Model
     }
 
     /**
-     * Scope to high risk permissions.
-     */
-    public function scopeHighRisk($query)
-    {
-        return $query->where('is_high_risk', true);
-    }
-
-    /**
      * Get group display name.
      */
     public function getGroupDisplayNameAttribute(): string

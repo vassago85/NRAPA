@@ -65,18 +65,6 @@ class ActivityType extends Model
     }
 
     /**
-     * Scope to activity types in a specific group.
-     */
-    public function scopeForGroup($query, ?string $group)
-    {
-        if (! $group) {
-            return $query;
-        }
-
-        return $query->where('group', $group);
-    }
-
-    /**
      * Scope ordered by sort order.
      */
     public function scopeOrdered($query)

@@ -283,35 +283,6 @@ class MemberDocument extends Model
             && $this->expires_at !== null;
     }
 
-    /**
-     * Is the file currently protected from the POPIA purge by the member's
-     * extended-retention choice?
-     *
-     * True only while expires_at + 1 year is still in the future. Once that
-     * deadline has passed, normal 7-day-post-verification purge resumes.
-     */
-    public function isWithinExtendedRetentionWindow(): bool
-    {
-        if (! $this->hasExtendedRetention()) {
-            return false;
-        }
-
-        return $this->expires_at->copy()->addYear()->isFuture();
-    }
-
-    /**
-     * Effective deadline after which the file may be purged from object
-     * storage. Null when there is no member-set deadline (use default rule).
-     */
-    public function getRetentionDeadline(): ?\Illuminate\Support\Carbon
-    {
-        if (! $this->hasExtendedRetention()) {
-            return null;
-        }
-
-        return $this->expires_at->copy()->addYear();
-    }
-
     // ===== Actions =====
 
     /**
@@ -539,18 +510,6 @@ class MemberDocument extends Model
             ->where(function ($q) {
                 $q->whereNull('expires_at')
                     ->orWhere('expires_at', '>', now());
-            });
-    }
-
-    /**
-     * Scope to only expired documents.
-     */
-    public function scopeExpiredDocuments($query)
-    {
-        return $query->where('status', 'expired')
-            ->orWhere(function ($q) {
-                $q->whereNotNull('expires_at')
-                    ->where('expires_at', '<', now());
             });
     }
 }

@@ -188,20 +188,6 @@ class KnowledgeTest extends Model
     }
 
     /**
-     * Get the dedicated type display name.
-     */
-    public function getDedicatedTypeDisplayAttribute(): ?string
-    {
-        return match ($this->dedicated_type) {
-            'hunter' => 'Dedicated Hunter',
-            'sport' => 'Dedicated Sports Person (Sport Shooter)',
-            'sport_shooter' => 'Dedicated Sports Person (Sport Shooter)', // Legacy support
-            'both' => 'Both (Hunter & Sports Person / Sport Shooter)',
-            default => null,
-        };
-    }
-
-    /**
      * Get the total points available for the test.
      */
     public function getTotalPointsAttribute(): int
@@ -239,17 +225,5 @@ class KnowledgeTest extends Model
     public function hasDocument(): bool
     {
         return ! empty($this->document_path);
-    }
-
-    /**
-     * Get the document URL.
-     */
-    public function getDocumentUrlAttribute(): ?string
-    {
-        if (! $this->hasDocument()) {
-            return null;
-        }
-
-        return \App\Helpers\StorageHelper::getUrl($this->document_path);
     }
 }

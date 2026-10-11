@@ -245,42 +245,6 @@ class Certificate extends Model
         return route('certificates.verify', ['qr_code' => $this->qr_code]);
     }
 
-    /**
-     * Get the signature image URL.
-     */
-    public function getSignatureImageUrl(): ?string
-    {
-        if (! $this->signatory_signature_path) {
-            return null;
-        }
-
-        $disk = \App\Helpers\StorageHelper::getPublicDisk();
-
-        if (! \Illuminate\Support\Facades\Storage::disk($disk)->exists($this->signatory_signature_path)) {
-            return null;
-        }
-
-        return \App\Helpers\StorageHelper::getUrl($this->signatory_signature_path);
-    }
-
-    /**
-     * Get the commissioner of oaths scan URL.
-     */
-    public function getCommissionerScanUrl(): ?string
-    {
-        if (! $this->commissioner_oaths_scan_path) {
-            return null;
-        }
-
-        $disk = \App\Helpers\StorageHelper::getPublicDisk();
-
-        if (! \Illuminate\Support\Facades\Storage::disk($disk)->exists($this->commissioner_oaths_scan_path)) {
-            return null;
-        }
-
-        return \App\Helpers\StorageHelper::getUrl($this->commissioner_oaths_scan_path);
-    }
-
     // ===== Scopes =====
 
     /**

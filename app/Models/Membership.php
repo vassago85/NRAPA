@@ -14,6 +14,11 @@ class Membership extends Model
     use SoftDeletes;
 
     /**
+     * Sources NRAPA invoices for. Imports and transfers are not billed.
+     */
+    public const BILLABLE_SOURCES = ['web', 'admin'];
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
@@ -238,14 +243,6 @@ class Membership extends Model
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
-    }
-
-    /**
-     * Get the admin who suspended the membership.
-     */
-    public function suspender(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'suspended_by');
     }
 
     /**
@@ -718,18 +715,6 @@ class Membership extends Model
     }
 
     /**
-     * Get the date when the grace period ends (after which member must rejoin as new).
-     */
-    public function getGracePeriodEndsAtAttribute(): ?\DateTimeInterface
-    {
-        if (! $this->expires_at) {
-            return null;
-        }
-
-        return $this->expires_at->copy()->addDays(static::renewalGracePeriodDays());
-    }
-
-    /**
      * Check if the membership allows dedicated status (attribute-driven).
      */
     public function allowsDedicatedStatus(): bool
@@ -841,14 +826,6 @@ class Membership extends Model
     }
 
     /**
-     * Scope to only pending approval.
-     */
-    public function scopePendingApproval($query)
-    {
-        return $query->where('status', 'applied');
-    }
-
-    /**
      * Scope to only expired memberships.
      */
     public function scopeExpired($query)
@@ -872,7 +849,7 @@ class Membership extends Model
      */
     public function scopeBillable($query)
     {
-        return $query->whereIn('source', ['web', 'admin'])
+        return $query->whereIn('source', self::BILLABLE_SOURCES)
             ->whereNotIn('status', ['revoked', 'pending_change']);
     }
 
@@ -905,18 +882,6 @@ class Membership extends Model
     {
         return $query->whereNotNull('previous_membership_id')
             ->paidInMonth($year, $month);
-    }
-
-    /**
-     * Scope to memberships approved in a specific month. Retained for any
-     * non-billing callers that want approval-date semantics; the billing
-     * report itself uses paidInMonth() so it only counts confirmed payments.
-     */
-    public function scopeApprovedInMonth($query, int $year, int $month)
-    {
-        return $query->whereYear('approved_at', $year)
-            ->whereMonth('approved_at', $month)
-            ->whereNotNull('approved_at');
     }
 
     /**
@@ -1002,6 +967,6 @@ class Membership extends Model
      */
     public function isBillable(): bool
     {
-        return in_array($this->source, ['web', 'admin']);
+        return in_array($this->source, self::BILLABLE_SOURCES, true);
     }
 }

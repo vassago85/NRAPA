@@ -80,14 +80,6 @@ class ReloadingInventory extends Model
     }
 
     /**
-     * Get the latest purchase record.
-     */
-    public function getLatestPurchaseAttribute(): ?InventoryPurchase
-    {
-        return $this->purchases->first();
-    }
-
-    /**
      * Friendly price display based on type.
      * Powder: shows R/lb, Primers/Bullets/Brass: shows R per box of 100/50.
      */
@@ -169,19 +161,6 @@ class ReloadingInventory extends Model
     public function getEffectiveThresholdAttribute(): float
     {
         return (float) ($this->low_stock_threshold ?? $this->getDefaultThreshold());
-    }
-
-    /**
-     * Display the threshold in friendly units.
-     */
-    public function getThresholdDisplayAttribute(): string
-    {
-        $threshold = $this->effective_threshold;
-        if ($this->type === 'powder') {
-            return number_format($threshold * 15.4324, 0).' grains';
-        }
-
-        return number_format($threshold, 0);
     }
 
     public function scopeForUser($query, int $userId)

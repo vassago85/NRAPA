@@ -275,7 +275,7 @@ new #[Title('Members - Admin')] class extends Component {
                 return true;
             }
 
-            return $membership->status === 'applied' && in_array($membership->source, ['web', 'admin']);
+            return $membership->status === 'applied' && $membership->isBillable();
         });
     }
 

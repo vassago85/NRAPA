@@ -169,18 +169,6 @@ class FirearmCalibre extends Model
     }
 
     /**
-     * Scope to filter by ignition type.
-     */
-    public function scopeForIgnition($query, ?string $ignition)
-    {
-        if ($ignition) {
-            return $query->where('ignition', $ignition);
-        }
-
-        return $query;
-    }
-
-    /**
      * Check if this calibre is imperial (starts with decimal point).
      */
     public function isImperial(): bool

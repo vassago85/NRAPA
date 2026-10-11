@@ -56,14 +56,6 @@ class FirearmMake extends Model
     }
 
     /**
-     * Get active models for this make.
-     */
-    public function activeModels(): HasMany
-    {
-        return $this->hasMany(FirearmModel::class, 'firearm_make_id')->where('is_active', true);
-    }
-
-    /**
      * Scope to only active makes.
      */
     public function scopeActive($query)

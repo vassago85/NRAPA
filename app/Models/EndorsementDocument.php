@@ -427,14 +427,6 @@ class EndorsementDocument extends Model
         return $query->where('is_required', true);
     }
 
-    /**
-     * Scope to activity proofs.
-     */
-    public function scopeActivityProofs($query)
-    {
-        return $query->where('document_type', self::TYPE_ACTIVITY_PROOF);
-    }
-
     // ===== Accessors =====
 
     /**
@@ -466,18 +458,6 @@ class EndorsementDocument extends Model
     }
 
     /**
-     * Get the discipline label.
-     */
-    public function getDisciplineLabelAttribute(): ?string
-    {
-        if (! $this->activity_discipline) {
-            return null;
-        }
-
-        return self::getDisciplineOptions()[$this->activity_discipline] ?? strtoupper($this->activity_discipline);
-    }
-
-    /**
      * Get status badge class.
      */
     public function getStatusBadgeClassAttribute(): string
@@ -492,23 +472,5 @@ class EndorsementDocument extends Model
             self::STATUS_WAIVED => 'bg-zinc-100 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300',
             default => 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-300',
         };
-    }
-
-    /**
-     * Get file size formatted.
-     */
-    public function getFileSizeFormattedAttribute(): ?string
-    {
-        if (! $this->file_size) {
-            return null;
-        }
-
-        if ($this->file_size < 1024) {
-            return $this->file_size.' B';
-        } elseif ($this->file_size < 1048576) {
-            return round($this->file_size / 1024, 1).' KB';
-        } else {
-            return round($this->file_size / 1048576, 1).' MB';
-        }
     }
 }

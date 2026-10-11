@@ -84,21 +84,6 @@ class Bullet extends Model
     }
 
     /**
-     * Set length from mm, auto-calc inches.
-     */
-    public function setLengthFromMm(?float $mm): void
-    {
-        if ($mm === null) {
-            $this->length_mm = null;
-            $this->length_in = null;
-
-            return;
-        }
-        $this->length_mm = round($mm, 3);
-        $this->length_in = self::mmToIn($mm);
-    }
-
-    /**
      * Validate that stored in/mm values match within tolerance.
      */
     public static function unitsMatch(float $inches, float $mm, float $toleranceMm = 0.001): bool
@@ -128,15 +113,6 @@ class Bullet extends Model
     public function getDiameterDisplayAttribute(): string
     {
         return "{$this->diameter_in}\" / {$this->diameter_mm}mm";
-    }
-
-    public function getLengthDisplayAttribute(): ?string
-    {
-        if (! $this->length_in && ! $this->length_mm) {
-            return null;
-        }
-
-        return "{$this->length_in}\" / {$this->length_mm}mm";
     }
 
     public function getBcDisplayAttribute(): ?string

@@ -121,22 +121,6 @@ class LearningArticlePage extends Model
     }
 
     /**
-     * Check if this is the first page.
-     */
-    public function isFirstPage(): bool
-    {
-        return $this->page_number === 1;
-    }
-
-    /**
-     * Check if this is the last page.
-     */
-    public function isLastPage(): bool
-    {
-        return $this->next_page === null;
-    }
-
-    /**
      * Scope to order by page number.
      */
     public function scopeOrdered($query)

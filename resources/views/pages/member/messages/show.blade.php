@@ -28,8 +28,7 @@ new #[Title('Message')] class extends Component {
 
         // Mark all admin->member messages in this thread as read for the member
         MemberMessage::where('user_id', Auth::id())
-            ->where('direction', MemberMessage::DIRECTION_ADMIN_TO_MEMBER)
-            ->whereNull('read_at')
+            ->unreadByMember()
             ->where(function ($q) {
                 $q->where('id', $this->thread->id)
                     ->orWhere('parent_id', $this->thread->id);

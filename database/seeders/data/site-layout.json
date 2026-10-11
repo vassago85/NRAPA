@@ -145,12 +145,6 @@
         "requires_active_membership": true,
         "sub_routes": [
           {
-            "route": "documents.upload",
-            "path": "/documents/upload",
-            "view": "pages::member.documents.upload",
-            "description": "Upload new document"
-          },
-          {
             "route": "documents.show",
             "path": "/documents/{document}",
             "view": "pages::member.documents.show",

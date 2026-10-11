@@ -72,17 +72,6 @@ class SystemSetting extends Model
     }
 
     /**
-     * Get all settings in a group.
-     */
-    public static function getGroup(string $group): array
-    {
-        return static::where('group', $group)
-            ->get()
-            ->pluck('value', 'key')
-            ->toArray();
-    }
-
-    /**
      * Get bank account settings.
      */
     public static function getBankAccount(): array
@@ -109,23 +98,6 @@ class SystemSetting extends Model
             'enabled' => (bool) static::get('sage_enabled', false),
             'group_key' => static::get('sage_group_key', ''),
             'connected_at' => static::get('sage_connected_at', ''),
-        ];
-    }
-
-    /**
-     * Get email/SMTP settings.
-     */
-    public static function getEmailSettings(): array
-    {
-        return [
-            'mail_mailer' => static::get('mail_mailer', 'smtp'),
-            'mail_host' => static::get('mail_host', ''),
-            'mail_port' => static::get('mail_port', 587),
-            'mail_username' => static::get('mail_username', ''),
-            'mail_password' => static::get('mail_password', ''),
-            'mail_encryption' => static::get('mail_encryption', 'tls'),
-            'mail_from_address' => static::get('mail_from_address', ''),
-            'mail_from_name' => static::get('mail_from_name', 'NRAPA'),
         ];
     }
 }

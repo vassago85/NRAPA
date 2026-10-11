@@ -27,13 +27,12 @@ new #[Title('Admin Inbox')] class extends Component {
         $search = trim($this->search);
 
         $query = MemberMessage::query()
-            ->whereNull('parent_id')
+            ->threadRoots()
             ->with(['user:id,name,email,role', 'sender:id,name'])
             ->withCount([
                 'replies',
                 'replies as incoming_unread_count' => function ($q) {
-                    $q->where('direction', MemberMessage::DIRECTION_MEMBER_TO_ADMIN)
-                        ->whereNull('read_at');
+                    $q->unreadByAdmins();
                 },
             ])
             ->addSelect([
@@ -57,11 +56,9 @@ new #[Title('Admin Inbox')] class extends Component {
             // Threads where root (if member->admin) is unread, OR any incoming reply is unread
             $query->where(function ($q) {
                 $q->where(function ($qq) {
-                    $qq->where('direction', MemberMessage::DIRECTION_MEMBER_TO_ADMIN)
-                        ->whereNull('read_at');
+                    $qq->unreadByAdmins();
                 })->orWhereHas('replies', function ($r) {
-                    $r->where('direction', MemberMessage::DIRECTION_MEMBER_TO_ADMIN)
-                        ->whereNull('read_at');
+                    $r->unreadByAdmins();
                 });
             });
         } elseif ($this->filter === 'incoming') {
@@ -80,9 +77,7 @@ new #[Title('Admin Inbox')] class extends Component {
     #[Computed]
     public function incomingUnreadTotal(): int
     {
-        return MemberMessage::where('direction', MemberMessage::DIRECTION_MEMBER_TO_ADMIN)
-            ->whereNull('read_at')
-            ->count();
+        return MemberMessage::unreadByAdmins()->count();
     }
 }; ?>
 

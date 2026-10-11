@@ -531,27 +531,6 @@ class EndorsementRequest extends Model
         return $baseRequired;
     }
 
-    /**
-     * Get optional document types based on request type.
-     */
-    public static function getOptionalDocumentTypes(string $requestType): array
-    {
-        if ($requestType === self::TYPE_NEW) {
-            return [
-                'proof_of_address',
-                'competency_certificate',
-            ];
-        }
-
-        // Renewal has more optional docs
-        return [
-            'proof_of_address',
-            'previous_endorsement_letter',
-            'firearm_licence_card',
-            'competency_certificate',
-        ];
-    }
-
     // ===== Status Checks =====
 
     /**
@@ -608,14 +587,6 @@ class EndorsementRequest extends Model
     }
 
     /**
-     * Check if request is cancelled.
-     */
-    public function isCancelled(): bool
-    {
-        return $this->status === self::STATUS_CANCELLED;
-    }
-
-    /**
      * Check if this is a renewal request.
      */
     public function isRenewal(): bool
@@ -624,27 +595,11 @@ class EndorsementRequest extends Model
     }
 
     /**
-     * Check if this is a new request.
-     */
-    public function isNew(): bool
-    {
-        return $this->request_type === self::TYPE_NEW;
-    }
-
-    /**
      * Check if this is the self-defence supporting-letter variant.
      */
     public function isSelfDefence(): bool
     {
         return $this->endorsement_type === self::ENDORSEMENT_TYPE_SELF_DEFENCE;
-    }
-
-    /**
-     * Check if this is the standard dedicated-status endorsement variant.
-     */
-    public function isDedicatedStatus(): bool
-    {
-        return $this->endorsement_type !== self::ENDORSEMENT_TYPE_SELF_DEFENCE;
     }
 
     /**
@@ -764,14 +719,6 @@ class EndorsementRequest extends Model
     }
 
     /**
-     * Check if component requests are allowed.
-     */
-    public function allowsComponents(): bool
-    {
-        return $this->isRenewal();
-    }
-
-    /**
      * Check if declaration has been accepted.
      */
     public function hasDeclaration(): bool
@@ -870,14 +817,6 @@ class EndorsementRequest extends Model
         }
 
         return $errors;
-    }
-
-    /**
-     * Check if all required documents are uploaded.
-     */
-    public function hasAllRequiredDocuments(): bool
-    {
-        return count($this->getMissingRequestDocuments()) === 0;
     }
 
     /**
@@ -1224,39 +1163,6 @@ class EndorsementRequest extends Model
     }
 
     /**
-     * Infer letter display fields for HTML preview of not-yet-issued requests.
-     */
-    public function applyLetterPreviewAttributes(): void
-    {
-        if ($this->isIssued()) {
-            return;
-        }
-
-        $this->loadMissing(['user', 'user.activeMembership', 'user.activeMembership.type']);
-
-        if (! $this->letter_reference) {
-            $this->letter_reference = 'PREVIEW';
-        }
-
-        if ($this->dedicated_status_compliant === null) {
-            $eligibility = self::getEligibilitySummary($this->user);
-            $this->dedicated_status_compliant = $eligibility['eligible'] ?? false;
-        }
-
-        if (empty($this->dedicated_category)) {
-            $dedicatedType = $this->user?->activeMembership?->type?->dedicated_type;
-            $inferred = self::dedicatedCategoryForType($dedicatedType);
-            if ($inferred) {
-                $this->dedicated_category = $inferred;
-            }
-        }
-
-        if (! $this->issued_at) {
-            $this->issued_at = now();
-        }
-    }
-
-    /**
      * Generate a unique letter reference.
      */
     public static function generateLetterReference(): string
@@ -1298,31 +1204,11 @@ class EndorsementRequest extends Model
     }
 
     /**
-     * Scope to pending review.
-     */
-    public function scopePendingReview($query)
-    {
-        return $query->whereIn('status', [
-            self::STATUS_SUBMITTED,
-            self::STATUS_UNDER_REVIEW,
-            self::STATUS_PENDING_DOCUMENTS,
-        ]);
-    }
-
-    /**
      * Scope to issued requests.
      */
     public function scopeIssued($query)
     {
         return $query->where('status', self::STATUS_ISSUED);
-    }
-
-    /**
-     * Scope to new requests.
-     */
-    public function scopeNewRequests($query)
-    {
-        return $query->where('request_type', self::TYPE_NEW);
     }
 
     /**

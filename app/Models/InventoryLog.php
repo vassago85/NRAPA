@@ -4,8 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
-
 class InventoryLog extends Model
 {
     protected $fillable = [
@@ -37,14 +35,6 @@ class InventoryLog extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    /**
-     * Get the source model (LoadData, LadderTest, etc.).
-     */
-    public function sourceable(): MorphTo
-    {
-        return $this->morphTo('source', 'source_type', 'source_id');
     }
 
     /**

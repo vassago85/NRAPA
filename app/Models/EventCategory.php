@@ -70,14 +70,6 @@ class EventCategory extends Model
     }
 
     /**
-     * Scope to categories for a specific activity type.
-     */
-    public function scopeForActivityType($query, $activityTypeId)
-    {
-        return $query->where('activity_type_id', $activityTypeId);
-    }
-
-    /**
      * Scope to categories for a specific dedicated type.
      */
     public function scopeForDedicatedType($query, string $dedicatedType)

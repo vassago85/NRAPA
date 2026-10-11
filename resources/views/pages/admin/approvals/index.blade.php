@@ -106,7 +106,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
             Membership::where('status', 'applied')
                 ->whereHas('user')
                 ->where(function ($q) {
-                    $q->whereNotIn('source', ['web', 'admin'])                  // non-billable (imports / transfers)
+                    $q->whereNotIn('source', Membership::BILLABLE_SOURCES)                  // non-billable (imports / transfers)
                         ->orWhereNotNull('proof_of_payment_path')               // POP uploaded
                         ->orWhereNotNull('payment_confirmed_at');               // admin confirmed payment
                 })
@@ -183,7 +183,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
         $items = $items->merge(
             Membership::where('status', 'applied')
                 ->whereHas('user')
-                ->whereIn('source', ['web', 'admin'])
+                ->whereIn('source', Membership::BILLABLE_SOURCES)
                 ->whereNull('proof_of_payment_path')
                 ->whereNull('payment_confirmed_at')
                 ->with(['user', 'type'])
@@ -258,7 +258,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
         // Awaiting payment: billable applied without POP/confirmation + pending_payment without POP/confirmation
         $awaitingPaymentCount = Membership::where('status', 'applied')
                 ->whereHas('user')
-                ->whereIn('source', ['web', 'admin'])
+                ->whereIn('source', Membership::BILLABLE_SOURCES)
                 ->whereNull('proof_of_payment_path')
                 ->whereNull('payment_confirmed_at')
                 ->count()
@@ -272,7 +272,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
         $actionableMemberships = Membership::where('status', 'applied')
                 ->whereHas('user')
                 ->where(function ($q) {
-                    $q->whereNotIn('source', ['web', 'admin'])
+                    $q->whereNotIn('source', Membership::BILLABLE_SOURCES)
                         ->orWhereNotNull('proof_of_payment_path')
                         ->orWhereNotNull('payment_confirmed_at');
                 })
@@ -683,7 +683,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
             ->whereHas('user')
             ->whereHas('type')
             ->where(function ($q) {
-                $q->whereNotIn('source', ['web', 'admin'])
+                $q->whereNotIn('source', Membership::BILLABLE_SOURCES)
                     ->orWhereNotNull('proof_of_payment_path')
                     ->orWhereNotNull('payment_confirmed_at');
             })

@@ -18,13 +18,12 @@ new #[Title('Messages')] class extends Component {
         // Get roots (messages with no parent) belonging to this user, newest first by latest activity.
         $roots = MemberMessage::query()
             ->where('user_id', $userId)
-            ->whereNull('parent_id')
+            ->threadRoots()
             ->with('sender:id,name,role')
             ->withCount([
                 'replies',
                 'replies as unread_replies_count' => function ($q) {
-                    $q->where('direction', MemberMessage::DIRECTION_ADMIN_TO_MEMBER)
-                        ->whereNull('read_at');
+                    $q->unreadByMember();
                 },
             ])
             ->get();
@@ -44,8 +43,7 @@ new #[Title('Messages')] class extends Component {
     public function markAllRead(): void
     {
         MemberMessage::where('user_id', Auth::id())
-            ->where('direction', MemberMessage::DIRECTION_ADMIN_TO_MEMBER)
-            ->whereNull('read_at')
+            ->unreadByMember()
             ->update(['read_at' => now()]);
         unset($this->threads);
         session()->flash('success', 'All messages marked as read.');
@@ -59,7 +57,7 @@ new #[Title('Messages')] class extends Component {
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Conversations with the NRAPA admin team.</p>
         </div>
         <div class="flex items-center gap-2">
-            @php $unread = \App\Models\MemberMessage::where('user_id', auth()->id())->where('direction', \App\Models\MemberMessage::DIRECTION_ADMIN_TO_MEMBER)->whereNull('read_at')->count(); @endphp
+            @php $unread = \App\Models\MemberMessage::where('user_id', auth()->id())->unreadByMember()->count(); @endphp
             @if($unread > 0)
                 <button wire:click="markAllRead"
                     class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 transition-colors">

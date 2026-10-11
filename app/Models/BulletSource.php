@@ -23,13 +23,4 @@ class BulletSource extends Model
     {
         return $this->belongsTo(Bullet::class);
     }
-
-    public static function sourceTypes(): array
-    {
-        return [
-            'product_page' => 'Product Page',
-            'bc_table' => 'BC Table',
-            'catalog_pdf' => 'Catalog PDF',
-        ];
-    }
 }

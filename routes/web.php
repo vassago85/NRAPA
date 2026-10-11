@@ -4,6 +4,7 @@ use App\Helpers\StorageHelper;
 use App\Http\Controllers\CertificateFileController;
 use App\Http\Controllers\DocumentPreviewController;
 use App\Http\Controllers\EndorsementLetterController;
+use App\Http\Controllers\FirearmLicenceController;
 use App\Http\Controllers\MemberDocumentPreviewController;
 use App\Http\Controllers\SageOAuthController;
 use App\Http\Controllers\SitemapController;
@@ -310,6 +311,7 @@ Route::middleware(['auth', 'verified', 'membership.required', 'terms.accepted'])
     Route::livewire('armoury/add', 'pages::member.armoury.create')->name('armoury.create');
     Route::livewire('armoury/{firearm}', 'pages::member.armoury.show')->name('armoury.show');
     Route::livewire('armoury/{firearm}/edit', 'pages::member.armoury.edit')->name('armoury.edit');
+    Route::get('armoury/{firearm}/licence', FirearmLicenceController::class)->name('armoury.licence');
 
     // Virtual Loading Bench (Reloading)
     Route::livewire('load-data', 'pages::member.load-data.index')->name('load-data.index');
@@ -369,7 +371,6 @@ Route::middleware(['auth', 'verified', 'membership.required', 'terms.accepted'])
 
     // Documents
     Route::livewire('documents', 'pages::member.documents.index')->name('documents.index');
-    Route::livewire('documents/upload', 'pages::member.documents.upload')->name('documents.upload');
     Route::livewire('documents/{document}', 'pages::member.documents.show')->name('documents.show');
     Route::get('documents/{document}/preview', MemberDocumentPreviewController::class)->name('documents.preview');
 

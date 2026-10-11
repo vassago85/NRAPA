@@ -52,14 +52,6 @@ class LearningCategory extends Model
     }
 
     /**
-     * Get published articles for this category.
-     */
-    public function publishedArticles(): HasMany
-    {
-        return $this->hasMany(LearningArticle::class)->published();
-    }
-
-    /**
      * Check if the category has an image.
      */
     public function hasImage(): bool

@@ -56,7 +56,7 @@ new class extends Component {
 
                 $s['awaitingPaymentCount'] = Membership::where('status', 'applied')
                         ->whereHas('user')
-                        ->whereIn('source', ['web', 'admin'])
+                        ->whereIn('source', Membership::BILLABLE_SOURCES)
                         ->whereNull('proof_of_payment_path')
                         ->whereNull('payment_confirmed_at')
                         ->count()
@@ -69,7 +69,7 @@ new class extends Component {
                 $s['pendingMemberships'] = Membership::where('status', 'applied')
                         ->whereHas('user')
                         ->where(function ($q) {
-                            $q->whereNotIn('source', ['web', 'admin'])
+                            $q->whereNotIn('source', Membership::BILLABLE_SOURCES)
                                 ->orWhereNotNull('proof_of_payment_path')
                                 ->orWhereNotNull('payment_confirmed_at');
                         })

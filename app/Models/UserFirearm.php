@@ -272,18 +272,6 @@ class UserFirearm extends Model
         return $fallback !== [] ? implode(' · ', $fallback) : 'Unnamed Firearm';
     }
 
-    public function getFullDescriptionAttribute(): string
-    {
-        $parts = array_filter([
-            $this->make_display ?? $this->make,
-            $this->model_display ?? $this->model,
-            $this->calibre_display,
-            $this->primary_serial ? "S/N: {$this->primary_serial}" : null,
-        ]);
-
-        return implode(' - ', $parts) ?: 'No details';
-    }
-
     /**
      * Get the calibre display name.
      */

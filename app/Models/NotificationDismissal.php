@@ -4,8 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
-
 class NotificationDismissal extends Model
 {
     public $timestamps = false;
@@ -24,11 +22,6 @@ class NotificationDismissal extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function dismissable(): MorphTo
-    {
-        return $this->morphTo();
     }
 
     /**
@@ -67,17 +60,6 @@ class NotificationDismissal extends Model
             ->where('dismissable_type', $type)
             ->pluck('dismissable_id')
             ->toArray();
-    }
-
-    /**
-     * Check if a specific item is dismissed for a user.
-     */
-    public static function isDismissed(int $userId, string $type, int $id): bool
-    {
-        return static::where('user_id', $userId)
-            ->where('dismissable_type', $type)
-            ->where('dismissable_id', $id)
-            ->exists();
     }
 
     /**

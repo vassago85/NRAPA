@@ -126,16 +126,6 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Mark that the user has set their own password (idempotent).
-     */
-    public function markPasswordSet(): void
-    {
-        if ($this->password_set_at === null) {
-            $this->forceFill(['password_set_at' => now()])->save();
-        }
-    }
-
-    /**
      * Send the password reset / set-password notification using our branded,
      * clearly-worded single-use mailable instead of the Laravel default.
      */
@@ -253,14 +243,6 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Get users nominated by this user.
-     */
-    public function nominees(): HasMany
-    {
-        return $this->hasMany(User::class, 'nominated_by');
-    }
-
-    /**
      * Check if user is a developer (highest level).
      */
     public function isDeveloper(): bool
@@ -306,24 +288,6 @@ class User extends Authenticatable implements MustVerifyEmail
             self::ROLE_ADMIN => 'admin.dashboard',
             default => 'dashboard',
         };
-    }
-
-    /**
-     * Check if user can manage the given role.
-     * Developers can manage owners and below.
-     * Owners can manage admins only.
-     */
-    public function canManageRole(string $role): bool
-    {
-        if ($this->isDeveloper()) {
-            return true; // Developers can manage everyone
-        }
-
-        if ($this->isOwner()) {
-            return $role === self::ROLE_ADMIN; // Owners can only manage admins
-        }
-
-        return false;
     }
 
     /**
@@ -542,7 +506,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
         return $earliest
             ? \Illuminate\Support\Carbon::parse($earliest)->year
-            : $this->created_at->year;
+            : ($this->created_at ?? now())->year;
     }
 
     /**
@@ -654,17 +618,6 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Get the latest terms acceptance.
-     */
-    public function latestTermsAcceptance(): ?TermsAcceptance
-    {
-        return $this->termsAcceptances()
-            ->with('termsVersion')
-            ->latest('accepted_at')
-            ->first();
-    }
-
-    /**
      * Get all payments for the user.
      */
     public function payments(): HasMany
@@ -739,39 +692,11 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Get active firearms for the user.
-     */
-    public function activeFirearms(): HasMany
-    {
-        return $this->hasMany(UserFirearm::class)->where('is_active', true);
-    }
-
-    /**
      * Get all load data for the user.
      */
     public function loadData(): HasMany
     {
         return $this->hasMany(LoadData::class);
-    }
-
-    /**
-     * Get firearms with licenses expiring soon.
-     */
-    public function firearmsExpiringSoon(int $days = 90): HasMany
-    {
-        return $this->hasMany(UserFirearm::class)
-            ->where('is_active', true)
-            ->whereNotNull('license_expiry_date')
-            ->where('license_expiry_date', '<=', now()->addDays($days))
-            ->where('license_expiry_date', '>=', now());
-    }
-
-    /**
-     * Check if user has a specific role.
-     */
-    public function hasRole(string $roleSlug): bool
-    {
-        return $this->roles()->where('slug', $roleSlug)->exists();
     }
 
     /**
@@ -824,39 +749,6 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Check if user is a Standard Admin.
-     */
-    public function isStandardAdmin(): bool
-    {
-        return $this->role === self::ROLE_ADMIN && $this->admin_type === self::ADMIN_TYPE_STANDARD;
-    }
-
-    /**
-     * Grant a permission to this user.
-     */
-    public function grantPermission(Permission $permission, User $grantedBy): void
-    {
-        if (! $grantedBy->canGrantPermissions()) {
-            throw new \Exception('User cannot grant permissions');
-        }
-
-        $this->permissions()->syncWithoutDetaching([
-            $permission->id => [
-                'granted_by' => $grantedBy->id,
-                'granted_at' => now(),
-            ],
-        ]);
-    }
-
-    /**
-     * Revoke a permission from this user.
-     */
-    public function revokePermission(Permission $permission): void
-    {
-        $this->permissions()->detach($permission->id);
-    }
-
-    /**
      * Grant multiple permissions to this user.
      */
     public function grantPermissions(array $permissionSlugs, User $grantedBy): void
@@ -896,19 +788,6 @@ class User extends Authenticatable implements MustVerifyEmail
         ])->toArray();
 
         $this->permissions()->sync($syncData);
-    }
-
-    /**
-     * Get all permission slugs for this user.
-     */
-    public function getPermissionSlugs(): array
-    {
-        // Owners and developers have all permissions
-        if ($this->isOwner() || $this->isDeveloper()) {
-            return Permission::pluck('slug')->toArray();
-        }
-
-        return $this->permissions()->pluck('slug')->toArray();
     }
 
     /**
@@ -970,14 +849,6 @@ class User extends Authenticatable implements MustVerifyEmail
     public function deletionRequests(): HasMany
     {
         return $this->hasMany(UserDeletionRequest::class);
-    }
-
-    /**
-     * Get deletion requests made by this user (as admin).
-     */
-    public function requestedDeletions(): HasMany
-    {
-        return $this->hasMany(UserDeletionRequest::class, 'requested_by');
     }
 
     /**
@@ -1126,14 +997,6 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Get account reset logs for this user.
-     */
-    public function accountResetLogs(): HasMany
-    {
-        return $this->hasMany(AccountResetLog::class);
-    }
-
-    /**
      * Get login logs for this user.
      */
     public function loginLogs(): HasMany
@@ -1213,43 +1076,6 @@ class User extends Authenticatable implements MustVerifyEmail
 
         // Fallback to display name
         return $this->name;
-    }
-
-    /**
-     * Get just the surname from ID document.
-     * Falls back to last word of display name.
-     */
-    public function getIdSurname(): string
-    {
-        $idDoc = $this->getVerifiedIdDocument();
-
-        if ($idDoc && $idDoc->metadata && ! empty($idDoc->metadata['surname'])) {
-            return strtoupper($idDoc->metadata['surname']);
-        }
-
-        // Fallback to last word of display name
-        $parts = explode(' ', $this->name);
-
-        return strtoupper(end($parts));
-    }
-
-    /**
-     * Get just the first names from ID document.
-     * Falls back to first words of display name.
-     */
-    public function getIdFirstNames(): string
-    {
-        $idDoc = $this->getVerifiedIdDocument();
-
-        if ($idDoc && $idDoc->metadata && ! empty($idDoc->metadata['names'])) {
-            return $idDoc->metadata['names'];
-        }
-
-        // Fallback to all but last word of display name
-        $parts = explode(' ', $this->name);
-        array_pop($parts);
-
-        return implode(' ', $parts) ?: $this->name;
     }
 
     /**

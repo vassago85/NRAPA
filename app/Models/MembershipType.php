@@ -120,14 +120,6 @@ class MembershipType extends Model
     }
 
     /**
-     * Get the required document types.
-     */
-    public function requiredDocumentTypes(): BelongsToMany
-    {
-        return $this->documentTypes()->wherePivot('is_required', true);
-    }
-
-    /**
      * Get the certificate types entitled for this membership type.
      */
     public function certificateTypes(): BelongsToMany
@@ -297,38 +289,11 @@ class MembershipType extends Model
     }
 
     /**
-     * Get the total price for initial sign-up.
-     * For basic members: initial_price
-     * For dedicated members applying directly: basic initial_price + upgrade_price
-     */
-    public function getTotalPriceAttribute(): float
-    {
-        return (float) $this->initial_price;
-    }
-
-    /**
-     * Get the sign-up fee for new members.
-     */
-    public function getSignupPriceAttribute(): float
-    {
-        return (float) $this->initial_price;
-    }
-
-    /**
      * Get the annual renewal fee.
      */
     public function getRenewalFeeAttribute(): float
     {
         return (float) $this->renewal_price;
-    }
-
-    /**
-     * Get the once-off upgrade fee (for dedicated types).
-     * Returns null for basic membership (no upgrade fee).
-     */
-    public function getUpgradeFeeAttribute(): ?float
-    {
-        return $this->upgrade_price !== null ? (float) $this->upgrade_price : null;
     }
 
     /**

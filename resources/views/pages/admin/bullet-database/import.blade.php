@@ -12,7 +12,7 @@ new #[Title('Import Bullets - Admin')] class extends Component {
     public string $format = 'csv';
     public bool $autoConvertUnits = true;
     public array $preview = [];
-    public array $errors = [];
+    public array $importErrors = [];
     public int $importedCount = 0;
     public int $skippedCount = 0;
     public bool $showResults = false;
@@ -24,7 +24,7 @@ new #[Title('Import Bullets - Admin')] class extends Component {
         ]);
 
         $this->preview = [];
-        $this->errors = [];
+        $this->importErrors = [];
 
         $path = $this->file->getRealPath();
         $content = file_get_contents($path);
@@ -32,13 +32,13 @@ new #[Title('Import Bullets - Admin')] class extends Component {
         if ($this->format === 'json') {
             $rows = json_decode($content, true);
             if (!is_array($rows)) {
-                $this->errors[] = ['row' => 0, 'message' => 'Invalid JSON format.'];
+                $this->importErrors[] = ['row' => 0, 'message' => 'Invalid JSON format.'];
                 return;
             }
         } else {
             $lines = array_filter(explode("\n", $content));
             if (count($lines) < 2) {
-                $this->errors[] = ['row' => 0, 'message' => 'CSV must have a header row and at least one data row.'];
+                $this->importErrors[] = ['row' => 0, 'message' => 'CSV must have a header row and at least one data row.'];
                 return;
             }
             $headers = str_getcsv(array_shift($lines));
@@ -49,7 +49,7 @@ new #[Title('Import Bullets - Admin')] class extends Component {
                 if (empty($line)) continue;
                 $values = str_getcsv($line);
                 if (count($values) !== count($headers)) {
-                    $this->errors[] = ['row' => $i + 2, 'message' => 'Column count mismatch. Expected ' . count($headers) . ', got ' . count($values)];
+                    $this->importErrors[] = ['row' => $i + 2, 'message' => 'Column count mismatch. Expected ' . count($headers) . ', got ' . count($values)];
                     continue;
                 }
                 $rows[] = array_combine($headers, $values);
@@ -101,7 +101,7 @@ new #[Title('Import Bullets - Admin')] class extends Component {
             }
 
             if (!empty($rowErrors)) {
-                $this->errors[] = ['row' => $i + 2, 'message' => implode('; ', $rowErrors)];
+                $this->importErrors[] = ['row' => $i + 2, 'message' => implode('; ', $rowErrors)];
             }
         }
 
@@ -296,11 +296,11 @@ new #[Title('Import Bullets - Admin')] class extends Component {
         </div>
 
         {{-- Errors --}}
-        @if(count($errors) > 0)
+        @if(count($importErrors) > 0)
         <div class="rounded-xl border border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800 p-4">
-            <h3 class="font-semibold text-red-800 dark:text-red-200 mb-2">Validation Errors ({{ count($errors) }})</h3>
+            <h3 class="font-semibold text-red-800 dark:text-red-200 mb-2">Validation Errors ({{ count($importErrors) }})</h3>
             <div class="max-h-48 overflow-y-auto space-y-1">
-                @foreach($errors as $err)
+                @foreach($importErrors as $err)
                 <p class="text-sm text-red-700 dark:text-red-300">Row {{ $err['row'] }}: {{ $err['message'] }}</p>
                 @endforeach
             </div>

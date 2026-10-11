@@ -98,12 +98,4 @@ class AffiliatedClubInvite extends Model
     {
         return $query->whereNull('accepted_at')->where('expires_at', '>', now());
     }
-
-    /**
-     * Scope to invites for a specific email.
-     */
-    public function scopeForEmail($query, string $email)
-    {
-        return $query->where('email', $email);
-    }
 }

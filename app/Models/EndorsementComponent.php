@@ -94,23 +94,6 @@ class EndorsementComponent extends Model
         ];
     }
 
-    /**
-     * Check if this component type typically requires a calibre.
-     */
-    public static function requiresCalibre(string $componentType): bool
-    {
-        return $componentType === self::TYPE_BARREL;
-    }
-
-    /**
-     * Check if this component type can have a diameter.
-     * Barrels can specify either calibre or diameter (diameter for barrels before chambering).
-     */
-    public static function canHaveDiameter(string $componentType): bool
-    {
-        return $componentType === self::TYPE_BARREL;
-    }
-
     // Action type options for action components (subset of EndorsementFirearm action types)
     public const ACTION_BOLT_ACTION = 'bolt_action';
 

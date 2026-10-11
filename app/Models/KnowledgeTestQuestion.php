@@ -99,14 +99,6 @@ class KnowledgeTestQuestion extends Model
     }
 
     /**
-     * Check if this question can be auto-marked.
-     */
-    public function isAutoMarkable(): bool
-    {
-        return in_array($this->question_type, ['multiple_choice', 'multiple_select', 'priority_order', 'matching']);
-    }
-
-    /**
      * Get correct answers as array (for multi-select and priority questions).
      */
     public function getCorrectAnswersArray(): array
@@ -322,14 +314,6 @@ class KnowledgeTestQuestion extends Model
     }
 
     /**
-     * Scope to only multiple choice questions.
-     */
-    public function scopeMultipleChoice($query)
-    {
-        return $query->where('question_type', 'multiple_choice');
-    }
-
-    /**
      * Scope to only written questions.
      */
     public function scopeWritten($query)
@@ -338,35 +322,11 @@ class KnowledgeTestQuestion extends Model
     }
 
     /**
-     * Scope to only multiple select questions.
-     */
-    public function scopeMultipleSelect($query)
-    {
-        return $query->where('question_type', 'multiple_select');
-    }
-
-    /**
-     * Scope to only priority order questions.
-     */
-    public function scopePriorityOrder($query)
-    {
-        return $query->where('question_type', 'priority_order');
-    }
-
-    /**
      * Scope to only matching questions.
      */
     public function scopeMatching($query)
     {
         return $query->where('question_type', 'matching');
-    }
-
-    /**
-     * Scope to auto-markable questions.
-     */
-    public function scopeAutoMarkable($query)
-    {
-        return $query->whereIn('question_type', ['multiple_choice', 'multiple_select', 'priority_order', 'matching']);
     }
 
     /**

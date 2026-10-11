@@ -238,11 +238,20 @@ new class extends Component {
             $data['image_path'] = $this->firearm_image->storeAs('firearms', $this->firearm_image->hashName(), ['disk' => 'public', 'visibility' => 'public']);
         }
 
+        $replacedLicencePath = null;
         if ($this->license_document) {
-            $data['license_document_path'] = $this->license_document->store('licenses', 'private');
+            $replacedLicencePath = $this->firearm->license_document_path;
+            $data['license_document_path'] = $this->license_document->store(
+                "licenses/{$this->firearm->user_id}",
+                \App\Helpers\StorageHelper::getPrivateDisk(),
+            );
         }
 
         $this->firearm->update($data);
+
+        if ($replacedLicencePath) {
+            \Illuminate\Support\Facades\Storage::disk(\App\Helpers\StorageHelper::getPrivateDisk())->delete($replacedLicencePath);
+        }
 
         // Rebuild firearm components
         $this->firearm->components()->delete();

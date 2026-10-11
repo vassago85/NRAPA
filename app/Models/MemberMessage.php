@@ -72,13 +72,6 @@ class MemberMessage extends Model
         return $this->direction === self::DIRECTION_MEMBER_TO_ADMIN;
     }
 
-    public function markRead(): void
-    {
-        if (! $this->read_at) {
-            $this->update(['read_at' => now()]);
-        }
-    }
-
     public function scopeUnread($query)
     {
         return $query->whereNull('read_at');

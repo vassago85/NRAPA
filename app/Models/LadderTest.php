@@ -38,11 +38,6 @@ class LadderTest extends Model
         'rounds_per_step' => 'integer',
     ];
 
-    public function isPowderCharge(): bool
-    {
-        return ($this->test_type ?? 'powder_charge') === 'powder_charge';
-    }
-
     public function isSeatingDepth(): bool
     {
         return $this->test_type === 'seating_depth';
@@ -107,11 +102,6 @@ class LadderTest extends Model
     public function getTotalRoundsAttribute(): int
     {
         return $this->steps->count() * $this->rounds_per_step;
-    }
-
-    public function getStepCountAttribute(): int
-    {
-        return (int) ceil(($this->end_charge - $this->start_charge) / $this->increment) + 1;
     }
 
     public function getBestStepAttribute(): ?LadderTestStep

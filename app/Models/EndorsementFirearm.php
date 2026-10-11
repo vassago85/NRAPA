@@ -305,22 +305,6 @@ class EndorsementFirearm extends Model
         ];
     }
 
-    /**
-     * Get calibre filter based on category.
-     */
-    public static function getCalibreCategoryFilter(string $firearmCategory): ?string
-    {
-        // Map SAPS 271 firearm categories to calibre categories for filtering
-        // Note: This is for legacy Calibre system - new system uses FirearmCalibre
-        return match ($firearmCategory) {
-            self::CATEGORY_RIFLE, self::CATEGORY_SELF_LOADING_RIFLE, self::CATEGORY_COMBINATION => 'rifle',
-            self::CATEGORY_SHOTGUN => 'shotgun',
-            self::CATEGORY_HANDGUN => 'handgun',
-            self::CATEGORY_OTHER => null,
-            default => null,
-        };
-    }
-
     // ===== Validation =====
 
     /**
@@ -379,21 +363,6 @@ class EndorsementFirearm extends Model
         }
 
         return $serials;
-    }
-
-    /**
-     * Get validation rules for SAPS 271 submission.
-     */
-    public static function getSaps271ValidationRules(): array
-    {
-        return [
-            'firearm_category' => 'required',
-            'action_type' => 'required',
-            'make' => 'required|string|max:100',
-            'model' => 'required|string|max:100',
-            // At least one of these serial numbers required
-            'has_serial' => 'required', // Custom validation in controller
-        ];
     }
 
     // ===== Accessors =====

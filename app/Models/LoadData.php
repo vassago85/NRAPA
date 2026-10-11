@@ -117,11 +117,6 @@ class LoadData extends Model
         return $this->hasMany(LoadingSession::class);
     }
 
-    public function ladderTests(): \Illuminate\Database\Eloquent\Relations\HasMany
-    {
-        return $this->hasMany(LadderTest::class);
-    }
-
     // Inventory relationships
     public function powderInventory(): BelongsTo
     {
@@ -282,16 +277,6 @@ class LoadData extends Model
     public function scopeForCalibre($query, int $calibreId)
     {
         return $query->where('calibre_id', $calibreId);
-    }
-
-    public function scopeForFirearm($query, int $userFirearmId)
-    {
-        return $query->where('user_firearm_id', $userFirearmId);
-    }
-
-    public function scopeFavorites($query)
-    {
-        return $query->where('is_favorite', true);
     }
 
     public function scopeApproved($query)

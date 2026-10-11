@@ -22,9 +22,7 @@
             </a>
 
             @php
-                $inboxUnread = \App\Models\MemberMessage::where('direction', \App\Models\MemberMessage::DIRECTION_MEMBER_TO_ADMIN)
-                    ->whereNull('read_at')
-                    ->count();
+                $inboxUnread = \App\Models\MemberMessage::unreadByAdmins()->count();
             @endphp
             <a href="{{ route('admin.messages.index') }}" wire:navigate
                class="flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 {{ str_starts_with($currentRoute, 'admin.messages.') ? $active : $inactive }} transition-colors whitespace-nowrap">

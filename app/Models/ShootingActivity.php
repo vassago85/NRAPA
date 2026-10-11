@@ -421,14 +421,6 @@ class ShootingActivity extends Model
     }
 
     /**
-     * Scope to activities within a date range.
-     */
-    public function scopeWithinPeriod($query, $startDate, $endDate)
-    {
-        return $query->whereBetween('activity_date', [$startDate, $endDate]);
-    }
-
-    /**
      * Scope to activities within the current activity year.
      * Activity period is fixed: 1 January to 31 October (deadline 31 October).
      */

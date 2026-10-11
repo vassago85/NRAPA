@@ -84,30 +84,6 @@ class AdminActionLog extends Model
     }
 
     /**
-     * Scope to filter by admin.
-     */
-    public function scopeByAdmin($query, User $admin)
-    {
-        return $query->where('user_id', $admin->id);
-    }
-
-    /**
-     * Scope to filter by permission.
-     */
-    public function scopeByPermission($query, string $permission)
-    {
-        return $query->where('permission_used', $permission);
-    }
-
-    /**
-     * Scope to filter by target type.
-     */
-    public function scopeByTargetType($query, string $type)
-    {
-        return $query->where('target_type', $type);
-    }
-
-    /**
      * Get action display name.
      */
     public function getActionDisplayNameAttribute(): string
