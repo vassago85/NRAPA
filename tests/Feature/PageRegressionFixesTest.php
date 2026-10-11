@@ -77,6 +77,13 @@ test('the dead member documents upload route is gone', function () {
     expect(Route::has('documents.upload'))->toBeFalse();
 });
 
+test('old documents upload url is a clean 404 for a signed-in member', function () {
+    $member = User::factory()->create(['role' => User::ROLE_MEMBER, 'email_verified_at' => now()]);
+    $member->termsAcceptances()->create(['terms_version_id' => $this->terms->id, 'accepted_at' => now()]);
+
+    $this->actingAs($member)->get('/documents/upload')->assertNotFound();
+});
+
 test('firstJoinedYear falls back to the current year for an unsaved user', function () {
     $user = new User(['role' => User::ROLE_MEMBER]);
 
