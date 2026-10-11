@@ -855,7 +855,7 @@ new #[Title('Member Details - Admin')] class extends Component {
 
             // Delete associated file if exists
             if ($certificate->file_path) {
-                $disk = app()->environment(['local', 'development', 'testing']) ? 'local' : 'r2';
+                $disk = \App\Helpers\StorageHelper::getPrivateDisk();
                 try {
                     \Illuminate\Support\Facades\Storage::disk($disk)->delete($certificate->file_path);
                 } catch (\Exception $e) {
@@ -1390,7 +1390,7 @@ new #[Title('Member Details - Admin')] class extends Component {
         ]);
 
         if ($this->addActivityProofDocument || $this->addActivityAdditionalDocument) {
-            $disk = config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
+            $disk = \App\Helpers\StorageHelper::getPrivateDisk();
 
             $evidenceDocumentType = \App\Models\DocumentType::firstOrCreate(
                 ['slug' => 'activity-evidence'],
@@ -1524,7 +1524,7 @@ new #[Title('Member Details - Admin')] class extends Component {
 
         $this->validate($rules);
 
-        $disk = config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
+        $disk = \App\Helpers\StorageHelper::getPrivateDisk();
         $documentType = \App\Models\DocumentType::findOrFail($this->uploadDocumentTypeId);
 
         $filename = \Illuminate\Support\Str::random(40) . '.' . $this->uploadDocumentFile->getClientOriginalExtension();
@@ -1654,7 +1654,7 @@ new #[Title('Member Details - Admin')] class extends Component {
 
         if ($document->file_path) {
             try {
-                \Illuminate\Support\Facades\Storage::disk($this->getPrivateDisk())->delete($document->file_path);
+                \Illuminate\Support\Facades\Storage::disk(\App\Helpers\StorageHelper::getPrivateDisk())->delete($document->file_path);
             } catch (\Throwable $e) {
                 \Illuminate\Support\Facades\Log::warning('Failed to delete member document file', [
                     'document_id' => $document->id,
@@ -1669,17 +1669,6 @@ new #[Title('Member Details - Admin')] class extends Component {
         $this->user->load(['documents.documentType', 'documents.verifier']);
         unset($this->memberDocuments);
         session()->flash('success', 'Document deleted permanently.');
-    }
-
-    protected function getPrivateDisk(): string
-    {
-        if (app()->environment(['local', 'development', 'testing'])) {
-            return 'local';
-        }
-        if (config('filesystems.disks.r2.key')) {
-            return 'r2';
-        }
-        return 's3';
     }
 
     public function getStatusClasses(string $status): string
@@ -2780,7 +2769,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                                     View
                                 </a>
                                 @if($endorsement->letter_file_path)
-                                <a href="{{ route('admin.endorsements.download', $endorsement->uuid) }}"
+                                <a href="{{ route('member.endorsements.letter', $endorsement->uuid) }}"
                                     class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                                     target="_blank">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>

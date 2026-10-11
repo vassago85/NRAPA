@@ -38,7 +38,7 @@ new #[Title('Membership Details')] class extends Component {
 
         $path = $this->proofOfPayment->store(
             "proof-of-payment/{$this->membership->user_id}",
-            'r2',
+            \App\Helpers\StorageHelper::getPrivateDisk(),
         );
 
         $this->membership->update(['proof_of_payment_path' => $path]);
@@ -59,7 +59,7 @@ new #[Title('Membership Details')] class extends Component {
     public function removeProofOfPayment(): void
     {
         if ($this->membership->proof_of_payment_path) {
-            Storage::disk('r2')->delete($this->membership->proof_of_payment_path);
+            Storage::disk(\App\Helpers\StorageHelper::getPrivateDisk())->delete($this->membership->proof_of_payment_path);
             $this->membership->update(['proof_of_payment_path' => null]);
             session()->flash('success', 'Proof of payment removed.');
         }

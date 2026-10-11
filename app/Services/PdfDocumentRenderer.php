@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Contracts\DocumentRenderer;
+use App\Helpers\DocumentHelper;
+use App\Helpers\StorageHelper;
 use App\Models\Certificate;
 use App\Models\EndorsementRequest;
 use App\Models\User;
@@ -28,9 +30,7 @@ class PdfDocumentRenderer implements DocumentRenderer
 
     public function __construct()
     {
-        $this->disk = app()->environment(['local', 'development', 'testing'])
-            ? 'local'
-            : (config('filesystems.disks.r2.key') ? 'r2' : (config('filesystems.disks.s3.key') ? 's3' : 'local'));
+        $this->disk = StorageHelper::getPrivateDisk();
 
         $this->gotenbergUrl = env('GOTENBERG_URL', 'http://gotenberg:3000');
     }
@@ -59,13 +59,14 @@ class PdfDocumentRenderer implements DocumentRenderer
 
             $response = Http::timeout(25)
                 ->asMultipart()
-                ->post($this->gotenbergUrl . '/forms/chromium/convert/html', $multipart);
+                ->post($this->gotenbergUrl.'/forms/chromium/convert/html', $multipart);
 
             if (! $response->successful() || strlen($response->body()) < 100) {
                 Log::warning('Gotenberg PDF generation failed', [
                     'status' => $response->status(),
                     'body' => substr($response->body(), 0, 200),
                 ]);
+
                 return false;
             }
 
@@ -76,6 +77,7 @@ class PdfDocumentRenderer implements DocumentRenderer
             Log::warning('Gotenberg connection failed', [
                 'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
@@ -94,6 +96,7 @@ class PdfDocumentRenderer implements DocumentRenderer
                     'template' => $template,
                     'file' => $filePath,
                 ]);
+
                 return;
             }
         } catch (\Throwable $e) {
@@ -172,7 +175,7 @@ class PdfDocumentRenderer implements DocumentRenderer
             'user' => $certificate->user,
             'membership' => $certificate->membership,
             'certificateType' => $certificate->certificateType,
-            'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
+            'logo_url' => DocumentHelper::getLogoUrl(),
         ], $filePath, $customSize);
 
         return $filePath;
@@ -189,7 +192,7 @@ class PdfDocumentRenderer implements DocumentRenderer
         }
 
         // Try to get certificate if available (for QR code)
-        $certificate = \App\Models\Certificate::where('user_id', $user->id)
+        $certificate = Certificate::where('user_id', $user->id)
             ->whereHas('certificateType', fn ($q) => $q->where('slug', 'welcome-letter'))
             ->latest('created_at')
             ->first();
@@ -202,7 +205,7 @@ class PdfDocumentRenderer implements DocumentRenderer
             'user' => $user,
             'membership' => $membership,
             'certificate' => $certificate,
-            'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
+            'logo_url' => DocumentHelper::getLogoUrl(),
         ], $filePath);
 
         return $filePath;
@@ -227,7 +230,7 @@ class PdfDocumentRenderer implements DocumentRenderer
             'user' => $request->user,
             'firearm' => $request->firearm,
             'membership' => $request->user->activeMembership,
-            'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
+            'logo_url' => DocumentHelper::getLogoUrl(),
         ], $filePath);
 
         return $filePath;

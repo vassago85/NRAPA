@@ -187,7 +187,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificate Management')] class ex
             ]);
 
             if ($certificate->file_path) {
-                $disk = app()->environment(['local', 'development', 'testing']) ? 'local' : 'r2';
+                $disk = \App\Helpers\StorageHelper::getPrivateDisk();
                 Storage::disk($disk)->delete($certificate->file_path);
             }
 
@@ -421,7 +421,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificate Management')] class ex
                             </td>
                             <td class="px-4 py-3">
                                 @if($certificate->file_path)
-                                    <a href="{{ route('developer.certificates.download', $certificate) }}"
+                                    <a href="{{ route('certificates.download', $certificate) }}"
                                         class="inline-flex items-center gap-1 text-nrapa-blue hover:text-nrapa-blue-dark dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
                                         title="Download PDF">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -439,7 +439,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificate Management')] class ex
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                         View
                                     </a>
-                                    <a href="{{ route('developer.certificates.preview', $certificate) }}" target="_blank"
+                                    <a href="{{ route('certificates.preview', $certificate) }}" target="_blank"
                                         class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-700"
                                         title="Preview document">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>

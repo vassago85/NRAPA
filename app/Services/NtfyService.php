@@ -11,12 +11,9 @@ class NtfyService
 {
     protected string $baseUrl;
 
-    protected ?string $developerTopic;
-
     public function __construct()
     {
         $this->baseUrl = config('services.ntfy.url', 'https://ntfy.sh');
-        $this->developerTopic = config('services.ntfy.developer_topic');
     }
 
     /**
@@ -55,18 +52,6 @@ class NtfyService
 
             return false;
         }
-    }
-
-    /**
-     * Send notification to developer (site errors).
-     */
-    public function notifyDeveloper(string $title, string $message, string $priority = 'high'): bool
-    {
-        if (! $this->developerTopic) {
-            return false;
-        }
-
-        return $this->send($this->developerTopic, $title, $message, $priority, ['warning', 'computer']);
     }
 
     /**

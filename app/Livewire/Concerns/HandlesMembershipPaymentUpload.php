@@ -2,7 +2,9 @@
 
 namespace App\Livewire\Concerns;
 
+use App\Helpers\StorageHelper;
 use App\Models\Membership;
+use App\Services\NtfyService;
 use Illuminate\Support\Facades\Storage;
 use Livewire\WithFileUploads;
 
@@ -22,7 +24,7 @@ trait HandlesMembershipPaymentUpload
 
         $path = $this->proofOfPayment->store(
             "proof-of-payment/{$membership->user_id}",
-            'r2',
+            StorageHelper::getPrivateDisk(),
         );
 
         $membership->update(['proof_of_payment_path' => $path]);
@@ -30,7 +32,7 @@ trait HandlesMembershipPaymentUpload
 
         try {
             $user = auth()->user();
-            app(\App\Services\NtfyService::class)->notifyAdmins(
+            app(NtfyService::class)->notifyAdmins(
                 'payment_received',
                 'Proof of Payment Uploaded',
                 "{$user->name} ({$membership->membership_number}) uploaded proof of payment. Pending review.",
@@ -48,7 +50,7 @@ trait HandlesMembershipPaymentUpload
         $membership = $this->resolveMembershipForPaymentUpload($membershipId);
 
         if ($membership->proof_of_payment_path) {
-            Storage::disk('r2')->delete($membership->proof_of_payment_path);
+            Storage::disk(StorageHelper::getPrivateDisk())->delete($membership->proof_of_payment_path);
             $membership->update(['proof_of_payment_path' => null]);
             session()->flash('success', 'Proof of payment removed.');
             $this->refreshPaymentUploadState();

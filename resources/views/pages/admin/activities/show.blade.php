@@ -163,7 +163,7 @@ new class extends Component {
         if (!$document) {
             return null;
         }
-        return route('admin.documents.preview', $document);
+        return route('documents.preview', $document);
     }
 }; ?>
 

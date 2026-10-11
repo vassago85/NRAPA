@@ -18,18 +18,9 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         $this->document = $document->load('documentType', 'verifier');
     }
 
-    protected function getPrivateDisk(): string
-    {
-        // Use R2 if configured, otherwise fall back to s3 (Minio)
-        if (config('filesystems.disks.r2.key')) {
-            return 'r2';
-        }
-        return 's3';
-    }
-
     public function download(): mixed
     {
-        return Storage::disk($this->getPrivateDisk())->download(
+        return Storage::disk(\App\Helpers\StorageHelper::getPrivateDisk())->download(
             $this->document->file_path,
             $this->document->original_filename
         );

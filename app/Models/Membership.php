@@ -763,7 +763,7 @@ class Membership extends Model
         ]);
 
         if ($this->proof_of_payment_path) {
-            \Illuminate\Support\Facades\Storage::disk('r2')->delete($this->proof_of_payment_path);
+            \Illuminate\Support\Facades\Storage::disk(\App\Helpers\StorageHelper::getPrivateDisk())->delete($this->proof_of_payment_path);
             $this->update(['proof_of_payment_path' => null]);
         }
     }

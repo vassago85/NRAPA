@@ -110,57 +110,6 @@ class DocumentDataHelper
     }
 
     /**
-     * Get commissioner of oaths scan HTML (safe, server-generated).
-     * Falls back to the system default commissioner scan if no specific path is provided.
-     * Uses base64 data URI for reliable rendering in both browsers and PDF generators.
-     */
-    public static function getCommissionerScanHtml(?string $scanPath): string
-    {
-        // Fall back to system default commissioner scan path
-        if (! $scanPath) {
-            $scanPath = static::getDefaultCommissionerScanPath();
-        }
-
-        if (! $scanPath) {
-            return 'Commissioner of Oaths scan';
-        }
-
-        // Try multiple disks: document assets disk first, then public
-        $disks = array_unique(array_filter([
-            SystemSetting::get('document_assets_disk'),
-            StorageHelper::getPublicDisk(),
-        ]));
-
-        foreach ($disks as $disk) {
-            try {
-                if (! Storage::disk($disk)->exists($scanPath)) {
-                    continue;
-                }
-
-                // Check if it's a PDF — PDFs can't be base64-embedded as images
-                $extension = strtolower(pathinfo($scanPath, PATHINFO_EXTENSION));
-                if ($extension === 'pdf') {
-                    $url = Storage::disk($disk)->url($scanPath);
-
-                    return '<iframe src="'.e($url).'" style="width:100%; height:100%; border:0;"></iframe>';
-                }
-
-                $contents = Storage::disk($disk)->get($scanPath);
-                $mimeType = Storage::disk($disk)->mimeType($scanPath) ?: 'image/png';
-                $dataUri = 'data:'.$mimeType.';base64,'.base64_encode($contents);
-
-                return '<img src="'.e($dataUri).'" alt="Commissioner of Oaths Scan" />';
-            } catch (\Throwable $e) {
-                report($e);
-
-                continue;
-            }
-        }
-
-        return 'Commissioner of Oaths scan';
-    }
-
-    /**
      * Get commissioner of oaths signature image HTML (safe, server-generated).
      * Returns an empty string when no signature is configured so the document
      * simply shows a blank signature line.

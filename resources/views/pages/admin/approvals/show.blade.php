@@ -307,7 +307,7 @@ new #[Title('Review Application - Admin')] class extends Component {
         // Clean up proof of payment
         if ($this->membership->proof_of_payment_path) {
             try {
-                Storage::disk('r2')->delete($this->membership->proof_of_payment_path);
+                Storage::disk(\App\Helpers\StorageHelper::getPrivateDisk())->delete($this->membership->proof_of_payment_path);
             } catch (\Exception $e) {}
             $this->membership->update(['proof_of_payment_path' => null]);
         }
@@ -399,7 +399,7 @@ new #[Title('Review Application - Admin')] class extends Component {
         // Clean up proof of payment if any
         if ($this->membership->proof_of_payment_path) {
             try {
-                Storage::disk('r2')->delete($this->membership->proof_of_payment_path);
+                Storage::disk(\App\Helpers\StorageHelper::getPrivateDisk())->delete($this->membership->proof_of_payment_path);
             } catch (\Exception $e) {}
             $this->membership->update(['proof_of_payment_path' => null]);
         }
@@ -1230,7 +1230,7 @@ new #[Title('Review Application - Admin')] class extends Component {
                             $tDoc = $tdoc['doc'];
                             $tExt = strtolower(pathinfo($tDoc->file_path, PATHINFO_EXTENSION));
                             $isImg = in_array($tExt, ['jpg', 'jpeg', 'png']);
-                            $previewUrl = route('admin.documents.preview', $tDoc);
+                            $previewUrl = route('documents.preview', $tDoc);
                         @endphp
                         @if($isImg)
                             <a href="{{ $previewUrl }}" target="_blank" class="block overflow-hidden rounded-md border border-blue-200 dark:border-blue-700">

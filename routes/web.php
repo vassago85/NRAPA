@@ -1,20 +1,17 @@
 <?php
 
+use App\Helpers\StorageHelper;
+use App\Http\Controllers\CertificateFileController;
+use App\Http\Controllers\DocumentPreviewController;
+use App\Http\Controllers\EndorsementLetterController;
+use App\Http\Controllers\MemberDocumentPreviewController;
 use App\Http\Controllers\SageOAuthController;
 use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-})->name('home');
-
-Route::get('/terms-and-conditions', function () {
-    return view('pages.terms');
-})->name('terms-and-conditions');
-
-Route::get('/privacy-policy', function () {
-    return view('pages.privacy');
-})->name('privacy-policy');
+Route::view('/', 'welcome')->name('home');
+Route::view('/terms-and-conditions', 'pages.terms')->name('terms-and-conditions');
+Route::view('/privacy-policy', 'pages.privacy')->name('privacy-policy');
 
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 
@@ -96,36 +93,41 @@ Route::get('/.well-known/api-catalog', function () {
         ->header('Content-Type', 'application/linkset+json; charset=UTF-8');
 })->name('agent.api-catalog');
 
-// Info / Resources pages (public)
+// Info / Resources pages (public). Each slug maps to pages/info/{slug}.blade.php.
 Route::prefix('info')->name('info.')->group(function () {
-    Route::get('/', fn () => view('pages.info.index'))->name('index');
-    Route::get('/about', fn () => view('pages.info.about'))->name('about');
-    Route::get('/firearm-licence-process', fn () => view('pages.info.firearm-licence-process'))->name('firearm-licence-process');
-    Route::get('/minimum-requirements', fn () => view('pages.info.minimum-requirements'))->name('minimum-requirements');
-    Route::get('/dedicated-procedure', fn () => view('pages.info.dedicated-procedure'))->name('dedicated-procedure');
-    Route::get('/shooting-exercises', fn () => view('pages.info.shooting-exercises'))->name('shooting-exercises');
-    Route::get('/dedicated-sport-shooter-south-africa', fn () => view('pages.info.dedicated-sport-shooter-south-africa'))->name('dedicated-sport-shooter-south-africa');
-    Route::get('/dedicated-hunter-south-africa', fn () => view('pages.info.dedicated-hunter-south-africa'))->name('dedicated-hunter-south-africa');
-    Route::get('/how-to-get-dedicated-status-south-africa', fn () => view('pages.info.how-to-get-dedicated-status-south-africa'))->name('how-to-get-dedicated-status-south-africa');
-    Route::get('/endorsements', fn () => view('pages.info.endorsements'))->name('endorsements');
-    Route::get('/membership-benefits', fn () => view('pages.info.membership-benefits'))->name('membership-benefits');
-    Route::get('/faq', fn () => view('pages.info.faq'))->name('faq');
-    Route::get('/prs-rifle-equipment-selection', fn () => view('pages.info.prs-rifle-equipment-selection'))->name('prs-rifle-equipment-selection');
-    Route::get('/transfer-your-membership', fn () => view('pages.info.transfer-your-membership'))->name('transfer-your-membership');
-    Route::get('/dedicated-hunter-vs-sport-shooter', fn () => view('pages.info.dedicated-hunter-vs-sport-shooter'))->name('dedicated-hunter-vs-sport-shooter');
-    Route::get('/dedicated-status-faq', fn () => view('pages.info.dedicated-status-faq'))->name('dedicated-status-faq');
+    Route::view('/', 'pages.info.index')->name('index');
+
+    foreach ([
+        'about',
+        'firearm-licence-process',
+        'minimum-requirements',
+        'dedicated-procedure',
+        'shooting-exercises',
+        'dedicated-sport-shooter-south-africa',
+        'dedicated-hunter-south-africa',
+        'how-to-get-dedicated-status-south-africa',
+        'endorsements',
+        'membership-benefits',
+        'faq',
+        'prs-rifle-equipment-selection',
+        'transfer-your-membership',
+        'dedicated-hunter-vs-sport-shooter',
+        'dedicated-status-faq',
+    ] as $page) {
+        Route::view($page, "pages.info.{$page}")->name($page);
+    }
 });
 
 // Site Guides (how-to pages). The hub and "How to sign up" are public;
 // the member-action guides require the user to be logged in.
 Route::prefix('guides')->name('guides.')->group(function () {
-    Route::get('/', fn () => view('pages.guides.index'))->name('index');
-    Route::get('/sign-up', fn () => view('pages.guides.sign-up'))->name('sign-up');
+    Route::view('/', 'pages.guides.index')->name('index');
+    Route::view('/sign-up', 'pages.guides.sign-up')->name('sign-up');
 
     Route::middleware(['auth'])->group(function () {
-        Route::get('/upload-proof-of-payment', fn () => view('pages.guides.upload-proof-of-payment'))->name('upload-proof-of-payment');
-        Route::get('/submit-activities', fn () => view('pages.guides.submit-activities'))->name('submit-activities');
-        Route::get('/request-endorsement', fn () => view('pages.guides.request-endorsement'))->name('request-endorsement');
+        Route::view('/upload-proof-of-payment', 'pages.guides.upload-proof-of-payment')->name('upload-proof-of-payment');
+        Route::view('/submit-activities', 'pages.guides.submit-activities')->name('submit-activities');
+        Route::view('/request-endorsement', 'pages.guides.request-endorsement')->name('request-endorsement');
     });
 });
 
@@ -199,13 +201,7 @@ if (app()->environment('local', 'development', 'testing')) {
 
         auth()->login($user);
 
-        // Redirect based on role
-        return match ($role) {
-            'developer' => redirect()->route('developer.dashboard'),
-            'owner' => redirect()->route('owner.dashboard'),
-            'admin' => redirect()->route('admin.dashboard'),
-            default => redirect()->route('dashboard'),
-        };
+        return redirect()->route($user->dashboardRoute());
     })->name('dev.login');
 }
 
@@ -222,13 +218,7 @@ Route::middleware(['auth'])->group(function () {
 
         auth()->login($user);
 
-        // Redirect based on user's role
-        return match ($user->role) {
-            'developer' => redirect()->route('developer.dashboard'),
-            'owner' => redirect()->route('owner.dashboard'),
-            'admin' => redirect()->route('admin.dashboard'),
-            default => redirect()->route('dashboard'),
-        };
+        return redirect()->route($user->dashboardRoute());
     })->name('dev.impersonate');
 
     Route::get('/dev/stop-impersonating', function () {
@@ -256,23 +246,14 @@ Route::middleware(['auth'])->group(function () {
             abort(403);
         }
 
-        $currentView = session('view_as_member', false);
-        session(['view_as_member' => ! $currentView]);
+        $nowViewingAsMember = ! session('view_as_member', false);
+        session(['view_as_member' => $nowViewingAsMember]);
 
-        // Redirect to appropriate dashboard
-        if (! $currentView) {
-            // Now viewing as member
+        if ($nowViewingAsMember) {
             return redirect()->route('dashboard')->with('success', 'Now viewing as member');
-        } else {
-            // Back to admin view
-            if ($user->isDeveloper()) {
-                return redirect()->route('developer.dashboard')->with('success', 'Back to developer view');
-            } elseif ($user->isOwner()) {
-                return redirect()->route('owner.dashboard')->with('success', 'Back to owner view');
-            } else {
-                return redirect()->route('admin.dashboard')->with('success', 'Back to admin view');
-            }
         }
+
+        return redirect()->route($user->dashboardRoute())->with('success', "Back to {$user->role} view");
     })->name('toggle-member-view');
 });
 
@@ -298,7 +279,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('membership/{membership}', 'pages::member.membership.show')->name('membership.show');
 });
 
-// Member Portal Routes - Requires ACTIVE membership (paid members only)
+// Member Portal Routes - Requires ACTIVE membership (paid members only).
+// Staff bypass both membership.required and terms.accepted, so the file routes
+// below (certificates, documents, endorsement letters) also serve admin/owner/developer.
 Route::middleware(['auth', 'verified', 'membership.required', 'terms.accepted'])->group(function () {
     // Digital Membership Card (mobile-optimized)
     Route::livewire('card', 'pages::member.card')->name('card');
@@ -306,138 +289,10 @@ Route::middleware(['auth', 'verified', 'membership.required', 'terms.accepted'])
     // Certificates (members only - requires active membership)
     Route::livewire('certificates', 'pages::member.certificates.index')->name('certificates.index');
     Route::livewire('certificates/{certificate}', 'pages::member.certificates.show')->name('certificates.show');
-
-    // Certificate wallet pass downloads (member)
-    Route::get('certificates/{certificate}/wallet/apple', function (\App\Models\Certificate $certificate) {
-        $user = auth()->user();
-
-        // Members can only download their own certificates
-        if ($certificate->user_id !== $user->id) {
-            abort(403);
-        }
-
-        // Only membership cards support wallet passes
-        if ($certificate->certificateType->slug !== 'membership-card') {
-            abort(404, 'Wallet passes are only available for membership cards.');
-        }
-
-        $walletService = app(\App\Services\WalletPassService::class);
-        $filePath = $walletService->generateAppleWalletPass($certificate);
-
-        if (! $filePath) {
-            abort(503, 'Apple Wallet pass generation is not yet configured. Please contact support.');
-        }
-
-        $disk = app()->environment(['local', 'development', 'testing']) ? 'local' : 'r2';
-
-        return Storage::disk($disk)->download($filePath, 'nrapa-membership-card.pkpass', [
-            'Content-Type' => 'application/vnd.apple.pkpass',
-        ]);
-    })->name('certificates.wallet.apple');
-
-    Route::get('certificates/{certificate}/wallet/google', function (\App\Models\Certificate $certificate) {
-        $user = auth()->user();
-
-        // Members can only download their own certificates
-        if ($certificate->user_id !== $user->id) {
-            abort(403);
-        }
-
-        // Only membership cards support wallet passes
-        if ($certificate->certificateType->slug !== 'membership-card') {
-            abort(404, 'Wallet passes are only available for membership cards.');
-        }
-
-        $walletService = app(\App\Services\WalletPassService::class);
-        $saveUrl = $walletService->generateGoogleWalletPass($certificate);
-
-        if (! $saveUrl) {
-            abort(503, 'Google Wallet pass generation is not yet configured. Please contact support.');
-        }
-
-        return redirect($saveUrl);
-    })->name('certificates.wallet.google');
-
-    // Certificate PDF download (member)
-    Route::get('certificates/{certificate}/download', function (\App\Models\Certificate $certificate) {
-        $user = auth()->user();
-
-        // Members can only download their own certificates
-        if ($certificate->user_id !== $user->id) {
-            abort(403);
-        }
-
-        $disk = app()->environment(['local', 'development', 'testing']) ? 'local' : 'r2';
-
-        if (! $certificate->file_path || ! \Illuminate\Support\Facades\Storage::disk($disk)->exists($certificate->file_path)) {
-            $issueService = app(\App\Services\CertificateIssueService::class);
-            $filePath = $issueService->regenerateDocument($certificate);
-            if (! $filePath) {
-                abort(404, 'Certificate file could not be generated. Please contact support.');
-            }
-            $certificate->refresh();
-        }
-
-        $filename = 'nrapa-'.str_replace(' ', '-', strtolower($certificate->certificateType->name)).'-'.$certificate->certificate_number.'.pdf';
-
-        return \Illuminate\Support\Facades\Storage::disk($disk)->download($certificate->file_path, $filename, [
-            'Content-Type' => 'application/pdf',
-        ]);
-    })->name('certificates.download');
-
-    // Certificate preview (renders the document template)
-    Route::get('certificates/{certificate}/preview', function (\App\Models\Certificate $certificate) {
-        $user = auth()->user();
-
-        // Members can only view their own certificates
-        if ($certificate->user_id !== $user->id) {
-            abort(403);
-        }
-
-        $certificate->loadMissing(['user', 'membership.type', 'certificateType']);
-
-        // Map template based on certificate type slug or template name
-        $template = $certificate->certificateType->template ?? 'documents.certificates.good-standing';
-
-        // Map old template names to new document templates
-        $templateMap = [
-            'certificates.membership' => 'documents.membership-card',
-            'certificates.dedicated' => 'documents.certificates.dedicated-status',
-            'certificates.endorsement' => 'documents.letters.endorsement',
-            'certificates.confirmation' => 'documents.certificates.good-standing',
-            'documents.paid-up' => 'documents.certificates.good-standing',
-            'documents.dedicated-hunter' => 'documents.certificates.dedicated-status',
-            'documents.dedicated-sport' => 'documents.certificates.dedicated-status',
-            'documents.welcome-letter' => 'documents.letters.welcome',
-        ];
-
-        // Check if template needs mapping
-        if (isset($templateMap[$template])) {
-            $template = $templateMap[$template];
-        }
-
-        // Also check by slug for more specific mapping
-        $slug = $certificate->certificateType->slug ?? '';
-        if ($slug === 'dedicated-hunter-certificate' || $slug === 'dedicated-hunter') {
-            $template = 'documents.certificates.dedicated-status';
-        } elseif ($slug === 'dedicated-sport-certificate' || $slug === 'dedicated-sport' || $slug === 'dedicated-sport-shooter') {
-            $template = 'documents.certificates.dedicated-status';
-        } elseif ($slug === 'membership-card') {
-            $template = 'documents.membership-card';
-        } elseif ($slug === 'membership-certificate' || $slug === 'paid-up-certificate' || $slug === 'good-standing-certificate') {
-            $template = 'documents.certificates.good-standing';
-        } elseif ($slug === 'welcome-letter') {
-            $template = 'documents.letters.welcome';
-        }
-
-        return view($template, [
-            'certificate' => $certificate,
-            'user' => $certificate->user,
-            'membership' => $certificate->membership,
-            'certificateType' => $certificate->certificateType,
-            'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
-        ]);
-    })->name('certificates.preview');
+    Route::get('certificates/{certificate}/wallet/apple', [CertificateFileController::class, 'appleWallet'])->name('certificates.wallet.apple');
+    Route::get('certificates/{certificate}/wallet/google', [CertificateFileController::class, 'googleWallet'])->name('certificates.wallet.google');
+    Route::get('certificates/{certificate}/download', [CertificateFileController::class, 'download'])->name('certificates.download');
+    Route::get('certificates/{certificate}/preview', [CertificateFileController::class, 'preview'])->name('certificates.preview');
 
     // Knowledge Test
     Route::livewire('knowledge-test', 'pages::member.knowledge-test.index')->name('knowledge-test.index');
@@ -516,34 +371,7 @@ Route::middleware(['auth', 'verified', 'membership.required', 'terms.accepted'])
     Route::livewire('documents', 'pages::member.documents.index')->name('documents.index');
     Route::livewire('documents/upload', 'pages::member.documents.upload')->name('documents.upload');
     Route::livewire('documents/{document}', 'pages::member.documents.show')->name('documents.show');
-
-    // Document preview proxy (streams file through Laravel to bypass R2 signed URL issues)
-    Route::get('documents/{document}/preview', function (\App\Models\MemberDocument $document) {
-        // Ensure user can only view their own documents
-        if ($document->user_id !== auth()->id()) {
-            abort(403);
-        }
-
-        // Use local storage for local/development/testing environments
-        $disk = app()->environment(['local', 'development', 'testing'])
-            ? 'local'
-            : (config('filesystems.disks.r2.key') ? 'r2' : 's3');
-
-        if (! \Illuminate\Support\Facades\Storage::disk($disk)->exists($document->file_path)) {
-            abort(404);
-        }
-
-        return response()->stream(function () use ($disk, $document) {
-            $stream = \Illuminate\Support\Facades\Storage::disk($disk)->readStream($document->file_path);
-            fpassthru($stream);
-            if (is_resource($stream)) {
-                fclose($stream);
-            }
-        }, 200, [
-            'Content-Type' => $document->mime_type,
-            'Content-Disposition' => 'inline; filename="'.$document->original_filename.'"',
-        ]);
-    })->name('documents.preview');
+    Route::get('documents/{document}/preview', MemberDocumentPreviewController::class)->name('documents.preview');
 
     // Learning Center
     Route::livewire('learning', 'pages::member.learning.index')->name('learning.index');
@@ -557,75 +385,8 @@ Route::middleware(['auth', 'verified', 'membership.required', 'terms.accepted'])
     Route::livewire('endorsements/self-defence', 'pages::member.endorsements.self-defence')->name('member.endorsements.self-defence');
     Route::livewire('endorsements/{request}/edit', 'pages::member.endorsements.create')->name('member.endorsements.edit');
     Route::livewire('endorsements/{request}', 'pages::member.endorsements.show')->name('member.endorsements.show');
-
-    // Member endorsement letter preview (renders template)
-    Route::get('endorsements/{request}/preview', function (\App\Models\EndorsementRequest $request) {
-        // Ensure user can only view their own endorsements
-        if ($request->user_id !== auth()->id()) {
-            abort(403);
-        }
-
-        $request->loadMissing([
-            'user',
-            'user.activeMembership',
-            'firearm',
-            'firearm.firearmCalibre',
-            'firearm.firearmMake',
-            'firearm.firearmModel',
-            'components',
-        ]);
-
-        return view('documents.letters.endorsement', [
-            'request' => $request,
-            'user' => $request->user,
-            'firearm' => $request->firearm,
-            'membership' => $request->user->activeMembership,
-            'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
-        ]);
-    })->name('member.endorsements.preview');
-
-    // Member endorsement letter view/download (serves cached PDF, regenerates if missing)
-    Route::get('endorsements/{request}/letter', function (\App\Models\EndorsementRequest $request) {
-        if ($request->user_id !== auth()->id()) {
-            abort(403);
-        }
-
-        if (! $request->isIssued() && ! $request->isApproved()) {
-            abort(404, 'Endorsement letter not found.');
-        }
-
-        $disk = app()->environment(['local', 'development', 'testing'])
-            ? 'local'
-            : (config('filesystems.disks.r2.key') ? 'r2' : (config('filesystems.disks.s3.key') ? 's3' : 'local'));
-        $storage = \Illuminate\Support\Facades\Storage::disk($disk);
-
-        $filePath = $request->letter_file_path;
-        if (! $filePath || ! $storage->exists($filePath)) {
-            $renderer = app(\App\Contracts\DocumentRenderer::class);
-            $filePath = $renderer->renderEndorsementLetter($request, 'documents.letters.endorsement');
-            $request->update(['letter_file_path' => $filePath]);
-        }
-
-        $filename = 'endorsement-letter-'.($request->letter_reference ?? $request->uuid).'.pdf';
-
-        return response()->stream(function () use ($storage, $filePath) {
-            $stream = $storage->readStream($filePath);
-            fpassthru($stream);
-            if (is_resource($stream)) {
-                fclose($stream);
-            }
-        }, 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="'.$filename.'"',
-            // Disable browser/proxy caching so admins can regenerate the
-            // letter (e.g. after correcting serial numbers) and members get
-            // the new PDF on the very next download instead of seeing the
-            // device-cached old one.
-            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
-            'Pragma' => 'no-cache',
-            'Expires' => '0',
-        ]);
-    })->name('member.endorsements.letter');
+    Route::get('endorsements/{request}/preview', [EndorsementLetterController::class, 'preview'])->name('member.endorsements.preview');
+    Route::get('endorsements/{request}/letter', [EndorsementLetterController::class, 'letter'])->name('member.endorsements.letter');
 });
 
 // User Deletion Requests (Owners, Developers, and Super Admins can review)
@@ -658,177 +419,6 @@ Route::middleware(['auth', 'verified', 'owner'])->get('sage/callback', [SageOAut
 Route::middleware(['auth', 'verified', 'developer'])->prefix('developer')->name('developer.')->group(function () {
     Route::livewire('dashboard', 'pages::developer.dashboard')->name('dashboard');
 
-    // Test FAR Numbers Route
-    Route::get('test/far-numbers', function () {
-        try {
-            $results = [
-                'database_status' => 'unknown',
-                'settings_in_db' => [],
-                'helper_method' => [],
-                'direct_get' => [],
-                'cache_status' => 'unknown',
-            ];
-
-            // Check database
-            try {
-                if (\Illuminate\Support\Facades\Schema::hasTable('system_settings')) {
-                    $results['database_status'] = 'table_exists';
-
-                    $sportSetting = \Illuminate\Support\Facades\DB::table('system_settings')
-                        ->where('key', 'far_sport_number')
-                        ->first();
-                    $huntingSetting = \Illuminate\Support\Facades\DB::table('system_settings')
-                        ->where('key', 'far_hunting_number')
-                        ->first();
-
-                    $results['settings_in_db'] = [
-                        'far_sport_number' => $sportSetting ? [
-                            'exists' => true,
-                            'value' => $sportSetting->value,
-                            'type' => $sportSetting->type,
-                        ] : ['exists' => false],
-                        'far_hunting_number' => $huntingSetting ? [
-                            'exists' => true,
-                            'value' => $huntingSetting->value,
-                            'type' => $huntingSetting->type,
-                        ] : ['exists' => false],
-                    ];
-                } else {
-                    $results['database_status'] = 'table_not_exists';
-                }
-            } catch (\Exception $e) {
-                $results['database_status'] = 'error: '.$e->getMessage();
-            }
-
-            // Test helper method
-            try {
-                $farNumbers = \App\Helpers\DocumentDataHelper::getFarNumbers();
-                $results['helper_method'] = [
-                    'success' => true,
-                    'sport' => $farNumbers['sport'] ?? 'NULL',
-                    'hunting' => $farNumbers['hunting'] ?? 'NULL',
-                ];
-            } catch (\Exception $e) {
-                $results['helper_method'] = [
-                    'success' => false,
-                    'error' => $e->getMessage(),
-                ];
-            }
-
-            // Test direct SystemSetting::get()
-            try {
-                $results['direct_get'] = [
-                    'far_sport_number' => \App\Models\SystemSetting::get('far_sport_number', 'NOT_FOUND'),
-                    'far_hunting_number' => \App\Models\SystemSetting::get('far_hunting_number', 'NOT_FOUND'),
-                ];
-            } catch (\Exception $e) {
-                $results['direct_get'] = ['error' => $e->getMessage()];
-            }
-
-            // Check cache
-            try {
-                $sportCached = \Illuminate\Support\Facades\Cache::get('system_setting.far_sport_number');
-                $huntingCached = \Illuminate\Support\Facades\Cache::get('system_setting.far_hunting_number');
-                $results['cache_status'] = [
-                    'far_sport_number' => $sportCached ? 'cached' : 'not_cached',
-                    'far_hunting_number' => $huntingCached ? 'cached' : 'not_cached',
-                ];
-            } catch (\Exception $e) {
-                $results['cache_status'] = 'error: '.$e->getMessage();
-            }
-
-            return response()->json($results, 200, [], JSON_PRETTY_PRINT);
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ], 500);
-        }
-    })->name('test.far-numbers');
-
-    // Fix Endorsement Status Enum Route
-    Route::get('fix/endorsement-status-enum', function () {
-        if (\Illuminate\Support\Facades\DB::getDriverName() !== 'sqlite') {
-            return response()->json(['error' => 'This fix is only for SQLite databases'], 400);
-        }
-
-        try {
-            $tableName = 'endorsement_requests';
-
-            if (! \Illuminate\Support\Facades\Schema::hasTable($tableName)) {
-                return response()->json(['error' => "Table {$tableName} does not exist!"], 400);
-            }
-
-            // Check current constraint by trying to read schema
-            $schema = \Illuminate\Support\Facades\DB::select("SELECT sql FROM sqlite_master WHERE type='table' AND name='{$tableName}'");
-            $currentSql = $schema[0]->sql ?? '';
-
-            if (strpos($currentSql, "'approved'") !== false) {
-                return response()->json(['message' => 'Status "approved" is already allowed in the enum constraint.'], 200);
-            }
-
-            \Illuminate\Support\Facades\DB::transaction(function () use ($tableName) {
-                // Create new table with updated constraint
-                \Illuminate\Support\Facades\DB::statement("
-                    CREATE TABLE IF NOT EXISTS {$tableName}_new (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        uuid TEXT NOT NULL UNIQUE,
-                        user_id INTEGER NOT NULL,
-                        request_type TEXT NOT NULL DEFAULT 'new' CHECK(request_type IN ('new', 'renewal')),
-                        status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft', 'submitted', 'under_review', 'pending_documents', 'approved', 'issued', 'rejected', 'cancelled')),
-                        purpose TEXT CHECK(purpose IN ('section_16_application', 'status_confirmation', 'licence_renewal', 'additional_firearm', 'other')),
-                        purpose_other_text TEXT,
-                        declaration_accepted_at TIMESTAMP,
-                        declaration_text TEXT,
-                        submitted_at TIMESTAMP,
-                        reviewed_at TIMESTAMP,
-                        issued_at TIMESTAMP,
-                        rejected_at TIMESTAMP,
-                        cancelled_at TIMESTAMP,
-                        reviewer_id INTEGER,
-                        issued_by INTEGER,
-                        member_notes TEXT,
-                        admin_notes TEXT,
-                        rejection_reason TEXT,
-                        letter_reference TEXT UNIQUE,
-                        letter_file_path TEXT,
-                        created_at TIMESTAMP,
-                        updated_at TIMESTAMP,
-                        deleted_at TIMESTAMP,
-                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                        FOREIGN KEY (reviewer_id) REFERENCES users(id) ON DELETE SET NULL,
-                        FOREIGN KEY (issued_by) REFERENCES users(id) ON DELETE SET NULL
-                    )
-                ");
-
-                // Copy data
-                \Illuminate\Support\Facades\DB::statement("INSERT INTO {$tableName}_new SELECT * FROM {$tableName}");
-
-                // Drop old table
-                \Illuminate\Support\Facades\DB::statement("DROP TABLE {$tableName}");
-
-                // Rename new table
-                \Illuminate\Support\Facades\DB::statement("ALTER TABLE {$tableName}_new RENAME TO {$tableName}");
-
-                // Recreate indexes
-                \Illuminate\Support\Facades\DB::statement("CREATE INDEX IF NOT EXISTS idx_endorsement_requests_user_status ON {$tableName}(user_id, status)");
-                \Illuminate\Support\Facades\DB::statement("CREATE INDEX IF NOT EXISTS idx_endorsement_requests_status_created ON {$tableName}(status, created_at)");
-                \Illuminate\Support\Facades\DB::statement("CREATE INDEX IF NOT EXISTS idx_endorsement_requests_request_type ON {$tableName}(request_type)");
-            });
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Successfully updated status enum to include "approved"!',
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Failed to fix status enum: '.$e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ], 500);
-        }
-    })->name('fix.endorsement-status-enum');
-
     Route::livewire('owners', 'pages::developer.owners.index')->name('owners.index');
     Route::livewire('owners/nominate', 'pages::developer.owners.create')->name('owners.create');
 
@@ -836,109 +426,8 @@ Route::middleware(['auth', 'verified', 'developer'])->prefix('developer')->name(
     Route::livewire('certificates', 'pages::developer.certificates')->name('certificates.index');
     Route::livewire('certificates/{certificate}', 'pages::member.certificates.show')->name('certificates.show');
 
-    // Certificate wallet pass downloads (developer)
-    Route::get('certificates/{certificate}/wallet/apple', function (\App\Models\Certificate $certificate) {
-        // Only membership cards support wallet passes
-        if ($certificate->certificateType->slug !== 'membership-card') {
-            abort(404, 'Wallet passes are only available for membership cards.');
-        }
-
-        $walletService = app(\App\Services\WalletPassService::class);
-        $filePath = $walletService->generateAppleWalletPass($certificate);
-
-        if (! $filePath) {
-            abort(503, 'Apple Wallet pass generation is not yet configured. Please contact support.');
-        }
-
-        $disk = app()->environment(['local', 'development', 'testing']) ? 'local' : 'r2';
-
-        return \Illuminate\Support\Facades\Storage::disk($disk)->download($filePath, 'nrapa-membership-card.pkpass', [
-            'Content-Type' => 'application/vnd.apple.pkpass',
-        ]);
-    })->name('certificates.wallet.apple');
-
-    Route::get('certificates/{certificate}/wallet/google', function (\App\Models\Certificate $certificate) {
-        // Only membership cards support wallet passes
-        if ($certificate->certificateType->slug !== 'membership-card') {
-            abort(404, 'Wallet passes are only available for membership cards.');
-        }
-
-        $walletService = app(\App\Services\WalletPassService::class);
-        $saveUrl = $walletService->generateGoogleWalletPass($certificate);
-
-        if (! $saveUrl) {
-            abort(503, 'Google Wallet pass generation is not yet configured. Please contact support.');
-        }
-
-        return redirect($saveUrl);
-    })->name('certificates.wallet.google');
-
-    // Certificate PDF download (developer)
-    Route::get('certificates/{certificate}/download', function (\App\Models\Certificate $certificate) {
-        $disk = app()->environment(['local', 'development', 'testing']) ? 'local' : 'r2';
-
-        if (! $certificate->file_path || ! \Illuminate\Support\Facades\Storage::disk($disk)->exists($certificate->file_path)) {
-            $issueService = app(\App\Services\CertificateIssueService::class);
-            $filePath = $issueService->regenerateDocument($certificate);
-            if (! $filePath) {
-                abort(404, 'Certificate file could not be generated.');
-            }
-            $certificate->refresh();
-        }
-
-        $filename = 'nrapa-'.str_replace(' ', '-', strtolower($certificate->certificateType->name)).'-'.$certificate->certificate_number.'.pdf';
-
-        return \Illuminate\Support\Facades\Storage::disk($disk)->download($certificate->file_path, $filename, [
-            'Content-Type' => 'application/pdf',
-        ]);
-    })->name('certificates.download');
-
-    // Certificate preview (renders the document template)
-    Route::get('certificates/{certificate}/preview', function (\App\Models\Certificate $certificate) {
-        $certificate->loadMissing(['user', 'membership.type', 'certificateType']);
-
-        // Map template based on certificate type slug or template name
-        $template = $certificate->certificateType->template ?? 'documents.certificates.good-standing';
-
-        // Map old template names to new document templates
-        $templateMap = [
-            'certificates.membership' => 'documents.membership-card',
-            'certificates.dedicated' => 'documents.certificates.dedicated-status',
-            'certificates.endorsement' => 'documents.letters.endorsement',
-            'certificates.confirmation' => 'documents.certificates.good-standing',
-            'documents.paid-up' => 'documents.certificates.good-standing',
-            'documents.dedicated-hunter' => 'documents.certificates.dedicated-status',
-            'documents.dedicated-sport' => 'documents.certificates.dedicated-status',
-        ];
-
-        // Check if template needs mapping
-        if (isset($templateMap[$template])) {
-            $template = $templateMap[$template];
-        }
-
-        // Also check by slug for more specific mapping
-        $slug = $certificate->certificateType->slug ?? '';
-        if ($slug === 'dedicated-hunter-certificate' || $slug === 'dedicated-hunter') {
-            $template = 'documents.certificates.dedicated-status';
-        } elseif ($slug === 'dedicated-sport-certificate' || $slug === 'dedicated-sport' || $slug === 'dedicated-sport-shooter') {
-            $template = 'documents.certificates.dedicated-status';
-        } elseif ($slug === 'membership-card') {
-            $template = 'documents.membership-card';
-        } elseif ($slug === 'membership-certificate' || $slug === 'paid-up-certificate' || $slug === 'good-standing-certificate') {
-            $template = 'documents.certificates.good-standing';
-        }
-
-        return view($template, [
-            'certificate' => $certificate,
-            'user' => $certificate->user,
-            'membership' => $certificate->membership,
-            'certificateType' => $certificate->certificateType,
-            'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
-        ]);
-    })->name('certificates.preview');
-
-    Route::get('document-preview', [\App\Http\Controllers\DocumentPreviewController::class, 'index'])->name('document-preview.index');
-    Route::get('document-preview/{type}', [\App\Http\Controllers\DocumentPreviewController::class, 'show'])->name('document-preview.show');
+    Route::get('document-preview', [DocumentPreviewController::class, 'index'])->name('document-preview.index');
+    Route::get('document-preview/{type}', [DocumentPreviewController::class, 'show'])->name('document-preview.show');
 });
 
 // Admin Routes
@@ -967,107 +456,6 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::livewire('certificates', 'pages::member.certificates.index')->name('certificates.index');
     Route::livewire('certificates/{certificate}', 'pages::member.certificates.show')->name('certificates.show');
 
-    // Certificate wallet pass downloads (admin)
-    Route::get('certificates/{certificate}/wallet/apple', function (\App\Models\Certificate $certificate) {
-        // Only membership cards support wallet passes
-        if ($certificate->certificateType->slug !== 'membership-card') {
-            abort(404, 'Wallet passes are only available for membership cards.');
-        }
-
-        $walletService = app(\App\Services\WalletPassService::class);
-        $filePath = $walletService->generateAppleWalletPass($certificate);
-
-        if (! $filePath) {
-            abort(503, 'Apple Wallet pass generation is not yet configured. Please contact support.');
-        }
-
-        $disk = app()->environment(['local', 'development', 'testing']) ? 'local' : 'r2';
-
-        return \Illuminate\Support\Facades\Storage::disk($disk)->download($filePath, 'nrapa-membership-card.pkpass', [
-            'Content-Type' => 'application/vnd.apple.pkpass',
-        ]);
-    })->name('certificates.wallet.apple');
-
-    Route::get('certificates/{certificate}/wallet/google', function (\App\Models\Certificate $certificate) {
-        // Only membership cards support wallet passes
-        if ($certificate->certificateType->slug !== 'membership-card') {
-            abort(404, 'Wallet passes are only available for membership cards.');
-        }
-
-        $walletService = app(\App\Services\WalletPassService::class);
-        $saveUrl = $walletService->generateGoogleWalletPass($certificate);
-
-        if (! $saveUrl) {
-            abort(503, 'Google Wallet pass generation is not yet configured. Please contact support.');
-        }
-
-        return redirect($saveUrl);
-    })->name('certificates.wallet.google');
-
-    // Certificate PDF download (admin)
-    Route::get('certificates/{certificate}/download', function (\App\Models\Certificate $certificate) {
-        $disk = app()->environment(['local', 'development', 'testing']) ? 'local' : 'r2';
-
-        if (! $certificate->file_path || ! \Illuminate\Support\Facades\Storage::disk($disk)->exists($certificate->file_path)) {
-            $issueService = app(\App\Services\CertificateIssueService::class);
-            $filePath = $issueService->regenerateDocument($certificate);
-            if (! $filePath) {
-                abort(404, 'Certificate file could not be generated.');
-            }
-            $certificate->refresh();
-        }
-
-        $filename = 'nrapa-'.str_replace(' ', '-', strtolower($certificate->certificateType->name)).'-'.$certificate->certificate_number.'.pdf';
-
-        return \Illuminate\Support\Facades\Storage::disk($disk)->download($certificate->file_path, $filename, [
-            'Content-Type' => 'application/pdf',
-        ]);
-    })->name('certificates.download');
-
-    // Certificate preview (renders the document template)
-    Route::get('certificates/{certificate}/preview', function (\App\Models\Certificate $certificate) {
-        $certificate->loadMissing(['user', 'membership.type', 'certificateType']);
-
-        // Map template based on certificate type slug or template name
-        $template = $certificate->certificateType->template ?? 'documents.certificates.good-standing';
-
-        // Map old template names to new document templates
-        $templateMap = [
-            'certificates.membership' => 'documents.membership-card',
-            'certificates.dedicated' => 'documents.certificates.dedicated-status',
-            'certificates.endorsement' => 'documents.letters.endorsement',
-            'certificates.confirmation' => 'documents.certificates.good-standing',
-            'documents.paid-up' => 'documents.certificates.good-standing',
-            'documents.dedicated-hunter' => 'documents.certificates.dedicated-status',
-            'documents.dedicated-sport' => 'documents.certificates.dedicated-status',
-        ];
-
-        // Check if template needs mapping
-        if (isset($templateMap[$template])) {
-            $template = $templateMap[$template];
-        }
-
-        // Also check by slug for more specific mapping
-        $slug = $certificate->certificateType->slug ?? '';
-        if ($slug === 'dedicated-hunter-certificate' || $slug === 'dedicated-hunter') {
-            $template = 'documents.certificates.dedicated-status';
-        } elseif ($slug === 'dedicated-sport-certificate' || $slug === 'dedicated-sport' || $slug === 'dedicated-sport-shooter') {
-            $template = 'documents.certificates.dedicated-status';
-        } elseif ($slug === 'membership-card') {
-            $template = 'documents.membership-card';
-        } elseif ($slug === 'membership-certificate' || $slug === 'paid-up-certificate' || $slug === 'good-standing-certificate') {
-            $template = 'documents.certificates.good-standing';
-        }
-
-        return view($template, [
-            'certificate' => $certificate,
-            'user' => $certificate->user,
-            'membership' => $certificate->membership,
-            'certificateType' => $certificate->certificateType,
-            'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
-        ]);
-    })->name('certificates.preview');
-
     // Membership Types Management
     Route::livewire('membership-types', 'pages::admin.membership-types.index')->name('membership-types.index');
 
@@ -1083,7 +471,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
             abort(404, 'No proof of payment uploaded.');
         }
 
-        $disk = app()->environment(['local', 'development', 'testing']) ? 'local' : 'r2';
+        $disk = StorageHelper::getPrivateDisk();
 
         if (! \Illuminate\Support\Facades\Storage::disk($disk)->exists($membership->proof_of_payment_path)) {
             abort(404, 'Proof of payment file not found.');
@@ -1150,29 +538,6 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::livewire('documents', 'pages::admin.documents.index')->name('documents.index');
     Route::livewire('documents/{document}', 'pages::admin.documents.show')->name('documents.show');
 
-    // Admin document preview proxy (streams file through Laravel)
-    Route::get('documents/{document}/preview', function (\App\Models\MemberDocument $document) {
-        // Use local storage for local/development/testing environments
-        $disk = app()->environment(['local', 'development', 'testing'])
-            ? 'local'
-            : (config('filesystems.disks.r2.key') ? 'r2' : 's3');
-
-        if (! \Illuminate\Support\Facades\Storage::disk($disk)->exists($document->file_path)) {
-            abort(404);
-        }
-
-        return response()->stream(function () use ($disk, $document) {
-            $stream = \Illuminate\Support\Facades\Storage::disk($disk)->readStream($document->file_path);
-            fpassthru($stream);
-            if (is_resource($stream)) {
-                fclose($stream);
-            }
-        }, 200, [
-            'Content-Type' => $document->mime_type,
-            'Content-Disposition' => 'inline; filename="'.$document->original_filename.'"',
-        ]);
-    })->name('documents.preview');
-
     // Learning Center Management
     Route::livewire('learning', 'pages::admin.learning.index')->name('learning.index');
     Route::livewire('learning/{article}/pages', 'pages::admin.learning.pages')->name('learning.pages');
@@ -1181,67 +546,6 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::livewire('endorsements', 'pages::admin.endorsements.index')->name('endorsements.index');
     Route::livewire('endorsements/create', 'pages::admin.endorsements.create')->name('endorsements.create');
     Route::livewire('endorsements/{request}', 'pages::admin.endorsements.show')->name('endorsements.show');
-
-    // Admin endorsement letter preview (renders template)
-    Route::get('endorsements/{request}/preview', function (\App\Models\EndorsementRequest $request) {
-        $request->loadMissing([
-            'user',
-            'user.activeMembership',
-            'firearm',
-            'firearm.firearmCalibre',
-            'firearm.firearmMake',
-            'firearm.firearmModel',
-            'components',
-        ]);
-
-        return view('documents.letters.endorsement', [
-            'request' => $request,
-            'user' => $request->user,
-            'firearm' => $request->firearm,
-            'membership' => $request->user->activeMembership,
-            'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
-        ]);
-    })->name('endorsements.preview'); // Note: This becomes 'admin.endorsements.preview' due to group prefix
-
-    // Admin endorsement letter download (serves cached PDF, regenerates if missing or forced)
-    Route::get('endorsements/{request}/download', function (\App\Models\EndorsementRequest $request) {
-        if (! $request->isIssued()) {
-            abort(404, 'Endorsement letter not found.');
-        }
-
-        $disk = app()->environment(['local', 'development', 'testing'])
-            ? 'local'
-            : (config('filesystems.disks.r2.key') ? 'r2' : (config('filesystems.disks.s3.key') ? 's3' : 'local'));
-        $storage = \Illuminate\Support\Facades\Storage::disk($disk);
-
-        $forceRegenerate = request()->boolean('regenerate');
-        $filePath = $request->letter_file_path;
-
-        if ($forceRegenerate || ! $filePath || ! $storage->exists($filePath)) {
-            $renderer = app(\App\Contracts\DocumentRenderer::class);
-            $filePath = $renderer->renderEndorsementLetter($request, 'documents.letters.endorsement');
-            $request->update(['letter_file_path' => $filePath]);
-        }
-
-        $filename = 'endorsement-letter-'.($request->letter_reference ?? $request->uuid).'.pdf';
-
-        return response()->stream(function () use ($storage, $filePath) {
-            $stream = $storage->readStream($filePath);
-            fpassthru($stream);
-            if (is_resource($stream)) {
-                fclose($stream);
-            }
-        }, 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="'.$filename.'"',
-            // See member.endorsements.letter route — no caching so a freshly
-            // regenerated PDF (e.g. after firearm-detail edits) is served
-            // immediately rather than the previously-cached version.
-            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
-            'Pragma' => 'no-cache',
-            'Expires' => '0',
-        ]);
-    })->name('endorsements.download');
 
     // Bullet Database
     Route::livewire('bullet-database', 'pages::admin.bullet-database.index')->name('bullet-database.index');
@@ -1289,10 +593,3 @@ Route::get('verify/endorsement/{reference}', function ($reference) {
 })->name('endorsements.verify');
 
 require __DIR__.'/settings.php';
-
-// Temporary test route for FirearmSearchPanel component
-if (app()->environment('local', 'development', 'testing')) {
-    Route::get('/test-firearm-panel', function () {
-        return view('test-firearm-panel');
-    })->name('test.firearm-panel');
-}

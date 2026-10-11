@@ -39,27 +39,12 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     #[Computed]
     public function previewUrl()
     {
-        $user = auth()->user();
-        if ($user->isDeveloper()) {
-            return route('developer.certificates.preview', $this->certificate);
-        } elseif ($user->isOwner()) {
-            // Owner uses admin routes for certificates
-            return route('admin.certificates.preview', $this->certificate);
-        } elseif ($user->isAdmin()) {
-            return route('admin.certificates.preview', $this->certificate);
-        }
         return route('certificates.preview', $this->certificate);
     }
 
     #[Computed]
     public function downloadUrl()
     {
-        $user = auth()->user();
-        if ($user->isDeveloper()) {
-            return route('developer.certificates.download', $this->certificate);
-        } elseif ($user->isOwner() || $user->isAdmin()) {
-            return route('admin.certificates.download', $this->certificate);
-        }
         return route('certificates.download', $this->certificate);
     }
 
@@ -93,24 +78,12 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     #[Computed]
     public function appleWalletUrl()
     {
-        $user = auth()->user();
-        if ($user->isDeveloper()) {
-            return route('developer.certificates.wallet.apple', $this->certificate);
-        } elseif ($user->isOwner() || $user->isAdmin()) {
-            return route('admin.certificates.wallet.apple', $this->certificate);
-        }
         return route('certificates.wallet.apple', $this->certificate);
     }
 
     #[Computed]
     public function googleWalletUrl()
     {
-        $user = auth()->user();
-        if ($user->isDeveloper()) {
-            return route('developer.certificates.wallet.google', $this->certificate);
-        } elseif ($user->isOwner() || $user->isAdmin()) {
-            return route('admin.certificates.wallet.google', $this->certificate);
-        }
         return route('certificates.wallet.google', $this->certificate);
     }
 
@@ -145,7 +118,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
 
             // Delete associated file if exists
             if ($this->certificate->file_path) {
-                $disk = app()->environment(['local', 'development', 'testing']) ? 'local' : 'r2';
+                $disk = \App\Helpers\StorageHelper::getPrivateDisk();
                 \Illuminate\Support\Facades\Storage::disk($disk)->delete($this->certificate->file_path);
             }
 

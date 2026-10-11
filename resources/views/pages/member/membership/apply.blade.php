@@ -281,7 +281,7 @@ new #[Title('Apply for Membership')] class extends Component {
             return null;
         }
 
-        $disk = $this->getPrivateDisk();
+        $disk = \App\Helpers\StorageHelper::getPrivateDisk();
         $directory = "documents/{$this->user->uuid}/{$documentTypeSlug}";
         $filename = Str::random(40) . '.' . $uploaded->getClientOriginalExtension();
 
@@ -300,17 +300,6 @@ new #[Title('Apply for Membership')] class extends Component {
             'status' => 'pending',
             'uploaded_at' => now(),
         ]);
-    }
-
-    protected function getPrivateDisk(): string
-    {
-        if (app()->environment(['local', 'development', 'testing'])) {
-            return 'local';
-        }
-        if (config('filesystems.disks.r2.key')) {
-            return 'r2';
-        }
-        return 's3';
     }
 
     protected function sendTransferApplicationReceivedEmail(Membership $membership): void

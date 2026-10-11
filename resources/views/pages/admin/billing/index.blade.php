@@ -105,7 +105,7 @@ new class extends Component {
                     try { \App\Models\DedicatedStatusApplication::where('membership_id', $m->id)->delete(); } catch (\Exception $e) {}
                     try { Membership::where('previous_membership_id', $m->id)->update(['previous_membership_id' => null]); } catch (\Exception $e) {}
                     if ($m->proof_of_payment_path) {
-                        $disk = config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
+                        $disk = \App\Helpers\StorageHelper::getPrivateDisk();
                         try { \Illuminate\Support\Facades\Storage::disk($disk)->delete($m->proof_of_payment_path); } catch (\Exception $e) {}
                     }
                     $m->forceDelete();

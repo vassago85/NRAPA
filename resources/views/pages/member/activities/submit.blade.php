@@ -276,7 +276,7 @@ new class extends Component {
         }
 
         // Handle file uploads and create MemberDocument records
-        $disk = config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
+        $disk = \App\Helpers\StorageHelper::getPrivateDisk();
         
         // Get or create document type for activity evidence
         $evidenceDocumentType = DocumentType::firstOrCreate(

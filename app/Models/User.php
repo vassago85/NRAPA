@@ -296,6 +296,19 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Route name of the landing dashboard for this user's role.
+     */
+    public function dashboardRoute(): string
+    {
+        return match ($this->role) {
+            self::ROLE_DEVELOPER => 'developer.dashboard',
+            self::ROLE_OWNER => 'owner.dashboard',
+            self::ROLE_ADMIN => 'admin.dashboard',
+            default => 'dashboard',
+        };
+    }
+
+    /**
      * Check if user can manage the given role.
      * Developers can manage owners and below.
      * Owners can manage admins only.
@@ -368,7 +381,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
         // Hard-delete all related records so nothing orphaned remains.
         static::deleting(function (User $user) {
-            $disk = config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
+            $disk = \App\Helpers\StorageHelper::getPrivateDisk();
 
             // Retire this member number FIRST so it can never be reissued,
             // even if a later cleanup step below fails and aborts the delete.

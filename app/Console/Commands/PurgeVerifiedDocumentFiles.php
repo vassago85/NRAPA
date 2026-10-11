@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Helpers\StorageHelper;
 use App\Models\MemberDocument;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -59,7 +60,7 @@ class PurgeVerifiedDocumentFiles extends Command
             return self::SUCCESS;
         }
 
-        $disk = config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
+        $disk = StorageHelper::getPrivateDisk();
         $purged = 0;
         $failed = 0;
 
@@ -82,7 +83,7 @@ class PurgeVerifiedDocumentFiles extends Command
         }
 
         $this->info("Purged {$purged} document files. Failed: {$failed}.");
-        Log::info("Document file purge completed", ['purged' => $purged, 'failed' => $failed]);
+        Log::info('Document file purge completed', ['purged' => $purged, 'failed' => $failed]);
 
         return self::SUCCESS;
     }

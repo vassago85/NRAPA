@@ -108,34 +108,4 @@ class MembershipStandingService
 
         return null; // In good standing
     }
-
-    /**
-     * Update good standing status based on current conditions.
-     */
-    public function updateGoodStanding(Membership $membership): bool
-    {
-        $user = $membership->user;
-        $wasInGoodStanding = isset($membership->good_standing) ? $membership->good_standing : true;
-        $isInGoodStanding = $this->isInGoodStanding($user, $membership);
-
-        if (isset($membership->good_standing) && $wasInGoodStanding !== $isInGoodStanding) {
-            $membership->update(['good_standing' => $isInGoodStanding]);
-
-            // Log status change if MemberStatusHistory model exists
-            if (class_exists(\App\Models\MemberStatusHistory::class)) {
-                \App\Models\MemberStatusHistory::create([
-                    'user_id' => $user->id,
-                    'membership_id' => $membership->id,
-                    'status' => $isInGoodStanding ? 'active' : $membership->status,
-                    'previous_status' => $wasInGoodStanding ? 'active' : null,
-                    'reason' => $isInGoodStanding
-                        ? 'Good standing restored'
-                        : $this->getStandingReason($user, $membership),
-                    'changed_by' => auth()->id(),
-                ]);
-            }
-        }
-
-        return $isInGoodStanding;
-    }
 }

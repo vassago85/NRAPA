@@ -619,7 +619,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
 
         // Clean up proof of payment
         if ($membership->proof_of_payment_path) {
-            try { \Illuminate\Support\Facades\Storage::disk('r2')->delete($membership->proof_of_payment_path); } catch (\Exception $e) {}
+            try { \Illuminate\Support\Facades\Storage::disk(\App\Helpers\StorageHelper::getPrivateDisk())->delete($membership->proof_of_payment_path); } catch (\Exception $e) {}
             $membership->update(['proof_of_payment_path' => null]);
         }
 

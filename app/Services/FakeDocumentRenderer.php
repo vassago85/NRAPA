@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Contracts\DocumentRenderer;
+use App\Helpers\DocumentHelper;
+use App\Helpers\StorageHelper;
 use App\Models\Certificate;
 use App\Models\EndorsementRequest;
 use App\Models\User;
@@ -23,10 +25,7 @@ class FakeDocumentRenderer implements DocumentRenderer
 
     public function __construct()
     {
-        // Use local storage for local/development/testing environments
-        $this->disk = app()->environment(['local', 'development', 'testing'])
-            ? 'local'
-            : (config('filesystems.disks.r2.key') ? 'r2' : 'local');
+        $this->disk = StorageHelper::getPrivateDisk();
     }
 
     public function renderCertificate(Certificate $certificate, string $template): string
@@ -61,7 +60,7 @@ class FakeDocumentRenderer implements DocumentRenderer
             'user' => $certificate->user,
             'membership' => $certificate->membership,
             'certificateType' => $certificate->certificateType,
-            'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
+            'logo_url' => DocumentHelper::getLogoUrl(),
         ])->render();
 
         // Generate file path
@@ -87,7 +86,7 @@ class FakeDocumentRenderer implements DocumentRenderer
 
         // Render the Blade template to HTML
         // Try to get certificate if available (for QR code)
-        $certificate = \App\Models\Certificate::where('user_id', $user->id)
+        $certificate = Certificate::where('user_id', $user->id)
             ->whereHas('certificateType', fn ($q) => $q->where('slug', 'welcome-letter'))
             ->latest('created_at')
             ->first();
@@ -96,7 +95,7 @@ class FakeDocumentRenderer implements DocumentRenderer
             'user' => $user,
             'membership' => $membership,
             'certificate' => $certificate,
-            'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
+            'logo_url' => DocumentHelper::getLogoUrl(),
         ])->render();
 
         // Generate file path
@@ -121,7 +120,7 @@ class FakeDocumentRenderer implements DocumentRenderer
             'user' => $request->user,
             'firearm' => $request->firearm,
             'membership' => $request->user->activeMembership,
-            'logo_url' => \App\Helpers\DocumentHelper::getLogoUrl(),
+            'logo_url' => DocumentHelper::getLogoUrl(),
         ])->render();
 
         // Generate file path

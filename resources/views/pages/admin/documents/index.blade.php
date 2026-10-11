@@ -150,7 +150,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     public function getPreviewUrl(MemberDocument $document): ?string
     {
         // Use Laravel proxy route to stream file (bypasses R2 signed URL issues)
-        return route('admin.documents.preview', $document);
+        return route('documents.preview', $document);
     }
 
     /**

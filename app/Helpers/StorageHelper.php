@@ -149,22 +149,6 @@ class StorageHelper
     }
 
     /**
-     * Check if a file exists on the public disk.
-     *
-     * @param  string|null  $path  The file path
-     */
-    public static function fileExists(?string $path): bool
-    {
-        if (empty($path)) {
-            return false;
-        }
-
-        $disk = static::getPublicDisk();
-
-        return Storage::disk($disk)->exists($path);
-    }
-
-    /**
      * Byte size of a Livewire temporary upload, or null when the temp file is already gone.
      * Calling getSize() on a missing livewire-tmp file throws and takes down the page.
      */

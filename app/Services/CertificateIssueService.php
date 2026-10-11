@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Contracts\DocumentRenderer;
+use App\Helpers\StorageHelper;
 use App\Models\Certificate;
 use App\Models\CertificateType;
 use App\Models\Membership;
@@ -770,9 +771,8 @@ class CertificateIssueService
             }
 
             $checksum = null;
-            $disk = app()->environment(['local', 'development', 'testing']) ? 'local' : 'r2';
             try {
-                if ($disk === 'local') {
+                if (StorageHelper::getPrivateDisk() === 'local') {
                     $fullPath = Storage::disk('local')->path($filePath);
                     if (file_exists($fullPath)) {
                         $checksum = hash_file('sha256', $fullPath);

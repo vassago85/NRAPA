@@ -179,7 +179,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         $documentType = DocumentType::findOrFail($this->selectedDocumentType);
 
         // Store the file - use R2 if configured, otherwise use default disk
-        $disk = config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
+        $disk = \App\Helpers\StorageHelper::getPrivateDisk();
         
         // Generate unique filename
         $filename = \Illuminate\Support\Str::random(40) . '.' . $this->uploadFile->getClientOriginalExtension();
@@ -294,7 +294,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         }
 
         // Delete file from storage
-        $disk = config('filesystems.disks.r2.key') ? 'r2' : config('filesystems.default');
+        $disk = \App\Helpers\StorageHelper::getPrivateDisk();
         try {
             Storage::disk($disk)->delete($document->file_path);
         } catch (\Exception $e) {

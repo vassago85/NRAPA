@@ -141,22 +141,9 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         session()->flash('success', "{$changeCount} correction(s) saved. The member has been notified by email.");
     }
 
-    protected function getPrivateDisk(): string
-    {
-        // Use local storage for local/development/testing environments
-        if (app()->environment(['local', 'development', 'testing'])) {
-            return 'local';
-        }
-        // Use R2 if configured, otherwise fall back to s3 (Minio)
-        if (config('filesystems.disks.r2.key')) {
-            return 'r2';
-        }
-        return 's3';
-    }
-
     public function download(): mixed
     {
-        return Storage::disk($this->getPrivateDisk())->download(
+        return Storage::disk(\App\Helpers\StorageHelper::getPrivateDisk())->download(
             $this->document->file_path,
             $this->document->original_filename
         );
@@ -205,7 +192,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     public function getPreviewUrl(): ?string
     {
         // Use Laravel proxy route to stream file (bypasses R2 signed URL issues)
-        return route('admin.documents.preview', $this->document);
+        return route('documents.preview', $this->document);
     }
 
     /**
