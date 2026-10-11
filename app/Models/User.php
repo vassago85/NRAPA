@@ -1069,11 +1069,28 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * Increment the login counter for users without 2FA.
+     *
+     * The column is an unsigned tinyint (0–255). Counting stops at
+     * MAX_LOGINS_WITHOUT_2FA so a later login cannot write 256 and fail
+     * with "Out of range value for column 'logins_without_2fa'".
      */
     public function incrementLoginWithout2FA(): void
     {
-        if ($this->requires2FA() && ! $this->has2FAEnabled()) {
-            $this->increment('logins_without_2fa');
+        if (! $this->requires2FA() || $this->has2FAEnabled()) {
+            return;
+        }
+
+        if ((int) $this->logins_without_2fa >= self::MAX_LOGINS_WITHOUT_2FA) {
+            return;
+        }
+
+        $updated = static::query()
+            ->whereKey($this->getKey())
+            ->where('logins_without_2fa', '<', self::MAX_LOGINS_WITHOUT_2FA)
+            ->increment('logins_without_2fa');
+
+        if ($updated) {
+            $this->logins_without_2fa = (int) $this->logins_without_2fa + 1;
         }
     }
 
