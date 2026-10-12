@@ -96,7 +96,12 @@ new #[Title('My Digital Card')] #[Layout('components.layouts.card')] class exten
         if (!$this->membership) {
             return false;
         }
-        return $this->membership->type?->is_lifetime ?? false;
+        // Phase 1 (Q9): the previous `->is_lifetime` property access was a typo —
+        // MembershipType has no such attribute, so this always returned false
+        // and the lifetime card badge never rendered. The resolver reads
+        // `type->isLifetime()` and we mirror it here for the single-shot read
+        // without pulling the whole MemberCompliance DTO on the public card page.
+        return (bool) $this->membership->type?->isLifetime();
     }
 
     #[Computed]

@@ -601,15 +601,21 @@ class ShootingActivity extends Model implements Approvable
     /**
      * Canonical compliance summary for a user.
      *
-     * NRAPA rule: the previous activity year's approvals qualify the member
-     * for the current year. While the current window is open (Jan 1 - Oct 31)
-     * the activities being banked count toward NEXT year's compliance.
+     * @deprecated since Phase 1 — the compliance *decision* now comes from
+     *             {@see \App\Support\Members\MemberCompliance}; this method is
+     *             retained as a shim so admin / cert / API / PDF code that
+     *             still consumes the legacy array shape keeps working while
+     *             the admin brief is drafted.
      *
-     * Returns totals for:
-     *   - qualifying_year: the year whose activities qualify the member RIGHT NOW
-     *     (previous year by default, but if current year already has enough it can
-     *     be used instead so the UI shows "compliant").
-     *   - banking_year: the current activity year (what's being built for next year).
+     * The hunting/sport breakdown is a reporting concern (admin members page
+     * reads it) rather than a compliance input — we still compute it here from
+     * the DB, but the `is_compliant_now` / `is_compliant_next_year` flags
+     * reflect the resolver's answer so lifetime and honorary members are no
+     * longer rendered as "0/2 not compliant".
+     *
+     * `$required` is retained for signature compatibility but ignored — the
+     * resolver sources it from `SystemSetting::get('endorsement_min_activities', 2)`
+     * per Paul's Q2 answer. No live caller overrides the default anyway.
      */
     public static function complianceSummary(User $user, int $required = 2): array
     {
@@ -640,25 +646,18 @@ class ShootingActivity extends Model implements Approvable
         $current = $countForYear($currentYear);
         $previous = $countForYear($prevYear);
 
-        // Members in their first membership year are exempt from the current-year
-        // activity requirement. The next-year banking requirement is unchanged -
-        // they still need to submit the required activities this year to qualify
-        // for the following year.
-        $exempt = $user->isInJoinYear();
+        $result = \App\Support\Members\MemberCompliance::for($user);
+        $activities = $result->requirement('activities');
+        $meta = $activities->meta ?? [];
 
-        $qualifies = $exempt || $previous['total'] >= $required || $current['total'] >= $required;
-        $nextYearQualified = $current['total'] >= $required;
-
-        if ($exempt) {
-            $explainer = "Exempt for {$currentYear} (first membership year). Submit {$required} activities this year to stay compliant in {$currentYear}'s following year.";
-        } elseif ($qualifies) {
-            $explainer = "Compliant for {$currentYear} on the strength of {$prevYear}'s activities.";
-        } else {
-            $explainer = "Not compliant for {$currentYear}: only {$previous['total']} approved activities in {$prevYear} (need {$required}).";
-        }
+        $resolverRequired = (int) ($meta['required'] ?? $required);
+        $qualifies = (bool) $activities?->isSatisfied();
+        $nextYearQualified = $current['total'] >= $resolverRequired;
+        $exempt = (bool) ($meta['is_join_year_exempt'] ?? false);
+        $explainer = $activities?->reason ?? "You need at least {$resolverRequired} approved activities per year.";
 
         return [
-            'required' => $required,
+            'required' => $resolverRequired,
             'qualifying_year' => $previous,
             'banking_year' => $current,
             'is_compliant_now' => $qualifies,

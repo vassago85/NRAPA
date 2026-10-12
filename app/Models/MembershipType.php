@@ -55,6 +55,7 @@ class MembershipType extends Model
         'renewal_price',
         'upgrade_price',
         'allows_dedicated_status',
+        'is_honorary',
         'dedicated_type',
         'requires_knowledge_test',
         'requires_transfer_documents',
@@ -82,6 +83,7 @@ class MembershipType extends Model
             'upgrade_price' => 'decimal:2',
             'requires_renewal' => 'boolean',
             'allows_dedicated_status' => 'boolean',
+            'is_honorary' => 'boolean',
             'requires_knowledge_test' => 'boolean',
             'requires_transfer_documents' => 'boolean',
             'discount_eligible' => 'boolean',
@@ -318,6 +320,29 @@ class MembershipType extends Model
     public function isLifetime(): bool
     {
         return $this->duration_type === 'lifetime';
+    }
+
+    /**
+     * Check if this is an honorary membership.
+     *
+     * Honorary members are treated as "always compliant" for the activity
+     * requirement by {@see \App\Support\Members\MemberCompliance}, the same
+     * way lifetime members are. Added for Phase 1 (Paul's Q6 answer).
+     */
+    public function isHonorary(): bool
+    {
+        return (bool) $this->is_honorary;
+    }
+
+    /**
+     * Convenience: this type is exempt from the activity requirement, either
+     * because it's a lifetime type or because the admin flagged it as honorary.
+     * The member platform resolver reads this to decide whether to render the
+     * activity ratio or the Lifetime / Honorary badge.
+     */
+    public function isActivityExempt(): bool
+    {
+        return $this->isLifetime() || $this->isHonorary();
     }
 
     /**

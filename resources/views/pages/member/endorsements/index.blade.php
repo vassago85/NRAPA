@@ -4,6 +4,8 @@ use App\Models\EndorsementRequest;
 use App\Models\MembershipType;
 use App\Models\ShootingActivity;
 use App\Models\SystemSetting;
+use App\Support\Members\ComplianceResult;
+use App\Support\Members\MemberCompliance;
 use Carbon\Carbon;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -69,6 +71,20 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
             ->exists();
     }
 
+    /**
+     * Phase 1: the single compliance resolver call for this page.
+     * {@see \App\Support\Members\MemberCompliance}
+     */
+    #[Computed]
+    public function compliance(): ComplianceResult
+    {
+        return MemberCompliance::for(auth()->user());
+    }
+
+    /**
+     * Legacy array shape — pulled from the resolver via the deprecated shim.
+     * Views on this page still consume `missing_documents` etc.
+     */
     #[Computed]
     public function eligibility()
     {
@@ -118,20 +134,25 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
         ];
     }
 
+    /**
+     * Phase 1: pulls the compliance decision from the resolver so the top strip
+     * on this page agrees with the dashboard. Added keys `not_applicable`,
+     * `is_lifetime`, `is_honorary` and `reason` so Blade can render the exempt
+     * badge in place of "0 / 2" for lifetime / honorary members per Paul's Q1.
+     */
     #[Computed]
     public function complianceStatus()
     {
-        $user = auth()->user();
         $period = $this->activityPeriod;
+        $r = $this->compliance;
+        $activities = $r->requirement('activities');
+        $meta = $activities?->meta ?? [];
 
-        // NRAPA rule: 2 approved activities in the PREVIOUS activity year qualify the member
-        // for the CURRENT year. Current-year activities bank compliance for NEXT year.
-        $required = 2;
-        $summary = ShootingActivity::complianceSummary($user, $required);
-
-        $approvedActivities = $summary['qualifying_year']['total'];
-        $bankingActivities = $summary['banking_year']['total'];
-        $isCompliant = $summary['is_compliant_now'];
+        $approvedActivities = (int) ($meta['approved_count'] ?? 0);
+        $bankingActivities = (int) ($meta['current_year_count'] ?? 0);
+        $required = (int) ($meta['required'] ?? 2);
+        $isCompliant = (bool) $activities?->isSatisfied();
+        $notApplicable = (bool) $activities?->isNotApplicable();
 
         $daysUntilDeadline = (int) now()->diffInDays($period['nrapa_deadline'], false);
         $isPastDeadline = $daysUntilDeadline < 0;
@@ -139,15 +160,19 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
         return [
             'approved_count' => $approvedActivities,
             'banking_count' => $bankingActivities,
-            'qualifying_year' => $summary['qualifying_year']['year'],
-            'banking_year' => $summary['banking_year']['year'],
+            'qualifying_year' => (int) ($meta['qualifying_year'] ?? now()->year),
+            'banking_year' => (int) ($meta['current_year'] ?? now()->year),
             'required' => $required,
             'required_sport' => $required,
             'required_hunter' => $required,
             'sport_compliant' => $isCompliant,
             'hunter_compliant' => $isCompliant,
             'is_compliant' => $isCompliant,
-            'is_join_year_exempt' => $summary['is_join_year_exempt'] ?? false,
+            'is_join_year_exempt' => (bool) ($meta['is_join_year_exempt'] ?? false),
+            'not_applicable' => $notApplicable,
+            'is_lifetime' => $r->isLifetime,
+            'is_honorary' => $r->isHonorary,
+            'reason' => $activities?->reason ?? '',
             'days_until_deadline' => max(0, $daysUntilDeadline),
             'is_past_deadline' => $isPastDeadline,
             'deadline_date' => $period['nrapa_deadline']->format('d M Y'),
@@ -298,47 +323,67 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
 
             {{-- Activity Progress (single total; NRAPA requires 2 approved activities per year regardless of category) --}}
             <div class="p-6">
-                @if($this->complianceStatus['is_join_year_exempt'])
-                    <div class="mb-4 p-4 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20">
-                        <div class="flex items-start gap-2">
-                            <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                @if($this->complianceStatus['not_applicable'])
+                    {{-- Phase 1 (Q1): lifetime / honorary members get an "always compliant" panel in place of the ratio. --}}
+                    @php
+                        $exemptLabel = $this->complianceStatus['is_lifetime']
+                            ? 'Lifetime member'
+                            : ($this->complianceStatus['is_honorary'] ? 'Honorary member' : 'Exempt');
+                    @endphp
+                    <div class="p-4 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20">
+                        <div class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clip-rule="evenodd"/>
                             </svg>
                             <div>
-                                <p class="font-semibold text-blue-800 dark:text-blue-200">Exempt for {{ now()->year }} — first membership year</p>
-                                <p class="text-sm text-blue-700 dark:text-blue-300 mt-0.5">
-                                    You can request an endorsement now without any activities. To stay compliant for {{ now()->year + 1 }}, submit {{ $this->complianceStatus['required'] }} approved activities during {{ now()->year }}
-                                    (currently {{ $this->complianceStatus['banking_count'] }}/{{ $this->complianceStatus['required'] }}).
-                                </p>
+                                <p class="font-semibold text-blue-800 dark:text-blue-200">{{ $exemptLabel }} — always compliant</p>
+                                <p class="text-sm text-blue-700 dark:text-blue-300 mt-0.5">{{ $this->complianceStatus['reason'] }}</p>
                             </div>
                         </div>
                     </div>
+                @else
+                    @if($this->complianceStatus['is_join_year_exempt'])
+                        <div class="mb-4 p-4 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20">
+                            <div class="flex items-start gap-2">
+                                <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <div>
+                                    <p class="font-semibold text-blue-800 dark:text-blue-200">Exempt for {{ now()->year }} — first membership year</p>
+                                    <p class="text-sm text-blue-700 dark:text-blue-300 mt-0.5">
+                                        You can request an endorsement now without any activities. To stay compliant for {{ now()->year + 1 }}, submit {{ $this->complianceStatus['required'] }} approved activities during {{ now()->year }}
+                                        (currently {{ $this->complianceStatus['banking_count'] }}/{{ $this->complianceStatus['required'] }}).
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+                    <div class="p-4 rounded-lg border {{ $this->complianceStatus['is_compliant'] ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20' }}">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-5 h-5 {{ $this->complianceStatus['is_compliant'] ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                                </svg>
+                                <span class="font-semibold text-zinc-900 dark:text-white">Approved Activities from {{ $this->complianceStatus['qualifying_year'] }}</span>
+                                <span class="text-xs text-zinc-500 dark:text-zinc-400">(qualify you for {{ now()->year }} — hunting or sport)</span>
+                            </div>
+                            @if($this->complianceStatus['is_compliant'])
+                                <span class="text-sm font-medium text-emerald-600 dark:text-emerald-400">Complete</span>
+                            @else
+                                <span class="text-sm font-medium text-amber-600 dark:text-amber-400">{{ max(0, $this->complianceStatus['required'] - $this->complianceStatus['approved_count']) }} more needed</span>
+                            @endif
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="flex-1 bg-zinc-200 dark:bg-zinc-700 rounded-full h-3">
+                                <div class="h-3 rounded-full transition-all {{ $this->complianceStatus['is_compliant'] ? 'bg-emerald-500' : 'bg-amber-500' }}"
+                                    style="width: {{ min(100, ($this->complianceStatus['approved_count'] / max(1, $this->complianceStatus['required'])) * 100) }}%"></div>
+                            </div>
+                            <span class="text-sm font-bold {{ $this->complianceStatus['is_compliant'] ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}">
+                                {{ $this->complianceStatus['approved_count'] }}/{{ $this->complianceStatus['required'] }}
+                            </span>
+                        </div>
+                    </div>
                 @endif
-                <div class="p-4 rounded-lg border {{ $this->complianceStatus['is_compliant'] ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20' : 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20' }}">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="flex items-center gap-2">
-                            <svg class="w-5 h-5 {{ $this->complianceStatus['is_compliant'] ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
-                            </svg>
-                            <span class="font-semibold text-zinc-900 dark:text-white">Approved Activities from {{ $this->complianceStatus['qualifying_year'] }}</span>
-                            <span class="text-xs text-zinc-500 dark:text-zinc-400">(qualify you for {{ now()->year }} — hunting or sport)</span>
-                        </div>
-                        @if($this->complianceStatus['is_compliant'])
-                            <span class="text-sm font-medium text-emerald-600 dark:text-emerald-400">Complete</span>
-                        @else
-                            <span class="text-sm font-medium text-amber-600 dark:text-amber-400">{{ max(0, $this->complianceStatus['required'] - $this->complianceStatus['approved_count']) }} more needed</span>
-                        @endif
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <div class="flex-1 bg-zinc-200 dark:bg-zinc-700 rounded-full h-3">
-                            <div class="h-3 rounded-full transition-all {{ $this->complianceStatus['is_compliant'] ? 'bg-emerald-500' : 'bg-amber-500' }}"
-                                style="width: {{ min(100, ($this->complianceStatus['approved_count'] / max(1, $this->complianceStatus['required'])) * 100) }}%"></div>
-                        </div>
-                        <span class="text-sm font-bold {{ $this->complianceStatus['is_compliant'] ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}">
-                            {{ $this->complianceStatus['approved_count'] }}/{{ $this->complianceStatus['required'] }}
-                        </span>
-                    </div>
-                </div>
 
                 {{-- Deadline Notice --}}
                 <div class="mt-4 flex items-center justify-between pt-4 border-t border-zinc-200 dark:border-zinc-700">
@@ -359,7 +404,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                     @endif
                 </div>
 
-                @if(!$this->complianceStatus['is_compliant'])
+                @if(!$this->complianceStatus['is_compliant'] && !$this->complianceStatus['not_applicable'])
                     <div class="mt-4">
                         <a href="{{ route('activities.index') }}" wire:navigate
                             class="inline-flex items-center gap-2 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors text-sm font-medium">
@@ -486,18 +531,23 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                         @endif
                         <h3 class="font-semibold text-zinc-900 dark:text-white">Approved Activities</h3>
                     </div>
-                    <p class="text-sm text-zinc-600 dark:text-zinc-400">
-                        {{ $this->eligibility['activity_details']['approved_count'] }} / {{ $this->eligibility['activity_details']['required'] }} required
-                        <span class="text-xs">({{ $this->eligibility['activity_details']['period'] ?? now()->year }} activity year)</span>
-                    </p>
-                    @if(!$this->eligibility['activities_met'])
-                        <a href="{{ route('activities.index') }}" wire:navigate
-                            class="inline-flex items-center gap-1 text-sm font-medium text-blue-700 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 mt-1">
-                            Submit activities
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-                            </svg>
-                        </a>
+                    @if($this->complianceStatus['not_applicable'])
+                        {{-- Phase 1 (Q1): lifetime / honorary members get the exempt sentence, not "0 / 2". --}}
+                        <p class="text-sm text-zinc-600 dark:text-zinc-400">{{ $this->complianceStatus['reason'] }}</p>
+                    @else
+                        <p class="text-sm text-zinc-600 dark:text-zinc-400">
+                            {{ $this->eligibility['activity_details']['approved_count'] }} / {{ $this->eligibility['activity_details']['required'] }} required
+                            <span class="text-xs">({{ $this->eligibility['activity_details']['period'] ?? now()->year }} activity year)</span>
+                        </p>
+                        @if(!$this->eligibility['activities_met'])
+                            <a href="{{ route('activities.index') }}" wire:navigate
+                                class="inline-flex items-center gap-1 text-sm font-medium text-blue-700 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 mt-1">
+                                Submit activities
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                                </svg>
+                            </a>
+                        @endif
                     @endif
                 </div>
             </div>

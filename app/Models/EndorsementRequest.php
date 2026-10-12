@@ -419,19 +419,25 @@ class EndorsementRequest extends Model implements Approvable
     // ===== Eligibility Checks =====
 
     /**
-     * Check if a user is eligible to request an endorsement letter.
-     * Requirements:
-     * 1. Must have passed knowledge test (once-off)
-     * 2. Must have required documents on file (verified)
-     * 3. Must have minimum number of approved activities
+     * Check whether a user is eligible to request an endorsement letter.
+     *
+     * @deprecated since Phase 1 — delegates to {@see \App\Support\Members\MemberCompliance}.
+     *             The resolver is the single source of truth for member-side
+     *             compliance; this method is retained as a shim so admin pages,
+     *             PDF templates, console commands, services and API serialisation
+     *             that still call it keep working while the admin brief is drafted.
+     *             New callers must use `MemberCompliance::for($user)` directly.
+     *
+     * Shape returned matches the legacy helper exactly:
+     *   ['eligible' => bool, 'errors' => array, 'warnings' => array]
      */
     public static function checkUserEligibility(User $user): array
     {
+        $result = \App\Support\Members\MemberCompliance::for($user);
         $errors = [];
-        $warnings = [];
 
-        // 1. Knowledge Test Check (once-off requirement)
-        if (! $user->hasPassedKnowledgeTest()) {
+        $knowledgeTest = $result->requirement('knowledge_test');
+        if ($knowledgeTest && $knowledgeTest->isBlocking()) {
             $errors[] = [
                 'type' => 'knowledge_test',
                 'message' => 'You must pass the dedicated status knowledge test before requesting an endorsement letter.',
@@ -440,41 +446,34 @@ class EndorsementRequest extends Model implements Approvable
             ];
         }
 
-        // 2. Required Documents Check
-        $missingDocs = self::getMissingRequiredDocuments($user);
-        if (count($missingDocs) > 0) {
-            foreach ($missingDocs as $doc) {
-                $errors[] = [
-                    'type' => 'document',
-                    'message' => "Missing required document: {$doc['name']}",
-                    'action' => 'Upload document',
-                    'route' => 'documents.index',
-                ];
-            }
-        }
-
-        // 3. Activity Requirements Check
-        $activityCheck = self::checkActivityRequirements($user);
-        if (! $activityCheck['met']) {
+        foreach (self::getMissingRequiredDocuments($user) as $doc) {
             $errors[] = [
-                'type' => 'activities',
-                'message' => $activityCheck['message'],
-                'action' => 'Submit activities',
-                'route' => 'activities.index',
-                'details' => $activityCheck,
+                'type' => 'document',
+                'message' => "Missing required document: {$doc['name']}",
+                'action' => 'Upload document',
+                'route' => 'documents.index',
             ];
         }
 
-        // 4. Active membership check
-        $membership = $user->activeMembership;
-        if (! $membership) {
+        $activities = $result->requirement('activities');
+        if ($activities && $activities->isBlocking()) {
+            $errors[] = [
+                'type' => 'activities',
+                'message' => $activities->reason,
+                'action' => 'Submit activities',
+                'route' => 'activities.index',
+                'details' => self::checkActivityRequirements($user),
+            ];
+        }
+
+        if (! $result->hasActiveMembership) {
             $errors[] = [
                 'type' => 'membership',
                 'message' => 'You must have an active membership to request an endorsement letter.',
                 'action' => 'Apply for membership',
                 'route' => 'membership.apply',
             ];
-        } elseif (! in_array($membership->type?->dedicated_type, ['hunter', 'sport', 'both'], true)) {
+        } elseif (! $result->isDedicatedEligible) {
             $errors[] = [
                 'type' => 'dedicated_status',
                 'message' => 'Endorsement letters are only available for Dedicated Hunter or Dedicated Sport Shooter members. Please upgrade your membership to a dedicated membership type.',
@@ -486,132 +485,131 @@ class EndorsementRequest extends Model implements Approvable
         return [
             'eligible' => count($errors) === 0,
             'errors' => $errors,
-            'warnings' => $warnings,
+            'warnings' => [],
         ];
     }
 
     /**
      * Get missing required documents for endorsement.
-     * ID can be satisfied by either 'identity-document' or 'id-document' slug.
+     *
+     * @deprecated since Phase 1 — delegates to {@see \App\Support\Members\MemberCompliance}.
+     *             Now honours Paul's Q8 answer by using the full
+     *             {@see \App\Models\MemberDocument::ID_DOCUMENT_SLUGS} list
+     *             (including `id-copy`), not the two-slug subset the old
+     *             implementation hardcoded.
      */
     public static function getMissingRequiredDocuments(User $user): array
     {
+        $result = \App\Support\Members\MemberCompliance::for($user);
         $missing = [];
 
-        // ID: accept any of these slugs (identity-document or id-document)
-        $idSlugs = ['identity-document', 'id-document'];
-        $idTypes = DocumentType::whereIn('slug', $idSlugs)->pluck('id');
-        $hasValidId = $idTypes->isNotEmpty() && MemberDocument::where('user_id', $user->id)
-            ->whereIn('document_type_id', $idTypes)
-            ->where('status', 'verified')
-            ->where(function ($q) {
-                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
-            })
-            ->exists();
-        if (! $hasValidId) {
-            $missing[] = ['slug' => 'identity-document', 'name' => 'ID', 'document_type_id' => null];
+        $idDoc = $result->requirement('id_document');
+        if ($idDoc && $idDoc->isBlocking()) {
+            $missing[] = [
+                'slug' => 'identity-document',
+                'name' => 'ID',
+                'document_type_id' => null,
+            ];
+        }
+
+        $required = $result->requirement('required_documents');
+        if ($required) {
+            foreach ($required->meta['missing'] ?? [] as $doc) {
+                $missing[] = $doc + ['document_type_id' => $doc['document_type_id'] ?? null];
+            }
+            foreach ($required->meta['rejected'] ?? [] as $doc) {
+                $missing[] = $doc + ['document_type_id' => $doc['document_type_id'] ?? null];
+            }
         }
 
         return $missing;
     }
 
     /**
-     * Check if user meets activity requirements.
+     * Check whether the user meets the activity requirement.
      *
-     * Uses the activity year (Jan 1 - Oct 31). If a member completed their
-     * activities in the previous year, those carry over until Oct 31 of the
-     * current year. New members must have current-year activities.
+     * @deprecated since Phase 1 — delegates to {@see \App\Support\Members\MemberCompliance}.
+     *             Shape preserved. The lifetime / honorary branch now returns
+     *             `met=true, required=<setting>, period='Lifetime'|'Honorary'`
+     *             instead of `required=0` — Phase 1 Q1 answer, so the admin
+     *             view stops reading as "0/2 not compliant" for exempt members.
      */
     public static function checkActivityRequirements(User $user): array
     {
-        $membership = $user->activeMembership;
-
-        if ($membership?->type?->isLifetime()) {
-            return [
-                'met' => true,
-                'approved_count' => 0,
-                'required' => 0,
-                'period' => 'Lifetime',
-                'message' => 'Lifetime members are exempt from activity requirements.',
-            ];
-        }
-
-        // NRAPA rule: every dedicated-status member needs 2 approved activities per year in total,
-        // regardless of track (sport/hunting) or whether they are dedicated hunter, sport, or both.
-        // Kept as a single knob (endorsement_min_activities) to allow runtime override.
-        $required = (int) SystemSetting::get(
+        $result = \App\Support\Members\MemberCompliance::for($user);
+        $req = $result->requirement('activities');
+        $meta = $req->meta ?? [];
+        $required = (int) ($meta['required'] ?? SystemSetting::get(
             'endorsement_min_activities',
             self::DEFAULT_MIN_ACTIVITIES_SPORT,
-        );
+        ));
+        $currentYear = (int) ($meta['current_year'] ?? now()->year);
 
-        // Members are exempt from the activity requirement during their first
-        // membership year - they have not yet had a full activity year to
-        // accumulate submissions. They still need current-year activities to
-        // qualify for the following year (enforced by the normal carry-over).
-        if ($user->isInJoinYear()) {
+        // Lifetime / honorary → not_applicable.
+        if ($req && $req->isNotApplicable() && ($meta['is_lifetime'] ?? $meta['is_honorary'] ?? false)) {
             return [
                 'met' => true,
                 'approved_count' => 0,
                 'required' => $required,
-                'period' => (string) now()->year,
-                'exempt' => true,
-                'message' => 'Exempt from the activity requirement during your first membership year.',
+                'period' => $meta['is_lifetime'] ?? false ? 'Lifetime' : 'Honorary',
+                'message' => $req->reason,
             ];
         }
 
-        $currentYear = now()->year;
-        $currentYearStart = \Carbon\Carbon::create($currentYear, 1, 1)->startOfDay();
-        $currentYearEnd = \Carbon\Carbon::create($currentYear, 10, 31)->endOfDay();
-
-        $currentYearCount = ShootingActivity::where('user_id', $user->id)
-            ->where('status', 'approved')
-            ->whereBetween('activity_date', [$currentYearStart, $currentYearEnd])
-            ->count();
-
-        if ($currentYearCount >= $required) {
+        // No active membership → not_applicable, treated as "not blocking" for
+        // the legacy shape (callers that want the membership gate check it
+        // separately via checkUserEligibility).
+        if ($req && $req->isNotApplicable()) {
             return [
                 'met' => true,
-                'approved_count' => $currentYearCount,
+                'approved_count' => 0,
                 'required' => $required,
-                'period' => "{$currentYear}",
-                'message' => "You have {$currentYearCount} approved activities for {$currentYear} (minimum {$required} required).",
+                'period' => (string) $currentYear,
+                'message' => $req->reason,
             ];
         }
 
-        // Before Oct 31, previous year's activities carry over
-        $beforeDeadline = now()->lte($currentYearEnd);
-        if ($beforeDeadline) {
-            $prevYear = $currentYear - 1;
-            $prevYearStart = \Carbon\Carbon::create($prevYear, 1, 1)->startOfDay();
-            $prevYearEnd = \Carbon\Carbon::create($prevYear, 10, 31)->endOfDay();
-
-            $prevYearCount = ShootingActivity::where('user_id', $user->id)
-                ->where('status', 'approved')
-                ->whereBetween('activity_date', [$prevYearStart, $prevYearEnd])
-                ->count();
-
-            if ($prevYearCount >= $required) {
-                return [
-                    'met' => true,
-                    'approved_count' => $prevYearCount,
-                    'required' => $required,
-                    'period' => "{$prevYear} (carried over)",
-                    'message' => "Activities from {$prevYear} are valid until 31 October {$currentYear}. You have {$prevYearCount} approved (minimum {$required} required).",
-                ];
-            }
+        // Join-year exempt.
+        if ($req && $req->isExempt()) {
+            return [
+                'met' => true,
+                'approved_count' => 0,
+                'required' => $required,
+                'period' => (string) $currentYear,
+                'exempt' => true,
+                'message' => $req->reason,
+            ];
         }
 
+        // Met via previous year carryover.
+        if ($req && $req->state === \App\Support\Members\RequirementState::Met) {
+            $qualifyingYear = (int) ($meta['qualifying_year'] ?? $currentYear);
+            $period = $qualifyingYear === $currentYear
+                ? (string) $currentYear
+                : "{$qualifyingYear} (carried over)";
+            return [
+                'met' => true,
+                'approved_count' => (int) ($meta['approved_count'] ?? 0),
+                'required' => $required,
+                'period' => $period,
+                'message' => $req->reason,
+            ];
+        }
+
+        // Not met.
         return [
             'met' => false,
-            'approved_count' => $currentYearCount,
+            'approved_count' => (int) ($meta['current_year_count'] ?? 0),
             'required' => $required,
-            'period' => "{$currentYear}",
-            'message' => "You need at least {$required} approved activities for the {$currentYear} activity year (Jan\u{2013}Oct). You currently have {$currentYearCount}.",
+            'period' => (string) $currentYear,
+            'message' => $req?->reason ?? "You need at least {$required} approved activities for the {$currentYear} activity year.",
         ];
     }
 
     /**
-     * Get user's eligibility summary for display.
+     * Get the member's eligibility summary.
+     *
+     * @deprecated since Phase 1 — delegates to {@see \App\Support\Members\MemberCompliance}.
      */
     public static function getEligibilitySummary(User $user): array
     {

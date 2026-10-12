@@ -8,6 +8,9 @@ use App\Models\Certificate;
 use App\Models\NotificationDismissal;
 use App\Models\ShootingActivity;
 use App\Models\SystemSetting;
+use App\Support\Members\ComplianceResult;
+use App\Support\Members\MemberCompliance;
+use App\Support\Members\RequirementState;
 use App\Livewire\Concerns\HandlesMembershipPaymentUpload;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -55,6 +58,19 @@ new #[Title('Dashboard')] class extends Component {
     public function user()
     {
         return Auth::user();
+    }
+
+    /**
+     * Phase 1: the single member-compliance resolver call. Every compliance
+     * computed property on this page reads from this one DTO rather than
+     * computing its own answer — one source of truth.
+     *
+     * See {@see \App\Support\Members\MemberCompliance}.
+     */
+    #[Computed]
+    public function compliance(): ComplianceResult
+    {
+        return MemberCompliance::for($this->user);
     }
 
     #[Computed]
@@ -156,26 +172,32 @@ new #[Title('Dashboard')] class extends Component {
         return SystemSetting::getBankAccount();
     }
 
+    /**
+     * Phase 1: delegates to the resolver, which uses the full
+     * {@see MemberDocument::ID_DOCUMENT_SLUGS} list (incl. `id-copy`) per Q8.
+     *
+     * Returns the legacy string shape so the existing nextStep() switch keeps
+     * working: 'none' | 'missing' | 'verified' | 'pending' | 'rejected'.
+     */
     #[Computed]
     public function idDocumentStatus(): string
     {
-        $idSlugs = MemberDocument::ID_DOCUMENT_SLUGS;
-        $idTypeIds = \App\Models\DocumentType::whereIn('slug', $idSlugs)->pluck('id');
-
-        if ($idTypeIds->isEmpty()) {
+        $req = $this->compliance->requirement('id_document');
+        if (! $req) {
             return 'none';
         }
 
-        $doc = MemberDocument::where('user_id', $this->user->id)
-            ->whereIn('document_type_id', $idTypeIds)
-            ->orderByRaw("FIELD(status, 'verified', 'pending', 'rejected') ASC")
-            ->first();
+        $status = $req->meta['status'] ?? null;
 
-        if (!$doc) {
-            return 'missing';
-        }
-
-        return $doc->status;
+        return match (true) {
+            $status === 'missing', $req->state === RequirementState::NotMet && ($status === 'missing' || $status === null) => 'missing',
+            $status === 'rejected' => 'rejected',
+            $status === 'expired'  => 'rejected', // treat expired as needing re-upload, matches old 'rejected' branch
+            $status === 'pending'  => 'pending',
+            $status === 'verified' => 'verified',
+            $req->isNotApplicable() => 'none',
+            default => 'missing',
+        };
     }
 
     #[Computed]
@@ -267,21 +289,21 @@ new #[Title('Dashboard')] class extends Component {
         return $this->rejectedActivities->filter(fn ($a) => in_array($a->id, $this->dismissedActivityIds));
     }
 
+    /**
+     * Whether to render the Dedicated Status surface area on this page.
+     *
+     * Phase 1: delegates to the resolver's `showsDedicatedSurfaces` flag
+     * (Q4b hybrid — OR for display). This keeps today's behaviour: members on
+     * the `transfer` type (allows_dedicated_status=true, dedicated_type=null)
+     * continue to see the Dedicated Status card and tab. The strict AND gate
+     * for *actionable* eligibility lives on `isDedicatedEligible` and is used
+     * only where it changes the actionable outcome (e.g. the Request
+     * Endorsement button, which checks `dedicated_type` directly).
+     */
     #[Computed]
     public function hasDedicatedMembership(): bool
     {
-        // Check if user has active membership that allows dedicated status
-        // Either by allows_dedicated_status flag OR by having a dedicated_type set
-        if (!$this->activeMembership) {
-            return false;
-        }
-        
-        $type = $this->activeMembership->type;
-        if (!$type) {
-            return false;
-        }
-        
-        return $type->allows_dedicated_status || !empty($type->dedicated_type);
+        return $this->compliance->showsDedicatedSurfaces;
     }
 
     #[Computed]
@@ -303,55 +325,111 @@ new #[Title('Dashboard')] class extends Component {
         ];
     }
 
+    /**
+     * Phase 1: pulls from the resolver's `activities` requirement.
+     *
+     * Shape kept backwards-compatible with the pre-Phase-1 views. Two new keys
+     * added so templates can render the correct badge for exempt / lifetime /
+     * honorary members instead of "0 / 2":
+     *
+     *   - `not_applicable` — true when the member is lifetime or honorary
+     *                        (never show a ratio or tick for them per Q1)
+     *   - `reason`         — human-readable sentence from the resolver,
+     *                        e.g. "Lifetime members are always compliant."
+     */
     #[Computed]
     public function activityCompliance(): array
     {
-        $user = $this->user;
-        $required = 2;
-
-        // Compliance for the CURRENT year is proven by LAST year's approved activities.
-        // This year's activities bank compliance for NEXT year.
-        $summary = ShootingActivity::complianceSummary($user, $required);
+        $req = $this->compliance->requirement('activities');
+        $meta = $req?->meta ?? [];
 
         return [
-            'approved' => $summary['qualifying_year']['total'],
-            'required' => $required,
-            'met' => $summary['is_compliant_now'],
-            'exempt' => $summary['is_join_year_exempt'] ?? false,
-            'banking' => $summary['banking_year']['total'],
-            'qualifying_year' => $summary['qualifying_year']['year'],
-            'banking_year' => $summary['banking_year']['year'],
+            'approved' => (int) ($meta['approved_count'] ?? 0),
+            'required' => (int) ($meta['required'] ?? 2),
+            'met' => (bool) $req?->isSatisfied(),
+            'exempt' => (bool) $req?->isExempt(),
+            'not_applicable' => (bool) $req?->isNotApplicable(),
+            'reason' => $req?->reason ?? '',
+            'banking' => (int) ($meta['current_year_count'] ?? 0),
+            'qualifying_year' => (int) ($meta['qualifying_year'] ?? now()->year),
+            'banking_year' => (int) ($meta['current_year'] ?? now()->year),
         ];
     }
 
+    /**
+     * Phase 1: pulls from the resolver directly rather than via
+     * {@see EndorsementRequest::getEligibilitySummary} (which is now a shim).
+     *
+     * Legacy shape preserved so the eligibility-card Blade block keeps working
+     * untouched. `missing_documents` combines the resolver's `id_document`
+     * answer with the required-document pivot — including rejected items so
+     * the dashboard warning can list them.
+     */
     #[Computed]
     public function endorsementEligibility()
     {
-        // Only show endorsement eligibility for active members with dedicated status
-        if (!$this->hasDedicatedMembership) {
+        if (! $this->hasDedicatedMembership) {
             return null;
         }
 
-        return EndorsementRequest::getEligibilitySummary($this->user);
+        $r = $this->compliance;
+        $idDoc = $r->requirement('id_document');
+        $required = $r->requirement('required_documents');
+
+        $missingDocuments = [];
+        if ($idDoc && $idDoc->isBlocking()) {
+            $missingDocuments[] = [
+                'slug' => 'identity-document',
+                'name' => 'ID',
+                'document_type_id' => $idDoc->meta['document_type_id'] ?? null,
+            ];
+        }
+        if ($required) {
+            foreach (array_merge($required->meta['missing'] ?? [], $required->meta['rejected'] ?? []) as $doc) {
+                $missingDocuments[] = $doc;
+            }
+        }
+
+        $knowledgeTestPassed = (bool) $r->isSatisfied('knowledge_test');
+        $documentsComplete = count($missingDocuments) === 0
+            && ! ($idDoc?->isPending() ?? false)
+            && ! ($required?->isPending() ?? false);
+        $activitiesMet = (bool) $r->isSatisfied('activities');
+
+        return [
+            'eligible' => $r->isCompliant() && $r->isDedicatedEligible,
+            'knowledge_test_passed' => $knowledgeTestPassed,
+            'documents_complete' => $documentsComplete,
+            'activities_met' => $activitiesMet,
+            'activity_details' => $this->activityCompliance + ['message' => $r->requirement('activities')?->reason ?? ''],
+            'missing_documents' => $missingDocuments,
+            'errors' => [],
+        ];
     }
 
     #[Computed]
     public function showEndorsementStatus(): bool
     {
-        // Show endorsement status section for all users with dedicated status membership
         return $this->hasDedicatedMembership;
     }
 
+    /**
+     * Phase 1: delegates to the resolver. Satisfied counts anything that is
+     * met, not_applicable, or exempt — so a lifetime member whose activities
+     * resolve to `not_applicable` is correctly treated as "all requirements
+     * complete" (Paul's Q1 answer) instead of being gated on a 2/2 ratio.
+     */
     #[Computed]
     public function allRequirementsComplete(): bool
     {
-        if (!$this->endorsementEligibility) {
+        if (! $this->hasDedicatedMembership) {
             return false;
         }
-        
-        return $this->endorsementEligibility['knowledge_test_passed'] 
-            && $this->endorsementEligibility['documents_complete'] 
-            && $this->endorsementEligibility['activities_met'];
+        $r = $this->compliance;
+        return $r->isSatisfied('knowledge_test')
+            && $r->isSatisfied('id_document')
+            && $r->isSatisfied('required_documents')
+            && $r->isSatisfied('activities');
     }
 
     /**
@@ -1195,6 +1273,12 @@ new #[Title('Dashboard')] class extends Component {
             $activitiesMet = $eligibility['activities_met'] ?? false;
             $approvedCount = $eligibility['activity_details']['approved_count'] ?? 0;
             $requiredCount = $eligibility['activity_details']['required'] ?? 2;
+            // Phase 1 (Q1): lifetime / honorary members must not see a "0 / 2" ratio
+            // or a success tick for the activity row — they get an exempt badge.
+            $activitiesNotApplicable = ($this->activityCompliance['not_applicable'] ?? false);
+            $activityExemptLabel = $this->compliance->isLifetime
+                ? 'Lifetime'
+                : ($this->compliance->isHonorary ? 'Honorary' : 'N/A');
         @endphp
         <div class="rounded-xl border border-zinc-200 bg-white p-5 sm:p-6 dark:border-zinc-700 dark:bg-zinc-800">
             {{-- Header --}}
@@ -1266,7 +1350,8 @@ new #[Title('Dashboard')] class extends Component {
 
                 {{-- Documents --}}
                 @php
-                    $idSlugs = ['identity-document', 'id-document'];
+                    // Phase 1 (Q8): use the full ID_DOCUMENT_SLUGS list, incl. `id-copy`.
+                    $idSlugs = \App\Models\MemberDocument::ID_DOCUMENT_SLUGS;
                     $idTypeIds = \App\Models\DocumentType::whereIn('slug', $idSlugs)->pluck('id');
                     $idDoc = $idTypeIds->isNotEmpty()
                         ? \App\Models\MemberDocument::where('user_id', $this->user->id)
@@ -1334,10 +1419,22 @@ new #[Title('Dashboard')] class extends Component {
                                     Shooting Activities
                                 </a>
                             @endif
-                            <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ $requiredCount }} approved per year</p>
+                            @if($activitiesNotApplicable)
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ $this->activityCompliance['reason'] }}</p>
+                            @else
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ $requiredCount }} approved per year</p>
+                            @endif
                         </div>
                     </div>
-                    @if($activitiesMet)
+                    @if($activitiesNotApplicable)
+                        {{-- Phase 1 (Q1): lifetime/honorary members see the exempt badge, NEVER "0 / 2". --}}
+                        <span class="inline-flex items-center gap-1 rounded-full bg-blue-100 dark:bg-blue-900/40 px-2.5 py-1 text-xs font-medium text-blue-700 dark:text-blue-300">
+                            <svg class="size-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ $activityExemptLabel }}
+                        </span>
+                    @elseif($activitiesMet)
                         <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
                             <svg class="size-3" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
@@ -1398,7 +1495,12 @@ new #[Title('Dashboard')] class extends Component {
 
             {{-- Action Buttons --}}
             <div class="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-700 flex flex-col sm:flex-row gap-3">
-                @if(in_array($this->activeMembership?->type?->dedicated_type, ['hunter', 'sport', 'both']))
+                @if($this->compliance->isDedicatedEligible)
+                {{-- Phase 1 (Q4b): the Request Endorsement button uses the strict
+                     AND rule — allows_dedicated_status AND dedicated_type IN
+                     (hunter, sport, both). Members on the `transfer` type still
+                     see the tab/card above but not this action, which matches
+                     today's behaviour. --}}
                 <a href="{{ route('member.endorsements.create') }}" wire:navigate 
                     class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-nrapa-blue hover:bg-nrapa-blue-dark text-white text-sm font-medium transition-colors">
                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1538,16 +1640,30 @@ new #[Title('Dashboard')] class extends Component {
 
         <!-- Compliance Status -->
         @if($this->hasDedicatedMembership)
+        @php
+            // Phase 1 (Q1): lifetime / honorary members get the exempt badge
+            // rendered in place of "0 / 2". `not_applicable` is driven by the
+            // resolver; see dashboard.blade.php's compliance() property.
+            $acNotApplicable = $ac['not_applicable'] ?? false;
+            $acExemptLabel = $this->compliance->isLifetime
+                ? 'Lifetime'
+                : ($this->compliance->isHonorary ? 'Honorary' : 'N/A');
+        @endphp
         <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-5">
             <div class="flex items-center justify-between mb-3">
                 <h3 class="text-xs uppercase tracking-wider font-semibold text-zinc-500">Compliance Status</h3>
                 <span class="text-xs px-2 py-1 rounded-full font-medium {{ $ac['met'] ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' }}">
-                    {{ $ac['met'] ? 'Complete' : 'Incomplete' }}
+                    {{ $acNotApplicable ? 'Compliant' : ($ac['met'] ? 'Complete' : 'Incomplete') }}
                 </span>
             </div>
             <div class="text-center">
-                <p class="text-2xl font-bold {{ $ac['met'] ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}">{{ $ac['approved'] }} / {{ $ac['required'] }}</p>
-                <p class="text-xs uppercase tracking-wider text-zinc-500 mt-1">Sport Activities OCT {{ now()->year }}</p>
+                @if($acNotApplicable)
+                    <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $acExemptLabel }}</p>
+                    <p class="text-xs uppercase tracking-wider text-zinc-500 mt-1">Always compliant</p>
+                @else
+                    <p class="text-2xl font-bold {{ $ac['met'] ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}">{{ $ac['approved'] }} / {{ $ac['required'] }}</p>
+                    <p class="text-xs uppercase tracking-wider text-zinc-500 mt-1">Sport Activities OCT {{ now()->year }}</p>
+                @endif
             </div>
         </div>
         @else
@@ -1602,7 +1718,10 @@ new #[Title('Dashboard')] class extends Component {
             @if($this->hasDedicatedMembership)
             <a href="{{ route('activities.index') }}" wire:navigate
                class="group relative rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md hover:border-nrapa-blue/30 dark:hover:border-nrapa-blue/30 transition p-4 text-center">
-                @if($this->activityCompliance['exempt'])
+                @if($this->activityCompliance['not_applicable'])
+                    {{-- Phase 1 (Q1): lifetime / honorary members see the exempt badge, never "0/2". --}}
+                    <span class="absolute -top-1.5 -right-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500 text-white">{{ $this->compliance->isLifetime ? 'Lifetime' : ($this->compliance->isHonorary ? 'Honorary' : 'N/A') }}</span>
+                @elseif($this->activityCompliance['exempt'])
                     <span class="absolute -top-1.5 -right-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500 text-white">Exempt</span>
                 @else
                     <span class="absolute -top-1.5 -right-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full {{ $this->activityCompliance['met'] ? 'bg-emerald-500' : 'bg-amber-500' }} text-white">{{ $this->activityCompliance['approved'] }}/{{ $this->activityCompliance['required'] }}</span>

@@ -168,12 +168,19 @@ new class extends Component {
             ->orderBy('activity_date', 'desc')
             ->paginate(12);
 
-        // Use the canonical compliance summary so the member sees:
-        //   - Compliance for THIS YEAR = activities approved LAST year (2 required)
-        //   - Banking for NEXT YEAR = activities approved THIS year
+        // Phase 1: pull the compliance decision from the resolver so this page,
+        // the dashboard and /endorsements all agree. The shim keeps the legacy
+        // array shape so downstream Blade keeps working.
         $compliance = ShootingActivity::complianceSummary($user, $requiredCount);
-        $approvedCount = $compliance['qualifying_year']['total']; // what proves compliance for THIS year
-        $bankingCount = $compliance['banking_year']['total'];     // what's being built for NEXT year
+        $complianceResult = \App\Support\Members\MemberCompliance::for($user);
+        $activitiesReq = $complianceResult->requirement('activities');
+        $approvedCount = $compliance['qualifying_year']['total']; // last year's approved (banking for display)
+        $bankingCount = $compliance['banking_year']['total'];     // this year's approved
+        $isNotApplicable = (bool) $activitiesReq?->isNotApplicable();
+        $notApplicableReason = $activitiesReq?->reason ?? '';
+        $exemptLabel = $complianceResult->isLifetime
+            ? 'Lifetime member'
+            : ($complianceResult->isHonorary ? 'Honorary member' : 'Exempt');
 
         $isPaidUp = $user->activeMembership && (!$user->activeMembership->expires_at || $user->activeMembership->expires_at->isFuture());
         $complianceMet = $compliance['is_compliant_now'];
@@ -214,6 +221,9 @@ new class extends Component {
             'isPaidUp' => $isPaidUp,
             'complianceHistory' => $complianceHistory,
             'compliance' => $compliance,
+            'isNotApplicable' => $isNotApplicable,
+            'notApplicableReason' => $notApplicableReason,
+            'exemptLabel' => $exemptLabel,
         ];
     }
 }; ?>
@@ -298,7 +308,12 @@ new class extends Component {
         <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-5">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-xs uppercase tracking-wider font-semibold text-zinc-500">Compliance for {{ now()->year }}</h2>
-                @if($isExempt)
+                @if($isNotApplicable)
+                    {{-- Phase 1 (Q1): lifetime / honorary members get the Compliant badge, not a ratio. --}}
+                    <span class="text-xs px-2 py-1 rounded-full font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                        Compliant
+                    </span>
+                @elseif($isExempt)
                     <span class="text-xs px-2 py-1 rounded-full font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
                         Exempt
                     </span>
@@ -310,7 +325,11 @@ new class extends Component {
             </div>
             <div class="grid grid-cols-3 gap-4">
                 <div class="text-center">
-                    @if($isExempt)
+                    @if($isNotApplicable)
+                        <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $exemptLabel === 'Lifetime member' ? 'Lifetime' : ($exemptLabel === 'Honorary member' ? 'Honorary' : 'N/A') }}</p>
+                        <p class="text-xs uppercase tracking-wider text-zinc-500 mt-1">Always compliant</p>
+                        <p class="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">no activities required</p>
+                    @elseif($isExempt)
                         <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">Exempt</p>
                         <p class="text-xs uppercase tracking-wider text-zinc-500 mt-1">First year</p>
                         <p class="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">no activities required for {{ now()->year }}</p>
