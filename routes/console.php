@@ -63,6 +63,14 @@ Schedule::command('nrapa:send-pop-followup-reminders')
     ->withoutOverlapping()
     ->runInBackground();
 
+// Remind members about approvals that have waited on them for 7, 14 and 21 days.
+// Each stage is sent once per waiting spell; bounced addresses are skipped.
+Schedule::command('nrapa:chase-waiting-on-member')
+    ->dailyAt('09:15')
+    ->timezone('Africa/Johannesburg')
+    ->withoutOverlapping()
+    ->runInBackground();
+
 // Flip active memberships whose expires_at is in the past to status=expired so
 // no member can stay flagged 'active' past their expiry date.
 Schedule::command('nrapa:fix-expired-statuses --apply --force')

@@ -2,6 +2,20 @@
 
 namespace App\Models;
 
+use App\Actions\Memberships\ApproveMembership;
+use App\Actions\Memberships\RejectMembership;
+use App\Concerns\SyncsApproval;
+use App\Contracts\Approvable;
+use App\Enums\ApprovalDecision;
+use App\Enums\ApprovalState;
+use App\Enums\ApprovalType;
+use App\Services\Approvals\PaymentLedger;
+use App\Support\Approvals\Checks\NoDisciplinaryHold;
+use App\Support\Approvals\Checks\NoOtherOutstandingApproval;
+use App\Support\Approvals\Checks\RequiredDocumentsPresent;
+use App\Support\Approvals\EvidenceBlock;
+use App\Support\Approvals\PreflightCheck;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,9 +23,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
-class Membership extends Model
+class Membership extends Model implements Approvable
 {
     use SoftDeletes;
+    use SyncsApproval;
 
     /**
      * Sources NRAPA invoices for. Imports and transfers are not billed.
@@ -138,11 +153,16 @@ class Membership extends Model
         });
 
         static::saved(function (Membership $membership) {
+            if ($membership->wasRecentlyCreated || $membership->wasChanged(['status', 'proof_of_payment_path', 'payment_confirmed_at', 'source', 'change_amount'])) {
+                app(PaymentLedger::class)->syncForMembership($membership);
+            }
+
+            if ($membership->wasRecentlyCreated || $membership->wasChanged(['status', 'expires_at', 'activated_at', 'proof_of_payment_path', 'payment_confirmed_at', 'source', 'user_id', 'membership_type_id'])) {
+                \App\Support\Membership\MembershipStats::flush();
+            }
+
             if ($membership->wasChanged('status')) {
                 \Illuminate\Support\Facades\Cache::forget('sidebar_pending_total');
-                \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats');
-                \Illuminate\Support\Facades\Cache::forget('admin_members_stats');
-                \Illuminate\Support\Facades\Cache::forget('admin_members_stats_v2');
 
                 if ($membership->status === 'active') {
                     $user = $membership->user;
@@ -152,6 +172,9 @@ class Membership extends Model
                 }
             }
         });
+
+        static::deleted(fn () => \App\Support\Membership\MembershipStats::flush());
+        static::restored(fn () => \App\Support\Membership\MembershipStats::flush());
     }
 
     /**
@@ -828,13 +851,33 @@ class Membership extends Model
     /**
      * Scope to only expired memberships.
      */
+    /**
+     * Memberships in force today: active and not past expiry. Types whose
+     * duration_type is lifetime never lapse. Same rule as MembershipStats.
+     */
+    public function scopeCurrent($query)
+    {
+        return $query->where('memberships.status', 'active')
+            ->where(fn ($q) => $q->whereNull('memberships.expires_at')
+                ->orWhere('memberships.expires_at', '>=', now()->startOfDay())
+                ->orWhereHas('type', fn ($t) => $t->where('duration_type', 'lifetime')));
+    }
+
+    /**
+     * Memberships that have run out: marked expired, or still active past expiry.
+     */
+    public function scopeLapsed($query)
+    {
+        return $query->where(fn ($q) => $q->where('memberships.status', 'expired')
+            ->orWhere(fn ($q) => $q->where('memberships.status', 'active')
+                ->where('memberships.expires_at', '<', now()->startOfDay())
+                ->whereDoesntHave('type', fn ($t) => $t->where('duration_type', 'lifetime'))));
+    }
+
     public function scopeExpired($query)
     {
-        return $query->where('status', 'expired')
-            ->orWhere(function ($q) {
-                $q->whereNotNull('expires_at')
-                    ->where('expires_at', '<', now());
-            });
+        return $query->where(fn ($q) => $q->where('status', 'expired')
+            ->orWhere(fn ($q) => $q->whereNotNull('expires_at')->where('expires_at', '<', now())));
     }
 
     // ===== Billing Scopes =====
@@ -968,5 +1011,193 @@ class Membership extends Model
     public function isBillable(): bool
     {
         return in_array($this->source, self::BILLABLE_SOURCES, true);
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    /**
+     * Default amount for an accepted type-change request.
+     */
+    public function defaultChangeAmount(): float
+    {
+        if ($this->change_amount !== null) {
+            return (float) $this->change_amount;
+        }
+
+        return (float) ($this->type?->upgrade_price ?? $this->type?->initial_price ?? 0);
+    }
+
+    // ===== Approvable =====
+
+    public function approvalType(): ApprovalType
+    {
+        return ApprovalType::Membership;
+    }
+
+    public function approvalStateFromModel(): ?ApprovalState
+    {
+        if (! $this->user_id || $this->trashed()) {
+            return null;
+        }
+
+        return match ($this->status) {
+            'applied' => $this->isBlockedByPayment() ? ApprovalState::WaitingOnMember : ApprovalState::WaitingOnAdmin,
+            'pending_change' => ApprovalState::WaitingOnAdmin,
+            default => null,
+        };
+    }
+
+    /**
+     * The member is chased through the payment row instead, so they are not
+     * chased twice for the same application.
+     */
+    public function approvalMetaFromModel(): array
+    {
+        return ['blocked_by_payment' => $this->isBlockedByPayment()];
+    }
+
+    public function isBlockedByPayment(): bool
+    {
+        return $this->status === 'applied' && $this->isBillable() && ! $this->payment_confirmed_at;
+    }
+
+    public function approvalOutcomeFromModel(): ApprovalState
+    {
+        return match ($this->status) {
+            'active', 'approved', 'pending_payment' => ApprovalState::Approved,
+            'revoked' => ApprovalState::Declined,
+            default => ApprovalState::Withdrawn,
+        };
+    }
+
+    public function approvalSubmittedAt(): ?CarbonInterface
+    {
+        return $this->payment_confirmed_at ?? $this->applied_at ?? $this->created_at;
+    }
+
+    public function summaryLine(): string
+    {
+        $name = $this->user?->name ?? 'Unknown member';
+
+        $kind = match (true) {
+            $this->status === 'pending_change' => 'type change to '.($this->type?->name ?? 'new type'),
+            $this->isTransfer() => 'transfer application',
+            $this->isRenewal() => 'renewal',
+            default => 'new application',
+        };
+
+        return "{$name} — {$kind}";
+    }
+
+    public function detailLine(): string
+    {
+        $parts = [$this->type?->name ?? 'Unknown type'];
+
+        if ($this->status === 'pending_change') {
+            $parts[] = 'from '.($this->previousMembership?->type?->name ?? 'unknown');
+        } elseif ($this->user && $this->type) {
+            $parts[] = RequiredDocumentsPresent::check($this->user, $this->type)->reason;
+        }
+
+        return implode(' · ', $parts);
+    }
+
+    public function detailWarning(): ?string
+    {
+        if ($this->status !== 'applied' || ! $this->user || ! $this->type) {
+            return null;
+        }
+
+        $check = RequiredDocumentsPresent::check($this->user, $this->type);
+
+        return $check->passed ? null : $check->reason;
+    }
+
+    public function evidence(): EvidenceBlock
+    {
+        $this->loadMissing(['user', 'type', 'previousMembership.type', 'affiliatedClub']);
+
+        return new EvidenceBlock(
+            view: 'components.admin.evidence.membership',
+            title: $this->status === 'pending_change' ? 'Type change request' : 'Application',
+            data: [
+                'membership' => $this,
+                'checklist' => $this->user && $this->type
+                    ? RequiredDocumentsPresent::checklist($this->user, $this->type)
+                    : collect(),
+            ],
+        );
+    }
+
+    public function preflightChecks(): array
+    {
+        $checks = [];
+
+        if ($this->status === 'applied') {
+            $checks[] = RequiredDocumentsPresent::check($this->user, $this->type);
+            $checks[] = (! $this->isBillable() || $this->payment_confirmed_at)
+                ? PreflightCheck::pass('payment_settled', 'Payment settled', $this->isBillable() ? 'Payment confirmed '.$this->payment_confirmed_at?->format('d M Y') : 'Not billable ('.$this->source.')')
+                : PreflightCheck::fail('payment_settled', 'Payment settled', 'Payment not yet confirmed');
+        } else {
+            $checks[] = $this->defaultChangeAmount() > 0
+                ? PreflightCheck::pass('change_amount', 'Change fee known', 'Fee R'.number_format($this->defaultChangeAmount(), 2))
+                : PreflightCheck::fail('change_amount', 'Change fee known', 'No upgrade or initial price set on the type');
+        }
+
+        $checks[] = NoDisciplinaryHold::check($this->user);
+        $checks[] = NoOtherOutstandingApproval::check($this, $this->user_id);
+
+        return $checks;
+    }
+
+    public function canBeApprovedInline(): bool
+    {
+        return true;
+    }
+
+    public function approvalConsequence(): string
+    {
+        return $this->status === 'pending_change'
+            ? 'Approving accepts the type change, emails payment instructions for R'.number_format($this->defaultChangeAmount(), 2).', and writes an audit entry against your name.'
+            : 'Approving activates the membership, issues the certificate, welcome letter and card, emails the member, and writes an audit entry against your name.';
+    }
+
+    public function approveFromQueue(User $actor, ?string $note = null): void
+    {
+        if ($this->status === 'pending_change') {
+            app(ApproveMembership::class)->acceptChangeRequest($this, $actor, $this->defaultChangeAmount());
+
+            return;
+        }
+
+        app(ApproveMembership::class)->approve($this, $actor);
+    }
+
+    public function declineFromQueue(User $actor, string $reason): void
+    {
+        app(RejectMembership::class)->handle($this, $actor, $reason);
+    }
+
+    public function requestChangesFromQueue(User $actor, array $items, ?string $note = null): void
+    {
+        $this->update(['notes' => trim(($this->notes ? $this->notes."\n\n" : '').'Changes requested: '.implode('; ', $items).($note ? " — {$note}" : ''))]);
+    }
+
+    public function notifiesMemberOnDecision(ApprovalDecision $decision): bool
+    {
+        return $decision !== ApprovalDecision::RequestChanges;
+    }
+
+    public function supersedesApprovableOf(Model $older): bool
+    {
+        return $older instanceof self;
+    }
+
+    public function resubmitsOnMemberActivity(): bool
+    {
+        return true;
     }
 }

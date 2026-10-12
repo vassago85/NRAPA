@@ -6,6 +6,7 @@ use App\Models\Membership;
 use App\Models\MembershipType;
 use App\Models\User;
 use App\Models\UserFirearm;
+use App\Support\Membership\MembershipStats;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -25,43 +26,26 @@ new #[Title('Membership Reports - Admin')] class extends Component {
     #[Computed]
     public function summaryStats(): array
     {
-        $totalWithMembership = User::whereHas('memberships')->count();
+        $snapshot = MembershipStats::snapshot();
 
-        $activeCount = Membership::where('status', 'active')
-            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+        $lifetimeActiveCount = MembershipStats::applySegment(MembershipStats::countableUsers(), 'active')
+            ->whereHas('activeMembership.type', fn ($q) => $q->where('duration_type', 'lifetime'))
             ->count();
 
-        $lifetimeActiveCount = Membership::where('status', 'active')
-            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
-            ->whereHas('type', fn ($q) => $q->where('duration_type', 'lifetime'))
-            ->count();
-
-        $expiredCount = Membership::where(function ($q) {
-            $q->where('status', 'expired')
-              ->orWhere(function ($sq) {
-                  $sq->where('status', 'active')
-                     ->whereNotNull('expires_at')
-                     ->where('expires_at', '<=', now());
-              });
-        })->count();
-
-        $pendingCount = Membership::where('status', 'applied')->count();
-
-        $lifetimePercent = $activeCount > 0
-            ? round(($lifetimeActiveCount / $activeCount) * 100, 1)
+        $lifetimePercent = $snapshot->active > 0
+            ? round(($lifetimeActiveCount / $snapshot->active) * 100, 1)
             : 0;
 
-        $expectedRevenue = Membership::where('status', 'active')
-            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+        $expectedRevenue = Membership::current()
             ->whereHas('type', fn ($q) => $q->where('requires_renewal', true))
             ->join('membership_types', 'memberships.membership_type_id', '=', 'membership_types.id')
             ->sum('membership_types.renewal_price');
 
         return [
-            'total' => $totalWithMembership,
-            'active' => $activeCount,
-            'expired' => $expiredCount,
-            'pending' => $pendingCount,
+            'total' => $snapshot->total,
+            'active' => $snapshot->active,
+            'expired' => $snapshot->expired,
+            'pending' => $snapshot->pending,
             'lifetime' => $lifetimeActiveCount,
             'lifetime_percent' => $lifetimePercent,
             'expected_revenue' => (float) $expectedRevenue,
@@ -79,21 +63,13 @@ new #[Title('Membership Reports - Admin')] class extends Component {
 
         $activeCounts = (clone $baseQuery)()
             ->selectRaw('membership_type_id, count(*) as total')
-            ->where('status', 'active')
-            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->current()
             ->groupBy('membership_type_id')
             ->pluck('total', 'membership_type_id');
 
         $expiredCounts = (clone $baseQuery)()
             ->selectRaw('membership_type_id, count(*) as total')
-            ->where(function ($q) {
-                $q->where('status', 'expired')
-                  ->orWhere(function ($sq) {
-                      $sq->where('status', 'active')
-                         ->whereNotNull('expires_at')
-                         ->where('expires_at', '<=', now());
-                  });
-            })
+            ->lapsed()
             ->groupBy('membership_type_id')
             ->pluck('total', 'membership_type_id');
 
@@ -183,11 +159,8 @@ new #[Title('Membership Reports - Admin')] class extends Component {
     #[Computed]
     public function featureUsage(): array
     {
-        $activeMembersQuery = User::whereHas('memberships', fn ($q) =>
-            $q->where('status', 'active')
-              ->where(fn ($qq) => $qq->whereNull('expires_at')->orWhere('expires_at', '>', now()))
-        );
-        $activeMemberTotal = (clone $activeMembersQuery)->count();
+        $activeMembersQuery = MembershipStats::applySegment(MembershipStats::countableUsers(), 'active');
+        $activeMemberTotal = MembershipStats::snapshot()->active;
 
         // Virtual Safe (user_firearms)
         $safeUsersAll = UserFirearm::query()->distinct('user_id')->count('user_id');
@@ -305,15 +278,15 @@ new #[Title('Membership Reports - Admin')] class extends Component {
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
         <div class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
             <p class="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Total Members</p>
-            <p class="mt-2 text-3xl font-bold text-zinc-900 dark:text-white">{{ number_format($stats['total']) }}</p>
+            <p class="mt-2 text-3xl font-bold text-zinc-900 dark:text-white" data-stat="total">{{ number_format($stats['total']) }}</p>
         </div>
         <div class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
             <p class="text-xs font-medium uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Active</p>
-            <p class="mt-2 text-3xl font-bold text-emerald-700 dark:text-emerald-300">{{ number_format($stats['active']) }}</p>
+            <p class="mt-2 text-3xl font-bold text-emerald-700 dark:text-emerald-300" data-stat="active">{{ number_format($stats['active']) }}</p>
         </div>
         <div class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
             <p class="text-xs font-medium uppercase tracking-wider text-orange-600 dark:text-orange-400">Expired</p>
-            <p class="mt-2 text-3xl font-bold text-orange-700 dark:text-orange-300">{{ number_format($stats['expired']) }}</p>
+            <p class="mt-2 text-3xl font-bold text-orange-700 dark:text-orange-300" data-stat="expired">{{ number_format($stats['expired']) }}</p>
         </div>
         <div class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
             <p class="text-xs font-medium uppercase tracking-wider text-amber-600 dark:text-amber-400">Pending</p>

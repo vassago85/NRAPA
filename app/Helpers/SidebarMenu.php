@@ -167,26 +167,22 @@ class SidebarMenu
 
         // 2. ADMINISTRATION (admin + owner, hidden in member mode)
         if ($showAdminArea && $user->hasRoleLevel(\App\Models\User::ROLE_ADMIN)) {
-            $totalPending = \Illuminate\Support\Facades\Cache::remember('sidebar_pending_total', 60, function () {
-                $total = 0;
-                try {
-                    $total += \App\Models\MemberDocument::where('status', 'pending')
-                        ->whereDoesntHave('shootingActivityAsEvidence')
-                        ->whereDoesntHave('shootingActivityAsAdditional')
-                        ->count();
-                    $total += \App\Models\Membership::where('status', 'applied')->count();
-                    $total += \App\Models\ShootingActivity::where('status', 'pending')->count();
-                    $total += \App\Models\CalibreRequest::where('status', 'pending')->count();
-                    $total += \App\Models\EndorsementRequest::whereIn('status', [
-                        \App\Models\EndorsementRequest::STATUS_SUBMITTED,
-                        \App\Models\EndorsementRequest::STATUS_UNDER_REVIEW,
-                        \App\Models\EndorsementRequest::STATUS_PENDING_DOCUMENTS,
-                    ])->count();
-                } catch (\Exception $e) {
-                }
+            try {
+                $totalPending = app(\App\Queries\ApprovalQueue::class)->sidebarTotal();
+            } catch (\Throwable $e) {
+                $totalPending = 0;
+            }
 
-                return $total;
-            });
+            $recordItems = [
+                ['label' => 'Approvals list', 'route' => 'admin.approvals.index'],
+                ['label' => 'Documents', 'route' => 'admin.documents.index'],
+                ['label' => 'Activities', 'route' => 'admin.activities.index'],
+                ['label' => 'Endorsements', 'route' => 'admin.endorsements.index'],
+                ['label' => 'Reports', 'route' => 'admin.reports.index'],
+            ];
+            if ($user->isSuperAdmin() || $user->isOwner() || $user->isDeveloper()) {
+                $recordItems[] = ['label' => 'Deletion requests', 'route' => 'owner.deletion-requests.index'];
+            }
 
             $menu[] = [
                 'section' => 'ADMINISTRATION',
@@ -205,7 +201,7 @@ class SidebarMenu
                     ],
                     [
                         'label' => 'Approvals',
-                        'route' => 'admin.approvals.index',
+                        'route' => 'admin.review.index',
                         'icon' => 'check-circle',
                         'roles' => ['admin', 'owner', 'developer'],
                         'pending_count' => $totalPending,
@@ -215,6 +211,21 @@ class SidebarMenu
                         'route' => 'admin.billing.index',
                         'icon' => 'chart-bar',
                         'roles' => ['admin', 'owner', 'developer'],
+                    ],
+                    [
+                        'label' => 'Inbox',
+                        'route' => 'admin.messages.index',
+                        'icon' => 'chat-bubble-left-right',
+                        'roles' => ['admin', 'owner', 'developer'],
+                        'pending_count' => \App\Models\MemberMessage::unreadByAdmins()->count(),
+                    ],
+                    [
+                        'label' => 'Records',
+                        'route' => 'admin.documents.index',
+                        'icon' => 'document-text',
+                        'roles' => ['admin', 'owner', 'developer'],
+                        'collapsible' => true,
+                        'children' => $recordItems,
                     ],
                 ],
             ];
@@ -298,7 +309,7 @@ class SidebarMenu
                 'section' => 'SYSTEM',
                 'items' => [
                     [
-                        'label' => 'Email Logs',
+                        'label' => 'Email & Delivery',
                         'route' => 'admin.email-logs.index',
                         'icon' => 'envelope',
                         'roles' => ['admin', 'owner', 'developer'],
@@ -461,14 +472,8 @@ class SidebarMenu
         }
 
         // Approvals sidebar item should highlight on all approval-related pages
-        if ($route === 'admin.approvals.index') {
-            $approvalRoutes = [
-                'admin.approvals.*',
-                'admin.documents.*',
-                'admin.activities.*',
-                'admin.endorsements.*',
-                'admin.calibre-requests.*',
-            ];
+        if ($route === 'admin.review.index') {
+            $approvalRoutes = ['admin.review.*'];
             foreach ($approvalRoutes as $approvalRoute) {
                 if (request()->routeIs($approvalRoute)) {
                     return true;

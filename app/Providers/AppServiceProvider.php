@@ -35,6 +35,8 @@ class AppServiceProvider extends ServiceProvider
                 return new \App\Services\FakeDocumentRenderer;
             }
         );
+
+        $this->app->singleton(\App\Services\Approvals\ApprovalSync::class);
     }
 
     /**
@@ -43,6 +45,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        \Illuminate\Support\Facades\Gate::policy(\App\Models\Approval::class, \App\Policies\ApprovalPolicy::class);
+        \Illuminate\Support\Facades\Gate::policy(\App\Models\User::class, \App\Policies\UserPolicy::class);
         $this->registerMailEventListeners();
         $this->registerAuthEventListeners();
     }
@@ -70,6 +74,12 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function registerMailEventListeners(): void
     {
+        // Registered first: returning false cancels the send before the throttle
+        // sleeps. Must return null (not true) when allowed, or later listeners are skipped.
+        Event::listen(MessageSending::class, function (MessageSending $event) {
+            return app(\App\Support\Mail\UndeliverableRecipientGuard::class)->allows($event) ? null : false;
+        });
+
         // Global safety throttle: enforce a minimum gap between any two outgoing
         // emails so batches/scheduled runs never burst the mail provider. Runs
         // first (before the logging listener) and blocks until this send's slot.

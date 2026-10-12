@@ -64,7 +64,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Requests - Admin')] cl
     public function stats()
     {
         return [
-            'pending' => EndorsementRequest::whereHas('user')->whereIn('status', ['submitted', 'under_review', 'pending_documents'])->count(),
+            'pending' => app(\App\Queries\ApprovalQueue::class)->countsByType()[\App\Enums\ApprovalType::Endorsement->value],
             'approved' => EndorsementRequest::whereHas('user')->where('status', 'approved')->count(),
             'issued' => EndorsementRequest::whereHas('user')->where('status', 'issued')->count(),
             'this_month' => EndorsementRequest::whereHas('user')->where('status', 'issued')

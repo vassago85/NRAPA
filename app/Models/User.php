@@ -82,6 +82,13 @@ class User extends Authenticatable implements MustVerifyEmail
         'email_verified_at',
         'welcome_letter_seen_at',
         'sage_company_id',
+        'disciplinary_hold_at',
+        'disciplinary_hold_reason',
+        'disciplinary_hold_by',
+        'email_status',
+        'email_last_event_at',
+        'email_bounce_reason',
+        'last_signed_in_at',
     ];
 
     /**
@@ -113,7 +120,24 @@ class User extends Authenticatable implements MustVerifyEmail
             'nominated_at' => 'datetime',
             'last_2fa_reminder_at' => 'datetime',
             'welcome_letter_seen_at' => 'datetime',
+            'disciplinary_hold_at' => 'datetime',
+            'email_last_event_at' => 'datetime',
+            'last_signed_in_at' => 'datetime',
+            'admin_preferences' => 'array',
         ];
+    }
+
+    public function adminPreference(string $key, mixed $default = null): mixed
+    {
+        return data_get($this->admin_preferences ?? [], $key, $default);
+    }
+
+    public function setAdminPreference(string $key, mixed $value): void
+    {
+        $preferences = $this->admin_preferences ?? [];
+        data_set($preferences, $key, $value);
+
+        $this->forceFill(['admin_preferences' => $preferences])->saveQuietly();
     }
 
     /**
@@ -267,6 +291,28 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Address statuses (from Mailgun webhooks) that must never be mailed again.
+     */
+    public const UNDELIVERABLE_EMAIL_STATUSES = ['bounced', 'complained'];
+
+    public function canReceiveEmail(): bool
+    {
+        return filled($this->email)
+            && ! in_array($this->getAttribute('email_status'), self::UNDELIVERABLE_EMAIL_STATUSES, true);
+    }
+
+    /**
+     * Users with an address that may be mailed: present and not hard-bounced or complained.
+     */
+    public function scopeEmailable($query)
+    {
+        return $query->whereNotNull('users.email')
+            ->where('users.email', '!=', '')
+            ->where(fn ($q) => $q->whereNull('users.email_status')
+                ->orWhereNotIn('users.email_status', self::UNDELIVERABLE_EMAIL_STATUSES));
+    }
+
+    /**
      * Check if user has at least the given role level.
      */
     public function hasRoleLevel(string $role): bool
@@ -342,6 +388,21 @@ class User extends Authenticatable implements MustVerifyEmail
                 $user->member_number = static::nextMemberNumber();
             }
         });
+
+        static::updating(function (User $user) {
+            if ($user->isDirty('email') && ! $user->isDirty('email_status')) {
+                $user->email_status = null;
+                $user->email_bounce_reason = null;
+            }
+        });
+
+        static::saved(function (User $user) {
+            if ($user->wasRecentlyCreated || $user->wasChanged('role')) {
+                \App\Support\Membership\MembershipStats::flush();
+            }
+        });
+
+        static::deleted(fn () => \App\Support\Membership\MembershipStats::flush());
 
         // Hard-delete all related records so nothing orphaned remains.
         static::deleting(function (User $user) {
@@ -554,15 +615,24 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Get the active membership for the user.
-     * Prefers a non-expired active membership over an expired one.
+     * The membership that is current today: status active and not past its
+     * expiry (types whose duration_type is lifetime never lapse). Never
+     * returns an expired membership, even before the nightly status flip.
      */
     public function activeMembership(): HasOne
     {
         return $this->hasOne(Membership::class)
-            ->where('status', 'active')
-            ->orderByRaw('(expires_at IS NULL OR expires_at > ?) DESC', [now()])
-            ->orderByDesc('id');
+            ->current()
+            ->orderByDesc('memberships.id');
+    }
+
+    public function membershipState(): \App\Enums\MembershipState
+    {
+        $memberships = $this->relationLoaded('memberships')
+            ? $this->memberships->loadMissing('type')
+            : $this->memberships()->with('type')->get();
+
+        return \App\Enums\MembershipState::fromMemberships($memberships);
     }
 
     /**

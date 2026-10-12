@@ -1,13 +1,15 @@
 <?php
 
+use App\Enums\ApprovalDecision;
+use App\Livewire\Concerns\DecidesApprovals;
 use App\Models\CalibreRequest;
-use App\Models\FirearmCalibre;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Layout('layouts.app.sidebar')] #[Title('Calibre Requests')] class extends Component {
+    use DecidesApprovals;
 
     public string $statusFilter = 'pending';
     public string $search = '';
@@ -35,10 +37,15 @@ new #[Layout('layouts.app.sidebar')] #[Title('Calibre Requests')] class extends 
     #[Computed]
     public function stats()
     {
+        $counts = CalibreRequest::query()
+            ->selectRaw('status, count(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status');
+
         return [
-            'pending' => CalibreRequest::pending()->count(),
-            'approved' => CalibreRequest::approved()->count(),
-            'rejected' => CalibreRequest::rejected()->count(),
+            'pending' => app(\App\Queries\ApprovalQueue::class)->countsByType()[\App\Enums\ApprovalType::Calibre->value],
+            'approved' => (int) ($counts[CalibreRequest::STATUS_APPROVED] ?? 0),
+            'rejected' => (int) ($counts[CalibreRequest::STATUS_REJECTED] ?? 0),
         ];
     }
 
@@ -69,35 +76,21 @@ new #[Layout('layouts.app.sidebar')] #[Title('Calibre Requests')] class extends 
             'editIgnition' => 'required|in:rimfire,centerfire',
         ]);
 
-        // Map 'other' category to 'rifle' if somehow it gets through
-        $category = $this->editCategory === 'other' ? 'rifle' : $this->editCategory;
-
-        // Create the FirearmCalibre entry
-        $calibre = FirearmCalibre::create([
-            'name' => $this->editName,
-            'normalized_name' => FirearmCalibre::normalize($this->editName),
-            'category' => $category,
-            'ignition' => $this->editIgnition,
-            'is_active' => true,
-            'is_obsolete' => false,
-            'is_wildcat' => false,
-        ]);
-
-        // Update the request
+        // Apply the admin's corrections first so the decision acts on the edited request.
         $this->editingRequest->update([
             'name' => $this->editName,
-            'category' => $category,
+            'category' => $this->editCategory,
             'ignition_type' => $this->editIgnition,
             'saps_code' => $this->editSapsCode ?: null,
-            'status' => CalibreRequest::STATUS_APPROVED,
-            'reviewed_by' => auth()->id(),
-            'reviewed_at' => now(),
-            'admin_notes' => $this->adminNotes ?: null,
-            'calibre_id' => $calibre->id,
         ]);
 
+        if (! $this->decideFor($this->editingRequest, ApprovalDecision::Approve, $this->adminNotes ?: null)) {
+            return;
+        }
+
+        $name = $this->editingRequest->refresh()->calibre?->name ?? $this->editName;
         $this->cancelEdit();
-        session()->flash('success', "Calibre '{$calibre->name}' has been created and the request approved.");
+        session()->flash('success', "Calibre '{$name}' is in the list and the request is approved.");
     }
 
     public function reject(): void
@@ -110,12 +103,9 @@ new #[Layout('layouts.app.sidebar')] #[Title('Calibre Requests')] class extends 
             'rejectionReason.required' => 'Please provide a reason for rejection.',
         ]);
 
-        $this->editingRequest->update([
-            'status' => CalibreRequest::STATUS_REJECTED,
-            'reviewed_by' => auth()->id(),
-            'reviewed_at' => now(),
-            'admin_notes' => $this->rejectionReason,
-        ]);
+        if (! $this->decideFor($this->editingRequest, ApprovalDecision::Decline, $this->rejectionReason)) {
+            return;
+        }
 
         $this->cancelEdit();
         session()->flash('success', 'Calibre request has been rejected.');
@@ -160,6 +150,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Calibre Requests')] class extends 
     @if(session('success'))
         <div class="mb-6 p-4 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 rounded-xl text-emerald-700 dark:text-emerald-300">
             {{ session('success') }}
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-xl text-red-700 dark:text-red-300">
+            {{ session('error') }}
         </div>
     @endif
 

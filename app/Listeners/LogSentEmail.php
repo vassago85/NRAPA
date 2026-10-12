@@ -52,6 +52,7 @@ class LogSentEmail
 
         $body = $message->getHtmlBody() ?: $message->getTextBody();
         $subject = $message->getSubject();
+        $messageId = $this->providerMessageId($event);
 
         // Bulk-send commands (e.g. SendMembershipExpiryNotifications) write a "queued"
         // audit row at dispatch time. When the mail actually leaves the building we
@@ -82,6 +83,8 @@ class LogSentEmail
                 'from_email' => $fromEmail,
                 'from_name' => $fromName,
                 'metadata' => array_merge((array) ($queuedRow->metadata ?? []), $event->data ?? []),
+                'provider_message_id' => $messageId,
+                'delivery_status' => 'sent',
             ]);
 
             return;
@@ -99,6 +102,33 @@ class LogSentEmail
             'status' => 'sent',
             'sent_at' => now(),
             'metadata' => $event->data ?? [],
+            'provider_message_id' => $messageId,
+            'delivery_status' => 'sent',
         ]);
+    }
+
+    /**
+     * The id Mailgun will quote back in its webhooks. Null when unknown or
+     * already claimed by another row (the column is unique).
+     */
+    private function providerMessageId(MessageSent $event): ?string
+    {
+        try {
+            $id = $event->sent->getMessageId();
+
+            if (! $id) {
+                $id = $event->message->getHeaders()->get('X-Mailgun-Message-Id')?->getBodyAsString();
+            }
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        $id = EmailLog::normalizeMessageId($id);
+
+        if ($id === null || EmailLog::where('provider_message_id', $id)->exists()) {
+            return null;
+        }
+
+        return $id;
     }
 }

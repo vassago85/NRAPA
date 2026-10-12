@@ -1,11 +1,15 @@
 <?php
 
+use App\Enums\ApprovalDecision;
+use App\Livewire\Concerns\DecidesApprovals;
 use App\Models\ActivityTag;
 use App\Models\ActivityType;
 use App\Models\ShootingActivity;
 use Livewire\Component;
 
 new class extends Component {
+    use DecidesApprovals;
+
     public ShootingActivity $activity;
     public string $rejectionReason = '';
     public bool $showEvidencePreview = false;
@@ -130,7 +134,10 @@ new class extends Component {
 
     public function approve(): void
     {
-        $this->activity->approve(auth()->user());
+        if (! $this->decideFor($this->activity, ApprovalDecision::Approve)) {
+            return;
+        }
+
         session()->flash('success', 'Activity approved successfully.');
         $this->redirect(route('admin.activities.index'));
     }
@@ -141,7 +148,10 @@ new class extends Component {
             'rejectionReason' => ['required', 'string', 'max:1000'],
         ]);
 
-        $this->activity->reject(auth()->user(), $this->rejectionReason);
+        if (! $this->decideFor($this->activity, ApprovalDecision::Decline, $this->rejectionReason)) {
+            return;
+        }
+
         session()->flash('success', 'Activity rejected.');
         $this->redirect(route('admin.activities.index'));
     }
@@ -201,6 +211,11 @@ new class extends Component {
     @if(session('success'))
         <div class="mb-6 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 text-emerald-700 dark:text-emerald-300">
             {{ session('success') }}
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="mb-6 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 text-red-700 dark:text-red-300">
+            {{ session('error') }}
         </div>
     @endif
 

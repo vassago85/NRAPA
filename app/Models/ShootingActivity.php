@@ -2,14 +2,27 @@
 
 namespace App\Models;
 
+use App\Concerns\SyncsApproval;
+use App\Contracts\Approvable;
+use App\Enums\ApprovalDecision;
+use App\Enums\ApprovalState;
+use App\Enums\ApprovalType;
+use App\Services\Approvals\ApprovalSync;
+use App\Support\Approvals\Checks\ActivityWithinMembershipPeriod;
+use App\Support\Approvals\Checks\MembershipActive;
+use App\Support\Approvals\Checks\NoDisciplinaryHold;
+use App\Support\Approvals\EvidenceBlock;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
 
-class ShootingActivity extends Model
+class ShootingActivity extends Model implements Approvable
 {
+    use SyncsApproval;
+
     /**
      * The attributes that are mass assignable.
      *
@@ -92,9 +105,133 @@ class ShootingActivity extends Model
         static::saved(function (ShootingActivity $activity) {
             if ($activity->wasChanged('status')) {
                 \Illuminate\Support\Facades\Cache::forget('sidebar_pending_total');
-                \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats');
+            }
+
+            if ($activity->wasRecentlyCreated || $activity->wasChanged(['evidence_document_id', 'additional_document_id'])) {
+                $sync = app(ApprovalSync::class);
+                foreach (array_filter([$activity->evidence_document_id, $activity->additional_document_id]) as $documentId) {
+                    if ($document = MemberDocument::find($documentId)) {
+                        $sync->discard($document);
+                    }
+                }
             }
         });
+    }
+
+    // ===== Approvable =====
+
+    public function approvalType(): ApprovalType
+    {
+        return ApprovalType::Activity;
+    }
+
+    public function approvalStateFromModel(): ?ApprovalState
+    {
+        return $this->status === 'pending' && $this->user_id ? ApprovalState::WaitingOnAdmin : null;
+    }
+
+    public function approvalOutcomeFromModel(): ApprovalState
+    {
+        return match ($this->status) {
+            'approved' => ApprovalState::Approved,
+            'rejected' => ApprovalState::Declined,
+            default => ApprovalState::Withdrawn,
+        };
+    }
+
+    public function approvalSubmittedAt(): ?CarbonInterface
+    {
+        return $this->created_at;
+    }
+
+    public function summaryLine(): string
+    {
+        return ($this->user?->name ?? 'Unknown member').' — '.($this->activityType?->name ?? 'Activity').' on '.$this->activity_date?->format('d M Y');
+    }
+
+    public function detailLine(): string
+    {
+        return implode(' · ', array_filter([
+            $this->track ? ucfirst($this->track) : null,
+            $this->calibre_name,
+            $this->closest_town_city ?: $this->location,
+            $this->evidence_document_id ? 'evidence attached' : 'no evidence',
+        ]));
+    }
+
+    public function detailWarning(): ?string
+    {
+        return $this->activity_date && ! ActivityWithinMembershipPeriod::covered($this)
+            ? 'Falls outside the membership period'
+            : null;
+    }
+
+    public function evidence(): EvidenceBlock
+    {
+        $this->loadMissing(['activityType', 'evidenceDocument', 'additionalDocument', 'userFirearm', 'firearmCalibre', 'country', 'province']);
+
+        $recent = self::query()
+            ->where('user_id', $this->user_id)
+            ->where('id', '!=', $this->id)
+            ->latest('activity_date')
+            ->with('activityType')
+            ->limit(5)
+            ->get();
+
+        return new EvidenceBlock(
+            view: 'components.admin.evidence.activity',
+            title: 'Logged activity',
+            data: [
+                'activity' => $this,
+                'withinPeriod' => $this->activity_date ? ActivityWithinMembershipPeriod::covered($this) : false,
+                'recent' => $recent,
+                'compliance' => $this->user ? self::complianceSummary($this->user) : null,
+            ],
+        );
+    }
+
+    public function preflightChecks(): array
+    {
+        return [
+            MembershipActive::check($this->user),
+            ActivityWithinMembershipPeriod::check($this),
+            NoDisciplinaryHold::check($this->user),
+        ];
+    }
+
+    public function canBeApprovedInline(): bool
+    {
+        return true;
+    }
+
+    public function approvalConsequence(): string
+    {
+        return 'Approving counts this activity towards dedicated status, verifies its evidence, emails the member, and writes an audit entry against your name.';
+    }
+
+    public function approveFromQueue(User $actor, ?string $note = null): void
+    {
+        $this->approve($actor);
+    }
+
+    public function declineFromQueue(User $actor, string $reason): void
+    {
+        $this->reject($actor, $reason);
+    }
+
+    public function requestChangesFromQueue(User $actor, array $items, ?string $note = null): void
+    {
+        $this->reject($actor, trim(implode('; ', $items).($note ? " — {$note}" : '')));
+    }
+
+    public function notifiesMemberOnDecision(ApprovalDecision $decision): bool
+    {
+        return true;
+    }
+
+    public function supersedesApprovableOf(Model $older): bool
+    {
+        return $older instanceof self;
     }
 
     /**

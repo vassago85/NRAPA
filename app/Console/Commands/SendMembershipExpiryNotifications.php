@@ -123,8 +123,8 @@ class SendMembershipExpiryNotifications extends Command
             return 'skipped';
         }
 
-        if (! $user->email || $user->hasPlaceholderEmail()) {
-            // Phone-only / placeholder import — admins can chase manually.
+        if (! $user->canReceiveEmail() || $user->hasPlaceholderEmail()) {
+            // Phone-only / placeholder import or hard-bounced — admins can chase manually.
             return 'skipped';
         }
 

@@ -207,7 +207,7 @@
                     @if($memberContext)
                         @include('partials.admin-member-context-nav', ['user' => $memberContext])
                     @elseif(str_starts_with($navRoute, 'admin.'))
-                        @include('partials.admin-nav-tabs')
+                        {{-- Admin pages navigate from the sidebar only. --}}
                     @elseif(str_starts_with($navRoute, 'owner.'))
                         @include('partials.owner-nav-tabs')
                     @elseif(str_starts_with($navRoute, 'developer.'))

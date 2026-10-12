@@ -292,6 +292,7 @@ function smokeSeed(): array
         'users' => compact('member', 'admin', 'owner', 'developer'),
         'params' => [
             'activity' => [$activity->getRouteKey()],
+            'approval' => [\App\Models\Approval::forApprovable($activity)->value('id')],
             'article' => [$article->getRouteKey()],
             'attempt' => [$attempt->getRouteKey()],
             'bullet' => [$bullet->getRouteKey()],

@@ -1,12 +1,15 @@
 <?php
 
+use App\Enums\MembershipState;
+use App\Jobs\BulkMemberAction;
 use App\Mail\ImportWelcome;
-use App\Mail\MemberMessageMail;
 use App\Models\ImportFailure;
-use App\Models\MemberMessage;
 use App\Models\User;
 use App\Models\MembershipType;
+use App\Queries\MemberDirectory;
 use App\Services\ExcelMemberImporter;
+use App\Support\Membership\MemberCsvExport;
+use App\Support\Membership\MembershipStats;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -25,7 +28,9 @@ new #[Title('Members - Admin')] class extends Component {
     public string $search = '';
 
     #[Url]
-    public string $status = '';
+    public string $segment = 'all';
+
+    public int $perPage = 20;
     
     // Import properties
     public $excelFile = null;
@@ -38,29 +43,135 @@ new #[Title('Members - Admin')] class extends Component {
     public bool $sendWelcomeEmail = true;
     public ?array $importResults = null;
 
-    // Bulk message to selected members
+    // Selection: explicit ids, or every member in the current segment + search.
     public array $selectedUserIds = [];
+    public bool $selectAllMatching = false;
+
     public bool $showBulkMessageModal = false;
     public string $bulkMessageSubject = '';
     public string $bulkMessageBody = '';
 
+    public bool $showBulkTypeModal = false;
+    public string $bulkMembershipTypeId = '';
+
+    public function mount(): void
+    {
+        if (! in_array($this->segment, MembershipStats::SEGMENTS, true)) {
+            $this->segment = 'all';
+        }
+
+        $this->perPage = $this->normalisePerPage(Auth::user()->adminPreference('members.per_page', 20));
+    }
+
+    public function setSegment(string $segment): void
+    {
+        $this->segment = in_array($segment, MembershipStats::SEGMENTS, true) ? $segment : 'all';
+        $this->clearSelection();
+        $this->resetPage();
+    }
+
+    public function updatedPerPage($value): void
+    {
+        $this->perPage = $this->normalisePerPage($value);
+        Auth::user()->setAdminPreference('members.per_page', $this->perPage);
+        $this->resetPage();
+    }
+
+    private function normalisePerPage($value): int
+    {
+        return in_array((int) $value, MemberDirectory::PAGE_SIZES, true) ? (int) $value : MemberDirectory::PAGE_SIZES[0];
+    }
+
     public function toggleSelectAll(bool $checked): void
     {
-        if ($checked) {
-            $this->selectedUserIds = $this->members->pluck('id')->map(fn ($id) => (int) $id)->toArray();
-        } else {
-            $this->selectedUserIds = [];
-        }
+        $this->selectAllMatching = false;
+        $this->selectedUserIds = $checked
+            ? $this->members->pluck('id')->map(fn ($id) => (int) $id)->toArray()
+            : [];
+    }
+
+    public function selectAllInSegment(): void
+    {
+        $this->selectAllMatching = true;
     }
 
     public function clearSelection(): void
     {
         $this->selectedUserIds = [];
+        $this->selectAllMatching = false;
+    }
+
+    #[Computed]
+    public function matchingCount(): int
+    {
+        return MemberDirectory::query($this->segment, $this->search)->count();
+    }
+
+    public function selectedCount(): int
+    {
+        return $this->selectAllMatching ? $this->matchingCount : count($this->selectedUserIds);
+    }
+
+    private function dispatchBulk(string $action, array $payload): void
+    {
+        BulkMemberAction::dispatch(
+            Auth::id(),
+            $action,
+            $payload,
+            $this->selectAllMatching ? [] : array_map('intval', $this->selectedUserIds),
+            $this->selectAllMatching ? $this->segment : null,
+            $this->search,
+        );
+    }
+
+    public function exportSelected()
+    {
+        if ($this->selectedCount() === 0) {
+            session()->flash('error', 'Select at least one member first.');
+            return null;
+        }
+
+        return (new MemberCsvExport(
+            Auth::user(),
+            $this->selectAllMatching ? $this->segment : null,
+            $this->search,
+            $this->selectAllMatching ? [] : array_map('intval', $this->selectedUserIds),
+        ))->download();
+    }
+
+    public function openBulkType(): void
+    {
+        if ($this->selectedCount() === 0) {
+            session()->flash('error', 'Select at least one member first.');
+            return;
+        }
+        $this->bulkMembershipTypeId = '';
+        $this->showBulkTypeModal = true;
+    }
+
+    public function closeBulkType(): void
+    {
+        $this->showBulkTypeModal = false;
+        $this->bulkMembershipTypeId = '';
+    }
+
+    public function applyBulkType(): void
+    {
+        $this->validate([
+            'bulkMembershipTypeId' => ['required', 'integer', \Illuminate\Validation\Rule::exists('membership_types', 'id')->where('is_active', true)],
+        ]);
+
+        $count = $this->selectedCount();
+        $this->dispatchBulk(BulkMemberAction::ACTION_CHANGE_TYPE, ['membership_type_id' => (int) $this->bulkMembershipTypeId]);
+
+        $this->closeBulkType();
+        $this->clearSelection();
+        session()->flash('success', "Membership type change queued for {$count} member(s). Each change is written to the audit log.");
     }
 
     public function openBulkMessage(): void
     {
-        if (empty($this->selectedUserIds)) {
+        if ($this->selectedCount() === 0) {
             session()->flash('error', 'Select at least one member first.');
             return;
         }
@@ -83,179 +194,50 @@ new #[Title('Members - Admin')] class extends Component {
             'bulkMessageBody' => 'required|string|max:5000',
         ]);
 
-        $recipients = User::whereIn('id', $this->selectedUserIds)->get();
-        if ($recipients->isEmpty()) {
+        $count = $this->selectedCount();
+        if ($count === 0) {
             session()->flash('error', 'No recipients selected.');
             $this->closeBulkMessage();
             return;
         }
 
-        $sent = 0;
-        $emailed = 0;
-        $failed = 0;
-
-        foreach ($recipients as $recipient) {
-            try {
-                $message = MemberMessage::create([
-                    'user_id' => $recipient->id,
-                    'sent_by_user_id' => Auth::id(),
-                    'direction' => \App\Models\MemberMessage::DIRECTION_ADMIN_TO_MEMBER,
-                    'subject' => trim($this->bulkMessageSubject),
-                    'body' => trim($this->bulkMessageBody),
-                ]);
-                $sent++;
-
-                if ($recipient->email) {
-                    try {
-                        Mail::to($recipient->email)->send(new MemberMessageMail($message));
-                        $message->update(['email_sent_at' => now()]);
-                        $emailed++;
-                    } catch (\Throwable $e) {
-                        Log::warning('Failed to send bulk member message email', [
-                            'user_id' => $recipient->id,
-                            'message_id' => $message->id,
-                            'error' => $e->getMessage(),
-                        ]);
-                    }
-                }
-            } catch (\Throwable $e) {
-                $failed++;
-                Log::warning('Failed to create bulk member message', [
-                    'user_id' => $recipient->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
-
-        try {
-            app(\App\Services\NtfyService::class)->notifyAdmins(
-                'new_member',
-                'Bulk Message Sent',
-                Auth::user()->name . " sent \"{$this->bulkMessageSubject}\" to {$sent} member(s). {$emailed} emails sent.",
-                'low',
-            );
-        } catch (\Exception $e) {}
+        $this->dispatchBulk(BulkMemberAction::ACTION_MESSAGE, [
+            'subject' => trim($this->bulkMessageSubject),
+            'body' => trim($this->bulkMessageBody),
+        ]);
 
         $this->closeBulkMessage();
-        $this->selectedUserIds = [];
-
-        $parts = ["{$sent} sent", "{$emailed} emailed"];
-        if ($failed > 0) $parts[] = "{$failed} failed";
-        session()->flash('success', 'Bulk message: ' . implode(', ', $parts) . '.');
+        $this->clearSelection();
+        session()->flash('success', "Message queued for {$count} member(s). Bounced or complained addresses get the inbox copy only.");
     }
 
     public function updatedSearch(): void
     {
+        $this->clearSelection();
         $this->resetPage();
     }
 
-    public function updatedStatus(): void
+    #[Computed]
+    public function snapshot(): \App\Support\Membership\MembershipSnapshot
     {
-        $this->resetPage();
+        return MembershipStats::snapshot();
     }
 
     #[Computed]
     public function members()
     {
-        return User::query()
-            ->with([
-                'memberships' => fn ($q) => $q->with('type')->latest('id'),
-                'activeMembership.type',
-            ])
-            ->when($this->search, function ($query) {
-                $query->where(function ($q) {
-                    $q->where('name', 'like', '%' . $this->search . '%')
-                        ->orWhere('email', 'like', '%' . $this->search . '%')
-                        ->orWhere('id_number', 'like', '%' . $this->search . '%')
-                        ->orWhereHas('memberships', function ($mq) {
-                            $mq->where('membership_number', 'like', '%' . $this->search . '%')
-                                ->orWhere('payment_reference', 'like', '%' . $this->search . '%');
-                        });
-                });
-            })
-            ->when($this->status === 'active', function ($query) {
-                $query->whereHas('memberships', fn ($q) => $q->where('status', 'active')->where(fn ($sq) => $sq->whereNull('expires_at')->orWhere('expires_at', '>', now())));
-            })
-            ->when($this->status === 'pending', function ($query) {
-                $query->whereHas('memberships', fn ($q) => $q->where('status', 'applied'));
-            })
-            ->when($this->status === 'expired', function ($query) {
-                // Match the Status badge: only members whose *current* membership is expired.
-                // Having an old expired row must not pull in someone who later renewed/activated.
-                $query->where(function ($q) {
-                    // Case 1: has status=active membership(s), but none are still valid
-                    // (activeMembership exists but expires_at is past → badge shows Expired)
-                    $q->where(function ($inner) {
-                        $inner->whereHas('memberships', fn ($mq) => $mq->where('status', 'active'))
-                            ->whereDoesntHave('memberships', fn ($mq) => $mq
-                                ->where('status', 'active')
-                                ->where(fn ($sq) => $sq->whereNull('expires_at')->orWhere('expires_at', '>', now()))
-                            );
-                    })
-                    // Case 2: no active memberships at all, and the most recent membership is expired
-                    ->orWhere(function ($inner) {
-                        $inner->whereDoesntHave('memberships', fn ($mq) => $mq->where('status', 'active'))
-                            ->whereRaw(
-                                'EXISTS (
-                                    SELECT 1 FROM memberships AS latest
-                                    WHERE latest.user_id = users.id
-                                      AND latest.deleted_at IS NULL
-                                      AND latest.status = ?
-                                      AND latest.id = (
-                                          SELECT MAX(m2.id)
-                                          FROM memberships AS m2
-                                          WHERE m2.user_id = users.id
-                                            AND m2.deleted_at IS NULL
-                                      )
-                                )',
-                                ['expired']
-                            );
-                    });
-                });
-            })
-            ->when($this->status === 'none', function ($query) {
-                $query->whereDoesntHave('memberships');
-            })
-            ->latest()
-            ->paginate(20);
+        return MemberDirectory::query($this->segment, $this->search)
+            ->with(['memberships' => fn ($q) => $q->with('type')->latest('id')])
+            ->latest('users.created_at')
+            ->latest('users.id')
+            ->paginate($this->perPage);
     }
 
-    #[Computed]
-    public function stats()
+    public function currentMembership(User $user)
     {
-        return \Illuminate\Support\Facades\Cache::remember('admin_members_stats_v2', 120, function () {
-            return [
-                'total' => User::where('role', User::ROLE_MEMBER)->count(),
-                'active' => User::whereHas('memberships', fn ($q) => $q->where('status', 'active')->where(fn ($sq) => $sq->whereNull('expires_at')->orWhere('expires_at', '>', now())))->count(),
-                'pending' => User::whereHas('memberships', fn ($q) => $q->where('status', 'applied'))->count(),
-                'expired' => User::query()->where(function ($q) {
-                    $q->where(function ($inner) {
-                        $inner->whereHas('memberships', fn ($mq) => $mq->where('status', 'active'))
-                            ->whereDoesntHave('memberships', fn ($mq) => $mq
-                                ->where('status', 'active')
-                                ->where(fn ($sq) => $sq->whereNull('expires_at')->orWhere('expires_at', '>', now()))
-                            );
-                    })->orWhere(function ($inner) {
-                        $inner->whereDoesntHave('memberships', fn ($mq) => $mq->where('status', 'active'))
-                            ->whereRaw(
-                                'EXISTS (
-                                    SELECT 1 FROM memberships AS latest
-                                    WHERE latest.user_id = users.id
-                                      AND latest.deleted_at IS NULL
-                                      AND latest.status = ?
-                                      AND latest.id = (
-                                          SELECT MAX(m2.id)
-                                          FROM memberships AS m2
-                                          WHERE m2.user_id = users.id
-                                            AND m2.deleted_at IS NULL
-                                      )
-                                )',
-                                ['expired']
-                            );
-                    });
-                })->count(),
-            ];
-        });
+        $today = now()->startOfDay();
+
+        return $user->memberships->first(fn ($m) => MembershipState::isCurrent($m, $today));
     }
 
     /**
@@ -279,34 +261,45 @@ new #[Title('Members - Admin')] class extends Component {
         });
     }
 
+    /**
+     * Same state rules as the segment counts, so a row never contradicts the
+     * chip it was listed under.
+     */
     public function getMembershipStatus($user): array
     {
-        $activeMembership = $user->activeMembership;
-        if ($activeMembership) {
-            if ($activeMembership->expires_at && $activeMembership->expires_at->isPast()) {
-                return ['status' => 'Expired', 'class' => 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'];
-            }
-            return ['status' => 'Active', 'class' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'];
-        }
+        $state = $user->membershipState();
 
-        $latestMembership = $user->memberships->first();
-        if (!$latestMembership) {
-            return ['status' => 'No Membership', 'class' => 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200'];
-        }
+        return [
+            'status' => $state->label(),
+            'class' => match ($state) {
+                MembershipState::Active => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
+                MembershipState::Suspended => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+                MembershipState::Expired => 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+                MembershipState::Pending => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+                MembershipState::None => 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200',
+            },
+        ];
+    }
 
-        $displayStatus = $latestMembership->status;
-        if ($displayStatus === 'active' && $latestMembership->expires_at && $latestMembership->expires_at->isPast()) {
-            $displayStatus = 'expired';
-        }
+    /**
+     * @return array<string, array{label: string, count: int}>
+     */
+    public function segmentChips(): array
+    {
+        $labels = [
+            'all' => 'All members',
+            'active' => 'Active',
+            'expiring_30' => 'Expiring in 30 days',
+            'expired' => 'Expired',
+            'awaiting_payment' => 'Awaiting payment',
+        ];
 
-        return match($displayStatus) {
-            'applied' => ['status' => 'Pending', 'class' => 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300'],
-            'approved' => ['status' => 'Approved', 'class' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'],
-            'suspended' => ['status' => 'Suspended', 'class' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'],
-            'revoked' => ['status' => 'Revoked', 'class' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'],
-            'expired' => ['status' => 'Expired', 'class' => 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'],
-            default => ['status' => ucfirst($latestMembership->status), 'class' => 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200'],
-        };
+        return collect(MembershipStats::SEGMENTS)
+            ->mapWithKeys(fn ($segment) => [$segment => [
+                'label' => $labels[$segment] ?? $segment,
+                'count' => $this->snapshot->forSegment($segment),
+            ]])
+            ->all();
     }
     
     public function openImportModal(): void
@@ -388,6 +381,11 @@ new #[Title('Members - Admin')] class extends Component {
             return;
         }
 
+        if (! $user->canReceiveEmail()) {
+            session()->flash('error', "{$user->name}'s email address is marked undeliverable ({$user->email_status}). Update the address before resending.");
+            return;
+        }
+
         try {
             Mail::to($user->email)->send(new ImportWelcome(
                 $user,
@@ -462,24 +460,24 @@ new #[Title('Members - Admin')] class extends Component {
         </div>
     @endif
 
-    {{-- Stats Cards --}}
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-            <p class="text-sm text-zinc-500 dark:text-zinc-400">Total Users</p>
-            <p class="mt-1 text-2xl font-bold text-zinc-900 dark:text-white">{{ $this->stats['total'] }}</p>
-        </div>
-        <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-            <p class="text-sm text-zinc-500 dark:text-zinc-400">Active Members</p>
-            <p class="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ $this->stats['active'] }}</p>
-        </div>
-        <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-            <p class="text-sm text-zinc-500 dark:text-zinc-400">Pending Approval</p>
-            <p class="mt-1 text-2xl font-bold text-amber-600 dark:text-amber-400">{{ $this->stats['pending'] }}</p>
-        </div>
-        <div class="rounded-2xl shadow-sm border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-            <p class="text-sm text-zinc-500 dark:text-zinc-400">Expired</p>
-            <p class="mt-1 text-2xl font-bold text-orange-600 dark:text-orange-400">{{ $this->stats['expired'] }}</p>
-        </div>
+    {{-- Segments: counts come from the shared membership snapshot --}}
+    <div class="flex flex-wrap items-center gap-2">
+        @foreach($this->segmentChips() as $key => $chip)
+            <button type="button" wire:click="setSegment('{{ $key }}')" data-segment-chip="{{ $key }}"
+                @class([
+                    'inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors',
+                    'border-nrapa-blue bg-nrapa-blue text-white' => $segment === $key,
+                    'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800' => $segment !== $key,
+                ])>
+                {{ $chip['label'] }}
+                <span @class([
+                    'rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums',
+                    'bg-white/20 text-white' => $segment === $key,
+                    'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300' => $segment !== $key,
+                ]) data-stat="{{ $key === 'all' ? 'total' : $key }}">{{ number_format($chip['count']) }}</span>
+            </button>
+        @endforeach
+        <span class="ml-auto text-xs text-zinc-500 dark:text-zinc-400">One snapshot, computed {{ $this->snapshot->computedAt->format('H:i') }}</span>
     </div>
 
     {{-- Filters --}}
@@ -489,37 +487,52 @@ new #[Title('Members - Admin')] class extends Component {
                 type="text"
                 wire:model.live.debounce.300ms="search"
                 placeholder="Search by name, email, ID number, membership number, or payment reference..."
-                class="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white dark:placeholder-zinc-400"
+                class="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-nrapa-blue focus:outline-none focus:ring-1 focus:ring-nrapa-blue dark:border-zinc-600 dark:bg-zinc-800 dark:text-white dark:placeholder-zinc-400"
             >
         </div>
-        <div class="flex gap-2">
-            <select
-                wire:model.live="status"
-                class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
-            >
-                <option value="">All Statuses</option>
-                <option value="active">Active</option>
-                <option value="pending">Pending</option>
-                <option value="expired">Expired</option>
-                <option value="none">No Membership</option>
+        <label class="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
+            Per page
+            <select wire:model.live="perPage" data-per-page
+                class="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-nrapa-blue focus:outline-none focus:ring-1 focus:ring-nrapa-blue dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
+                @foreach(\App\Queries\MemberDirectory::PAGE_SIZES as $size)
+                    <option value="{{ $size }}">{{ $size }}</option>
+                @endforeach
             </select>
-        </div>
+        </label>
     </div>
 
     {{-- Bulk Actions Bar (visible when rows are selected) --}}
-    @if(count($selectedUserIds) > 0)
-    <div class="flex items-center justify-between rounded-2xl border border-blue-300 bg-blue-50 px-4 py-3 dark:border-blue-700 dark:bg-blue-900/20">
-        <p class="text-sm text-blue-800 dark:text-blue-200">
-            <strong>{{ count($selectedUserIds) }}</strong> member(s) selected
-        </p>
-        <div class="flex items-center gap-2">
+    @if($this->selectedCount() > 0)
+    @php $pageIds = $this->members->pluck('id')->map(fn ($id) => (int) $id)->all(); @endphp
+    <div class="flex flex-col gap-3 rounded-2xl border border-blue-300 bg-blue-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-blue-700 dark:bg-blue-900/20" data-bulk-bar>
+        <div class="text-sm text-blue-800 dark:text-blue-200">
+            @if($selectAllMatching)
+                All <strong data-selected-count>{{ number_format($this->matchingCount) }}</strong> member(s) in this segment are selected.
+            @else
+                <strong data-selected-count>{{ count($selectedUserIds) }}</strong> member(s) selected.
+                @if(empty(array_diff($pageIds, array_map('intval', $selectedUserIds))) && $this->matchingCount > count($selectedUserIds))
+                    <button type="button" wire:click="selectAllInSegment" class="ml-1 font-semibold underline hover:no-underline" data-select-all-matching>
+                        Select all {{ number_format($this->matchingCount) }} in this segment
+                    </button>
+                @endif
+            @endif
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
             <button wire:click="openBulkMessage"
-                class="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors">
+                class="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-lg bg-nrapa-blue text-white hover:bg-nrapa-blue-dark transition-colors">
                 <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
-                Send Message to Selected
+                Send message
+            </button>
+            <button wire:click="openBulkType"
+                class="px-4 py-2 text-sm font-medium rounded-lg border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 transition-colors">
+                Change membership type
+            </button>
+            <button wire:click="exportSelected"
+                class="px-4 py-2 text-sm font-medium rounded-lg border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 transition-colors">
+                Export CSV
             </button>
             <button wire:click="clearSelection"
-                class="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 transition-colors">
+                class="px-4 py-2 text-sm font-medium rounded-lg text-zinc-600 hover:bg-white/60 dark:text-zinc-300 transition-colors">
                 Clear
             </button>
         </div>
@@ -532,9 +545,11 @@ new #[Title('Members - Admin')] class extends Component {
             <table class="w-full">
                 <thead class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/50">
                     <tr>
+                        @php $pageFullySelected = $selectAllMatching || (count($selectedUserIds) > 0 && count($selectedUserIds) >= count($this->members->items())); @endphp
                         <th class="w-10 px-4 py-3">
-                            <input type="checkbox"
-                                @checked(count($selectedUserIds) > 0 && count($selectedUserIds) === $this->members->count())
+                            {{-- Keyed on the selection so a server-side clear also clears the browser's checked state. --}}
+                            <input type="checkbox" wire:key="select-page-{{ $segment }}-{{ $this->members->currentPage() }}-{{ (int) $pageFullySelected }}"
+                                @checked($pageFullySelected)
                                 wire:click="toggleSelectAll($event.target.checked)"
                                 class="rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700">
                         </th>
@@ -550,11 +565,17 @@ new #[Title('Members - Admin')] class extends Component {
                     @php
                         $membershipStatus = $this->getMembershipStatus($user);
                         $awaitingPaymentMembership = $this->getAwaitingPaymentMembership($user);
+                        $currentMembership = $this->currentMembership($user);
                     @endphp
-                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 {{ in_array($user->id, $selectedUserIds) ? 'bg-blue-50 dark:bg-blue-900/10' : '' }}">
+                    <tr data-member-list-row class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 {{ $selectAllMatching || in_array($user->id, $selectedUserIds) ? 'bg-blue-50 dark:bg-blue-900/10' : '' }}">
                         <td class="w-10 px-4 py-4">
-                            <input type="checkbox" value="{{ $user->id }}" wire:model.live="selectedUserIds"
-                                class="rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700">
+                            @if($selectAllMatching)
+                                <input type="checkbox" checked disabled wire:key="row-all-{{ $user->id }}" aria-label="Selected with the whole segment"
+                                    class="rounded border-zinc-300 text-blue-600 dark:border-zinc-600 dark:bg-zinc-700">
+                            @else
+                                <input type="checkbox" value="{{ $user->id }}" wire:model.live="selectedUserIds" wire:key="row-{{ $user->id }}"
+                                    class="rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700">
+                            @endif
                         </td>
                         <td class="whitespace-nowrap px-6 py-4">
                             <div class="flex items-center gap-3">
@@ -574,9 +595,9 @@ new #[Title('Members - Admin')] class extends Component {
                             </div>
                         </td>
                         <td class="whitespace-nowrap px-6 py-4">
-                            @if($user->activeMembership)
-                                <p class="font-medium text-zinc-900 dark:text-white">{{ $user->activeMembership->type->name }}</p>
-                                <p class="font-mono text-sm text-zinc-500 dark:text-zinc-400">{{ $user->activeMembership->membership_number }}</p>
+                            @if($currentMembership)
+                                <p class="font-medium text-zinc-900 dark:text-white">{{ $currentMembership->type?->name }}</p>
+                                <p class="font-mono text-sm text-zinc-500 dark:text-zinc-400">{{ $currentMembership->membership_number }}</p>
                             @elseif($user->memberships->first())
                                 <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ $user->memberships->first()->type->name ?? 'N/A' }}</p>
                                 @if($user->memberships->first()->membership_number)
@@ -608,13 +629,13 @@ new #[Title('Members - Admin')] class extends Component {
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="px-6 py-12 text-center">
+                        <td colspan="6" class="px-6 py-12 text-center">
                             <svg class="mx-auto size-12 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
                             </svg>
                             <h3 class="mt-4 font-semibold text-zinc-900 dark:text-white">No members found</h3>
                             <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-                                @if($this->search || $this->status)
+                                @if($this->search || $this->segment !== 'all')
                                     Try adjusting your search or filter criteria.
                                 @else
                                     No members have registered yet.
@@ -803,7 +824,7 @@ new #[Title('Members - Admin')] class extends Component {
                 <div class="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
                     <div>
                         <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Send Message</h3>
-                        <p class="text-xs text-zinc-500 dark:text-zinc-400">To {{ count($selectedUserIds) }} selected member(s)</p>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">To {{ number_format($this->selectedCount()) }} selected member(s)</p>
                     </div>
                     <button wire:click="closeBulkMessage" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -824,13 +845,56 @@ new #[Title('Members - Admin')] class extends Component {
                     </div>
                     <div class="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20">
                         <p class="text-xs text-amber-800 dark:text-amber-200">
-                            This will create <strong>{{ count($selectedUserIds) }}</strong> individual messages and queue an email for each member with an address on file.
+                            This queues <strong>{{ number_format($this->selectedCount()) }}</strong> individual messages. Each member gets an inbox copy; email goes only to addresses that have not bounced or complained.
                         </p>
                     </div>
                     <div class="flex justify-end gap-3 pt-2 border-t border-zinc-200 dark:border-zinc-800">
                         <button type="button" wire:click="closeBulkMessage" class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 transition-colors">Cancel</button>
-                        <button type="submit" wire:confirm="Send this message to {{ count($selectedUserIds) }} member(s)?"
-                            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">Send to {{ count($selectedUserIds) }}</button>
+                        <button type="submit" wire:confirm="Send this message to {{ number_format($this->selectedCount()) }} member(s)?"
+                            class="px-4 py-2 text-sm font-medium text-white bg-nrapa-blue rounded-lg hover:bg-nrapa-blue-dark transition-colors">Send to {{ number_format($this->selectedCount()) }}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Bulk Membership Type Modal --}}
+    @if($showBulkTypeModal)
+    <div class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div wire:click="closeBulkType" class="fixed inset-0 bg-black/50"></div>
+            <div class="relative w-full max-w-lg rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+                <div class="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-700">
+                    <div>
+                        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Change membership type</h3>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">For {{ number_format($this->selectedCount()) }} selected member(s)</p>
+                    </div>
+                    <button wire:click="closeBulkType" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <form wire:submit="applyBulkType" class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">New membership type <span class="text-red-500">*</span></label>
+                        <select wire:model="bulkMembershipTypeId"
+                            class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-nrapa-blue focus:ring-1 focus:ring-nrapa-blue dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                            <option value="">Choose a type…</option>
+                            @foreach($this->membershipTypes as $type)
+                                <option value="{{ $type->id }}">{{ $type->name }}</option>
+                            @endforeach
+                        </select>
+                        @error('bulkMembershipTypeId') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div class="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20">
+                        <p class="text-xs text-amber-800 dark:text-amber-200">
+                            Applies to each member's current membership (or their latest one if none is current). Expiry dates are not recalculated. Every change is audit logged.
+                        </p>
+                    </div>
+                    <div class="flex justify-end gap-3 pt-2 border-t border-zinc-200 dark:border-zinc-700">
+                        <button type="button" wire:click="closeBulkType" class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 transition-colors">Cancel</button>
+                        <button type="submit" wire:confirm="Change the membership type for {{ number_format($this->selectedCount()) }} member(s)?"
+                            class="px-4 py-2 text-sm font-medium text-white bg-nrapa-blue rounded-lg hover:bg-nrapa-blue-dark transition-colors">Apply to {{ number_format($this->selectedCount()) }}</button>
                     </div>
                 </form>
             </div>

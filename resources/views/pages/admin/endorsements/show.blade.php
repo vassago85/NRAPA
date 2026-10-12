@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\ApprovalDecision;
+use App\Livewire\Concerns\DecidesApprovals;
 use App\Mail\EndorsementDeleted;
 use App\Models\EndorsementRequest;
 use App\Models\EndorsementFirearm;
@@ -13,6 +15,8 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin')] class extends Component {
+    use DecidesApprovals;
+
     public EndorsementRequest $request;
 
     public bool $showRejectModal = false;
@@ -136,57 +140,43 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             'adminNotes.min' => 'Please provide more detail about the required documents.',
         ]);
 
-        $this->request->markPendingDocuments(auth()->user(), $this->adminNotes);
-        
-        AuditLog::create([
-            'user_id' => auth()->id(),
-            'event' => 'endorsement_pending_documents',
-            'auditable_type' => EndorsementRequest::class,
-            'auditable_id' => $this->request->id,
-            'old_values' => ['status' => $this->request->status],
-            'new_values' => ['status' => 'pending_documents', 'notes' => $this->adminNotes],
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-        ]);
+        if ($this->decideFor($this->request, ApprovalDecision::RequestChanges, $this->adminNotes)) {
+            session()->flash('success', 'Request marked as pending additional documents.');
+        }
 
-        session()->flash('success', 'Request marked as pending additional documents.');
         $this->request->refresh();
     }
 
     public function approveEndorsement(): void
     {
-        // Approve the request — suppress email since auto-issue will send the "issued" variant
-        $this->request->approve(auth()->user(), $this->adminNotes, sendNotification: false);
-        
-        // Add note if non-compliant
-        if (!$this->isFullyCompliant) {
+        if ($this->selectedDedicatedCategory && $this->selectedDedicatedCategory !== $this->request->dedicated_category) {
+            $this->request->update(['dedicated_category' => $this->selectedDedicatedCategory]);
+        }
+
+        $note = $this->adminNotes ?: null;
+
+        if (! $this->isFullyCompliant) {
             $errors = $this->memberEligibility['errors'] ?? [];
             $errorMessages = array_map(fn($error) => is_array($error) ? ($error['message'] ?? '') : $error, $errors);
-            $errorList = implode('. ', array_filter($errorMessages));
-            
-            $complianceNote = "[APPROVED DESPITE NON-COMPLIANCE] Member is not fully compliant: " . $errorList;
-            $notes = $this->adminNotes ? $this->adminNotes . "\n\n" . $complianceNote : $complianceNote;
-            $this->request->update(['admin_notes' => $notes]);
+            $complianceNote = '[APPROVED DESPITE NON-COMPLIANCE] Member is not fully compliant: '.implode('. ', array_filter($errorMessages));
+            $note = $note ? $note."\n\n".$complianceNote : $complianceNote;
         }
-        
-        AuditLog::create([
-            'user_id' => auth()->id(),
-            'event' => 'endorsement_approved',
-            'auditable_type' => EndorsementRequest::class,
-            'auditable_id' => $this->request->id,
-            'old_values' => ['status' => $this->request->getOriginal('status')],
-            'new_values' => [
-                'status' => 'approved',
-                'fully_compliant' => $this->isFullyCompliant,
-            ],
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-        ]);
 
-        // Auto-generate and issue the endorsement letter on approval
-        $this->autoIssueEndorsementLetter();
+        if (! $this->decideFor($this->request, ApprovalDecision::Approve, $note)) {
+            $this->request->refresh();
+            return;
+        }
 
         $this->request->refresh();
+        $approval = \App\Models\Approval::forApprovable($this->request)->first();
+
+        if ($approval?->awaitsSecondSignature()) {
+            session()->flash('success', 'Your approval is recorded (1 of 2). A second admin needs to approve before the letter is issued.');
+        } elseif ($this->request->isIssued()) {
+            session()->flash('success', 'Endorsement approved and letter issued — the member has been emailed the letter.');
+        } else {
+            session()->flash('error', 'Endorsement approved, but letter generation failed — use "Retry Auto-Generate" to try again.');
+        }
     }
 
     /**
@@ -718,21 +708,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             'rejectionReason.min' => 'The rejection reason must be at least 10 characters.',
         ]);
 
-        $this->request->reject(auth()->user(), $this->rejectionReason);
-        
-        AuditLog::create([
-            'user_id' => auth()->id(),
-            'event' => 'endorsement_rejected',
-            'auditable_type' => EndorsementRequest::class,
-            'auditable_id' => $this->request->id,
-            'old_values' => ['status' => $this->request->status],
-            'new_values' => ['status' => 'rejected', 'reason' => $this->rejectionReason],
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-        ]);
+        if ($this->decideFor($this->request, ApprovalDecision::Decline, $this->rejectionReason)) {
+            $this->showRejectModal = false;
+            session()->flash('success', 'Request rejected.');
+        }
 
-        $this->showRejectModal = false;
-        session()->flash('success', 'Request rejected.');
         $this->request->refresh();
     }
 
@@ -1502,8 +1482,19 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                             </div>
                         @endif
 
-                        {{-- Show Approve button if submitted, under review, or pending documents --}}
-                        @if(in_array($request->status, ['submitted', 'under_review', 'pending_documents']))
+                        @php $queueApproval = \App\Models\Approval::forApprovable($request)->with('firstApprover')->first(); @endphp
+                        @if($request->status === 'pending_documents')
+                            <p class="mb-3 rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 p-3 text-sm text-zinc-600 dark:text-zinc-400">
+                                Waiting on the member to resubmit. It returns to the approval queue when they do.
+                            </p>
+                        @endif
+                        @if($queueApproval?->awaitsSecondSignature())
+                            <p class="mb-3 rounded-lg bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 p-3 text-sm text-violet-800 dark:text-violet-200">
+                                1 of 2 — approved by {{ $queueApproval->firstApprover?->name ?? 'an admin' }} {{ $queueApproval->first_approved_at?->diffForHumans() }}. A different admin must give the second approval.
+                            </p>
+                        @endif
+
+                        @if(in_array($request->status, ['submitted', 'under_review']))
                             <button wire:click="approveEndorsement"
                                 wire:confirm="{{ !$this->isFullyCompliant ? 'WARNING: This member is NOT fully compliant. Are you sure you want to approve this endorsement request despite the missing prerequisites?' : 'Are you sure you want to approve this endorsement request?' }}"
                                 wire:loading.attr="disabled"
@@ -1542,10 +1533,12 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
 
                         {{-- Show other action buttons only if not approved/issued --}}
                         @if(!$request->isApproved() && !$request->isIssued())
+                            @if(in_array($request->status, ['submitted', 'under_review']))
                             <button wire:click="requestMoreDocuments"
                                 class="w-full px-4 py-2 border border-amber-500 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors mb-2">
                                 Request More Documents
                             </button>
+                            @endif
 
                             <button wire:click="$set('showRejectModal', true)"
                                 class="w-full px-4 py-2 border border-red-500 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors mb-2">

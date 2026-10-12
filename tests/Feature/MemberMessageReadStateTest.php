@@ -151,10 +151,10 @@ test('admin navigation badge shows the unread incoming total', function () {
         ->assertSeeInOrder(['Admin Inbox']);
 
     $html = $this->actingAs($this->admin)->get(route('admin.messages.index'))->getContent();
-    expect($html)->toMatch('/bg-amber-500 text-white">\s*3\s*</');
+    expect($html)->toMatch('/Inbox\s*<span[^>]*>\s*3\s*<\/span>/');
 
     MemberMessage::query()->update(['read_at' => now()]);
 
     $html = $this->actingAs($this->admin)->get(route('admin.messages.index'))->getContent();
-    expect($html)->not->toMatch('/bg-amber-500 text-white">\s*\d+\s*</');
+    expect($html)->not->toMatch('/Inbox\s*<span[^>]*>\s*\d+\s*<\/span>/');
 });

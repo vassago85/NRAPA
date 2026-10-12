@@ -8,9 +8,14 @@ use App\Http\Controllers\FirearmLicenceController;
 use App\Http\Controllers\MemberDocumentPreviewController;
 use App\Http\Controllers\SageOAuthController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Controllers\Webhooks\MailgunWebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
+
+Route::post('/webhooks/mailgun', MailgunWebhookController::class)
+    ->middleware('throttle:300,1')
+    ->name('webhooks.mailgun');
 Route::view('/terms-and-conditions', 'pages.terms')->name('terms-and-conditions');
 Route::view('/privacy-policy', 'pages.privacy')->name('privacy-policy');
 
@@ -462,6 +467,9 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 
     // Affiliated Clubs Management
     Route::livewire('affiliated-clubs', 'pages::admin.affiliated-clubs.index')->name('affiliated-clubs.index');
+
+    Route::livewire('review', 'pages::admin.review.index')->name('review.index');
+    Route::livewire('review/{approval}', 'pages::admin.review.index')->name('review.show');
 
     Route::livewire('approvals', 'pages::admin.approvals.index')->name('approvals.index');
     Route::livewire('approvals/{membership}', 'pages::admin.approvals.show')->name('approvals.show');

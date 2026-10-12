@@ -1,8 +1,12 @@
 <?php
 
+use App\Enums\ApprovalDecision;
+use App\Enums\ApprovalType;
+use App\Livewire\Concerns\DecidesApprovals;
 use App\Models\DocumentType;
 use App\Models\MemberDocument;
 use App\Models\ShootingActivity;
+use App\Queries\ApprovalQueue;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -12,6 +16,7 @@ use Livewire\WithPagination;
 
 new #[Layout('layouts.app.sidebar')] class extends Component {
     use WithPagination;
+    use DecidesApprovals;
 
     #[Url(nullable: true)]
     public string $statusFilter = 'pending';
@@ -43,24 +48,41 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
     public function with(): array
     {
         $query = MemberDocument::with(['user', 'documentType', 'verifier'])
-            ->when($this->statusFilter, fn($q) => $q->where('status', $this->statusFilter))
+            ->when($this->statusFilter === 'pending', fn ($q) => $q
+                ->join('approvals', function ($join) {
+                    $join->on('approvals.approvable_id', '=', 'member_documents.id')
+                        ->where('approvals.approvable_type', (new MemberDocument)->getMorphClass())
+                        ->where('approvals.state', \App\Enums\ApprovalState::WaitingOnAdmin->value);
+                })
+                ->select('member_documents.*'))
+            ->when($this->statusFilter && $this->statusFilter !== 'pending', fn($q) => $q->where('status', $this->statusFilter))
             ->when($this->typeFilter, fn($q) => $q->where('document_type_id', $this->typeFilter))
             ->when($this->search, function ($q) {
-                $q->whereHas('user', function ($userQuery) {
+                $q->where(fn ($inner) => $inner->whereHas('user', function ($userQuery) {
                     $userQuery->where('name', 'like', "%{$this->search}%")
                         ->orWhere('email', 'like', "%{$this->search}%")
                         ->orWhere('id_number', 'like', "%{$this->search}%");
-                })->orWhere('original_filename', 'like', "%{$this->search}%");
+                })->orWhere('member_documents.original_filename', 'like', "%{$this->search}%"));
             })
-            ->orderBy('created_at', 'desc');
+            ->orderBy($this->statusFilter === 'pending' ? 'approvals.submitted_at' : 'member_documents.created_at', $this->statusFilter === 'pending' ? 'asc' : 'desc');
 
-        $pendingCount = MemberDocument::where('status', 'pending')->count();
+        $pendingCount = app(ApprovalQueue::class)->countsByType()[ApprovalType::Document->value];
         $documentTypes = DocumentType::active()->ordered()->get();
+
+        $decidedToday = MemberDocument::query()
+            ->whereIn('status', ['verified', 'rejected'])
+            ->whereDate('verified_at', today())
+            ->selectRaw('status, count(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status');
 
         return [
             'documents' => $query->paginate(15),
             'pendingCount' => $pendingCount,
             'documentTypes' => $documentTypes,
+            'verifiedToday' => (int) ($decidedToday['verified'] ?? 0),
+            'rejectedToday' => (int) ($decidedToday['rejected'] ?? 0),
+            'totalDocuments' => MemberDocument::query()->count(),
         ];
     }
 
@@ -101,8 +123,15 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             return;
         }
 
-        $this->reviewingDocument->verify(auth()->user());
-        
+        if ($this->hasOpenApproval($this->reviewingDocument)) {
+            if (! $this->decideFor($this->reviewingDocument, ApprovalDecision::Approve)) {
+                return;
+            }
+        } else {
+            // Activity evidence is not queued on its own; it is decided with its activity.
+            $this->reviewingDocument->verify(auth()->user());
+        }
+
         session()->flash('success', "Document verified successfully.");
         $this->reset(['showReviewModal', 'reviewingDocument', 'rejectionReason']);
     }
@@ -117,8 +146,14 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             'rejectionReason' => 'required|string|min:10|max:500',
         ]);
 
-        $this->reviewingDocument->reject(auth()->user(), $this->rejectionReason);
-        
+        if ($this->hasOpenApproval($this->reviewingDocument)) {
+            if (! $this->decideFor($this->reviewingDocument, ApprovalDecision::Decline, $this->rejectionReason)) {
+                return;
+            }
+        } else {
+            $this->reviewingDocument->reject(auth()->user(), $this->rejectionReason);
+        }
+
         session()->flash('info', "Document rejected. Member will be notified.");
         $this->reset(['showReviewModal', 'reviewingDocument', 'rejectionReason']);
     }
@@ -198,6 +233,11 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             {{ session('info') }}
         </div>
     @endif
+    @if(session('error'))
+        <div class="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-xl text-red-800 dark:text-red-200">
+            {{ session('error') }}
+        </div>
+    @endif
 
     {{-- Stats --}}
     <div class="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -208,19 +248,19 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         <div class="bg-white dark:bg-zinc-900 rounded-2xl p-4 border border-zinc-200 dark:border-zinc-800 shadow-sm">
             <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Verified Today</p>
             <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                {{ \App\Models\MemberDocument::where('status', 'verified')->whereDate('verified_at', today())->count() }}
+                {{ $verifiedToday }}
             </p>
         </div>
         <div class="bg-white dark:bg-zinc-900 rounded-2xl p-4 border border-zinc-200 dark:border-zinc-800 shadow-sm">
             <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Rejected Today</p>
             <p class="text-2xl font-bold text-red-600 dark:text-red-400">
-                {{ \App\Models\MemberDocument::where('status', 'rejected')->whereDate('verified_at', today())->count() }}
+                {{ $rejectedToday }}
             </p>
         </div>
         <div class="bg-white dark:bg-zinc-900 rounded-2xl p-4 border border-zinc-200 dark:border-zinc-800 shadow-sm">
             <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Total Documents</p>
             <p class="text-2xl font-bold text-zinc-900 dark:text-white">
-                {{ \App\Models\MemberDocument::count() }}
+                {{ $totalDocuments }}
             </p>
         </div>
     </div>

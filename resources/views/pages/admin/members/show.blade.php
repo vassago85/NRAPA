@@ -119,6 +119,10 @@ new #[Title('Member Details - Admin')] class extends Component {
     public string $editActivityDescription = '';
     public string $editActivityStatus = 'approved';
 
+    // Disciplinary hold (fails the NoDisciplinaryHold check on every approval)
+    public bool $showHoldForm = false;
+    public string $holdReason = '';
+
     public function mount(User $user): void
     {
         $this->user = $user->load([
@@ -650,6 +654,50 @@ new #[Title('Member Details - Admin')] class extends Component {
         } catch (\Exception $e) {}
 
         session()->flash('success', '2FA has been reset for ' . $this->user->name . '. They will need to set it up again on their next login.');
+    }
+
+    public function placeDisciplinaryHold(): void
+    {
+        if ((int) auth()->id() === (int) $this->user->id) {
+            session()->flash('error', 'You cannot place a disciplinary hold on your own account.');
+            return;
+        }
+
+        $this->validate(['holdReason' => 'required|string|min:5|max:500']);
+
+        $this->user->update([
+            'disciplinary_hold_at' => now(),
+            'disciplinary_hold_reason' => trim($this->holdReason),
+            'disciplinary_hold_by' => auth()->id(),
+        ]);
+
+        \App\Models\AuditLog::log('member.disciplinary_hold_placed', $this->user, null, ['reason' => trim($this->holdReason)]);
+
+        $this->showHoldForm = false;
+        $this->holdReason = '';
+        session()->flash('success', 'Disciplinary hold placed. Approvals for this member now fail the disciplinary check.');
+    }
+
+    public function liftDisciplinaryHold(): void
+    {
+        if (! $this->user->disciplinary_hold_at) {
+            return;
+        }
+
+        $previous = [
+            'reason' => $this->user->disciplinary_hold_reason,
+            'placed_at' => $this->user->disciplinary_hold_at->toIso8601String(),
+        ];
+
+        $this->user->update([
+            'disciplinary_hold_at' => null,
+            'disciplinary_hold_reason' => null,
+            'disciplinary_hold_by' => null,
+        ]);
+
+        \App\Models\AuditLog::log('member.disciplinary_hold_lifted', $this->user, $previous, null);
+
+        session()->flash('success', 'Disciplinary hold lifted.');
     }
 
     public function toggleAdmin(): void
@@ -1751,6 +1799,34 @@ new #[Title('Member Details - Admin')] class extends Component {
     </div>
     @endif
 
+    {{-- Disciplinary hold --}}
+    @if($this->user->disciplinary_hold_at)
+        <div class="flex flex-col gap-3 rounded-xl border border-red-300 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-700 dark:bg-red-900/20" data-disciplinary-hold>
+            <div>
+                <p class="text-sm font-semibold text-red-800 dark:text-red-200">Disciplinary hold since {{ $this->user->disciplinary_hold_at->format('d M Y') }}</p>
+                <p class="text-sm text-red-700 dark:text-red-300">{{ $this->user->disciplinary_hold_reason }}</p>
+                <p class="mt-1 text-xs text-red-600 dark:text-red-400">Every approval for this member fails the disciplinary check until the hold is lifted.</p>
+            </div>
+            <button wire:click="liftDisciplinaryHold" wire:confirm="Lift the disciplinary hold on {{ $this->user->name }}? This is recorded in the audit log."
+                class="px-4 py-2 text-sm font-medium rounded-lg border border-red-300 bg-white text-red-700 hover:bg-red-100 dark:border-red-700 dark:bg-zinc-800 dark:text-red-300">
+                Lift hold
+            </button>
+        </div>
+    @elseif($showHoldForm)
+        <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+            <label for="holdReason" class="text-sm font-semibold text-zinc-900 dark:text-white">Place a disciplinary hold</label>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400">Approvals for this member will fail the disciplinary check until the hold is lifted. The reason is shown to admins only.</p>
+            <textarea id="holdReason" wire:model="holdReason" rows="2" maxlength="500"
+                class="mt-2 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white"
+                placeholder="Reason, e.g. club disciplinary hearing pending"></textarea>
+            @error('holdReason') <p class="mt-1 text-xs text-red-700 dark:text-red-300">{{ $message }}</p> @enderror
+            <div class="mt-3 flex gap-2">
+                <button wire:click="placeDisciplinaryHold" class="px-4 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700">Place hold</button>
+                <button wire:click="$set('showHoldForm', false)" class="px-4 py-2 text-sm font-medium rounded-lg border border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-200">Cancel</button>
+            </div>
+        </div>
+    @endif
+
     {{-- Header --}}
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-4">
@@ -1787,6 +1863,12 @@ new #[Title('Member Details - Admin')] class extends Component {
             <span class="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
                 Deletion Pending
             </span>
+            @endif
+
+            @if(! $this->user->disciplinary_hold_at && ! $showHoldForm && $this->user->id !== auth()->id())
+            <button wire:click="$set('showHoldForm', true)" class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
+                Disciplinary hold
+            </button>
             @endif
 
             {{-- Account Reset Actions --}}

@@ -23,6 +23,14 @@ class RecordLoginLog
         }
 
         try {
+            if ($event->user instanceof User) {
+                $event->user->forceFill(['last_signed_in_at' => now()])->saveQuietly();
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        try {
             $user = $event->user;
             if ($user instanceof User && $user->hasRoleLevel(User::ROLE_ADMIN)) {
                 app(\App\Services\NtfyService::class)->notifyAdmins(

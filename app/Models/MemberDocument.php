@@ -2,8 +2,17 @@
 
 namespace App\Models;
 
+use App\Concerns\SyncsApproval;
+use App\Contracts\Approvable;
+use App\Enums\ApprovalState;
+use App\Enums\ApprovalType;
 use App\Mail\DocumentRejected;
 use App\Mail\DocumentVerified;
+use App\Services\Approvals\ApprovalSync;
+use App\Support\Approvals\Checks\NoDisciplinaryHold;
+use App\Support\Approvals\EvidenceBlock;
+use App\Support\Approvals\PreflightCheck;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -11,9 +20,10 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
-class MemberDocument extends Model
+class MemberDocument extends Model implements Approvable
 {
     use SoftDeletes;
+    use SyncsApproval;
 
     /**
      * The attributes that are mass assignable.
@@ -175,7 +185,12 @@ class MemberDocument extends Model
         static::saved(function (MemberDocument $document) {
             if ($document->wasChanged('status')) {
                 \Illuminate\Support\Facades\Cache::forget('sidebar_pending_total');
-                \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats');
+            }
+        });
+
+        static::created(function (MemberDocument $document) {
+            if ($document->user_id) {
+                app(ApprovalSync::class)->memberResubmitted($document->user_id);
             }
         });
     }
@@ -455,6 +470,147 @@ class MemberDocument extends Model
                 ]
             );
         }
+    }
+
+    /**
+     * Activity evidence is decided together with its activity, never on its own.
+     */
+    public function isActivityEvidence(): bool
+    {
+        return ShootingActivity::query()
+            ->where('evidence_document_id', $this->id)
+            ->orWhere('additional_document_id', $this->id)
+            ->exists();
+    }
+
+    // ===== Approvable =====
+
+    public function approvalType(): ApprovalType
+    {
+        return ApprovalType::Document;
+    }
+
+    public function approvalStateFromModel(): ?ApprovalState
+    {
+        if ($this->status !== 'pending' || $this->trashed() || ! $this->user_id) {
+            return null;
+        }
+
+        return $this->isActivityEvidence() ? null : ApprovalState::WaitingOnAdmin;
+    }
+
+    public function approvalOutcomeFromModel(): ApprovalState
+    {
+        return match ($this->status) {
+            'verified' => ApprovalState::Approved,
+            'rejected' => ApprovalState::Declined,
+            default => ApprovalState::Withdrawn,
+        };
+    }
+
+    public function approvalSubmittedAt(): ?CarbonInterface
+    {
+        return $this->uploaded_at ?? $this->created_at;
+    }
+
+    public function summaryLine(): string
+    {
+        return ($this->user?->name ?? 'Unknown member').' — '.($this->documentType?->name ?? 'Document');
+    }
+
+    public function detailLine(): string
+    {
+        $parts = ['Uploaded '.($this->uploaded_at ?? $this->created_at)?->format('d M Y')];
+
+        if ($previous = $this->previousRejection()) {
+            $parts[] = 'replaces a document rejected on '.$previous->verified_at?->format('d M');
+        }
+
+        if ($this->expires_at) {
+            $parts[] = 'expires '.$this->expires_at->format('d M Y');
+        }
+
+        return implode(' · ', $parts);
+    }
+
+    public function detailWarning(): ?string
+    {
+        return $this->expires_at && $this->expires_at->isPast() ? 'Already expired' : null;
+    }
+
+    public function previousRejection(): ?self
+    {
+        return static::query()
+            ->where('user_id', $this->user_id)
+            ->where('document_type_id', $this->document_type_id)
+            ->where('id', '!=', $this->id)
+            ->where('status', 'rejected')
+            ->latest('verified_at')
+            ->first();
+    }
+
+    public function evidence(): EvidenceBlock
+    {
+        $this->loadMissing(['documentType', 'user']);
+
+        return new EvidenceBlock(
+            view: 'components.admin.evidence.document',
+            title: $this->documentType?->name ?? 'Document',
+            data: [
+                'document' => $this,
+                'fileUrl' => $this->file_path && ! $this->file_purged_at ? route('documents.preview', $this) : null,
+                'isPdf' => str_contains((string) $this->mime_type, 'pdf'),
+                'previousRejection' => $this->previousRejection(),
+            ],
+        );
+    }
+
+    public function preflightChecks(): array
+    {
+        return [
+            $this->file_path && ! $this->file_purged_at
+                ? PreflightCheck::pass('file_present', 'File available', ($this->original_filename ?: 'File').' uploaded')
+                : PreflightCheck::fail('file_present', 'File available', 'No file to review'),
+            ! ($this->expires_at && $this->expires_at->isPast())
+                ? PreflightCheck::pass('not_expired', 'Not expired', $this->expires_at ? 'Valid to '.$this->expires_at->format('d M Y') : 'No expiry')
+                : PreflightCheck::fail('not_expired', 'Not expired', 'Expired '.$this->expires_at->format('d M Y')),
+            NoDisciplinaryHold::check($this->user),
+        ];
+    }
+
+    public function canBeApprovedInline(): bool
+    {
+        return false;
+    }
+
+    public function approvalConsequence(): string
+    {
+        return 'Approving verifies the '.($this->documentType?->name ?? 'document').', emails the member, and writes an audit entry against your name.';
+    }
+
+    public function approveFromQueue(User $actor, ?string $note = null): void
+    {
+        $this->verify($actor);
+    }
+
+    public function declineFromQueue(User $actor, string $reason): void
+    {
+        $this->reject($actor, $reason);
+    }
+
+    public function requestChangesFromQueue(User $actor, array $items, ?string $note = null): void
+    {
+        $this->reject($actor, trim(implode('; ', $items).($note ? " — {$note}" : '')));
+    }
+
+    public function notifiesMemberOnDecision(\App\Enums\ApprovalDecision $decision): bool
+    {
+        return true;
+    }
+
+    public function supersedesApprovableOf(Model $older): bool
+    {
+        return $older instanceof self && (int) $older->document_type_id === (int) $this->document_type_id;
     }
 
     /**

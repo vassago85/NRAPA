@@ -2,8 +2,22 @@
 
 namespace App\Models;
 
+use App\Concerns\SyncsApproval;
+use App\Contracts\Approvable;
+use App\Enums\ApprovalDecision;
+use App\Enums\ApprovalState;
+use App\Enums\ApprovalType;
 use App\Mail\EndorsementApproved;
 use App\Mail\EndorsementRejected;
+use App\Services\EndorsementLetterIssuer;
+use App\Support\Approvals\Checks\AcknowledgementsComplete;
+use App\Support\Approvals\Checks\CompetencyOnFile;
+use App\Support\Approvals\Checks\DedicatedStatusCompliant;
+use App\Support\Approvals\Checks\MembershipActive;
+use App\Support\Approvals\Checks\NoDisciplinaryHold;
+use App\Support\Approvals\Checks\NoOtherOutstandingApproval;
+use App\Support\Approvals\EvidenceBlock;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,9 +27,10 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
-class EndorsementRequest extends Model
+class EndorsementRequest extends Model implements Approvable
 {
     use SoftDeletes;
+    use SyncsApproval;
 
     // Request type constants
     public const TYPE_NEW = 'new';
@@ -173,7 +188,6 @@ class EndorsementRequest extends Model
         static::saved(function (EndorsementRequest $request) {
             if ($request->wasChanged('status')) {
                 \Illuminate\Support\Facades\Cache::forget('sidebar_pending_total');
-                \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats');
             }
         });
     }
@@ -184,6 +198,156 @@ class EndorsementRequest extends Model
     public function getRouteKeyName(): string
     {
         return 'uuid';
+    }
+
+    // ===== Approvable =====
+
+    public function approvalType(): ApprovalType
+    {
+        return ApprovalType::Endorsement;
+    }
+
+    public function approvalStateFromModel(): ?ApprovalState
+    {
+        if (! $this->user_id || $this->trashed()) {
+            return null;
+        }
+
+        return match ($this->status) {
+            self::STATUS_SUBMITTED, self::STATUS_UNDER_REVIEW => ApprovalState::WaitingOnAdmin,
+            self::STATUS_PENDING_DOCUMENTS => ApprovalState::WaitingOnMember,
+            default => null,
+        };
+    }
+
+    public function approvalOutcomeFromModel(): ApprovalState
+    {
+        return match ($this->status) {
+            self::STATUS_APPROVED, self::STATUS_ISSUED => ApprovalState::Approved,
+            self::STATUS_REJECTED => ApprovalState::Declined,
+            default => ApprovalState::Withdrawn,
+        };
+    }
+
+    public function approvalSubmittedAt(): ?CarbonInterface
+    {
+        return $this->submitted_at ?? $this->created_at;
+    }
+
+    public function summaryLine(): string
+    {
+        $variant = $this->isSelfDefence() ? 'self-defence letter' : 'dedicated status endorsement';
+
+        return ($this->user?->name ?? 'Unknown member').' — '.($this->isRenewal() ? 'renewal of ' : '').$variant;
+    }
+
+    public function detailLine(): string
+    {
+        $firearm = $this->firearm;
+        $description = $firearm
+            ? trim(implode(' ', array_filter([$firearm->make ?? null, $firearm->model ?? null, $firearm->calibre_display ?? $firearm->calibre_text ?? null])))
+            : trim(implode(' ', array_filter([$this->firearm_make, $this->firearm_model, $this->firearm_calibre])));
+
+        return implode(' · ', array_filter([
+            $description ?: null,
+            $this->purpose ? (self::getPurposeOptions()[$this->purpose] ?? $this->purpose) : null,
+        ]));
+    }
+
+    public function detailWarning(): ?string
+    {
+        $check = DedicatedStatusCompliant::check($this->user);
+
+        return $check->passed ? null : 'Dedicated status not compliant';
+    }
+
+    public function evidence(): EvidenceBlock
+    {
+        $this->loadMissing(['user', 'firearm', 'acknowledgements', 'documents']);
+
+        $clauses = self::selfDefenceClauses();
+
+        return new EvidenceBlock(
+            view: 'components.admin.evidence.endorsement',
+            title: $this->isSelfDefence() ? 'Self-defence supporting letter' : 'Dedicated status endorsement',
+            data: [
+                'request' => $this,
+                'acknowledgements' => $this->acknowledgements->sortBy(fn ($ack) => array_search($ack->clause_key, array_keys($clauses), true))->values(),
+                'branch' => $this->isSelfDefence() ? self::ENDORSEMENT_TYPE_SELF_DEFENCE : self::ENDORSEMENT_TYPE_DEDICATED_STATUS,
+                'eligibility' => $this->user ? self::getEligibilitySummary($this->user) : null,
+            ],
+            badge: $this->isSelfDefence() ? 'Self-defence' : 'Dedicated status',
+            badgeTone: 'violet',
+        );
+    }
+
+    public function preflightChecks(): array
+    {
+        return [
+            MembershipActive::check($this->user),
+            CompetencyOnFile::check($this->user),
+            AcknowledgementsComplete::check($this),
+            DedicatedStatusCompliant::check($this->user),
+            NoDisciplinaryHold::check($this->user),
+            NoOtherOutstandingApproval::check($this, $this->user_id),
+        ];
+    }
+
+    public function canBeApprovedInline(): bool
+    {
+        return true;
+    }
+
+    public function approvalConsequence(): string
+    {
+        return 'Approving issues the endorsement letter, emails it to the member, and writes an audit entry against your name. Endorsements need two admins to approve.';
+    }
+
+    public function approveFromQueue(User $actor, ?string $note = null): void
+    {
+        $this->approve($actor, $note, sendNotification: false);
+
+        try {
+            app(EndorsementLetterIssuer::class)->issueApprovedLetter(
+                $this,
+                $actor,
+                $this->resolveDedicatedCategoryForIssue(),
+                true,
+                request()?->ip(),
+                request()?->userAgent(),
+                autoIssued: true,
+            );
+        } catch (\Throwable $e) {
+            Log::error('Auto-issue endorsement letter failed after queue approval', [
+                'request_id' => $this->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->refresh();
+            $this->notifyApproval();
+        }
+    }
+
+    public function declineFromQueue(User $actor, string $reason): void
+    {
+        $this->reject($actor, $reason);
+    }
+
+    public function requestChangesFromQueue(User $actor, array $items, ?string $note = null): void
+    {
+        $this->markPendingDocuments($actor, trim(implode("\n", $items).($note ? "\n\n{$note}" : '')));
+    }
+
+    public function notifiesMemberOnDecision(ApprovalDecision $decision): bool
+    {
+        return $decision !== ApprovalDecision::RequestChanges;
+    }
+
+    public function resolveDedicatedCategoryForIssue(): string
+    {
+        return $this->dedicated_category
+            ?: self::dedicatedCategoryForType($this->user?->activeMembership?->type?->dedicated_type)
+            ?: self::DEDICATED_CATEGORY_SPORT;
     }
 
     // ===== Relationships =====

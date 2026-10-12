@@ -35,8 +35,8 @@ class SendPopFollowupReminders extends Command
         $failed = 0;
 
         foreach ($memberships as $membership) {
-            if (! $membership->user?->email) {
-                $this->warn("Skipping membership {$membership->membership_number} — no email address.");
+            if (! $membership->user?->canReceiveEmail()) {
+                $this->warn("Skipping membership {$membership->membership_number} — no deliverable email address.");
                 continue;
             }
 

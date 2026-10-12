@@ -36,6 +36,10 @@ class MailConfigServiceProvider extends ServiceProvider
                 return;
             }
 
+            if ($signingKey = SystemSetting::get('mailgun_webhook_signing_key')) {
+                config(['services.mailgun.webhook_signing_key' => $signingKey]);
+            }
+
             $mailMailer = SystemSetting::get('mail_mailer');
 
             // Only override if we have a mailer setting in database

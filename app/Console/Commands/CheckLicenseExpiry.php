@@ -39,7 +39,8 @@ class CheckLicenseExpiry extends Command
         $notificationsSent = 0;
 
         // Get all users with active memberships who have firearms
-        $users = User::whereHas('activeMembership')
+        $users = User::emailable()
+            ->whereHas('activeMembership')
             ->whereHas('firearms', function ($query) {
                 $query->active()
                     ->whereNotNull('license_expiry_date')

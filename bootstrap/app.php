@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Handle CORS for Livewire uploads
         $middleware->validateCsrfTokens(except: [
             'livewire/upload-file',
+            'webhooks/mailgun',
         ]);
 
         $middleware->alias([

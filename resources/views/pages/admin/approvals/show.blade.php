@@ -1,20 +1,21 @@
 <?php
 
-use App\Jobs\SyncMembershipToSage;
-use App\Models\Membership;
-use App\Models\Certificate;
-use App\Models\AuditLog;
-use App\Mail\MembershipApproved;
-use App\Mail\MembershipRejected;
+use App\Actions\Memberships\RejectMembership;
+use App\Enums\ApprovalDecision;
+use App\Enums\ApprovalState;
+use App\Exceptions\Approvals\ApprovalAlreadyDecided;
+use App\Exceptions\Approvals\ApprovalNotAllowed;
 use App\Mail\PaymentInstructions;
-use App\Mail\PaymentReceived;
-use App\Models\KnowledgeTest;
-use App\Models\KnowledgeTestAttempt;
+use App\Models\Approval;
+use App\Models\AuditLog;
+use App\Models\Membership;
+use App\Models\Payment;
 use App\Models\SystemSetting;
+use App\Services\Approvals\ApprovalService;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -58,9 +59,8 @@ new #[Title('Review Application - Admin')] class extends Component {
             'transferMembershipDocument.documentType',
         ]);
 
-        // Pre-fill change amount with upgrade price
         if ($this->membership->status === 'pending_change') {
-            $this->changeAmount = (float) ($this->membership->type->upgrade_price ?? $this->membership->type->initial_price ?? 0);
+            $this->changeAmount = $this->membership->defaultChangeAmount();
         }
 
         if (!$this->membership->user) {
@@ -97,63 +97,20 @@ new #[Title('Review Application - Admin')] class extends Component {
             return;
         }
 
-        $admin = Auth::user();
+        $this->attempt(function (ApprovalService $service) {
+            // Approving here has always implied the payment was received.
+            if ($this->membership->isBlockedByPayment() && ($payment = $this->openPaymentApproval())) {
+                $this->confirmPaymentApproval($service, $payment);
+                $this->membership->refresh();
+            }
 
-        // Calculate expiry — anchored on the member's original sign-up anniversary
-        // for renewals, on now() for first-time applications. Late payers therefore
-        // do NOT get a "rolling" anniversary that drifts; their next renewal stays
-        // on the same calendar date as their original sign-up.
-        $expiresAt = $this->membership->calculateRenewalAwareExpiry();
+            if ($this->membership->status === 'applied') {
+                $service->decide($this->membershipApproval(), ApprovalDecision::Approve, Auth::user());
+            }
 
-        // Update membership
-        $this->membership->update([
-            'status' => 'active',
-            'approved_at' => now(),
-            'approved_by' => $admin->id,
-            'activated_at' => now(),
-            'expires_at' => $expiresAt,
-            'payment_confirmed_at' => $this->membership->payment_confirmed_at ?? now(),
-            'payment_confirmed_by' => $this->membership->payment_confirmed_by ?? $admin->id,
-        ]);
-
-        // Make sure no older 'active' rows are still hanging around for this user.
-        $this->membership->retireOtherActiveMemberships();
-
-        // Generate membership number from user's permanent member number
-        if (!$this->membership->membership_number) {
-            $user = $this->membership->user;
-            $this->membership->update([
-                'membership_number' => $user->formatted_member_number,
-            ]);
-        }
-
-        // Create certificates based on membership type entitlements
-        $this->issueCertificates();
-
-        // Issue welcome letter and membership card
-        $this->issueWelcomeLetterAndCard($admin);
-
-        // Auto-complete knowledge tests so admin doesn't have to do it separately
-        $this->autoCompleteKnowledgeTests($this->membership->user, $admin);
-
-        // Queue welcome email and payment instructions
-        $this->sendApprovalEmail();
-        $this->sendPaymentEmail();
-
-        // Log the action
-        AuditLog::log(
-            'membership_approved',
-            $this->membership,
-            ['status' => 'applied'],
-            ['status' => 'active'],
-            $admin
-        );
-
-        SyncMembershipToSage::dispatch($this->membership)->afterCommit();
-
-        session()->flash('success', 'Membership approved, welcome letter issued, and emails queued!');
-
-        $this->redirect(route('admin.approvals.index'), navigate: true);
+            session()->flash('success', 'Membership approved, welcome letter issued, and emails queued!');
+            $this->redirect(route('admin.approvals.index'), navigate: true);
+        });
     }
 
     public function reject(): void
@@ -163,42 +120,14 @@ new #[Title('Review Application - Admin')] class extends Component {
             return;
         }
 
-        $this->validate([
-            'rejectionReason' => ['required', 'string', 'min:10'],
-        ], [
-            'rejectionReason.required' => 'Please provide a reason for rejection.',
-            'rejectionReason.min' => 'The rejection reason must be at least 10 characters.',
-        ]);
+        $this->validateRejection();
 
-        $admin = Auth::user();
+        $this->attempt(function (ApprovalService $service) {
+            $service->decide($this->membershipApproval(), ApprovalDecision::Decline, Auth::user(), $this->rejectionReason);
 
-        // Rejection must NOT stamp approved_at — that timestamp is reserved for
-        // genuine approvals and is what the billing/payments-received report
-        // keys off. Use the rejection-specific columns instead so revoked
-        // applications stay out of every "approved" / billable query.
-        $this->membership->update([
-            'status' => 'revoked',
-            'revoked_at' => now(),
-            'revoked_by' => $admin->id,
-            'revocation_reason' => $this->rejectionReason,
-            'suspension_reason' => $this->rejectionReason,
-        ]);
-
-        // Send rejection email
-        $this->sendRejectionEmail();
-
-        // Log the action
-        AuditLog::log(
-            'membership_rejected',
-            $this->membership,
-            ['status' => 'applied'],
-            ['status' => 'revoked', 'reason' => $this->rejectionReason],
-            $admin
-        );
-
-        session()->flash('success', 'Membership application rejected and member notified.');
-
-        $this->redirect(route('admin.approvals.index'), navigate: true);
+            session()->flash('success', 'Membership application rejected and member notified.');
+            $this->redirect(route('admin.approvals.index'), navigate: true);
+        });
     }
 
     public function setChangeAmount(): void
@@ -215,49 +144,13 @@ new #[Title('Review Application - Admin')] class extends Component {
             'changeAmount.min' => 'Amount cannot be negative.',
         ]);
 
-        $this->membership->update([
-            'change_amount' => $this->changeAmount,
-            'status' => 'pending_payment',
-        ]);
+        $this->attempt(function (ApprovalService $service) {
+            $this->membership->update(['change_amount' => $this->changeAmount]);
+            $service->decide($this->membershipApproval(), ApprovalDecision::Approve, Auth::user(), 'Change fee R'.number_format((float) $this->changeAmount, 2));
+            $this->membership->refresh();
 
-        // Generate payment reference if not set
-        if (!$this->membership->payment_reference) {
-            $this->membership->update([
-                'payment_reference' => Membership::generatePaymentReference($this->membership),
-            ]);
-        }
-
-        $admin = Auth::user();
-
-        AuditLog::log(
-            'change_request_amount_set',
-            $this->membership,
-            ['status' => 'pending_change'],
-            ['status' => 'pending_payment', 'change_amount' => $this->changeAmount],
-            $admin
-        );
-
-        // Send payment instructions email
-        try {
-            if ($this->membership->user?->email) {
-                $this->membership->syncPendingUpgradePaymentAmount();
-                $this->membership->refresh();
-
-                $bankAccount = \App\Models\SystemSetting::getBankAccount();
-                Mail::to($this->membership->user->email)->send(
-                    new \App\Mail\PaymentInstructions(
-                        membership: $this->membership->load('type', 'user', 'previousMembership.type'),
-                        bankAccount: $bankAccount,
-                        reference: $this->membership->payment_reference,
-                    )
-                );
-                $this->membership->recordPaymentEmailSent();
-            }
-        } catch (\Exception $e) {
-            Log::warning('Failed to send change request payment email', ['error' => $e->getMessage()]);
-        }
-
-        session()->flash('success', 'Amount set to R' . number_format($this->membership->amount_due, 2) . '. Member has been notified to make payment.');
+            session()->flash('success', 'Amount set to R'.number_format($this->membership->amount_due, 2).'. Member has been notified to make payment.');
+        });
     }
 
     public function approveChange(): void
@@ -267,70 +160,19 @@ new #[Title('Review Application - Admin')] class extends Component {
             return;
         }
 
-        $admin = Auth::user();
-        $previousMembership = $this->membership->previousMembership;
+        $this->attempt(function (ApprovalService $service) {
+            $payment = $this->openPaymentApproval();
 
-        // Expire the old membership
-        if ($previousMembership && $previousMembership->status === 'active') {
-            $previousMembership->update([
-                'status' => 'expired',
-                'expires_at' => now(),
-            ]);
-        }
+            if (! $payment) {
+                session()->flash('error', 'There is no open payment for this change request.');
+                return;
+            }
 
-        // Calculate expiry date based on new membership type
-        $expiresAt = $this->membership->type->calculateExpiryDate(now());
+            $this->confirmPaymentApproval($service, $payment);
 
-        // Activate the new membership
-        $this->membership->update([
-            'status' => 'active',
-            'approved_at' => now(),
-            'approved_by' => $admin->id,
-            'activated_at' => now(),
-            'expires_at' => $expiresAt,
-            'payment_confirmed_at' => $this->membership->payment_confirmed_at ?? now(),
-            'payment_confirmed_by' => $this->membership->payment_confirmed_by ?? $admin->id,
-        ]);
-
-        // Always use the user's permanent member number
-        if (!$this->membership->membership_number) {
-            $user = $this->membership->user;
-            $this->membership->update([
-                'membership_number' => $user->formatted_member_number,
-            ]);
-        }
-
-        // Issue certificates for the new type
-        $this->issueCertificates();
-        $this->issueWelcomeLetterAndCard($admin);
-
-        // Clean up proof of payment
-        if ($this->membership->proof_of_payment_path) {
-            try {
-                Storage::disk(\App\Helpers\StorageHelper::getPrivateDisk())->delete($this->membership->proof_of_payment_path);
-            } catch (\Exception $e) {}
-            $this->membership->update(['proof_of_payment_path' => null]);
-        }
-
-        // Auto-complete knowledge tests for the new membership type
-        $this->autoCompleteKnowledgeTests($this->membership->user, $admin);
-
-        // Send payment confirmation and approval email
-        $this->sendPaymentReceivedEmail();
-        $this->sendApprovalEmail();
-
-        AuditLog::log(
-            'change_request_approved',
-            $this->membership,
-            ['status' => 'pending_payment', 'previous_type' => $previousMembership?->type?->name],
-            ['status' => 'active', 'new_type' => $this->membership->type?->name],
-            $admin
-        );
-
-        SyncMembershipToSage::dispatch($this->membership)->afterCommit();
-
-        session()->flash('success', 'Membership type change approved and member notified!');
-        $this->redirect(route('admin.approvals.index'), navigate: true);
+            session()->flash('success', 'Membership type change approved and member notified!');
+            $this->redirect(route('admin.approvals.index'), navigate: true);
+        });
     }
 
     #[Computed]
@@ -351,22 +193,21 @@ new #[Title('Review Application - Admin')] class extends Component {
 
     public function confirmPayment(): void
     {
-        $admin = Auth::user();
+        $this->attempt(function (ApprovalService $service) {
+            $payment = $this->openPaymentApproval();
 
-        $this->membership->update([
-            'payment_confirmed_at' => now(),
-            'payment_confirmed_by' => $admin->id,
-        ]);
+            if (! $payment) {
+                session()->flash('error', 'There is no open payment for this membership.');
+                return;
+            }
 
-        AuditLog::log(
-            'payment_confirmed_by_admin',
-            $this->membership,
-            ['payment_confirmed_at' => null],
-            ['payment_confirmed_at' => now()->toDateTimeString(), 'confirmed_by' => $admin->name],
-            $admin
-        );
+            $this->confirmPaymentApproval($service, $payment);
+            $this->membership->refresh();
 
-        session()->flash('success', 'Payment confirmed. This application is now ready for approval.');
+            session()->flash('success', $this->membership->status === 'active'
+                ? 'Payment confirmed and membership activated.'
+                : 'Payment confirmed. This application is now ready for approval.');
+        });
     }
 
     public function rejectChange(): void
@@ -376,186 +217,28 @@ new #[Title('Review Application - Admin')] class extends Component {
             return;
         }
 
-        $this->validate([
-            'rejectionReason' => ['required', 'string', 'min:10'],
-        ], [
-            'rejectionReason.required' => 'Please provide a reason for rejection.',
-        ]);
+        $this->validateRejection();
 
-        $admin = Auth::user();
-        $oldStatus = $this->membership->status;
+        $this->attempt(function (ApprovalService $service) {
+            if ($this->membership->status === 'pending_change') {
+                $service->decide($this->membershipApproval(), ApprovalDecision::Decline, Auth::user(), $this->rejectionReason);
+            } else {
+                // The change itself was already accepted; this withdraws it while payment is outstanding.
+                $oldStatus = $this->membership->status;
+                app(RejectMembership::class)->handle($this->membership, Auth::user(), $this->rejectionReason);
 
-        // Same reason as reject(): rejecting a change request must not stamp
-        // approved_at, otherwise the membership leaks into the payments
-        // received report. Use the rejection-specific columns instead.
-        $this->membership->update([
-            'status' => 'revoked',
-            'revoked_at' => now(),
-            'revoked_by' => $admin->id,
-            'revocation_reason' => $this->rejectionReason,
-            'suspension_reason' => $this->rejectionReason,
-        ]);
-
-        // Clean up proof of payment if any
-        if ($this->membership->proof_of_payment_path) {
-            try {
-                Storage::disk(\App\Helpers\StorageHelper::getPrivateDisk())->delete($this->membership->proof_of_payment_path);
-            } catch (\Exception $e) {}
-            $this->membership->update(['proof_of_payment_path' => null]);
-        }
-
-        $this->sendRejectionEmail();
-
-        AuditLog::log(
-            'change_request_rejected',
-            $this->membership,
-            ['status' => $oldStatus],
-            ['status' => 'revoked', 'reason' => $this->rejectionReason],
-            $admin
-        );
-
-        session()->flash('success', 'Type change request rejected and member notified.');
-        $this->redirect(route('admin.approvals.index'), navigate: true);
-    }
-
-    protected function issueCertificates(): void
-    {
-        $user = $this->membership->user;
-        $admin = Auth::user();
-        $service = app(\App\Services\CertificateIssueService::class);
-
-        // Issue membership certificate (skip terms/standing checks — admin is approving)
-        // Note: ID and Proof of Address documents are always required; if missing,
-        // the certificate will be issued later once the member uploads them.
-        try {
-            $service->issueMembershipCertificate($user, $admin, skipChecks: true);
-        } catch (\Exception $e) {
-            Log::info('Membership certificate not issued at approval time', [
-                'user_id' => $user->id,
-                'reason' => $e->getMessage(),
-            ]);
-        }
-    }
-
-    protected function issueWelcomeLetterAndCard($admin): void
-    {
-        $user = $this->membership->user;
-
-        try {
-            $service = app(\App\Services\CertificateIssueService::class);
-
-            // Issue welcome letter (skip terms check — admin is approving)
-            try {
-                $service->issueWelcomeLetter($user, $admin);
-            } catch (\Exception $e) {
-                // If terms check fails, create a basic welcome letter certificate directly
-                $certType = \App\Models\CertificateType::firstOrCreate(
-                    ['slug' => 'welcome-letter'],
-                    [
-                        'name' => 'Welcome Letter',
-                        'description' => 'Welcome letter for new members',
-                        'template' => 'documents.welcome-letter',
-                        'is_active' => true,
-                        'sort_order' => 14,
-                    ]
+                AuditLog::log(
+                    'change_request_rejected',
+                    $this->membership,
+                    ['status' => $oldStatus],
+                    ['status' => 'revoked', 'reason' => $this->rejectionReason],
+                    Auth::user()
                 );
-                Certificate::create([
-                    'user_id' => $user->id,
-                    'membership_id' => $this->membership->id,
-                    'certificate_type_id' => $certType->id,
-                    'certificate_number' => 'WEL-' . strtoupper(substr(md5(uniqid()), 0, 8)),
-                    'qr_code' => bin2hex(random_bytes(16)),
-                    'issued_at' => now(),
-                    'valid_from' => now(),
-                    'issued_by' => $admin->id,
-                ]);
-                Log::info('Welcome letter created via fallback', ['user_id' => $user->id, 'reason' => $e->getMessage()]);
             }
 
-            // Issue membership card
-            try {
-                $service->issueMembershipCard($user, $admin);
-            } catch (\Exception $e) {
-                // Fallback: create card certificate directly
-                $certType = \App\Models\CertificateType::firstOrCreate(
-                    ['slug' => 'membership-card'],
-                    [
-                        'name' => 'Membership Card',
-                        'description' => 'NRAPA membership identification card',
-                        'template' => 'documents.membership-card',
-                        'is_active' => true,
-                        'sort_order' => 13,
-                    ]
-                );
-                Certificate::create([
-                    'user_id' => $user->id,
-                    'membership_id' => $this->membership->id,
-                    'certificate_type_id' => $certType->id,
-                    'certificate_number' => 'CARD-' . strtoupper(substr(md5(uniqid()), 0, 8)),
-                    'qr_code' => bin2hex(random_bytes(16)),
-                    'issued_at' => now(),
-                    'valid_from' => now(),
-                    'valid_until' => $this->membership->expires_at,
-                    'issued_by' => $admin->id,
-                ]);
-                Log::info('Membership card created via fallback', ['user_id' => $user->id, 'reason' => $e->getMessage()]);
-            }
-        } catch (\Exception $e) {
-            Log::error('Failed to issue welcome letter/card on approval', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-    }
-
-    protected function sendApprovalEmail(): void
-    {
-        if ($this->membership->welcome_email_sent_at) {
-            return;
-        }
-
-        try {
-            $user = $this->membership->user;
-            $cardUrl = route('card');
-
-            Mail::to($user->email)->send(new MembershipApproved(
-                membership: $this->membership,
-                cardUrl: $cardUrl,
-            ));
-
-            $this->membership->update(['welcome_email_sent_at' => now()]);
-        } catch (\Exception $e) {
-            Log::warning('Failed to send membership approval email', [
-                'user_id' => $this->membership->user_id,
-                'error' => $e->getMessage(),
-            ]);
-            // Don't fail the approval if email fails
-        }
-    }
-
-    protected function sendPaymentEmail(): void
-    {
-        if ($this->membership->source === 'import') {
-            return;
-        }
-
-        try {
-            $bankAccount = SystemSetting::getBankAccount();
-            $user = $this->membership->user;
-
-            Mail::to($user->email)->send(new PaymentInstructions(
-                $this->membership->load('type', 'user', 'affiliatedClub'),
-                $bankAccount,
-                $this->membership->payment_reference,
-            ));
-
-            $this->membership->recordPaymentEmailSent();
-        } catch (\Exception $e) {
-            Log::warning('Failed to send payment instructions on approval', [
-                'membership_id' => $this->membership->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
+            session()->flash('success', 'Type change request rejected and member notified.');
+            $this->redirect(route('admin.approvals.index'), navigate: true);
+        });
     }
 
     public function manuallyVerifyEmail(): void
@@ -576,50 +259,6 @@ new #[Title('Review Application - Admin')] class extends Component {
         $this->membership->load('user');
 
         session()->flash('success', "Email verified for {$user->name}.");
-    }
-
-    protected function autoCompleteKnowledgeTests(\App\Models\User $user, \App\Models\User $admin): void
-    {
-        if ($user->hasPassedKnowledgeTest()) {
-            return;
-        }
-
-        $membershipType = $this->membership->type;
-        if (!$membershipType?->requires_knowledge_test) {
-            return;
-        }
-
-        $requiredTests = $membershipType->requiredKnowledgeTests;
-        $tests = $requiredTests->isNotEmpty()
-            ? $requiredTests
-            : KnowledgeTest::active()->limit(1)->get();
-
-        foreach ($tests as $test) {
-            $alreadyPassed = KnowledgeTestAttempt::where('user_id', $user->id)
-                ->where('knowledge_test_id', $test->id)
-                ->where(fn ($q) => $q->where('passed', true)->orWhereNotNull('marked_by'))
-                ->exists();
-
-            if ($alreadyPassed) {
-                continue;
-            }
-
-            $totalPoints = $test->total_points ?? 100;
-
-            KnowledgeTestAttempt::create([
-                'user_id' => $user->id,
-                'knowledge_test_id' => $test->id,
-                'started_at' => now(),
-                'submitted_at' => now(),
-                'auto_score' => $totalPoints,
-                'manual_score' => 0,
-                'total_score' => $totalPoints,
-                'passed' => true,
-                'marked_at' => now(),
-                'marked_by' => $admin->id,
-                'marker_notes' => 'Auto-completed on membership approval by admin',
-            ]);
-        }
     }
 
     public function resendPaymentInstructions(): void
@@ -655,37 +294,50 @@ new #[Title('Review Application - Admin')] class extends Component {
         }
     }
 
-    protected function sendPaymentReceivedEmail(): void
+    private function validateRejection(): void
     {
-        try {
-            $user = $this->membership->user;
+        $this->validate([
+            'rejectionReason' => ['required', 'string', 'min:10'],
+        ], [
+            'rejectionReason.required' => 'Please provide a reason for rejection.',
+            'rejectionReason.min' => 'The rejection reason must be at least 10 characters.',
+        ]);
+    }
 
-            Mail::to($user->email)->send(new PaymentReceived(
-                membership: $this->membership->load('type', 'user'),
-            ));
-        } catch (\Exception $e) {
-            Log::warning('Failed to send payment received email', [
-                'membership_id' => $this->membership->id,
-                'error' => $e->getMessage(),
-            ]);
+    private function membershipApproval(): Approval
+    {
+        return Approval::forApprovable($this->membership)->firstOrFail();
+    }
+
+    private function openPaymentApproval(): ?Approval
+    {
+        $payment = Payment::where('membership_id', $this->membership->id)->where('status', 'pending')->latest('id')->first();
+
+        return $payment ? Approval::forApprovable($payment)->open()->first() : null;
+    }
+
+    private function confirmPaymentApproval(ApprovalService $service, Approval $approval): void
+    {
+        if ($approval->state === ApprovalState::WaitingOnMember) {
+            $service->confirmPaymentWithoutProof($approval, Auth::user());
+        } else {
+            $service->decide($approval, ApprovalDecision::Approve, Auth::user());
         }
     }
 
-    protected function sendRejectionEmail(): void
+    private function attempt(\Closure $callback): void
     {
         try {
-            $user = $this->membership->user;
-
-            Mail::to($user->email)->send(new MembershipRejected(
-                membership: $this->membership->load('type', 'user'),
-                reason: $this->rejectionReason,
-            ));
-        } catch (\Exception $e) {
-            Log::warning('Failed to send membership rejection email', [
-                'user_id' => $this->membership->user_id,
-                'error' => $e->getMessage(),
-            ]);
+            $callback(app(ApprovalService::class));
+        } catch (ApprovalAlreadyDecided|ApprovalNotAllowed $e) {
+            session()->flash('error', $e->getMessage());
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\DomainException $e) {
+            session()->flash('error', $e->getMessage());
         }
+
+        $this->membership->refresh();
     }
 }; ?>
 

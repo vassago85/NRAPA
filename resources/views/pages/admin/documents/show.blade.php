@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\ApprovalDecision;
+use App\Livewire\Concerns\DecidesApprovals;
 use App\Mail\DocumentCorrected;
 use App\Models\MemberDocument;
 use App\Models\User;
@@ -10,6 +12,8 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 new #[Layout('layouts.app.sidebar')] class extends Component {
+    use DecidesApprovals;
+
     public MemberDocument $document;
     public string $rejectionReason = '';
 
@@ -151,8 +155,14 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
 
     public function verifyDocument(): void
     {
-        $this->document->verify(auth()->user());
-        
+        if ($this->hasOpenApproval($this->document)) {
+            if (! $this->decideFor($this->document, ApprovalDecision::Approve)) {
+                return;
+            }
+        } else {
+            $this->document->verify(auth()->user());
+        }
+
         session()->flash('success', "Document verified successfully.");
         $this->redirect(route('admin.documents.index'), navigate: true);
     }
@@ -163,8 +173,14 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
             'rejectionReason' => 'required|string|min:10|max:500',
         ]);
 
-        $this->document->reject(auth()->user(), $this->rejectionReason);
-        
+        if ($this->hasOpenApproval($this->document)) {
+            if (! $this->decideFor($this->document, ApprovalDecision::Decline, $this->rejectionReason)) {
+                return;
+            }
+        } else {
+            $this->document->reject(auth()->user(), $this->rejectionReason);
+        }
+
         session()->flash('info', "Document rejected. Member will be notified.");
         $this->redirect(route('admin.documents.index'), navigate: true);
     }
@@ -228,6 +244,12 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
         <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Document Review</h1>
         <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Review member document submission</p>
     </x-slot>
+
+    @if(session('error'))
+        <div class="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-xl text-red-800 dark:text-red-200">
+            {{ session('error') }}
+        </div>
+    @endif
     
     <div class="mb-6 flex items-center justify-between">
         <div>

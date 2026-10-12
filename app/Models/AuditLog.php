@@ -21,6 +21,7 @@ class AuditLog extends Model
         'event',
         'old_values',
         'new_values',
+        'meta',
         'ip_address',
         'user_agent',
         'created_at',
@@ -46,6 +47,7 @@ class AuditLog extends Model
         return [
             'old_values' => 'array',
             'new_values' => 'array',
+            'meta' => 'array',
             'created_at' => 'datetime',
         ];
     }
@@ -114,7 +116,8 @@ class AuditLog extends Model
         Model $auditable,
         ?array $oldValues = null,
         ?array $newValues = null,
-        ?User $user = null
+        ?User $user = null,
+        ?array $meta = null
     ): static {
         return static::create([
             'user_id' => $user?->id ?? auth()->id(),
@@ -123,6 +126,7 @@ class AuditLog extends Model
             'auditable_id' => $auditable->id,
             'old_values' => $oldValues,
             'new_values' => $newValues,
+            'meta' => $meta,
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
         ]);

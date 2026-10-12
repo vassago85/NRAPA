@@ -69,17 +69,25 @@ test('approvals page splits applications into awaiting payment and ready to appr
 
     $this->actingAs($this->admin);
     $page = Livewire::test('pages::admin.approvals.index')->instance();
+    $sorted = fn (array $ids) => collect($ids)->sort()->values()->all();
 
-    $awaitingIds = collect($page->awaitingPayment)->pluck('id')->sort()->values()->all();
-    expect($awaitingIds)->toBe(collect([$webUnpaid->id, $adminUnpaid->id, $pendingPayment->id])->sort()->values()->all());
+    $awaitingMembershipIds = collect($page->awaitingPayment)->map(fn ($a) => $a->approvable->membership_id)->all();
+    expect($sorted($awaitingMembershipIds))->toBe($sorted([$webUnpaid->id, $adminUnpaid->id, $pendingPayment->id]));
 
-    $readyIds = collect($page->pendingApprovals)
-        ->whereIn('type', ['membership', 'transfer'])
-        ->pluck('id')->sort()->values()->all();
-    expect($readyIds)->toBe(collect([$webWithPop->id, $adminConfirmed->id, $import->id, $transfer->id])->sort()->values()->all());
+    $readyMembershipIds = collect($page->pendingApprovals)
+        ->filter(fn ($a) => $a->type === \App\Enums\ApprovalType::Membership)
+        ->pluck('approvable_id')->all();
+    expect($sorted($readyMembershipIds))->toBe($sorted([$adminConfirmed->id, $import->id, $transfer->id]));
+
+    // Proof uploaded but not confirmed: the payment is what waits on an admin.
+    $paymentMembershipIds = collect($page->pendingApprovals)
+        ->filter(fn ($a) => $a->type === \App\Enums\ApprovalType::Payment)
+        ->map(fn ($a) => $a->approvable->membership_id)->values()->all();
+    expect($paymentMembershipIds)->toBe([$webWithPop->id]);
 
     expect($page->stats['awaiting_payment'])->toBe(3)
-        ->and($page->stats['memberships'])->toBeGreaterThanOrEqual(4);
+        ->and($page->stats['counts']['membership'])->toBe(3)
+        ->and($page->stats['counts']['payment'])->toBe(1);
 });
 
 test('approval detail flags only unpaid billable applications as awaiting payment', function (?string $source, string $status, array $extra, bool $awaiting) {

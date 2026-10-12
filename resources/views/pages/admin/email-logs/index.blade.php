@@ -1,12 +1,15 @@
 <?php
 
 use App\Models\EmailLog;
+use App\Queries\EmailDeliveryStats;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-new class extends Component {
+new #[Title('Email & Delivery - Admin')] class extends Component {
     use WithPagination;
 
     public string $search = '';
@@ -14,8 +17,17 @@ new class extends Component {
     public string $memberFilter = '';
     public ?string $selectedLog = null;
 
+    #[Url]
+    public string $delivery = '';
+
     public function updatingSearch(): void
     {
+        $this->resetPage();
+    }
+
+    public function filterDelivery(string $delivery): void
+    {
+        $this->delivery = in_array($delivery, EmailDeliveryStats::DELIVERY_CHIPS, true) ? $delivery : '';
         $this->resetPage();
     }
 
@@ -77,6 +89,11 @@ new class extends Component {
             return;
         }
 
+        if ($log->user && $log->user->email === $log->to_email && ! $log->user->canReceiveEmail()) {
+            session()->flash('error', "{$log->to_email} has hard-bounced or complained, so it will not be mailed again.");
+            return;
+        }
+
         try {
             $log->update([
                 'status' => 'queued',
@@ -124,6 +141,8 @@ new class extends Component {
                 });
             })
             ->when($this->statusFilter, fn($q) => $q->where('status', $this->statusFilter))
+            ->when($this->delivery === 'unknown', fn ($q) => $q->whereNull('delivery_status'))
+            ->when($this->delivery && $this->delivery !== 'unknown', fn ($q) => $q->where('delivery_status', $this->delivery))
             ->when($this->memberFilter === 'active', function ($q) {
                 $q->whereHas('user', fn ($u) => $u->whereHas('memberships', fn ($m) => $m->where('status', 'active')));
             })
@@ -136,10 +155,14 @@ new class extends Component {
             })
             ->latest();
 
+        $stats = app(EmailDeliveryStats::class)->summary();
+
         return [
             'logs' => $query->paginate(20),
-            'totalSent' => EmailLog::sent()->count(),
-            'totalFailed' => EmailLog::failed()->count(),
+            'totalSent' => $stats['by_status']['sent'] ?? 0,
+            'totalFailed' => $stats['by_status']['failed'] ?? 0,
+            'totalEmails' => $stats['total'],
+            'deliveryCounts' => $stats['by_delivery'],
         ];
     }
 
@@ -156,8 +179,8 @@ new class extends Component {
 
 <div>
     <x-slot name="header">
-        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Email Logs</h1>
-        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">View system email delivery history</p>
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Email &amp; Delivery</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Every email the platform sent, and what Mailgun reported back</p>
     </x-slot>
 
     <!-- Flash Messages -->
@@ -202,11 +225,40 @@ new class extends Component {
                     <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                 </div>
                 <div>
-                    <p class="text-2xl font-bold text-zinc-900 dark:text-white">{{ number_format($totalSent + $totalFailed) }}</p>
+                    <p class="text-2xl font-bold text-zinc-900 dark:text-white">{{ number_format($totalEmails) }}</p>
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">Total Emails</p>
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Delivery status chips -->
+    @php
+        $deliveryLabels = [
+            'delivered' => 'Delivered', 'opened' => 'Opened', 'clicked' => 'Clicked', 'bounced' => 'Bounced',
+            'complained' => 'Complained', 'failed' => 'Failed', 'sent' => 'Awaiting report', 'unknown' => 'Not tracked',
+        ];
+    @endphp
+    <div class="mb-6 flex flex-wrap gap-2">
+        <button type="button" wire:click="filterDelivery('')" data-delivery-chip="all"
+            @class([
+                'px-3 py-1 text-xs font-medium rounded-full border transition-colors',
+                'border-nrapa-blue bg-nrapa-blue text-white' => $delivery === '',
+                'border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700' => $delivery !== '',
+            ])>
+            All <span class="ml-1">{{ number_format($totalEmails) }}</span>
+        </button>
+        @foreach($deliveryLabels as $key => $label)
+            <button type="button" wire:click="filterDelivery('{{ $key }}')" data-delivery-chip="{{ $key }}"
+                @class([
+                    'px-3 py-1 text-xs font-medium rounded-full border transition-colors',
+                    'border-nrapa-blue bg-nrapa-blue text-white' => $delivery === $key,
+                    'border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700' => $delivery !== $key,
+                ])>
+                {{ $label }}
+                <span @class(['ml-1', 'text-zinc-400' => ($deliveryCounts[$key] ?? 0) === 0 && $delivery !== $key])>{{ number_format($deliveryCounts[$key] ?? 0) }}</span>
+            </button>
+        @endforeach
     </div>
 
     <!-- Filters -->
@@ -287,6 +339,16 @@ new class extends Component {
                                 @else
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300">
                                         {{ ucfirst($log->status) }}
+                                    </span>
+                                @endif
+                                @if($log->delivery_status && $log->delivery_status !== 'sent')
+                                    <span data-delivery-status="{{ $log->delivery_status }}" title="{{ $log->bounce_reason }}"
+                                        @class([
+                                            'mt-1 flex w-fit items-center px-2 py-0.5 rounded-full text-[11px] font-medium',
+                                            'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' => in_array($log->delivery_status, ['delivered', 'opened', 'clicked'], true),
+                                            'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300' => in_array($log->delivery_status, \App\Models\EmailLog::FINAL_DELIVERY_STATUSES, true),
+                                        ])>
+                                        {{ $deliveryLabels[$log->delivery_status] ?? ucfirst($log->delivery_status) }}
                                     </span>
                                 @endif
                             </td>
@@ -396,6 +458,25 @@ new class extends Component {
                                     <p class="text-zinc-900 dark:text-white">{{ class_basename($log->mailable_class) }}</p>
                                 </div>
                             </div>
+
+                            @if($log->delivery_status || ! empty($log->events))
+                                <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 p-3 text-sm">
+                                    <p class="font-medium text-zinc-900 dark:text-white">
+                                        Delivery: {{ ucfirst($log->delivery_status ?? 'not tracked') }}
+                                        @if($log->bounce_code) <span class="text-zinc-500">(code {{ $log->bounce_code }})</span> @endif
+                                    </p>
+                                    @if($log->bounce_reason)
+                                        <p class="mt-1 text-red-700 dark:text-red-300">{{ $log->bounce_reason }}</p>
+                                    @endif
+                                    @if(! empty($log->events))
+                                        <ul class="mt-2 space-y-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                                            @foreach(array_reverse($log->events) as $deliveryEvent)
+                                                <li>{{ \Illuminate\Support\Carbon::parse($deliveryEvent['at'] ?? now())->format('d M Y H:i') }} · {{ $deliveryEvent['event'] ?? '' }}{{ isset($deliveryEvent['severity']) ? ' ('.$deliveryEvent['severity'].')' : '' }}</li>
+                                            @endforeach
+                                        </ul>
+                                    @endif
+                                </div>
+                            @endif
 
                             @if($log->error_message)
                                 <div class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-300">

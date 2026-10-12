@@ -1,12 +1,17 @@
 <?php
 
+use App\Enums\ApprovalDecision;
+use App\Enums\ApprovalType;
+use App\Livewire\Concerns\DecidesApprovals;
 use App\Models\ShootingActivity;
+use App\Queries\ApprovalQueue;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 new class extends Component {
     use WithPagination;
+    use DecidesApprovals;
 
     #[Url(nullable: true)]
     public string $search = '';
@@ -17,9 +22,12 @@ new class extends Component {
     public function approve(int $activityId): void
     {
         $activity = ShootingActivity::findOrFail($activityId);
-        $activity->approve(auth()->user());
-        session()->flash('success', 'Activity approved successfully.');
-        $this->resetPage(); // Reset pagination to show updated list
+
+        if ($this->decideFor($activity, ApprovalDecision::Approve)) {
+            session()->flash('success', 'Activity approved successfully.');
+        }
+
+        $this->resetPage();
     }
 
     public function delete(int $activityId): void
@@ -51,7 +59,7 @@ new class extends Component {
         $statusCounts = ShootingActivity::selectRaw("status, count(*) as cnt")
             ->groupBy('status')
             ->pluck('cnt', 'status');
-        $pendingCount = (int) ($statusCounts['pending'] ?? 0);
+        $pendingCount = app(ApprovalQueue::class)->countsByType()[ApprovalType::Activity->value];
         $approvedCount = (int) ($statusCounts['approved'] ?? 0);
         $rejectedCount = (int) ($statusCounts['rejected'] ?? 0);
 
@@ -73,6 +81,11 @@ new class extends Component {
     @if(session('success'))
         <div class="mb-6 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 text-emerald-700 dark:text-emerald-300">
             {{ session('success') }}
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="mb-6 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 text-red-700 dark:text-red-300">
+            {{ session('error') }}
         </div>
     @endif
 
