@@ -63,7 +63,11 @@ enum ApprovalType: string
      */
     public function requiresSecondApprovalByDefault(): bool
     {
-        return $this === self::Endorsement;
+        // Everything is single-signature. Endorsements briefly required two
+        // admins, but in practice that strands letters on the queue whenever
+        // the second admin isn't around. The flag stays on the model so a
+        // future rule could switch it back on per-type without a schema change.
+        return false;
     }
 
     public function badgeClasses(): string
