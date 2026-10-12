@@ -3,19 +3,19 @@
 namespace App\Console\Commands;
 
 use App\Enums\ApprovalType;
-use App\Mail\ApprovalChaseMail;
+use App\Enums\ChaseOutcome;
 use App\Models\Approval;
 use App\Models\ApprovalChase;
-use App\Models\EmailLog;
 use App\Queries\ApprovalQueue;
+use App\Services\Approvals\ChaseRunner;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 /**
  * Reminds members about approvals waiting on them at 7, 14 and 21 days.
  * Each stage goes out once per waiting spell; a member reached late (say at
  * day 15) gets only the latest due stage, not a burst of catch-up emails.
+ * Every send goes through {@see ChaseRunner} so it stays in step with the
+ * manual chase that an admin triggers from the UI.
  */
 class ChaseWaitingOnMember extends Command
 {
@@ -26,7 +26,7 @@ class ChaseWaitingOnMember extends Command
     /** A recent manual POP reminder stands in for the automatic chase. */
     private const MANUAL_REMINDER_GRACE_DAYS = 3;
 
-    public function handle(ApprovalQueue $queue): int
+    public function handle(ApprovalQueue $queue, ChaseRunner $runner): int
     {
         $dryRun = (bool) $this->option('dry-run');
         $sent = 0;
@@ -35,12 +35,18 @@ class ChaseWaitingOnMember extends Command
         $queue->waitingOnMember()
             ->reorder()
             ->with(['user', 'approvable'])
-            ->chunkById(200, function ($approvals) use ($dryRun, &$sent, &$skipped) {
+            ->chunkById(200, function ($approvals) use ($runner, $dryRun, &$sent, &$skipped) {
                 foreach ($approvals as $approval) {
-                    match ($this->chase($approval, $dryRun)) {
-                        'sent' => $sent++,
-                        'skipped' => $skipped++,
-                        default => null,
+                    $outcome = $this->chase($approval, $runner, $dryRun);
+
+                    if ($outcome === null) {
+                        continue;
+                    }
+
+                    match ($outcome) {
+                        ChaseOutcome::Sent => $sent++,
+                        ChaseOutcome::AlreadyChasedForStage => null,
+                        default => $skipped++,
                     };
                 }
             });
@@ -50,13 +56,10 @@ class ChaseWaitingOnMember extends Command
         return self::SUCCESS;
     }
 
-    /**
-     * @return 'sent'|'skipped'|'not_due'
-     */
-    private function chase(Approval $approval, bool $dryRun): string
+    private function chase(Approval $approval, ChaseRunner $runner, bool $dryRun): ?ChaseOutcome
     {
         if (! $approval->approvable) {
-            return 'not_due';
+            return null;
         }
 
         if (! $approval->metaValue('waiting_since')) {
@@ -67,69 +70,41 @@ class ChaseWaitingOnMember extends Command
         $stage = ApprovalChase::dueStage((int) floor($since->diffInDays(now(), true)));
 
         if ($stage === null) {
-            return 'not_due';
+            return null;
         }
 
-        $alreadyChased = ApprovalChase::query()
-            ->where('approval_id', $approval->id)
-            ->where('cycle_started_at', $since)
-            ->where('stage', '>=', $stage)
-            ->exists();
-
-        if ($alreadyChased) {
-            return 'not_due';
-        }
-
-        $member = $approval->user;
-
-        if (! $member?->canReceiveEmail()) {
-            $this->line("  skip approval {$approval->id}: member has no deliverable address");
-
-            return 'skipped';
-        }
-
+        // If an admin manually chased a payment inside the grace window, treat
+        // that as the automatic chase for this stage so we don't double up.
         if ($approval->type === ApprovalType::Payment
             && $approval->approvable->membership?->pop_reminder_sent_at?->gt(now()->subDays(self::MANUAL_REMINDER_GRACE_DAYS))) {
             $this->line("  skip approval {$approval->id}: manual payment reminder sent recently");
 
-            return 'skipped';
+            return ChaseOutcome::AlreadyChasedForStage;
         }
 
         if ($dryRun) {
+            $member = $approval->user;
+
+            if (! $member?->canReceiveEmail()) {
+                $this->line("  skip approval {$approval->id}: member has no deliverable address");
+
+                return ChaseOutcome::MemberCannotReceiveEmail;
+            }
+
             $this->line("  would send day-{$stage} reminder to {$member->email} ({$approval->type->label()})");
 
-            return 'sent';
+            return ChaseOutcome::Sent;
         }
 
-        $log = EmailLog::create([
-            'user_id' => $member->id,
-            'to_email' => $member->email,
-            'to_name' => $member->name,
-            'subject' => ApprovalChaseMail::subjectFor($approval),
-            'mailable_class' => ApprovalChaseMail::class,
-            'status' => 'queued',
-            'metadata' => ['approval_id' => $approval->id, 'stage' => $stage],
-        ]);
+        $outcome = $runner->chase($approval, actor: null, source: 'auto', stage: $stage);
 
-        try {
-            Mail::to($member->email)->send(new ApprovalChaseMail($approval, $stage));
-        } catch (\Throwable $e) {
-            $log->update(['status' => 'failed', 'error_message' => $e->getMessage()]);
-            Log::warning('Approval chase failed', ['approval_id' => $approval->id, 'stage' => $stage, 'error' => $e->getMessage()]);
+        match ($outcome) {
+            ChaseOutcome::Sent => $this->line("  sent day-{$stage} reminder to {$approval->user->email} ({$approval->type->label()})"),
+            ChaseOutcome::MemberCannotReceiveEmail => $this->line("  skip approval {$approval->id}: member has no deliverable address"),
+            ChaseOutcome::SendFailed => $this->line("  failed to send approval {$approval->id} (see log)"),
+            default => null,
+        };
 
-            return 'skipped';
-        }
-
-        ApprovalChase::create([
-            'approval_id' => $approval->id,
-            'stage' => $stage,
-            'cycle_started_at' => $since,
-            'sent_at' => now(),
-            'email_log_id' => $log->id,
-        ]);
-
-        $this->line("  sent day-{$stage} reminder to {$member->email} ({$approval->type->label()})");
-
-        return 'sent';
+        return $outcome;
     }
 }

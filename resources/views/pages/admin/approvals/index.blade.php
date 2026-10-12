@@ -2,15 +2,16 @@
 
 use App\Enums\ApprovalDecision;
 use App\Enums\ApprovalType;
+use App\Enums\ChaseOutcome;
 use App\Exceptions\Approvals\ApprovalAlreadyDecided;
 use App\Exceptions\Approvals\ApprovalNotAllowed;
 use App\Mail\PaymentInstructions;
-use App\Mail\PopFollowupReminder;
 use App\Models\Approval;
 use App\Models\Membership;
 use App\Models\SystemSetting;
 use App\Queries\ApprovalQueue;
 use App\Services\Approvals\ApprovalService;
+use App\Services\Approvals\ChaseRunner;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
@@ -85,24 +86,19 @@ new #[Title('All Approvals - Admin')] class extends Component {
         $this->refreshLists();
     }
 
-    public function sendPaymentReminder(int $membershipId): void
+    public function sendPaymentReminder(int $approvalId): void
     {
-        $membership = Membership::with(['user', 'type'])->whereHas('user')->findOrFail($membershipId);
+        $approval = Approval::with(['user', 'approvable.membership'])->find($approvalId);
 
-        if (! $membership->user?->email) {
-            session()->flash('error', 'Member has no email address.');
+        if (! $approval) {
+            session()->flash('error', 'That payment is no longer awaiting approval.');
             return;
         }
 
-        try {
-            Mail::to($membership->user->email)->send(new PopFollowupReminder($membership));
-            $membership->recordPopReminderSent();
-            unset($this->awaitingPayment);
-            session()->flash('success', 'Payment reminder sent to '.$membership->user->email.'.');
-        } catch (\Exception $e) {
-            Log::warning('Failed to send payment reminder', ['membership_id' => $membership->id, 'error' => $e->getMessage()]);
-            session()->flash('error', 'Failed to send reminder: '.$e->getMessage());
-        }
+        $outcome = app(ChaseRunner::class)->chase($approval, auth()->user(), source: 'manual');
+
+        unset($this->awaitingPayment);
+        session()->flash($outcome->sent() ? 'success' : 'error', $outcome->describe($approval, $approval->user));
     }
 
     public function resendPaymentInstructions(int $membershipId): void
@@ -288,11 +284,15 @@ new #[Title('All Approvals - Admin')] class extends Component {
                             class="px-4 py-2 text-sm font-medium rounded-lg border border-blue-300 bg-white text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:bg-zinc-800 dark:text-blue-400 transition-colors">
                             {{ $membership->payment_email_sent_at ? 'Resend payment details' : 'Send payment details' }}
                         </button>
-                        <button wire:click="sendPaymentReminder({{ $membership->id }})"
-                            wire:confirm="Send a payment reminder to {{ $approval->user?->email }}?"
+                    @endif
+                    @if($approval->user?->canReceiveEmail())
+                        <button wire:click="sendPaymentReminder({{ $approval->id }})" data-chase
+                            wire:confirm="Chase {{ $approval->user?->name }} now? Anyone chased in the last 24 hours is skipped."
                             class="px-4 py-2 text-sm font-medium rounded-lg border border-amber-300 bg-white text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:bg-zinc-800 dark:text-amber-400 transition-colors">
-                            {{ $membership->pop_reminder_sent_at ? 'Resend reminder' : 'Remind' }}
+                            Chase
                         </button>
+                    @else
+                        <span class="inline-flex items-center rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">Cannot chase: email bounced</span>
                     @endif
                     @if($url = $approval->detailUrl())
                         <a href="{{ $url }}" wire:navigate class="px-4 py-2 text-sm font-medium rounded-lg border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 transition-colors">View</a>

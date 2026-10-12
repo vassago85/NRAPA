@@ -17,7 +17,7 @@
 
     <p class="tx" style="color: #374151; margin: 0 0 24px 0; font-size: 15px;">
         @if($approval->type === ApprovalType::Payment)
-            We have not yet received proof of payment for your membership. Please upload it from your NRAPA account@if($reference) and use the reference <strong>{{ $reference }}</strong>@endif.
+            We have not yet received proof of payment for your membership. Please upload it from your NRAPA account{{ $reference ? ' and use the reference ' : '' }}@if($reference)<strong>{{ $reference }}</strong>@endif.
         @elseif($items !== [])
             Your <strong>{{ $label }}</strong> is on hold until the following is sorted out:
         @else

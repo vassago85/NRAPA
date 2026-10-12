@@ -1,12 +1,14 @@
 <?php
 
 use App\Enums\ApprovalType;
+use App\Enums\ChaseOutcome;
 use App\Exceptions\Approvals\ApprovalAlreadyDecided;
 use App\Exceptions\Approvals\ApprovalNotAllowed;
 use App\Models\Approval;
 use App\Models\User;
 use App\Queries\ApprovalQueue;
 use App\Services\Approvals\ApprovalService;
+use App\Services\Approvals\ChaseRunner;
 use App\Support\Membership\MembershipSnapshot;
 use App\Support\Membership\MembershipStats;
 use Illuminate\Validation\ValidationException;
@@ -63,6 +65,57 @@ new #[Title('Dashboard - Admin')] class extends Component {
         }
 
         unset($this->counts, $this->queue);
+    }
+
+    public function chase(int $approvalId): void
+    {
+        $approval = Approval::with(['user', 'approvable'])->find($approvalId);
+
+        if (! $approval) {
+            $this->flash = ['tone' => 'error', 'message' => 'That approval is no longer there.'];
+
+            return;
+        }
+
+        $outcome = app(ChaseRunner::class)->chase($approval, auth()->user(), source: 'manual');
+
+        $this->flash = [
+            'tone' => $outcome->sent() ? 'success' : ($outcome === ChaseOutcome::MemberCannotReceiveEmail ? 'error' : 'warning'),
+            'message' => $outcome->describe($approval, $approval->user),
+        ];
+
+        unset($this->chaseRows, $this->tiles);
+    }
+
+    public function chaseAll(): void
+    {
+        $runner = app(ChaseRunner::class);
+        $actor = auth()->user();
+        $sent = $skipped = $blocked = 0;
+
+        foreach ($this->chaseRows as $approval) {
+            $outcome = $runner->chase($approval, $actor, source: 'manual');
+            match (true) {
+                $outcome->sent() => $sent++,
+                $outcome === ChaseOutcome::MemberCannotReceiveEmail => $blocked++,
+                default => $skipped++,
+            };
+        }
+
+        $parts = ["Chased {$sent}"];
+        if ($skipped) {
+            $parts[] = "{$skipped} already chased in the last 24h";
+        }
+        if ($blocked) {
+            $parts[] = "{$blocked} with bounced email";
+        }
+
+        $this->flash = [
+            'tone' => $sent > 0 ? 'success' : 'warning',
+            'message' => implode(' · ', $parts).'.',
+        ];
+
+        unset($this->chaseRows, $this->tiles);
     }
 
     #[Computed]
@@ -293,10 +346,26 @@ new #[Title('Dashboard - Admin')] class extends Component {
         </div>
 
         {{-- Chase rail --}}
+        @php
+            // Pre-compute who is chaseable right now so the Chase-all header
+            // and the per-row button agree on the count without a second query.
+            $chaseable = $this->chaseRows->filter(fn ($row) => $row->user?->canReceiveEmail());
+        @endphp
         <aside class="bg-white rounded-2xl shadow-sm border border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700 overflow-hidden self-start">
             <div class="border-b border-zinc-200 px-5 py-4 dark:border-zinc-700">
-                <h2 class="text-base font-semibold text-zinc-900 dark:text-white">Waiting on the member</h2>
-                <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">Blocked on the member, nothing for you to approve yet</p>
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <h2 class="text-base font-semibold text-zinc-900 dark:text-white">Waiting on the member</h2>
+                        <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">Blocked on the member, nothing for you to approve yet</p>
+                    </div>
+                    @if($chaseable->isNotEmpty())
+                        <button type="button" wire:click="chaseAll" wire:loading.attr="disabled" data-chase-all
+                            wire:confirm="Email {{ $chaseable->count() }} {{ str('member')->plural($chaseable->count()) }} now? Anyone chased in the last 24 hours is skipped."
+                            class="flex-none inline-flex items-center gap-1 rounded-lg bg-nrapa-blue px-3 py-1.5 text-xs font-semibold text-white hover:bg-nrapa-blue-dark disabled:opacity-50">
+                            Chase {{ $chaseable->count() }}
+                        </button>
+                    @endif
+                </div>
             </div>
             <div>
                 @forelse($this->chaseRows as $row)
@@ -319,10 +388,15 @@ new #[Title('Dashboard - Admin')] class extends Component {
                             @endif
                             · waiting since {{ $row->waitingSince()?->diffForHumans() }}
                         </p>
-                        <div class="mt-1.5 flex flex-wrap gap-1.5">
+                        <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
                             <span class="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200">{{ $row->chaseSummary() }}</span>
                             @if($bounced)
                                 <span data-bounced class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-medium text-red-800 dark:bg-red-900/40 dark:text-red-200">Email bounced</span>
+                            @else
+                                <button type="button" wire:click="chase({{ $row->id }})" wire:loading.attr="disabled" data-chase
+                                    class="ml-auto inline-flex items-center gap-1 rounded-md border border-nrapa-blue/30 bg-nrapa-blue/5 px-2 py-0.5 text-[11px] font-semibold text-nrapa-blue hover:bg-nrapa-blue hover:text-white disabled:opacity-50 dark:border-nrapa-blue/40 dark:bg-nrapa-blue/10 dark:text-blue-300">
+                                    Chase
+                                </button>
                             @endif
                         </div>
                     </div>
