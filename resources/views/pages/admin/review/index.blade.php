@@ -7,6 +7,8 @@ use App\Exceptions\Approvals\ApprovalAlreadyDecided;
 use App\Exceptions\Approvals\ApprovalNotAllowed;
 use App\Models\Approval;
 use App\Models\AuditLog;
+use App\Models\DocumentType;
+use App\Models\MemberDocument;
 use App\Models\User;
 use App\Queries\ApprovalQueue;
 use App\Queries\ReviewContext;
@@ -61,6 +63,20 @@ new #[Title('Review queue - Admin')] class extends Component {
         'date_of_birth' => '',
         'physical_address' => '',
         'postal_address' => '',
+    ];
+
+    /**
+     * Inline document-correction form. Lets an admin fix a document's type
+     * or expiry on a MemberDocument approval without leaving the queue —
+     * e.g. the member tagged a passport as "ID" or picked the wrong expiry.
+     */
+    public bool $editingDocument = false;
+
+    /** @var array{document_type_id: ?int, expires_at: string, is_permanent: bool} */
+    public array $documentDraft = [
+        'document_type_id' => null,
+        'expires_at' => '',
+        'is_permanent' => false,
     ];
 
     public function mount(?Approval $approval = null): void
@@ -168,6 +184,8 @@ new #[Title('Review queue - Admin')] class extends Component {
         $this->currentId = $id;
         $this->note = '';
         $this->flash = null;
+        $this->editingMember = false;
+        $this->editingDocument = false;
         $this->resetErrorBag();
         $this->forgetCurrent();
         $this->syncUrl();
@@ -339,6 +357,113 @@ new #[Title('Review queue - Admin')] class extends Component {
 
         // Force the member card and evidence to re-read the user from the DB.
         $this->forgetCurrent();
+    }
+
+    // ===== Inline document edit =====
+
+    #[Computed]
+    public function documentTypeOptions()
+    {
+        return DocumentType::active()->orderBy('name')->get(['id', 'name']);
+    }
+
+    public function startEditingDocument(): void
+    {
+        $doc = $this->currentDocument();
+        if (! $doc) {
+            return;
+        }
+        abort_unless(auth()->user()?->isAdmin(), 403);
+
+        $this->documentDraft = [
+            'document_type_id' => $doc->document_type_id,
+            'expires_at' => $doc->expires_at?->format('Y-m-d') ?? '',
+            'is_permanent' => $doc->expires_at === null,
+        ];
+        $this->editingDocument = true;
+        $this->resetErrorBag();
+    }
+
+    public function cancelEditingDocument(): void
+    {
+        $this->editingDocument = false;
+        $this->resetErrorBag();
+    }
+
+    public function saveDocumentDraft(): void
+    {
+        $doc = $this->currentDocument();
+        if (! $doc) {
+            return;
+        }
+        abort_unless(auth()->user()?->isAdmin(), 403);
+
+        $this->validate([
+            'documentDraft.document_type_id' => ['required', 'integer', 'exists:document_types,id'],
+            'documentDraft.is_permanent' => ['boolean'],
+            'documentDraft.expires_at' => ['nullable', 'date', 'required_if:documentDraft.is_permanent,false'],
+        ], attributes: [
+            'documentDraft.document_type_id' => 'document type',
+            'documentDraft.expires_at' => 'expiry date',
+        ]);
+
+        $before = [
+            'document_type_id' => $doc->document_type_id,
+            'document_type_name' => $doc->documentType?->name,
+            'expires_at' => $doc->expires_at?->format('Y-m-d'),
+        ];
+
+        $doc->update([
+            'document_type_id' => (int) $this->documentDraft['document_type_id'],
+            'expires_at' => $this->documentDraft['is_permanent']
+                ? null
+                : ($this->documentDraft['expires_at'] !== '' ? $this->documentDraft['expires_at'] : null),
+        ]);
+        $doc->refresh()->loadMissing('documentType');
+
+        $after = [
+            'document_type_id' => $doc->document_type_id,
+            'document_type_name' => $doc->documentType?->name,
+            'expires_at' => $doc->expires_at?->format('Y-m-d'),
+        ];
+
+        $changed = collect($after)
+            ->filter(fn ($value, $field) => (string) ($before[$field] ?? '') !== (string) ($value ?? ''))
+            ->all();
+
+        if ($changed !== []) {
+            AuditLog::create([
+                'user_id' => auth()->id(),
+                'event' => 'document.details_corrected',
+                'auditable_type' => MemberDocument::class,
+                'auditable_id' => $doc->id,
+                'old_values' => array_intersect_key($before, $changed),
+                'new_values' => $changed,
+                'meta' => [
+                    'approval_id' => $this->current?->id,
+                    'approval_type' => $this->current?->type?->value,
+                    'member_id' => $doc->user_id,
+                    'source' => 'admin_review_workspace',
+                ],
+                'ip_address' => request()?->ip(),
+                'user_agent' => request()?->userAgent(),
+            ]);
+        }
+
+        $this->editingDocument = false;
+        $this->flash = ['tone' => 'success', 'message' => $changed === []
+            ? 'No changes to save.'
+            : 'Updated document: '.implode(', ', array_map(fn ($k) => str_replace('_', ' ', $k), array_keys($changed))).'.',
+        ];
+
+        $this->forgetCurrent();
+    }
+
+    private function currentDocument(): ?MemberDocument
+    {
+        $approvable = $this->current?->approvable;
+
+        return $approvable instanceof MemberDocument ? $approvable : null;
     }
 
     private function decide(ApprovalDecision $decision, bool $next): void
@@ -583,21 +708,80 @@ new #[Title('Review queue - Admin')] class extends Component {
                 <div class="flex flex-1 flex-col gap-6 overflow-y-auto p-6 xl:flex-row xl:items-start">
                     <div class="flex min-w-0 flex-1 flex-col gap-5">
                         @if($evidence = $this->evidence)
+                            @php $isDocument = $approval->type === ApprovalType::Document; @endphp
                             <div class="rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                                <div class="flex items-center justify-between border-b border-zinc-100 px-6 py-4 dark:border-zinc-800">
+                                <div class="flex items-center justify-between gap-3 border-b border-zinc-100 px-6 py-4 dark:border-zinc-800">
                                     <h3 class="text-sm font-semibold text-zinc-900 dark:text-white">{{ $evidence->title }}</h3>
-                                    @if($evidence->badge)
-                                        <span @class([
-                                            'rounded-full px-2 py-0.5 text-xs font-medium',
-                                            'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200' => $evidence->badgeTone === 'emerald',
-                                            'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200' => $evidence->badgeTone === 'amber',
-                                            'bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-200' => $evidence->badgeTone === 'violet',
-                                            'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300' => ! in_array($evidence->badgeTone, ['emerald', 'amber', 'violet'], true),
-                                        ])>{{ $evidence->badge }}</span>
-                                    @endif
+                                    <div class="flex items-center gap-2">
+                                        @if($isDocument && ! $editingDocument)
+                                            <button type="button" wire:click="startEditingDocument"
+                                                data-edit-document
+                                                class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-nrapa-blue hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-900/20">
+                                                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                                                Edit
+                                            </button>
+                                        @endif
+                                        @if($evidence->badge)
+                                            <span @class([
+                                                'rounded-full px-2 py-0.5 text-xs font-medium',
+                                                'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200' => $evidence->badgeTone === 'emerald',
+                                                'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200' => $evidence->badgeTone === 'amber',
+                                                'bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-200' => $evidence->badgeTone === 'violet',
+                                                'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300' => ! in_array($evidence->badgeTone, ['emerald', 'amber', 'violet'], true),
+                                            ])>{{ $evidence->badge }}</span>
+                                        @endif
+                                    </div>
                                 </div>
                                 <div class="p-6">
-                                    @include($evidence->view, $evidence->data)
+                                    @if($isDocument && $editingDocument && ($doc = $evidence->data['document'] ?? null))
+                                        <form wire:submit.prevent="saveDocumentDraft" class="flex flex-col gap-4" data-edit-document-form>
+                                            <div class="grid gap-4 sm:grid-cols-2">
+                                                <label class="flex flex-col gap-1">
+                                                    <span class="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Document type</span>
+                                                    <select wire:model="documentDraft.document_type_id"
+                                                        class="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-nrapa-blue focus:ring-nrapa-blue dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
+                                                        <option value="">Choose a type…</option>
+                                                        @foreach($this->documentTypeOptions as $option)
+                                                            <option value="{{ $option->id }}">{{ $option->name }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                    @error('documentDraft.document_type_id') <span class="text-xs text-red-700 dark:text-red-300">{{ $message }}</span> @enderror
+                                                </label>
+                                                <div class="flex flex-col gap-1">
+                                                    <span class="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Expiry</span>
+                                                    <div class="flex items-center gap-2">
+                                                        <input type="date" wire:model="documentDraft.expires_at"
+                                                            @disabled($documentDraft['is_permanent'] ?? false)
+                                                            class="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-nrapa-blue focus:ring-nrapa-blue disabled:bg-zinc-100 disabled:text-zinc-400 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white dark:disabled:bg-zinc-900 dark:disabled:text-zinc-500">
+                                                    </div>
+                                                    <label class="mt-1 flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-300">
+                                                        <input type="checkbox" wire:model.live="documentDraft.is_permanent" class="rounded border-zinc-300 text-nrapa-blue focus:ring-nrapa-blue">
+                                                        <span>Does not expire</span>
+                                                    </label>
+                                                    @error('documentDraft.expires_at') <span class="text-xs text-red-700 dark:text-red-300">{{ $message }}</span> @enderror
+                                                </div>
+                                            </div>
+
+                                            @if($doc->original_filename)
+                                                <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                                                    The uploaded file ({{ $doc->original_filename }}) is unchanged — this only corrects the type and expiry.
+                                                </p>
+                                            @endif
+
+                                            <div class="flex items-center justify-end gap-2">
+                                                <button type="button" wire:click="cancelEditingDocument" wire:loading.attr="disabled"
+                                                    class="rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-50">Cancel</button>
+                                                <button type="submit" wire:loading.attr="disabled"
+                                                    class="rounded-md bg-nrapa-blue px-3 py-1.5 text-xs font-semibold text-white hover:bg-nrapa-blue-dark disabled:opacity-50">
+                                                    <span wire:loading.remove wire:target="saveDocumentDraft">Save corrections</span>
+                                                    <span wire:loading wire:target="saveDocumentDraft">Saving…</span>
+                                                </button>
+                                            </div>
+                                            <p class="text-[11px] text-zinc-400">Changes are audited against your account.</p>
+                                        </form>
+                                    @else
+                                        @include($evidence->view, $evidence->data)
+                                    @endif
                                 </div>
                             </div>
                         @endif
