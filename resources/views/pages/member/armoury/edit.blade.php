@@ -125,8 +125,9 @@ new class extends Component {
 
         // Overrides
         $this->calibre_custom = $firearm->calibre_text_override ?? '';
-        $this->make_custom = $firearm->make_text_override ?? '';
-        $this->model_custom = $firearm->model_text_override ?? '';
+        // Firearms added before the catalogue existed only have the plain make/model text.
+        $this->make_custom = $firearm->make_text_override ?? ($firearm->firearm_make_id ? '' : ($firearm->make ?? ''));
+        $this->model_custom = $firearm->model_text_override ?? ($firearm->firearm_model_id ? '' : ($firearm->model ?? ''));
     }
 
     public function updatedFirearmMakeId($value): void
