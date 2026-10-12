@@ -192,9 +192,13 @@ class ShootingActivity extends Model implements Approvable
 
     public function preflightChecks(): array
     {
+        // Activity-outside-membership-period is NOT a preflight check: a member
+        // might log a historical range day during a lapse, and an admin needs
+        // to be able to approve it inline from the queue so dedicated-status
+        // compliance stays truthful. The amber warning on the row and the date
+        // tint in the evidence block already flag it as context.
         return [
             MembershipActive::check($this->user),
-            ActivityWithinMembershipPeriod::check($this),
             NoDisciplinaryHold::check($this->user),
         ];
     }
