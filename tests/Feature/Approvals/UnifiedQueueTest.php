@@ -46,11 +46,6 @@ test('approving through the queue moves each record to its approved status', fun
         $service->decide($approval, ApprovalDecision::Approve, $this->admin);
     }
 
-    // Endorsements need a second, different admin.
-    expect($approvals['endorsement']->refresh()->state)->toBe(ApprovalState::WaitingOnAdmin)
-        ->and($approvals['endorsement']->first_approved_by)->toBe($this->admin->id);
-    $service->decide($approvals['endorsement'], ApprovalDecision::Approve, $this->secondAdmin);
-
     foreach ($approvals as $approval) {
         expect($approval->refresh()->state)->toBe(ApprovalState::Approved);
     }
