@@ -108,19 +108,29 @@ test('a concurrent second decision is rejected and reports the existing decision
         ->and(AuditLog::where('event', 'like', 'approval.%')->count())->toBe(1);
 });
 
-test('an endorsement is approved by one admin like every other type', function () {
+test('endorsements need two different admins', function () {
     $approval = ApprovalFixtures::endorsementApproval();
-
-    expect($approval->requires_second_approval)->toBeFalse();
 
     Livewire::actingAs($this->admin)->test('pages::admin.review.index', ['approval' => $approval])
         ->set('note', 'Checked the firearm details')
         ->call('approve')
+        ->assertSee('First signature recorded')
+        ->assertSee('A different admin must give the second.');
+
+    expect($approval->refresh()->state)->toBe(ApprovalState::WaitingOnAdmin)
+        ->and($approval->first_approved_by)->toBe($this->admin->id);
+
+    expect(fn () => app(ApprovalService::class)->decide($approval, ApprovalDecision::Approve, $this->admin, 'again'))
+        ->toThrow(\App\Exceptions\Approvals\ApprovalNotAllowed::class);
+
+    Livewire::actingAs($this->otherAdmin)->test('pages::admin.review.index', ['approval' => $approval])
+        ->assertSee('1 of 2')
+        ->set('note', 'Second signature')
+        ->call('approve')
         ->assertSee('Approved:');
 
     expect($approval->refresh()->state)->toBe(ApprovalState::Approved)
-        ->and($approval->decided_by)->toBe($this->admin->id)
-        ->and($approval->first_approved_by)->toBeNull();
+        ->and($approval->decided_by)->toBe($this->otherAdmin->id);
 });
 
 test('decline and request changes need a note and go through the service', function () {
