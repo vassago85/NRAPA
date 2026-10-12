@@ -6,10 +6,13 @@ use App\Enums\ApprovalType;
 use App\Exceptions\Approvals\ApprovalAlreadyDecided;
 use App\Exceptions\Approvals\ApprovalNotAllowed;
 use App\Models\Approval;
+use App\Models\AuditLog;
+use App\Models\User;
 use App\Queries\ApprovalQueue;
 use App\Queries\ReviewContext;
 use App\Services\Approvals\ApprovalService;
 use App\Support\Approvals\PreflightCheck;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
@@ -41,6 +44,24 @@ new #[Title('Review queue - Admin')] class extends Component {
 
     /** @var array{tone: string, message: string}|null */
     public ?array $flash = null;
+
+    /**
+     * Inline member-correction form. Opens on the member card when the admin
+     * clicks "Edit", so a typo in the member's ID / name / address can be
+     * fixed in-place without leaving the queue to go hunt for the record.
+     */
+    public bool $editingMember = false;
+
+    /** @var array<string, string> */
+    public array $memberDraft = [
+        'name' => '',
+        'email' => '',
+        'id_number' => '',
+        'phone' => '',
+        'date_of_birth' => '',
+        'physical_address' => '',
+        'postal_address' => '',
+    ];
 
     public function mount(?Approval $approval = null): void
     {
@@ -197,6 +218,127 @@ new #[Title('Review queue - Admin')] class extends Component {
     public function requestChanges(): void
     {
         $this->decide(ApprovalDecision::RequestChanges, next: false);
+    }
+
+    // ===== Inline member edit =====
+
+    public function startEditingMember(): void
+    {
+        $user = $this->current?->user;
+        if (! $user) {
+            return;
+        }
+        abort_unless(auth()->user()?->isAdmin(), 403);
+
+        $this->memberDraft = [
+            'name' => (string) $user->name,
+            'email' => (string) $user->email,
+            'id_number' => (string) ($user->id_number ?? ''),
+            'phone' => (string) ($user->phone ?? ''),
+            'date_of_birth' => $user->date_of_birth?->format('Y-m-d') ?? '',
+            'physical_address' => (string) ($user->physical_address ?? ''),
+            'postal_address' => (string) ($user->postal_address ?? ''),
+        ];
+        $this->editingMember = true;
+        $this->resetErrorBag();
+    }
+
+    public function cancelEditingMember(): void
+    {
+        $this->editingMember = false;
+        $this->resetErrorBag();
+    }
+
+    public function saveMemberDraft(): void
+    {
+        $user = $this->current?->user;
+        if (! $user) {
+            return;
+        }
+        abort_unless(auth()->user()?->isAdmin(), 403);
+
+        $this->validate([
+            'memberDraft.name' => ['required', 'string', 'max:255'],
+            'memberDraft.email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'memberDraft.id_number' => ['nullable', 'string', 'max:13'],
+            'memberDraft.phone' => ['nullable', 'string', 'max:20'],
+            'memberDraft.date_of_birth' => ['nullable', 'date'],
+            'memberDraft.physical_address' => ['nullable', 'string', 'max:500'],
+            'memberDraft.postal_address' => ['nullable', 'string', 'max:500'],
+        ], attributes: [
+            'memberDraft.name' => 'name',
+            'memberDraft.email' => 'email',
+            'memberDraft.id_number' => 'ID number',
+            'memberDraft.phone' => 'phone',
+            'memberDraft.date_of_birth' => 'date of birth',
+            'memberDraft.physical_address' => 'physical address',
+            'memberDraft.postal_address' => 'postal address',
+        ]);
+
+        $updates = [
+            'name' => trim($this->memberDraft['name']),
+            'email' => trim($this->memberDraft['email']),
+            'id_number' => $this->memberDraft['id_number'] !== '' ? trim($this->memberDraft['id_number']) : null,
+            'phone' => $this->memberDraft['phone'] !== '' ? trim($this->memberDraft['phone']) : null,
+            'date_of_birth' => $this->memberDraft['date_of_birth'] !== '' ? $this->memberDraft['date_of_birth'] : null,
+            'physical_address' => $this->memberDraft['physical_address'] !== '' ? trim($this->memberDraft['physical_address']) : null,
+            'postal_address' => $this->memberDraft['postal_address'] !== '' ? trim($this->memberDraft['postal_address']) : null,
+        ];
+
+        // Snapshot before the update so we can audit the exact diff.
+        $before = [
+            'name' => $user->name,
+            'email' => $user->email,
+            'id_number' => $user->id_number,
+            'phone' => $user->phone,
+            'date_of_birth' => $user->date_of_birth?->format('Y-m-d'),
+            'physical_address' => $user->physical_address,
+            'postal_address' => $user->postal_address,
+        ];
+
+        $user->update($updates);
+        $user->refresh();
+
+        $after = [
+            'name' => $user->name,
+            'email' => $user->email,
+            'id_number' => $user->id_number,
+            'phone' => $user->phone,
+            'date_of_birth' => $user->date_of_birth?->format('Y-m-d'),
+            'physical_address' => $user->physical_address,
+            'postal_address' => $user->postal_address,
+        ];
+
+        $changed = collect($after)
+            ->filter(fn ($value, $field) => (string) ($before[$field] ?? '') !== (string) ($value ?? ''))
+            ->all();
+
+        if ($changed !== []) {
+            AuditLog::create([
+                'user_id' => auth()->id(),
+                'event' => 'member.details_corrected',
+                'auditable_type' => User::class,
+                'auditable_id' => $user->id,
+                'old_values' => array_intersect_key($before, $changed),
+                'new_values' => $changed,
+                'meta' => [
+                    'approval_id' => $this->current?->id,
+                    'approval_type' => $this->current?->type?->value,
+                    'source' => 'admin_review_workspace',
+                ],
+                'ip_address' => request()?->ip(),
+                'user_agent' => request()?->userAgent(),
+            ]);
+        }
+
+        $this->editingMember = false;
+        $this->flash = ['tone' => 'success', 'message' => $changed === []
+            ? 'No changes to save.'
+            : "Updated {$user->name}: ".implode(', ', array_keys($changed)).'.',
+        ];
+
+        // Force the member card and evidence to re-read the user from the DB.
+        $this->forgetCurrent();
     }
 
     private function decide(ApprovalDecision $decision, bool $next): void
@@ -482,20 +624,84 @@ new #[Title('Review queue - Admin')] class extends Component {
                     <div class="flex w-full flex-none flex-col gap-5 xl:w-[300px]">
                         @if($card)
                             <div class="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                                <h3 class="text-sm font-semibold text-zinc-900 dark:text-white">Member</h3>
-                                <dl class="mt-3 flex flex-col gap-2.5 text-[13px]">
-                                    <div class="flex justify-between gap-3"><dt class="text-zinc-500">Name</dt><dd class="text-right font-medium text-zinc-900 dark:text-white">{{ $approval->user->name }}</dd></div>
-                                    <div class="flex justify-between gap-3"><dt class="text-zinc-500">Membership</dt><dd class="text-right font-medium text-zinc-900 dark:text-white">{{ $card['membership']?->type?->name ?? 'None' }}</dd></div>
-                                    @if($card['status'])
-                                        <div class="flex justify-between gap-3"><dt class="text-zinc-500">Status</dt><dd><span @class(['rounded-full px-2 py-0.5 text-xs font-medium', 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200' => $card['status'] === 'active', 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300' => $card['status'] !== 'active'])>{{ str($card['status'])->replace('_', ' ')->ucfirst() }}</span></dd></div>
-                                        <div class="flex justify-between gap-3"><dt class="text-zinc-500">Paid to</dt><dd class="font-medium text-zinc-900 dark:text-white">{{ $card['paid_to'] }}</dd></div>
+                                <div class="flex items-center justify-between gap-3">
+                                    <h3 class="text-sm font-semibold text-zinc-900 dark:text-white">Member</h3>
+                                    @if(! $editingMember && $approval->user)
+                                        <button type="button" wire:click="startEditingMember"
+                                            data-edit-member
+                                            class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-nrapa-blue hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-900/20">
+                                            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                                            Edit
+                                        </button>
                                     @endif
-                                    <div class="flex justify-between gap-3"><dt class="text-zinc-500">Member since</dt><dd class="font-medium text-zinc-900 dark:text-white">{{ $card['member_since'] ?? '—' }}</dd></div>
-                                    <div class="flex justify-between gap-3"><dt class="text-zinc-500">Documents</dt><dd class="font-medium text-zinc-900 dark:text-white">{{ $card['documents_valid'] }} valid, {{ $card['documents_expiring'] }} expiring</dd></div>
-                                    <div class="flex justify-between gap-3"><dt class="text-zinc-500">Endorsements</dt><dd class="font-medium text-zinc-900 dark:text-white">{{ $card['endorsements'] ? $card['endorsements'].' issued'.($card['last_endorsement_year'] ? ' ('.$card['last_endorsement_year'].')' : '') : 'None' }}</dd></div>
-                                </dl>
-                                @if($card['hold'])
-                                    <p class="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-800 dark:bg-red-900/20 dark:text-red-300">Disciplinary hold: {{ $card['hold'] }}</p>
+                                </div>
+
+                                @if($editingMember && $approval->user)
+                                    <form wire:submit.prevent="saveMemberDraft" class="mt-3 flex flex-col gap-3 text-[13px]" data-edit-member-form>
+                                        <label class="flex flex-col gap-1">
+                                            <span class="text-xs font-medium text-zinc-600 dark:text-zinc-400">Name</span>
+                                            <input type="text" wire:model="memberDraft.name" class="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 focus:border-nrapa-blue focus:ring-nrapa-blue dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
+                                            @error('memberDraft.name') <span class="text-xs text-red-700 dark:text-red-300">{{ $message }}</span> @enderror
+                                        </label>
+                                        <label class="flex flex-col gap-1">
+                                            <span class="text-xs font-medium text-zinc-600 dark:text-zinc-400">ID number</span>
+                                            <input type="text" wire:model="memberDraft.id_number" inputmode="numeric" maxlength="13" class="rounded-md border border-zinc-300 bg-white px-2 py-1.5 font-mono text-sm text-zinc-900 focus:border-nrapa-blue focus:ring-nrapa-blue dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
+                                            @error('memberDraft.id_number') <span class="text-xs text-red-700 dark:text-red-300">{{ $message }}</span> @enderror
+                                        </label>
+                                        <label class="flex flex-col gap-1">
+                                            <span class="text-xs font-medium text-zinc-600 dark:text-zinc-400">Date of birth</span>
+                                            <input type="date" wire:model="memberDraft.date_of_birth" class="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 focus:border-nrapa-blue focus:ring-nrapa-blue dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
+                                            @error('memberDraft.date_of_birth') <span class="text-xs text-red-700 dark:text-red-300">{{ $message }}</span> @enderror
+                                        </label>
+                                        <label class="flex flex-col gap-1">
+                                            <span class="text-xs font-medium text-zinc-600 dark:text-zinc-400">Email</span>
+                                            <input type="email" wire:model="memberDraft.email" class="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 focus:border-nrapa-blue focus:ring-nrapa-blue dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
+                                            @error('memberDraft.email') <span class="text-xs text-red-700 dark:text-red-300">{{ $message }}</span> @enderror
+                                        </label>
+                                        <label class="flex flex-col gap-1">
+                                            <span class="text-xs font-medium text-zinc-600 dark:text-zinc-400">Phone</span>
+                                            <input type="tel" wire:model="memberDraft.phone" class="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 focus:border-nrapa-blue focus:ring-nrapa-blue dark:border-zinc-600 dark:bg-zinc-800 dark:text-white">
+                                            @error('memberDraft.phone') <span class="text-xs text-red-700 dark:text-red-300">{{ $message }}</span> @enderror
+                                        </label>
+                                        <label class="flex flex-col gap-1">
+                                            <span class="text-xs font-medium text-zinc-600 dark:text-zinc-400">Physical address</span>
+                                            <textarea wire:model="memberDraft.physical_address" rows="2" class="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 focus:border-nrapa-blue focus:ring-nrapa-blue dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"></textarea>
+                                            @error('memberDraft.physical_address') <span class="text-xs text-red-700 dark:text-red-300">{{ $message }}</span> @enderror
+                                        </label>
+                                        <label class="flex flex-col gap-1">
+                                            <span class="text-xs font-medium text-zinc-600 dark:text-zinc-400">Postal address</span>
+                                            <textarea wire:model="memberDraft.postal_address" rows="2" class="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 focus:border-nrapa-blue focus:ring-nrapa-blue dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"></textarea>
+                                            @error('memberDraft.postal_address') <span class="text-xs text-red-700 dark:text-red-300">{{ $message }}</span> @enderror
+                                        </label>
+                                        <div class="flex items-center justify-end gap-2 pt-1">
+                                            <button type="button" wire:click="cancelEditingMember" wire:loading.attr="disabled"
+                                                class="rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-50">Cancel</button>
+                                            <button type="submit" wire:loading.attr="disabled"
+                                                class="rounded-md bg-nrapa-blue px-3 py-1.5 text-xs font-semibold text-white hover:bg-nrapa-blue-dark disabled:opacity-50">
+                                                <span wire:loading.remove wire:target="saveMemberDraft">Save corrections</span>
+                                                <span wire:loading wire:target="saveMemberDraft">Saving…</span>
+                                            </button>
+                                        </div>
+                                        <p class="text-[11px] text-zinc-400">Changes are audited against your account.</p>
+                                    </form>
+                                @else
+                                    <dl class="mt-3 flex flex-col gap-2.5 text-[13px]">
+                                        <div class="flex justify-between gap-3"><dt class="text-zinc-500">Name</dt><dd class="text-right font-medium text-zinc-900 dark:text-white">{{ $approval->user->name }}</dd></div>
+                                        @if($approval->user?->id_number)
+                                            <div class="flex justify-between gap-3"><dt class="text-zinc-500">ID number</dt><dd class="text-right font-mono text-zinc-900 dark:text-white">{{ $approval->user->id_number }}</dd></div>
+                                        @endif
+                                        <div class="flex justify-between gap-3"><dt class="text-zinc-500">Membership</dt><dd class="text-right font-medium text-zinc-900 dark:text-white">{{ $card['membership']?->type?->name ?? 'None' }}</dd></div>
+                                        @if($card['status'])
+                                            <div class="flex justify-between gap-3"><dt class="text-zinc-500">Status</dt><dd><span @class(['rounded-full px-2 py-0.5 text-xs font-medium', 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200' => $card['status'] === 'active', 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300' => $card['status'] !== 'active'])>{{ str($card['status'])->replace('_', ' ')->ucfirst() }}</span></dd></div>
+                                            <div class="flex justify-between gap-3"><dt class="text-zinc-500">Paid to</dt><dd class="font-medium text-zinc-900 dark:text-white">{{ $card['paid_to'] }}</dd></div>
+                                        @endif
+                                        <div class="flex justify-between gap-3"><dt class="text-zinc-500">Member since</dt><dd class="font-medium text-zinc-900 dark:text-white">{{ $card['member_since'] ?? '—' }}</dd></div>
+                                        <div class="flex justify-between gap-3"><dt class="text-zinc-500">Documents</dt><dd class="font-medium text-zinc-900 dark:text-white">{{ $card['documents_valid'] }} valid, {{ $card['documents_expiring'] }} expiring</dd></div>
+                                        <div class="flex justify-between gap-3"><dt class="text-zinc-500">Endorsements</dt><dd class="font-medium text-zinc-900 dark:text-white">{{ $card['endorsements'] ? $card['endorsements'].' issued'.($card['last_endorsement_year'] ? ' ('.$card['last_endorsement_year'].')' : '') : 'None' }}</dd></div>
+                                    </dl>
+                                    @if($card['hold'])
+                                        <p class="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-800 dark:bg-red-900/20 dark:text-red-300">Disciplinary hold: {{ $card['hold'] }}</p>
+                                    @endif
                                 @endif
                             </div>
                         @endif
