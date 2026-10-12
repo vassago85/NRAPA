@@ -26,11 +26,9 @@
         @if($isPdf)
             <iframe src="{{ $proofUrl }}" class="h-[520px] w-full rounded-lg border border-zinc-200 dark:border-zinc-700" title="Proof of payment"></iframe>
         @else
-            <a href="{{ $proofUrl }}" target="_blank" rel="noopener">
-                <img src="{{ $proofUrl }}" alt="Proof of payment" class="max-h-[520px] rounded-lg border border-zinc-200 object-contain dark:border-zinc-700">
-            </a>
+            <img src="{{ $proofUrl }}" alt="Proof of payment" class="w-full max-h-[520px] rounded-lg border border-zinc-200 object-contain dark:border-zinc-700">
         @endif
-        <a href="{{ $proofUrl }}" target="_blank" rel="noopener" class="mt-2 inline-block text-sm font-medium text-nrapa-blue hover:underline">Open in a new tab</a>
+        <a href="{{ $proofUrl }}" target="_blank" rel="noopener" class="mt-2 inline-block text-xs text-zinc-500 hover:text-nrapa-blue hover:underline dark:text-zinc-400">Open full-size in a new tab ↗</a>
     @else
         <div class="rounded-lg border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
             No proof of payment file to show.

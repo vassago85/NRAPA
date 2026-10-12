@@ -346,7 +346,8 @@ new #[Title('Review queue - Admin')] class extends Component {
     }"
     x-on:keydown.window="key($event)">
 
-    <div class="flex min-h-[calc(100vh-10rem)] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+    {{-- Bounded to the viewport so the queue and evidence scroll inside their panes and the decision bar stays pinned under whatever the admin is reading. --}}
+    <div class="flex h-[calc(100vh-9rem)] min-h-[560px] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
 
         {{-- Left: the queue --}}
         <aside class="hidden w-[330px] flex-none flex-col border-r border-zinc-200 dark:border-zinc-800 lg:flex">
