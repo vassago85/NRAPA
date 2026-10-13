@@ -29,9 +29,10 @@
 <div class="mt-5">
     @if($fileUrl)
         @if($isPdf)
-            <iframe src="{{ $fileUrl }}" class="h-[560px] w-full rounded-lg border border-zinc-200 dark:border-zinc-700" title="Document"></iframe>
+            {{-- PDF Open Parameters: hide the thumbnail panel (which steals ~180px and forces a horizontal scrollbar in a narrow preview pane) and fit the page width to the viewer so landscape ID scans aren't rendered as a tiny strip. --}}
+            <iframe src="{{ $fileUrl }}#toolbar=1&navpanes=0&view=FitH" class="h-[min(72vh,760px)] min-h-[520px] w-full rounded-lg border border-zinc-200 dark:border-zinc-700" title="Document"></iframe>
         @else
-            <img src="{{ $fileUrl }}" alt="{{ $document->documentType?->name }}" class="w-full max-h-[560px] rounded-lg border border-zinc-200 object-contain dark:border-zinc-700">
+            <img src="{{ $fileUrl }}" alt="{{ $document->documentType?->name }}" class="w-full max-h-[min(72vh,760px)] rounded-lg border border-zinc-200 object-contain dark:border-zinc-700">
         @endif
         <a href="{{ $fileUrl }}" target="_blank" rel="noopener" class="mt-2 inline-block text-xs text-zinc-500 hover:text-nrapa-blue hover:underline dark:text-zinc-400">Open full-size in a new tab ↗</a>
     @else

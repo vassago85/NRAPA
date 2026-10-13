@@ -24,9 +24,10 @@
 <div class="mt-5">
     @if($proofUrl)
         @if($isPdf)
-            <iframe src="{{ $proofUrl }}" class="h-[520px] w-full rounded-lg border border-zinc-200 dark:border-zinc-700" title="Proof of payment"></iframe>
+            {{-- PDF Open Parameters: collapse the thumbnail panel + fit page width. Without this, a POP PDF in a narrow preview pane shows a horizontal scrollbar and a tiny document. --}}
+            <iframe src="{{ $proofUrl }}#toolbar=1&navpanes=0&view=FitH" class="h-[min(72vh,760px)] min-h-[520px] w-full rounded-lg border border-zinc-200 dark:border-zinc-700" title="Proof of payment"></iframe>
         @else
-            <img src="{{ $proofUrl }}" alt="Proof of payment" class="w-full max-h-[520px] rounded-lg border border-zinc-200 object-contain dark:border-zinc-700">
+            <img src="{{ $proofUrl }}" alt="Proof of payment" class="w-full max-h-[min(72vh,760px)] rounded-lg border border-zinc-200 object-contain dark:border-zinc-700">
         @endif
         <a href="{{ $proofUrl }}" target="_blank" rel="noopener" class="mt-2 inline-block text-xs text-zinc-500 hover:text-nrapa-blue hover:underline dark:text-zinc-400">Open full-size in a new tab ↗</a>
     @else
