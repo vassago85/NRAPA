@@ -52,6 +52,23 @@ LOG);
         ->and($fingerprints->values()->sum())->toBe(4);
 });
 
+test('ignores a vanished livewire-tmp upload logged as a warning', function () {
+    $now = Carbon::parse('2026-10-13 09:00:00');
+    writeLog($this->logDir, <<<'LOG'
+[2026-10-13 08:00:00] production.WARNING: [LIVEWIRE_TMP_MISSING] League\Flysystem\UnableToRetrieveMetadata: Unable to retrieve the file_size for file at location: livewire-tmp/qK52i99a8nOskcP7wBYjNdJKtsaN5WZSSVUxXz9b.jpeg
+[2026-10-13 08:30:00] production.ERROR: Daily database backup failed {"message":"connection refused"}
+LOG);
+
+    $report = (new ErrorLogScanner($this->logDir))->scan(
+        since: $now->copy()->subDay(),
+        until: $now,
+    );
+
+    expect($report->total)->toBe(1)
+        ->and($report->uniqueCount)->toBe(1)
+        ->and($report->groups[0]['fingerprint'])->toBe('Daily database backup failed');
+});
+
 test('ignores interactive tinker PsySH parse errors', function () {
     $now = Carbon::parse('2026-09-09 07:30:00');
     writeLog($this->logDir, <<<'LOG'

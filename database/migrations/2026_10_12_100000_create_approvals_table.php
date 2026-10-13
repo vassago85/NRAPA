@@ -8,6 +8,15 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // MySQL auto-commits DDL, so if the container was killed between the
+        // CREATE TABLE finishing and the migrations row being written, the
+        // table exists on prod but the migration is unlogged. Every redeploy
+        // then crashes here. Make the create idempotent so a replay just
+        // records the migration and moves on.
+        if (Schema::hasTable('approvals')) {
+            return;
+        }
+
         Schema::create('approvals', function (Blueprint $table) {
             $table->id();
             $table->morphs('approvable');

@@ -8,6 +8,12 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Same self-heal as create_approvals_table: if a prior deploy ran the
+        // CREATE but was killed before the migrations row was written, skip.
+        if (Schema::hasTable('approval_chases')) {
+            return;
+        }
+
         Schema::create('approval_chases', function (Blueprint $table) {
             $table->id();
             $table->foreignId('approval_id')->constrained('approvals')->cascadeOnDelete();

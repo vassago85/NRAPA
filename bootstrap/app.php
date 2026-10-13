@@ -46,7 +46,18 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->report(function (\Throwable $e) {
             if (request()->is('livewire*') || str_contains((string) request()->path(), 'livewire')) {
-                \Illuminate\Support\Facades\Log::error('[LIVEWIRE_EXCEPTION] '.get_class($e).': '.$e->getMessage(), [
+                // A vanished livewire-tmp file (member navigated away mid-upload,
+                // or the temp-file janitor swept it between client snapshots) is
+                // not an application failure. Log it at warning level so the
+                // daily [ERROR] digest doesn't page on it, but keep a breadcrumb
+                // for diagnosis.
+                $isMissingTempUpload = $e instanceof \League\Flysystem\UnableToRetrieveMetadata
+                    && str_contains($e->getMessage(), 'livewire-tmp/');
+
+                $level = $isMissingTempUpload ? 'warning' : 'error';
+                $tag = $isMissingTempUpload ? '[LIVEWIRE_TMP_MISSING]' : '[LIVEWIRE_EXCEPTION]';
+
+                \Illuminate\Support\Facades\Log::log($level, $tag.' '.get_class($e).': '.$e->getMessage(), [
                     'path' => request()->path(),
                     'method' => request()->method(),
                     'file' => $e->getFile().':'.$e->getLine(),
