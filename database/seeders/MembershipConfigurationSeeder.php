@@ -493,35 +493,39 @@ class MembershipConfigurationSeeder extends Seeder
     protected function linkMembershipTypesToDocuments(): void
     {
         $links = [
+            // NOTE: competency-certificate upload is now a lifetime-only requirement.
+            // Everyone else can still upload one (and we still verify it when it's
+            // used for an endorsement letter via CompetencyOnFile::check()), but
+            // their membership can be approved without it on file.
             'basic' => [
                 'identity-document' => true,
                 'proof-of-address' => true,
-                'firearm-competency' => false, // Optional for basic
+                'firearm-competency' => false,
             ],
             'dedicated-sport' => [
                 'identity-document' => true,
                 'proof-of-address' => true,
-                'firearm-competency' => true, // Required for dedicated
+                'firearm-competency' => false,
             ],
             'dedicated-hunter' => [
                 'identity-document' => true,
                 'proof-of-address' => true,
-                'firearm-competency' => true, // Required for dedicated
+                'firearm-competency' => false,
             ],
             'dedicated-both' => [
                 'identity-document' => true,
                 'proof-of-address' => true,
-                'firearm-competency' => true, // Required for dedicated
+                'firearm-competency' => false,
             ],
             'standard-annual' => [
                 'identity-document' => true,
                 'proof-of-address' => true,
-                'firearm-competency' => false, // Optional
+                'firearm-competency' => false,
             ],
             'lifetime' => [
                 'identity-document' => true,
                 'proof-of-address' => true,
-                'firearm-competency' => false,
+                'firearm-competency' => true, // Lifetime is the only type that requires it up-front.
             ],
             'junior-annual' => [
                 'identity-document' => true,
