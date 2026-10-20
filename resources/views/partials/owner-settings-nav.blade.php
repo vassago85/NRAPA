@@ -53,4 +53,11 @@
             Sage Invoicing
         </a>
     </li>
+    <li>
+        <a href="{{ route('owner.settings.invoice-ninja') }}" wire:navigate
+           class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg {{ $currentRoute === 'owner.settings.invoice-ninja' ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700' }}">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
+            Invoice Ninja
+        </a>
+    </li>
 </ul>

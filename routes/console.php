@@ -87,6 +87,13 @@ Schedule::command('notifications:process')
     ->withoutOverlapping()
     ->runInBackground();
 
+// Invoice Ranyati for the previous month: hosting plus each paid new member and renewal.
+Schedule::command('nrapa:invoice-ranyati')
+    ->monthlyOn(1, '07:00')
+    ->timezone('Africa/Johannesburg')
+    ->withoutOverlapping()
+    ->runInBackground();
+
 // Daily Laravel error-log digest for anyone with System Errors ntfy enabled
 Schedule::command('nrapa:scan-error-logs')
     ->dailyAt('07:30')

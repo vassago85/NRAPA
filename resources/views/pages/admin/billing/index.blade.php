@@ -2,6 +2,10 @@
 
 use App\Models\Membership;
 use App\Models\AuditLog;
+use App\Models\RanyatiInvoice;
+use App\Services\InvoiceNinja\InvoiceNinjaException;
+use App\Services\InvoiceNinja\IssueRanyatiInvoice;
+use App\Services\InvoiceNinja\RanyatiInvoiceSettings;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -16,6 +20,14 @@ new class extends Component {
     public int $newMembers = 0;
     public int $renewals = 0;
     public int $totalBillable = 0;
+
+    public float $ranyatiHostingFee = 1500;
+    public float $ranyatiMemberFee = 100;
+    public float $ranyatiTotal = 1500;
+    public bool $ranyatiConfigured = false;
+    public ?string $ranyatiInvoiceStatus = null;
+    public ?string $ranyatiInvoiceNumber = null;
+    public ?string $ranyatiInvoiceError = null;
 
     // Bulk selection
     public array $selected = [];
@@ -187,8 +199,37 @@ new class extends Component {
             ->get();
     }
 
+    public function sendRanyatiInvoice(IssueRanyatiInvoice $issuer): void
+    {
+        $period = sprintf('%04d-%02d', $this->selectedYear, $this->selectedMonth);
+        $existing = RanyatiInvoice::query()->where('period', $period)->where('status', RanyatiInvoice::STATUS_SENT)->first();
+
+        if ($existing) {
+            $number = $existing->invoice_number ?: $existing->invoice_ninja_id;
+            session()->flash('success', "Already invoiced to Ranyati as {$number}.");
+            $this->loadStats();
+
+            return;
+        }
+
+        try {
+            $invoice = $issuer->issue($this->selectedYear, $this->selectedMonth);
+            $number = $invoice->invoice_number ?: $invoice->invoice_ninja_id;
+            session()->flash('success', "Invoice {$number} for this month is {$invoice->status} in Invoice Ninja.");
+        } catch (InvoiceNinjaException $e) {
+            session()->flash('error', $e->getMessage());
+        }
+
+        $this->loadStats();
+    }
+
     protected function loadStats(): void
     {
+        $settings = app(RanyatiInvoiceSettings::class);
+        $this->ranyatiHostingFee = $settings->hostingFee();
+        $this->ranyatiMemberFee = $settings->memberFee();
+        $this->ranyatiConfigured = $settings->isConfigured();
+
         try {
             $this->newMembers = Membership::billable()
                 ->newInMonth($this->selectedYear, $this->selectedMonth)
@@ -204,6 +245,21 @@ new class extends Component {
             $this->newMembers = 0;
             $this->renewals = 0;
             $this->totalBillable = 0;
+        }
+
+        $this->ranyatiTotal = round($this->ranyatiHostingFee + ($this->totalBillable * $this->ranyatiMemberFee), 2);
+
+        try {
+            $invoice = RanyatiInvoice::query()
+                ->where('period', sprintf('%04d-%02d', $this->selectedYear, $this->selectedMonth))
+                ->first();
+            $this->ranyatiInvoiceStatus = $invoice?->status;
+            $this->ranyatiInvoiceNumber = $invoice?->invoice_number ?: $invoice?->invoice_ninja_id;
+            $this->ranyatiInvoiceError = $invoice?->error;
+        } catch (\Exception $e) {
+            $this->ranyatiInvoiceStatus = null;
+            $this->ranyatiInvoiceNumber = null;
+            $this->ranyatiInvoiceError = null;
         }
     }
     
@@ -501,6 +557,42 @@ new class extends Component {
                     <p class="text-3xl font-bold text-zinc-900 dark:text-white">{{ $totalBillable }}</p>
                     <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Total billable for {{ $months[$selectedMonth] }}</p>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6 mb-6">
+        <div class="flex flex-col lg:flex-row lg:items-center gap-4">
+            <div class="flex-1">
+                <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Ranyati invoice</h2>
+                <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                    Hosting R{{ number_format($ranyatiHostingFee, 2) }}
+                    + {{ $totalBillable }} paid new members and renewals × R{{ number_format($ranyatiMemberFee, 2) }}
+                </p>
+                @if($ranyatiInvoiceStatus === 'sent')
+                    <p class="mt-2 text-sm text-emerald-700 dark:text-emerald-300">Sent to Invoice Ninja as {{ $ranyatiInvoiceNumber }}.</p>
+                @elseif($ranyatiInvoiceStatus === 'created')
+                    <p class="mt-2 text-sm text-amber-700 dark:text-amber-300">Created in Invoice Ninja as {{ $ranyatiInvoiceNumber }}, but the email did not send.{{ $ranyatiInvoiceError ? ' '.$ranyatiInvoiceError : '' }}</p>
+                @elseif($ranyatiInvoiceStatus === 'failed')
+                    <p class="mt-2 text-sm text-red-700 dark:text-red-300">{{ $ranyatiInvoiceError ?: 'The last attempt failed.' }}</p>
+                @elseif(! $ranyatiConfigured)
+                    <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Invoice Ninja is not connected yet. An owner can add the Ranyati client under Owner Settings → Invoice Ninja.</p>
+                @endif
+            </div>
+            <div class="text-right">
+                <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ $months[$selectedMonth] }} {{ $selectedYear }}</p>
+                <p class="text-3xl font-bold text-zinc-900 dark:text-white">R{{ number_format($ranyatiTotal, 2) }}</p>
+                @if($ranyatiConfigured && $ranyatiInvoiceStatus !== 'sent')
+                    <button
+                        wire:click="sendRanyatiInvoice"
+                        wire:confirm="Send the {{ $months[$selectedMonth] }} {{ $selectedYear }} invoice to Ranyati in Invoice Ninja? Hosting plus R{{ number_format($ranyatiMemberFee, 0) }} for each paid new member and renewal. A month is only invoiced once."
+                        wire:loading.attr="disabled"
+                        class="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+                    >
+                        <span wire:loading.remove wire:target="sendRanyatiInvoice">{{ $ranyatiInvoiceStatus === 'created' ? 'Email invoice' : 'Send to Invoice Ninja' }}</span>
+                        <span wire:loading wire:target="sendRanyatiInvoice">Sending...</span>
+                    </button>
+                @endif
             </div>
         </div>
     </div>

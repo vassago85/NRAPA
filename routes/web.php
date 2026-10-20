@@ -413,6 +413,7 @@ Route::middleware(['auth', 'verified', 'owner'])->prefix('owner')->name('owner.'
     Route::livewire('settings/documents', 'pages::owner.settings.documents')->name('settings.documents');
     Route::livewire('settings/backup', 'pages::owner.settings.backup')->name('settings.backup');
     Route::livewire('settings/sage', 'pages::owner.settings.sage')->name('settings.sage');
+    Route::livewire('settings/invoice-ninja', 'pages::owner.settings.invoice-ninja')->name('settings.invoice-ninja');
 
     // Sage OAuth flow (redirect initiates from owner panel)
     Route::get('sage/redirect', [SageOAuthController::class, 'redirect'])->name('sage.redirect');
