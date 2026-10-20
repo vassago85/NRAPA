@@ -6,6 +6,7 @@ use App\Models\Membership;
 use App\Models\MembershipType;
 use App\Models\User;
 use App\Models\UserFirearm;
+use App\Support\Members\ActivityComplianceCsvExport;
 use App\Support\Membership\MembershipStats;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -226,6 +227,22 @@ new #[Title('Membership Reports - Admin')] class extends Component {
         $this->dateTo = '';
     }
 
+    /**
+     * Year-end activity-compliance CSV. Current members with at least the
+     * minimum of approved activities in the Jan–Oct window of the current
+     * year. See {@see ActivityComplianceCsvExport} for the columns.
+     */
+    public function exportActivityComplianceCsv(): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $actor = auth()->user();
+        abort_unless($actor && $actor->isAdmin(), 403);
+
+        return (new ActivityComplianceCsvExport(
+            actor: $actor,
+            year: ActivityComplianceCsvExport::defaultYear(),
+        ))->download();
+    }
+
     public function exportCsv(): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         $rows = $this->typeBreakdown;
@@ -261,15 +278,21 @@ new #[Title('Membership Reports - Admin')] class extends Component {
 
 <div class="flex flex-col gap-6">
     <x-slot name="header">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Membership Reports</h1>
                 <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Breakdown of members by type, status, and source</p>
             </div>
-            <button wire:click="exportCsv" class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                Export CSV
-            </button>
+            <div class="flex flex-wrap items-center gap-2">
+                <button wire:click="exportActivityComplianceCsv" class="inline-flex items-center gap-2 rounded-lg border border-emerald-600 bg-white px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50 transition-colors dark:bg-zinc-800 dark:text-emerald-300 dark:hover:bg-zinc-700">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                    Activity compliance CSV ({{ now()->year }})
+                </button>
+                <button wire:click="exportCsv" class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    Export CSV
+                </button>
+            </div>
         </div>
     </x-slot>
 

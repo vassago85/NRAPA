@@ -1,10 +1,13 @@
 <?php
 
+use App\Console\Commands\SendActivityReminders;
 use App\Enums\ApprovalDecision;
 use App\Enums\ApprovalType;
 use App\Livewire\Concerns\DecidesApprovals;
+use App\Models\ActivityReminder;
 use App\Models\ShootingActivity;
 use App\Queries\ApprovalQueue;
+use App\Support\Members\ActivityReminderRecipients;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -18,6 +21,8 @@ new class extends Component {
 
     #[Url(nullable: true)]
     public string $statusFilter = 'pending';
+
+    public bool $showReminderModal = false;
 
     public function approve(int $activityId): void
     {
@@ -44,6 +49,80 @@ new class extends Component {
         $this->resetPage();
     }
 
+    public function openReminderModal(): void
+    {
+        $this->showReminderModal = true;
+    }
+
+    public function closeReminderModal(): void
+    {
+        $this->showReminderModal = false;
+    }
+
+    /**
+     * Send the year-end activity reminder to current members who are still
+     * short of the activity minimum for the activity year. Delegates to
+     * {@see SendActivityReminders::deliverFor()} so the admin button and the
+     * `nrapa:send-activity-reminders` command walk the same code path.
+     */
+    public function sendReminder(): void
+    {
+        $actor = auth()->user();
+        if (! $actor || ! $actor->isAdmin()) {
+            session()->flash('error', 'You do not have permission to send reminders.');
+            return;
+        }
+
+        $year = ActivityReminderRecipients::defaultYear();
+        $required = ActivityReminderRecipients::requiredCount();
+
+        $sent = 0;
+        $emailed = 0;
+        $skipped = 0;
+        $failed = 0;
+
+        ActivityReminderRecipients::query($year)
+            ->chunkById(200, function ($users) use ($year, $required, $actor, &$sent, &$emailed, &$skipped, &$failed) {
+                foreach ($users as $user) {
+                    $already = ActivityReminder::where('user_id', $user->id)
+                        ->where('year', $year)
+                        ->exists();
+
+                    if ($already) {
+                        $skipped++;
+                        continue;
+                    }
+
+                    try {
+                        $approved = ActivityReminderRecipients::approvedCountFor($user, $year);
+                        $result = SendActivityReminders::deliverFor($user, $year, $required, $approved, $actor);
+                        $sent++;
+                        if ($result['emailed']) {
+                            $emailed++;
+                        }
+                    } catch (\Throwable $e) {
+                        $failed++;
+                        \Illuminate\Support\Facades\Log::warning('Activity reminder send failed', [
+                            'user_id' => $user->id,
+                            'year' => $year,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            }, 'users.id', 'id');
+
+        $this->closeReminderModal();
+
+        session()->flash('success', sprintf(
+            'Activity reminder: %d sent (%d emailed, %d inbox only), %d already received this year, %d failed.',
+            $sent,
+            $emailed,
+            $sent - $emailed,
+            $skipped,
+            $failed,
+        ));
+    }
+
     public function with(): array
     {
         $activities = ShootingActivity::with(['user', 'activityType', 'tags', 'country', 'province'])
@@ -63,19 +142,39 @@ new class extends Component {
         $approvedCount = (int) ($statusCounts['approved'] ?? 0);
         $rejectedCount = (int) ($statusCounts['rejected'] ?? 0);
 
+        $reminderYear = ActivityReminderRecipients::defaultYear();
+        $reminderRequired = ActivityReminderRecipients::requiredCount();
+        $reminderRecipientCount = ActivityReminderRecipients::count($reminderYear);
+        $reminderAlreadySentThisYear = ActivityReminder::where('year', $reminderYear)->count();
+
         return [
             'activities' => $activities,
             'pendingCount' => $pendingCount,
             'approvedCount' => $approvedCount,
             'rejectedCount' => $rejectedCount,
+            'reminderYear' => $reminderYear,
+            'reminderRequired' => $reminderRequired,
+            'reminderRecipientCount' => $reminderRecipientCount,
+            'reminderAlreadySentThisYear' => $reminderAlreadySentThisYear,
         ];
     }
 }; ?>
 
 <div>
     <x-slot name="header">
-        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Activities</h1>
-        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Review and manage member activity submissions</p>
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Activities</h1>
+                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Review and manage member activity submissions</p>
+            </div>
+            <div>
+                <button wire:click="openReminderModal"
+                    class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                    Send year-end reminder
+                </button>
+            </div>
+        </div>
     </x-slot>
 
     @if(session('success'))
@@ -216,4 +315,74 @@ new class extends Component {
             </div>
         @endif
     </div>
+
+    {{-- Year-end activity reminder modal --}}
+    @if($showReminderModal)
+    <div class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div wire:click="closeReminderModal" class="fixed inset-0 bg-black/50"></div>
+            <div class="relative w-full max-w-lg rounded-xl bg-white shadow-xl dark:bg-zinc-800">
+                <div class="flex items-start justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
+                    <div>
+                        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Send {{ $reminderYear }} activity reminder</h3>
+                        <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                            Deadline 31 October {{ $reminderYear }} — minimum {{ $reminderRequired }} approved activities.
+                        </p>
+                    </div>
+                    <button wire:click="closeReminderModal" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200" aria-label="Close">
+                        <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <div class="p-6 space-y-4 text-sm text-zinc-700 dark:text-zinc-300">
+                    <p>
+                        This will send an inbox message and (where possible) an email to every current member
+                        whose {{ $reminderYear }} record is below the minimum of {{ $reminderRequired }} approved activities.
+                    </p>
+
+                    <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 p-4 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-zinc-500 dark:text-zinc-400">Recipients right now</span>
+                            <span class="font-semibold text-zinc-900 dark:text-white">{{ number_format($reminderRecipientCount) }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-zinc-500 dark:text-zinc-400">Already received this year</span>
+                            <span class="font-semibold text-zinc-900 dark:text-white">{{ number_format($reminderAlreadySentThisYear) }}</span>
+                        </div>
+                    </div>
+
+                    <ul class="list-disc pl-5 text-xs text-zinc-500 dark:text-zinc-400 space-y-1">
+                        <li>Lifetime, honorary, and first-year members are excluded (not required to log activities).</li>
+                        <li>Only approved activities count toward the minimum — pending and rejected do not.</li>
+                        <li>Members who already received this year's reminder are skipped automatically.</li>
+                        <li>Hard-bounced or complained addresses still get the inbox copy.</li>
+                    </ul>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 border-t border-zinc-200 dark:border-zinc-800 px-6 py-4">
+                    <button wire:click="closeReminderModal"
+                        class="px-4 py-2 text-sm font-medium rounded-lg border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 transition-colors">
+                        Cancel
+                    </button>
+                    <button wire:click="sendReminder"
+                        wire:loading.attr="disabled"
+                        wire:target="sendReminder"
+                        @class([
+                            'inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg text-white transition-colors',
+                            'bg-nrapa-blue hover:bg-nrapa-blue-dark' => $reminderRecipientCount > 0,
+                            'bg-zinc-400 cursor-not-allowed dark:bg-zinc-600' => $reminderRecipientCount === 0,
+                        ])
+                        @if($reminderRecipientCount === 0) disabled @endif
+                    >
+                        <svg wire:loading wire:target="sendReminder" class="animate-spin size-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                        <span wire:loading.remove wire:target="sendReminder">
+                            Send to {{ number_format($reminderRecipientCount) }} member(s)
+                        </span>
+                        <span wire:loading wire:target="sendReminder">Sending…</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>
