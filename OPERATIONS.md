@@ -113,7 +113,7 @@ Create `.env` from `.env.example` + key if missing → `migrate` → `db:seed --
 ### 3.4 CI
 
 - **Workflow:** `.github/workflows/tests.yml` runs on push/PR to `develop` and `main`.  
-- **Steps:** Checkout → PHP 8.4/8.5 → Composer install → Node/npm → copy `.env`, key, build assets → `./vendor/bin/pest`.  
+- **Steps:** Checkout → PHP 8.3 (matches the image and `composer.json` platform) → Composer install → Node/npm → copy `.env`, key, build assets → `./vendor/bin/pest`.  
 - **Lint:** `.github/workflows/lint.yml`.
 
 ---

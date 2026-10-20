@@ -39,7 +39,9 @@ State transitions must be explicit and audited.
 - Use Volt functional syntax for simple components
 - Use class-based Volt for complex logic
 - Place pages in `resources/views/pages/`
-- Use Flux UI components consistently
+- Match the Tailwind page you are extending: same shell, spacing, and controls
+- Cover loading (`wire:loading`), empty copy, validation errors (`@error`), and a narrow layout (`sm:`)
+- Label each control and keep focus visible
 
 ### Models
 - Use attribute casting for JSON fields
@@ -58,12 +60,18 @@ State transitions must be explicit and audited.
 - Least-privilege access model
 - Immutable audit logs
 - QR verification for certificates (non-sensitive public validation)
+- On auth, uploads, payments, and public endpoints, name the failure a stranger could trigger and the check that stops it: owner-or-admin abort, membership query binding, validation plus the private disk, webhook signature, or the public ID mask. A full security write-up only when asked.
+
+## Slow paths
+When a list, dashboard, import, or mail send can get slow, say where: query count, missing index, cache lifetime, or a queue. `tests/Feature/Admin/DashboardQueueTest.php` is the query-count pattern. Profile the frontend only when the task is performance.
 
 ## Testing
 - Use Pest for all tests
 - Feature tests for all user flows
 - Unit tests for business logic
 - Test attribute-driven behavior, not hardcoded types
+- A bug fix starts from the real cause, with a Pest test that fails on that failure, before the fix
+- A refactor stays small enough that the current feature tests still describe the behavior
 
 ## File Locations
 - SOW: `docs/SOW.md`

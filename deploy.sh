@@ -27,8 +27,27 @@ echo "Step 4: Starting containers..."
 docker compose up -d
 
 echo ""
-echo "Step 5: Waiting for services to be ready..."
-sleep 10
+echo "Step 5: Waiting for the app health check..."
+status="starting"
+for i in $(seq 1 60); do
+  status=$(docker inspect --format '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' nrapa-app 2>/dev/null || echo "missing none")
+  if [ "$status" = "running healthy" ]; then
+    break
+  fi
+  case "$status" in
+    exited*|*" unhealthy"|missing*)
+      echo "App container is not healthy ($status). Recent logs:"
+      docker logs nrapa-app --tail 40
+      exit 1
+      ;;
+  esac
+  sleep 3
+done
+if [ "$status" != "running healthy" ]; then
+  echo "App did not become healthy (last status: $status). Recent logs:"
+  docker logs nrapa-app --tail 40
+  exit 1
+fi
 
 echo ""
 echo "Step 6: Running migrations..."

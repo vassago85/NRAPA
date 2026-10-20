@@ -42,6 +42,8 @@ docker compose exec app php artisan view:cache
 
 Notes:
 - `docker compose build app` rebuilds the `nrapa-app:latest` image used by `app`, `queue`, and `scheduler`. **`npm install` and `npm run build` happen inside this step** (see `Dockerfile` line ~57) and `node_modules` is then deleted to keep the image small. The compiled assets live in `public/build/`.
+- Only `app` has a `build:` block. `queue` and `scheduler` use `image: nrapa-app:latest` and start after `app` is healthy. Leave their `build:` keys off so a second build cannot drift from the web image.
+- The entrypoint runs `php artisan migrate --force` and exits if it fails. The app health check is `curl -fsS http://127.0.0.1/up` (Laravel's `/up` route). Uploads persist on the MinIO volume.
 - `docker compose up -d app queue scheduler` recreates those containers against the new image.
 - Do **NOT** run `docker compose exec app npm run build` afterwards — it will fail with `vite: not found` because `node_modules` is already gone from the running image. The build already ran during `docker compose build`.
 - `composer install` is already run inside the Dockerfile build step — only run it manually via `exec` if you've changed deps and need them re-resolved *outside* a rebuild (rare).

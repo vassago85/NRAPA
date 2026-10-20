@@ -56,9 +56,9 @@ until php -r "new PDO('mysql:host=db;port=3306;dbname=${DB_DATABASE}', '${DB_USE
 done
 echo "✅ Database is ready"
 
-# Run migrations
+# Run migrations. A failure stops the container so /up never goes green on a half-migrated app.
 echo "📦 Running migrations..."
-php artisan migrate --force || echo "⚠️ Migration had issues, continuing..."
+php artisan migrate --force
 
 # Seed permissions (idempotent — only inserts missing records)
 echo "📦 Seeding permissions..."
