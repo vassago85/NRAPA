@@ -8,9 +8,16 @@ class RanyatiInvoiceSettings
 {
     public const DEFAULT_URL = 'https://invoice.charsley.co.za';
 
+    /**
+     * National Rifle and Pistol Association in Invoice Ninja (client 0001).
+     */
+    public const DEFAULT_CLIENT_ID = 'VolejRejNm';
+
     public const DEFAULT_HOSTING_FEE = 1500;
 
     public const DEFAULT_MEMBER_FEE = 100;
+
+    public const PAYMENT_TERMS_DAYS = 30;
 
     public function enabled(): bool
     {
@@ -38,7 +45,7 @@ class RanyatiInvoiceSettings
 
     public function clientId(): string
     {
-        return trim((string) SystemSetting::get('invoice_ninja_client_id', ''));
+        return trim((string) SystemSetting::get('invoice_ninja_client_id', self::DEFAULT_CLIENT_ID));
     }
 
     public function hostingFee(): float

@@ -169,7 +169,7 @@ new class extends Component {
 
             <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-6">
                 <h3 class="text-base font-semibold text-zinc-900 dark:text-white mb-1">Connection</h3>
-                <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4">The client ID is Ranyati's id in Invoice Ninja, from the client URL. The invoice email goes to that client's contact.</p>
+                <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4">Defaults to the National Rifle and Pistol Association client already in Invoice Ninja. The invoice email goes to that client's contact, and the due date follows its 30-day terms.</p>
 
                 <form wire:submit="save" class="space-y-4">
                     <div>
@@ -187,7 +187,7 @@ new class extends Component {
                     </div>
 
                     <div>
-                        <label for="client_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Ranyati client ID</label>
+                        <label for="client_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Client ID</label>
                         <input type="text" id="client_id" wire:model="client_id" placeholder="Hashed client id"
                             class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono text-sm">
                         @error('client_id') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror

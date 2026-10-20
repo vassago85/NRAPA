@@ -58,15 +58,9 @@ To enable API access for automated invoice creation:
 4. Copy the token into NRAPA under Owner Settings → Invoice Ninja:
    - API URL: `https://invoice.charsley.co.za`
    - API token
-   - Client ID of **Ranyati** (the client the monthly NRAPA invoice is billed to)
+   - Client ID: `VolejRejNm` (National Rifle and Pistol Association, client 0001). The invoice email goes to that client's contact.
 
-NRAPA raises one invoice on the 1st of each month for the previous month: R1,500 hosting, plus R100 for every new member and renewal whose payment was confirmed in that month.
-
-## Creating Ranyati as a Client
-
-1. Go to Clients > New Client
-2. Enter Ranyati's name, email, and billing address. The invoice email goes to this contact.
-3. Open the client and copy the id from the URL into NRAPA's Invoice Ninja client ID.
+NRAPA raises one invoice on the 1st of each month for the previous month: R1,500 hosting, plus R100 for every new member and renewal whose payment was confirmed in that month. The due date is 30 days later, matching that client's payment terms.
 
 ## Backup
 

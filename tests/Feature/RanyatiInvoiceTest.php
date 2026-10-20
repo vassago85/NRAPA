@@ -7,6 +7,7 @@ use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\InvoiceNinja\InvoiceNinjaException;
 use App\Services\InvoiceNinja\IssueRanyatiInvoice;
+use App\Services\InvoiceNinja\RanyatiInvoiceSettings;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
@@ -74,7 +75,8 @@ test('the monthly invoice is hosting plus one hundred per paid new member and re
 
     $preview = app(IssueRanyatiInvoice::class)->preview(2026, 9);
 
-    expect($preview['new_members'])->toBe(2)
+    expect(app(RanyatiInvoiceSettings::class)->clientId())->toBe(RanyatiInvoiceSettings::DEFAULT_CLIENT_ID)
+        ->and($preview['new_members'])->toBe(2)
         ->and($preview['renewals'])->toBe(1)
         ->and($preview['hosting_fee'])->toBe(1500.0)
         ->and($preview['member_fee'])->toBe(100.0)
@@ -101,7 +103,9 @@ test('a month with no paid members still invoices the hosting fee', function () 
             && $items[0]['product_key'] === 'NRAPA hosting'
             && (float) $items[0]['cost'] === 1500.0
             && $request->data()['client_id'] === 'RanyatiClient'
-            && $request->data()['po_number'] === 'NRAPA-2026-08';
+            && $request->data()['po_number'] === 'NRAPA-2026-08'
+            && $request->data()['date'] === '2026-09-01'
+            && $request->data()['due_date'] === '2026-10-01';
     });
 });
 

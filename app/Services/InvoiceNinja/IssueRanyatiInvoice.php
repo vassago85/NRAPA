@@ -275,7 +275,7 @@ class IssueRanyatiInvoice
         return [
             'client_id' => $this->settings->clientId(),
             'date' => $invoiceDate->toDateString(),
-            'due_date' => $invoiceDate->copy()->addDays(7)->toDateString(),
+            'due_date' => $invoiceDate->copy()->addDays(RanyatiInvoiceSettings::PAYMENT_TERMS_DAYS)->toDateString(),
             'po_number' => 'NRAPA-'.$preview['period'],
             'public_notes' => 'NRAPA platform for '.$preview['label'].'. Hosting plus '.$feeLabel.' for each new member and renewal paid in the month.',
             'line_items' => $lineItems,
