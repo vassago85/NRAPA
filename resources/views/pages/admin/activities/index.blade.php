@@ -162,20 +162,22 @@ new class extends Component {
 
 <div>
     <x-slot name="header">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Activities</h1>
-                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Review and manage member activity submissions</p>
-            </div>
-            <div>
-                <button wire:click="openReminderModal"
-                    class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
-                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-                    Send year-end reminder
-                </button>
-            </div>
-        </div>
+        <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Activities</h1>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Review and manage member activity submissions</p>
     </x-slot>
+
+    {{-- Action bar: the "Send year-end reminder" button lives INSIDE the
+         Livewire component island. If it goes in the x-slot header the
+         layout extracts it to the outer frame and wire:click never binds
+         (same reason the admin reports Export CSV was dead until we moved
+         it out of its slot too). --}}
+    <div class="mb-6 flex items-center justify-end">
+        <button wire:click="openReminderModal"
+            class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
+            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+            Send year-end reminder
+        </button>
+    </div>
 
     @if(session('success'))
         <div class="mb-6 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 text-emerald-700 dark:text-emerald-300">
