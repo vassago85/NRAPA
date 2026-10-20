@@ -21,8 +21,9 @@ use Illuminate\Support\Facades\Mail;
  * below the activity minimum, excluding lifetime, honorary, and join-year.
  *
  * Delivery: an in-app `MemberMessage` row (so the member sees it in their
- * inbox) and an email when `User::canReceiveEmail()`. Hard-bounced /
- * complained addresses still get the inbox copy.
+ * inbox) and an email when `User::canReceiveNonEssentialEmail()`. Members who
+ * have unsubscribed from non-essential mail, plus hard-bounced / complained
+ * addresses, still get the inbox copy — they just don't receive the email.
  *
  * Idempotency: one `activity_reminders` row per (user, year). The DB unique
  * index blocks a re-send inside the same calendar year. Pass `--year=2027` to
@@ -117,7 +118,7 @@ class SendActivityReminders extends Command
             $user->email ?: '(no email)',
             $approved,
             $required,
-            $user->canReceiveEmail() ? 'yes' : 'no',
+            $user->canReceiveNonEssentialEmail() ? 'yes' : 'no',
             $dryRun ? '[would send]' : 'sending',
         ));
 
@@ -166,7 +167,10 @@ class SendActivityReminders extends Command
         ]);
 
         $emailed = false;
-        if ($user->canReceiveEmail()) {
+        // Non-essential: skip the outgoing email (but still write the inbox
+        // message) when the member has unsubscribed. Hard-bounced / complained
+        // addresses are also filtered by canReceiveNonEssentialEmail().
+        if ($user->canReceiveNonEssentialEmail()) {
             $mail = new ActivityReminderMail($user, $year, $required, $approved);
             $renderedBody = null;
             try {

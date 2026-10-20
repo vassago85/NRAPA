@@ -77,7 +77,7 @@ class MemberMessageQuick extends Component
             'body' => trim($this->body),
         ]);
 
-        if ($user->email) {
+        if ($user->canReceiveNonEssentialEmail()) {
             try {
                 Mail::to($user->email)->send(new MemberMessageMail($message));
                 $message->update(['email_sent_at' => now()]);

@@ -349,7 +349,10 @@ new #[Title('Dashboard - Admin')] class extends Component {
         @php
             // Pre-compute who is chaseable right now so the Chase-all header
             // and the per-row button agree on the count without a second query.
-            $chaseable = $this->chaseRows->filter(fn ($row) => $row->user?->canReceiveEmail());
+            // Non-essential: unsubscribed members are hidden from the
+            // chase-all count and per-row buttons, matching ChaseRunner's
+            // gate so the UI and the service agree.
+            $chaseable = $this->chaseRows->filter(fn ($row) => $row->user?->canReceiveNonEssentialEmail());
         @endphp
         <aside class="bg-white rounded-2xl shadow-sm border border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700 overflow-hidden self-start">
             <div class="border-b border-zinc-200 px-5 py-4 dark:border-zinc-700">

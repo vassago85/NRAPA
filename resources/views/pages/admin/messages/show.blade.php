@@ -59,7 +59,8 @@ new #[Title('Conversation')] class extends Component {
             'body' => trim($this->replyBody),
         ]);
 
-        if ($member->email) {
+        // Admin reply to member is non-essential — respect their opt-out.
+        if ($member->canReceiveNonEssentialEmail()) {
             try {
                 Mail::to($member->email)->send(new MemberMessageMail($reply));
                 $reply->update(['email_sent_at' => now()]);

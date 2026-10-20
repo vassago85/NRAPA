@@ -285,7 +285,7 @@ new #[Title('All Approvals - Admin')] class extends Component {
                             {{ $membership->payment_email_sent_at ? 'Resend payment details' : 'Send payment details' }}
                         </button>
                     @endif
-                    @if($approval->user?->canReceiveEmail())
+                    @if($approval->user?->canReceiveNonEssentialEmail())
                         <button wire:click="sendPaymentReminder({{ $approval->id }})" data-chase
                             wire:confirm="Chase {{ $approval->user?->name }} now? Anyone chased in the last 24 hours is skipped."
                             class="px-4 py-2 text-sm font-medium rounded-lg border border-amber-300 bg-white text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:bg-zinc-800 dark:text-amber-400 transition-colors">

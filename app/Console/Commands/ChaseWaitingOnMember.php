@@ -85,8 +85,8 @@ class ChaseWaitingOnMember extends Command
         if ($dryRun) {
             $member = $approval->user;
 
-            if (! $member?->canReceiveEmail()) {
-                $this->line("  skip approval {$approval->id}: member has no deliverable address");
+            if (! $member?->canReceiveNonEssentialEmail()) {
+                $this->line("  skip approval {$approval->id}: member has no deliverable address or has opted out of chase emails");
 
                 return ChaseOutcome::MemberCannotReceiveEmail;
             }

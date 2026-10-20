@@ -56,7 +56,9 @@ class ChaseRunner
 
         $member = $approval->user;
 
-        if (! $member?->canReceiveEmail()) {
+        // Chase email is non-essential — respect the member's opt-out as
+        // well as hard-bounce / complaint markers.
+        if (! $member?->canReceiveNonEssentialEmail()) {
             return ChaseOutcome::MemberCannotReceiveEmail;
         }
 

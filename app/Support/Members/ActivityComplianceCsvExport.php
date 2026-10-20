@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Members;
 
 use App\Models\AuditLog;
+use App\Models\Membership;
 use App\Models\ShootingActivity;
 use App\Models\SystemSetting;
 use App\Models\User;
@@ -16,12 +17,11 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 /**
  * Year-end compliance report CSV.
  *
- * Rows: current members with at least the activity minimum of APPROVED
- * shooting activities dated inside 1 January–31 October of the chosen year.
+ * Rows: every current member (role=member with a current, in-force
+ * membership) — the Status, Good Standing, and Required Activities columns
+ * then tell the full compliance story per row.
  *
- * Columns (confirmed with the client — matches the Excel sheet they used
- * historically, with the "Contact details" and "Membership/Status" items
- * split into two columns each so Excel can sort/filter them cleanly):
+ * Columns (confirmed with the client):
  *   - Name
  *   - Surname
  *   - ID
@@ -30,18 +30,20 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  *   - Email
  *   - Membership (type name)
  *   - Status (active / expired / suspended / etc.)
- *   - Paid Up & Active for {year} (Yes/No)
+ *   - Good Standing (Payment) — Yes for lifetime members always; Yes for
+ *     non-lifetime members whose current membership is active and in force
+ *     through the end of the activity window (31 October of the chosen year).
+ *   - Required Activities Compliant — Yes when the member has at least the
+ *     SystemSetting-defined minimum of APPROVED shooting activities dated
+ *     inside 1 January–31 October of the chosen year.
  *
  * Name + Surname are sourced from the verified ID document when one is on
  * file (metadata.names / metadata.surname — same source as `User::getIdName()`);
  * otherwise `users.name` is split on the last whitespace, mirroring
  * `Membership::extractSurname()`.
  *
- * "Paid Up & Active for {year}" is the overall compliance signal from
- * {@see MemberCompliance::isCompliant()} — a member who has banked their
- * activities but is still missing (say) a verified ID document shows as "No".
- * This matches what the member sees on their own dashboard, so the report
- * and the portal agree.
+ * Each row is written through to the audit log so admins can see who
+ * exported what and when (POPIA).
  */
 class ActivityComplianceCsvExport
 {
@@ -64,7 +66,8 @@ class ActivityComplianceCsvExport
             'Email',
             'Membership',
             'Status',
-            "Paid Up & Active for {$this->year}",
+            'Good Standing (Payment)',
+            "Required Activities Compliant ({$this->year})",
         ];
     }
 
@@ -99,6 +102,8 @@ class ActivityComplianceCsvExport
     {
         $batchId = (string) Str::uuid();
         $exported = 0;
+        $required = self::requiredCount();
+        $windowEnd = $this->activityWindowEnd();
 
         // Pass $escape='' explicitly so we don't trip the PHP 8.4+ deprecation
         // that nags about relying on the default escape character.
@@ -106,12 +111,11 @@ class ActivityComplianceCsvExport
 
         $this->query()
             ->with(['memberships' => fn ($q) => $q->with('type')->latest('id')])
-            ->chunkById(200, function ($users) use ($out, $batchId, &$exported) {
-                MemberCompliance::flush();
+            ->chunkById(200, function ($users) use ($out, $batchId, $required, $windowEnd, &$exported) {
                 foreach ($users as $user) {
                     [$first, $last] = self::splitName($user);
                     $membership = $user->activeMembership;
-                    $compliant = MemberCompliance::for($user)->isCompliant() ? 'Yes' : 'No';
+                    $approved = $this->approvedActivityCountFor($user);
 
                     fputcsv($out, [
                         $first,
@@ -122,7 +126,8 @@ class ActivityComplianceCsvExport
                         $user->email ?? '',
                         $membership?->type?->name ?? '',
                         $user->membershipState()->label(),
-                        $compliant,
+                        self::goodStanding($membership, $windowEnd) ? 'Yes' : 'No',
+                        $approved >= $required ? 'Yes' : 'No',
                     ], ',', '"', '');
 
                     AuditLog::log('member.activity_report_exported', $user, null, null, $this->actor, [
@@ -138,36 +143,82 @@ class ActivityComplianceCsvExport
     }
 
     /**
-     * Current members with at least the minimum approved activities dated
-     * inside the Jan–Oct window of the configured year. Deliberately scoped
-     * to currently-active memberships only — the end-of-year report is "who
-     * is on the books and already compliant on activities".
+     * Every member on the books — role=member with an `active` membership
+     * (lifetime or annual, regardless of whether the annual has lapsed in
+     * its expires_at). We deliberately include lapsed annuals so the
+     * Good Standing column can flag them as No; filtering by expires_at
+     * here would hide exactly the rows admins want to see at year end.
+     *
+     * Suspended / revoked / applied / rejected memberships are excluded
+     * — they aren't "members" for a year-end activity report.
      */
     public function query(): Builder
     {
-        $required = self::requiredCount();
-        $start = Carbon::create($this->year, 1, 1)->startOfDay();
-        $end = Carbon::create($this->year, 10, 31)->endOfDay();
-
         return User::query()
             ->where('users.role', User::ROLE_MEMBER)
-            // Must have a current (active, in-force) membership.
             ->whereHas('memberships', function (Builder $q) {
-                $q->where('memberships.status', 'active')
-                    ->where(function (Builder $q2) {
-                        $q2->whereNull('memberships.expires_at')
-                            ->orWhere('memberships.expires_at', '>=', now()->startOfDay())
-                            ->orWhereHas('type', fn (Builder $t) => $t->where('duration_type', 'lifetime'));
-                    });
+                $q->where('memberships.status', 'active');
             })
-            ->whereRaw(
-                '(SELECT COUNT(*) FROM shooting_activities sa'
-                .' WHERE sa.user_id = users.id'
-                .'   AND sa.status = ?'
-                .'   AND sa.activity_date BETWEEN ? AND ?) >= ?',
-                ['approved', $start->toDateTimeString(), $end->toDateTimeString(), $required]
-            )
             ->orderBy('users.name');
+    }
+
+    /**
+     * The last datetime that counts toward the activity window (31 October
+     * at 23:59:59.999 of the chosen year).
+     */
+    public function activityWindowEnd(): Carbon
+    {
+        return Carbon::create($this->year, 10, 31)->endOfDay();
+    }
+
+    /**
+     * "Member in good standing (payment)" per row:
+     *   - Lifetime members are ALWAYS in good standing — their payment is
+     *     a one-off and there is no renewal to miss.
+     *   - Non-lifetime members are in good standing when their current
+     *     membership is active and in force through the end of the activity
+     *     window. A member whose membership expired on 30 June 2026 is NOT
+     *     in good standing for the Oct-end 2026 report, even if the Status
+     *     column still shows "Active" momentarily.
+     */
+    public static function goodStanding(?Membership $membership, Carbon $windowEnd): bool
+    {
+        if (! $membership) {
+            return false;
+        }
+
+        if ($membership->type?->isLifetime()) {
+            return true;
+        }
+
+        if ($membership->status !== 'active') {
+            return false;
+        }
+
+        // No expiry on a non-lifetime membership is unusual, but if it has
+        // no expiry it is effectively always current.
+        if ($membership->expires_at === null) {
+            return true;
+        }
+
+        return $membership->expires_at->greaterThanOrEqualTo($windowEnd);
+    }
+
+    /**
+     * Approved shooting activities dated inside 1 January–31 October of
+     * the configured year. Runs one COUNT per member — fine inside a 200-
+     * row chunk and keeps the main query simple.
+     */
+    protected function approvedActivityCountFor(User $user): int
+    {
+        return (int) ShootingActivity::query()
+            ->where('user_id', $user->id)
+            ->where('status', 'approved')
+            ->whereBetween('activity_date', [
+                Carbon::create($this->year, 1, 1)->startOfDay(),
+                $this->activityWindowEnd(),
+            ])
+            ->count();
     }
 
     /**

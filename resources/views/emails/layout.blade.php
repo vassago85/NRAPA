@@ -110,6 +110,17 @@
                     </tr>
 
                     {{-- ===== FOOTER ===== --}}
+                    {{--
+                        Email-preferences block.
+
+                        Non-essential mail (reminders, chases, bulk admin
+                        messages, newsletters) MUST pass $unsubscribeUrl so the
+                        signed one-click opt-out link appears. Transactional
+                        mail leaves it unset and gets an explanatory note so
+                        members know why they can't opt out without closing
+                        their account. Both include the logged-in preferences
+                        link.
+                    --}}
                     <tr class="email-footer">
                         <td style="padding: 20px 30px; border-top: 1px solid #e5e7eb; text-align: center; background-color: #f9fafb; border-radius: 0 0 8px 8px;">
                             @hasSection('footer')
@@ -117,6 +128,24 @@
                                     @yield('footer')
                                 </p>
                             @endif
+
+                            @if(! empty($unsubscribeUrl))
+                                <p class="ft" style="color: #9ca3af; font-size: 11px; line-height: 1.5; margin: 0 0 10px 0;">
+                                    Don't want these emails?
+                                    <a href="{{ $unsubscribeUrl }}" style="color: #6b7280; text-decoration: underline;">Unsubscribe</a>
+                                    &middot;
+                                    <a href="{{ url(route('notifications.edit', [], false)) }}" style="color: #6b7280; text-decoration: underline;">Manage preferences</a>
+                                </p>
+                            @else
+                                <p class="ft" style="color: #9ca3af; font-size: 11px; line-height: 1.5; margin: 0 0 10px 0;">
+                                    This is a transactional notice about your NRAPA account and cannot be unsubscribed from.
+                                    @auth
+                                        <br>
+                                        <a href="{{ url(route('notifications.edit', [], false)) }}" style="color: #6b7280; text-decoration: underline;">Manage email preferences</a>
+                                    @endauth
+                                </p>
+                            @endif
+
                             <p class="ft" style="color: #9ca3af; font-size: 12px; line-height: 1.5; margin: 0 0 6px 0;">
                                 &copy; {{ date('Y') }} National Rifle &amp; Pistol Association of South Africa. All rights reserved.
                             </p>

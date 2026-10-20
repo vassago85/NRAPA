@@ -453,7 +453,9 @@ new #[Title('Member Details - Admin')] class extends Component {
             'body' => trim($this->messageBody),
         ]);
 
-        if ($this->user->email) {
+        // Admin-initiated member message is non-essential — respect opt-out.
+        // (The inbox row above is still written regardless.)
+        if ($this->user->canReceiveNonEssentialEmail()) {
             try {
                 Mail::to($this->user->email)->send(new MemberMessageMail($message));
                 $message->update(['email_sent_at' => now()]);

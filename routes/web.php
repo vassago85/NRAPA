@@ -3,6 +3,7 @@
 use App\Helpers\StorageHelper;
 use App\Http\Controllers\CertificateFileController;
 use App\Http\Controllers\DocumentPreviewController;
+use App\Http\Controllers\EmailPreferencesController;
 use App\Http\Controllers\EndorsementLetterController;
 use App\Http\Controllers\FirearmLicenceController;
 use App\Http\Controllers\MemberDocumentPreviewController;
@@ -18,6 +19,24 @@ Route::post('/webhooks/mailgun', MailgunWebhookController::class)
     ->name('webhooks.mailgun');
 Route::view('/terms-and-conditions', 'pages.terms')->name('terms-and-conditions');
 Route::view('/privacy-policy', 'pages.privacy')->name('privacy-policy');
+
+/*
+ * Email unsubscribe (signed, no auth required).
+ *
+ * These routes are hit from the footer of non-essential email and from the
+ * RFC 8058 List-Unsubscribe-Post header. They opt the user out of reminders,
+ * chases, bulk admin messages, and newsletters only — transactional mail is
+ * never suppressed.
+ */
+Route::get('/email/unsubscribe/{uuid}', [EmailPreferencesController::class, 'unsubscribe'])
+    ->middleware('signed')
+    ->name('email.unsubscribe');
+Route::get('/email/resubscribe/{uuid}', [EmailPreferencesController::class, 'resubscribe'])
+    ->middleware('signed')
+    ->name('email.resubscribe');
+Route::post('/email/list-unsubscribe/{uuid}', [EmailPreferencesController::class, 'listUnsubscribePost'])
+    ->middleware(['signed', 'throttle:60,1'])
+    ->name('email.list_unsubscribe');
 
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 

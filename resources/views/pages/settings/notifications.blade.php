@@ -31,8 +31,14 @@ new class extends Component {
     public bool $license_expiry_12m = true;
     public bool $license_expiry_6m = true;
 
+    // Non-essential email opt-out (reminders, chases, bulk admin messages,
+    // newsletters). Transactional/account email is NOT gated by this.
+    public bool $receive_non_essential_email = true;
+
     public function mount(): void
     {
+        $this->receive_non_essential_email = ! auth()->user()->isUnsubscribedFromNonEssentialEmail();
+
         $prefs = auth()->user()->notificationPreference;
 
         if ($prefs) {
@@ -137,6 +143,30 @@ new class extends Component {
             $data
         );
 
+        // Persist non-essential email opt-out on the user record. We use the
+        // dedicated optIn/optOut helpers so audit meta (reason + timestamp)
+        // stays consistent with the one-click unsubscribe flow.
+        $user = auth()->user()->fresh();
+        if ($this->receive_non_essential_email && $user->isUnsubscribedFromNonEssentialEmail()) {
+            $user->optInToNonEssentialEmail();
+            \App\Models\AuditLog::log(
+                event: 'email.opt_in',
+                auditable: $user,
+                newValues: ['email_opt_out_at' => null],
+                user: $user,
+                meta: ['source' => 'preferences_page']
+            );
+        } elseif (! $this->receive_non_essential_email && ! $user->isUnsubscribedFromNonEssentialEmail()) {
+            $user->optOutOfNonEssentialEmail('preferences_page');
+            \App\Models\AuditLog::log(
+                event: 'email.opt_out',
+                auditable: $user->fresh(),
+                newValues: ['email_opt_out_at' => $user->fresh()->email_opt_out_at?->toIso8601String()],
+                user: $user,
+                meta: ['source' => 'preferences_page']
+            );
+        }
+
         session()->flash('success', 'Notification preferences saved successfully.');
     }
 
@@ -181,6 +211,43 @@ new class extends Component {
         @endif
 
         <form wire:submit="save" class="space-y-6">
+            <!-- Email communications opt-out (All Members) -->
+            <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-4">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="flex size-10 items-center justify-center rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
+                        <svg class="size-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Email Communications</h3>
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400">Control which non-essential emails NRAPA sends you</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between py-2">
+                    <div class="pr-4">
+                        <label class="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                            Receive reminders, chase emails, and bulk messages
+                        </label>
+                        <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                            Covers activity-upload reminders, outstanding-document chase emails, newsletters, and messages the admins send to all members. Turning this off suppresses those non-essential emails only.
+                        </p>
+                    </div>
+                    <button type="button" wire:click="$toggle('receive_non_essential_email')"
+                        class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors {{ $receive_non_essential_email ? 'bg-emerald-600' : 'bg-zinc-300 dark:bg-zinc-600' }}">
+                        <span class="inline-block h-4 w-4 transform rounded-full bg-white transition {{ $receive_non_essential_email ? 'translate-x-6' : 'translate-x-1' }}"></span>
+                    </button>
+                </div>
+
+                <div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-700/50 dark:bg-amber-900/20 dark:text-amber-200">
+                    <p class="font-semibold">Transactional email always sends.</p>
+                    <p class="mt-1">
+                        You'll still receive payment confirmations, approval decisions, membership status changes, password resets, and document notifications. These cannot be unsubscribed from without closing your account.
+                    </p>
+                </div>
+            </div>
+
             <!-- License Expiry Notifications - Available to ALL members -->
             <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-4">
                 <div class="flex items-center gap-3 mb-4">

@@ -88,6 +88,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'email_status',
         'email_last_event_at',
         'email_bounce_reason',
+        'email_opt_out_at',
+        'email_opt_out_reason',
         'last_signed_in_at',
     ];
 
@@ -122,6 +124,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'welcome_letter_seen_at' => 'datetime',
             'disciplinary_hold_at' => 'datetime',
             'email_last_event_at' => 'datetime',
+            'email_opt_out_at' => 'datetime',
             'last_signed_in_at' => 'datetime',
             'admin_preferences' => 'array',
         ];
@@ -302,6 +305,60 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Whether this member can be sent non-essential email: reminders, chases,
+     * bulk admin messages, newsletters, etc. Returns false when they have
+     * explicitly opted out via the unsubscribe link or the preferences page.
+     *
+     * Transactional / account-necessary mail (approval decisions, payment
+     * confirmations, password reset, membership status changes) is NOT
+     * gated on this flag — it uses canReceiveEmail() only.
+     */
+    public function canReceiveNonEssentialEmail(): bool
+    {
+        return $this->canReceiveEmail() && ! $this->isUnsubscribedFromNonEssentialEmail();
+    }
+
+    public function isUnsubscribedFromNonEssentialEmail(): bool
+    {
+        return $this->getAttribute('email_opt_out_at') !== null;
+    }
+
+    /**
+     * Mark the user as opted out of non-essential email. Idempotent — a second
+     * call does not overwrite the original opt-out timestamp.
+     */
+    public function optOutOfNonEssentialEmail(string $reason = 'unspecified'): bool
+    {
+        if ($this->isUnsubscribedFromNonEssentialEmail()) {
+            return false;
+        }
+
+        $this->forceFill([
+            'email_opt_out_at' => now(),
+            'email_opt_out_reason' => $reason,
+        ])->save();
+
+        return true;
+    }
+
+    /**
+     * Re-enable non-essential email for the user.
+     */
+    public function optInToNonEssentialEmail(): bool
+    {
+        if (! $this->isUnsubscribedFromNonEssentialEmail()) {
+            return false;
+        }
+
+        $this->forceFill([
+            'email_opt_out_at' => null,
+            'email_opt_out_reason' => null,
+        ])->save();
+
+        return true;
+    }
+
+    /**
      * Users with an address that may be mailed: present and not hard-bounced or complained.
      */
     public function scopeEmailable($query)
@@ -310,6 +367,14 @@ class User extends Authenticatable implements MustVerifyEmail
             ->where('users.email', '!=', '')
             ->where(fn ($q) => $q->whereNull('users.email_status')
                 ->orWhereNotIn('users.email_status', self::UNDELIVERABLE_EMAIL_STATUSES));
+    }
+
+    /**
+     * Users who have NOT opted out of non-essential email.
+     */
+    public function scopeNonEssentialEmailable($query)
+    {
+        return $query->emailable()->whereNull('users.email_opt_out_at');
     }
 
     /**

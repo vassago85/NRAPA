@@ -94,6 +94,23 @@ it('still writes an inbox message when the member cannot be emailed', function (
     expect(ActivityReminder::where('user_id', $user->id)->where('emailed', false)->exists())->toBeTrue();
 });
 
+it('still writes an inbox message when the member has unsubscribed from non-essential email', function () {
+    $type = remSeedType();
+    $user = remMakeMember($type);
+    $user->optOutOfNonEssentialEmail('footer_link');
+    $year = ActivityReminderRecipients::defaultYear();
+    $required = ActivityReminderRecipients::requiredCount();
+
+    $result = SendActivityReminders::deliverFor($user->fresh(), $year, $required, 0, $this->admin);
+
+    expect($result['emailed'])->toBeFalse();
+
+    Mail::assertNotSent(ActivityReminderMail::class);
+
+    expect(MemberMessage::where('user_id', $user->id)->exists())->toBeTrue();
+    expect(ActivityReminder::where('user_id', $user->id)->where('emailed', false)->exists())->toBeTrue();
+});
+
 it('refuses to send a second reminder in the same calendar year', function () {
     $type = remSeedType();
     $user = remMakeMember($type);

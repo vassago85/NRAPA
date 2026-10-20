@@ -139,7 +139,9 @@ class BulkMemberAction implements ShouldQueue
         ]);
 
         $emailed = false;
-        if ($member->canReceiveEmail()) {
+        // Bulk admin → member broadcasts are non-essential: skip the email
+        // when the member has unsubscribed (the inbox copy still writes).
+        if ($member->canReceiveNonEssentialEmail()) {
             try {
                 Mail::to($member->email)->send(new MemberMessageMail($message));
                 $message->update(['email_sent_at' => now()]);

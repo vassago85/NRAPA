@@ -23,6 +23,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'livewire/upload-file',
             'webhooks/mailgun',
+            // RFC 8058 List-Unsubscribe-Post: Gmail / Outlook POST here with
+            // body `List-Unsubscribe=One-Click`. There is no browser session,
+            // so no CSRF token is possible — authentication is the signed URL.
+            'email/list-unsubscribe/*',
         ]);
 
         $middleware->alias([
