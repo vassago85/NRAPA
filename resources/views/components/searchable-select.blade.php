@@ -9,10 +9,21 @@
 ])
 
 @php
-    $items = collect($options)->map(fn ($o) => [
-        'id'   => is_array($o) ? $o['id']   : $o->id,
-        'name' => is_array($o) ? $o['name'] : $o->name,
-    ])->values()->toArray();
+    $items = collect($options)->map(function ($o) {
+        if (is_array($o)) {
+            $aliases = $o['aliases'] ?? [];
+        } elseif (method_exists($o, 'relationLoaded') && $o->relationLoaded('aliases')) {
+            $aliases = $o->aliases->pluck('alias')->all();
+        } else {
+            $aliases = [];
+        }
+
+        return [
+            'id' => is_array($o) ? $o['id'] : $o->id,
+            'name' => is_array($o) ? $o['name'] : $o->name,
+            'aliases' => array_values($aliases),
+        ];
+    })->values()->toArray();
 
     $allowCustom = $allowCustom ?? ($wireModelCustom !== null);
 
@@ -171,6 +182,15 @@
             // Hydrate initial state from Livewire
             this.syncFromWire();
 
+            // Commit a typed value before Livewire reads the form. The input is not
+            // wire:model'd, so a click on Save would otherwise drop make/calibre.
+            const form = this.$root.closest('form');
+            if (form) {
+                this._form = form;
+                this._onSubmit = () => this.commitPending();
+                form.addEventListener('submit', this._onSubmit, true);
+            }
+
             // React to Livewire state changes (e.g. server-side updates, resets)
             if (this._wire) {
                 try {
@@ -198,12 +218,21 @@
             } catch (e) {}
         },
 
+        destroy() {
+            if (this._form && this._onSubmit) {
+                this._form.removeEventListener('submit', this._onSubmit, true);
+            }
+        },
+
         findWire() {
             let el = this.$root;
             while (el) {
-                if (el.__livewire) return el.__livewire;
-                if (el.getAttribute && el.getAttribute('wire:id')) {
-                    return window.Livewire?.find(el.getAttribute('wire:id'));
+                // __livewire is the component. set() and get() live on its $wire proxy.
+                if (el.__livewire && el.__livewire.$wire) {
+                    return el.__livewire.$wire;
+                }
+                if (el.getAttribute && el.getAttribute('wire:id') && window.Livewire && window.Livewire.find) {
+                    return window.Livewire.find(el.getAttribute('wire:id'));
                 }
                 el = el.parentElement;
             }
@@ -251,18 +280,42 @@
             return !!this.selectedId || (this.allowCustom && !!this.customValue);
         },
 
+        matchKey(value) {
+            return (value || '')
+                .toLowerCase()
+                .replace(/\band\b/g, '&')
+                .replace(/\s*&\s*/g, '&')
+                .replace(/[^a-z0-9&]+/g, '');
+        },
+
+        findExact(typed) {
+            const key = this.matchKey(typed);
+            if (!key) return null;
+            return this.items.find((item) => {
+                if (this.matchKey(item.name) === key) return true;
+                return (item.aliases || []).some((alias) => this.matchKey(alias) === key);
+            }) || null;
+        },
+
         get filtered() {
             const s = (this.search || '').trim().toLowerCase();
             // If the search string matches the current selection label exactly, show everything
             // (so the user can re-open and see the full list)
             if (!s || s === (this.currentLabel() || '').toLowerCase()) return this.items;
-            return this.items.filter(i => (i.name || '').toLowerCase().includes(s));
+            const key = this.matchKey(s);
+            return this.items.filter((item) => {
+                const fields = [item.name, ...(item.aliases || [])];
+                return fields.some((field) => {
+                    const value = (field || '').toLowerCase();
+                    return value.includes(s) || (key && this.matchKey(field).includes(key));
+                });
+            });
         },
 
         get showCustomOption() {
             const s = (this.search || '').trim();
             if (!s) return false;
-            return !this.items.some(i => (i.name || '').toLowerCase() === s.toLowerCase());
+            return !this.findExact(s);
         },
 
         currentLabel() {
@@ -316,7 +369,10 @@
                 this.scrollToHighlighted();
             } else if (e.key === 'Enter') {
                 e.preventDefault();
-                if (this.highlightIndex >= 0 && this.highlightIndex < list.length) {
+                const exact = this.findExact(this.search);
+                if (exact) {
+                    this.selectItem(exact);
+                } else if (this.highlightIndex >= 0 && this.highlightIndex < list.length) {
                     this.selectItem(list[this.highlightIndex]);
                 } else if (customSlot && this.highlightIndex === list.length) {
                     this.commitCustom();
@@ -329,36 +385,33 @@
                 this.open = false;
                 this.search = this.currentLabel();
             } else if (e.key === 'Tab') {
-                if (this.allowCustom && this.search.trim() && !this.selectedId) {
-                    this.commitCustom();
-                }
+                this.commitPending();
                 this.open = false;
             }
+        },
+
+        commitPending() {
+            if (this.disabled) return false;
+            const typed = (this.search || '').trim();
+            if (!typed) return false;
+            const exact = this.findExact(typed);
+            if (exact) {
+                this.selectItem(exact);
+                return true;
+            }
+            if (this.allowCustom) {
+                this.commitCustom();
+                return true;
+            }
+            return false;
         },
 
         handleClickOutside() {
             if (!this.open) return;
             this.open = false;
-
-            const typed = (this.search || '').trim();
-            if (!typed) {
+            if (!this.commitPending()) {
                 this.search = this.currentLabel();
-                return;
             }
-
-            // Exact match? Auto-select it
-            const exact = this.items.find(i => (i.name || '').toLowerCase() === typed.toLowerCase());
-            if (exact) {
-                this.selectItem(exact);
-                return;
-            }
-
-            if (this.allowCustom) {
-                this.commitCustom();
-                return;
-            }
-
-            this.search = this.currentLabel();
         },
 
         selectItem(item) {

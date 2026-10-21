@@ -4,6 +4,7 @@ use App\Models\UserFirearm;
 use App\Models\FirearmCalibre;
 use App\Models\FirearmMake;
 use App\Models\FirearmModel;
+use App\Support\Firearms\CatalogueMatch;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -74,6 +75,9 @@ new class extends Component {
 
         $this->validate();
 
+        $this->firearm_calibre_id = CatalogueMatch::calibreId($this->firearm_calibre_id, $this->calibre_custom);
+        $this->firearm_make_id = CatalogueMatch::makeId($this->firearm_make_id, $this->make_custom);
+
         // Build display values from reference IDs
         $calibre = $this->firearm_calibre_id ? FirearmCalibre::find($this->firearm_calibre_id) : null;
         $make = $this->firearm_make_id ? FirearmMake::find($this->firearm_make_id) : null;
@@ -143,7 +147,7 @@ new class extends Component {
         }
 
         return [
-            'calibres' => $calibreQuery->get(),
+            'calibres' => $calibreQuery->with('aliases:id,firearm_calibre_id,alias')->get(),
             'makes' => FirearmMake::orderBy('name')->get(),
             'models' => $models,
         ];
