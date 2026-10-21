@@ -10,6 +10,7 @@ use App\Models\MembershipType;
 use App\Models\User;
 use App\Queries\MemberDirectory;
 use App\Services\NtfyService;
+use App\Support\Members\MemberLetter;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Builder;
@@ -130,12 +131,18 @@ class BulkMemberAction implements ShouldQueue
 
     private function sendMessage(User $actor, User $member, array &$tally): void
     {
+        // Per-member token replacement happens here, inside the chunk loop,
+        // so each member gets their own values ({first_name}, {expiry}, etc.)
+        // in both the inbox copy and the email that is sent.
+        $rawSubject = trim((string) ($this->payload['subject'] ?? ''));
+        $rawBody = trim((string) ($this->payload['body'] ?? ''));
+
         $message = MemberMessage::create([
             'user_id' => $member->id,
             'sent_by_user_id' => $actor->id,
             'direction' => MemberMessage::DIRECTION_ADMIN_TO_MEMBER,
-            'subject' => trim((string) ($this->payload['subject'] ?? '')),
-            'body' => trim((string) ($this->payload['body'] ?? '')),
+            'subject' => MemberLetter::render($rawSubject, $member),
+            'body' => MemberLetter::render($rawBody, $member),
         ]);
 
         $emailed = false;

@@ -136,6 +136,30 @@ it('excludes honorary members', function () {
     expect($recipients->pluck('id')->all())->not->toContain($user->id);
 });
 
+it('excludes members whose membership type does not allow dedicated status', function () {
+    // The clarification letter feature: Basic / transfer-only types that do
+    // not carry the activity requirement must not land in the chase.
+    $basic = MembershipType::create([
+        'slug' => 'test-basic',
+        'name' => 'Basic',
+        'duration_type' => 'annual',
+        'duration_months' => 12,
+        'requires_renewal' => true,
+        'pricing_model' => 'annual',
+        'initial_price' => 300,
+        'renewal_price' => 300,
+        'allows_dedicated_status' => false,
+        'dedicated_type' => null,
+        'is_active' => true,
+    ]);
+
+    $user = longStandingMemberOn($basic);
+
+    $recipients = ActivityReminderRecipients::query()->get();
+
+    expect($recipients->pluck('id')->all())->not->toContain($user->id);
+});
+
 it('excludes a member in their join-year', function () {
     $types = reminderSeed();
     $user = User::factory()->create(['role' => User::ROLE_MEMBER, 'created_at' => now()->subMonths(2)]);

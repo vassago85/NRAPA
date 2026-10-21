@@ -286,6 +286,44 @@ it('resolves an honorary member as compliant via is_honorary attribute', functio
 });
 
 /* ------------------------------------------------------------------
+ | Fixture 4b — non-dedicated type (Basic etc.) — activity requirement
+ | does not apply. Compliance treats activities as NotApplicable, same as
+ | lifetime/honorary, so the clarification-letter audience resolves cleanly.
+ | ------------------------------------------------------------------ */
+
+it('resolves a non-dedicated-status member as compliant with activities not_applicable', function () {
+    phase1Seed();
+    $basic = MembershipType::create([
+        'slug' => 'test-basic',
+        'name' => 'Basic',
+        'duration_type' => 'annual',
+        'duration_months' => 12,
+        'requires_renewal' => true,
+        'pricing_model' => 'annual',
+        'initial_price' => 300,
+        'renewal_price' => 300,
+        'allows_dedicated_status' => false,
+        'dedicated_type' => null,
+        'is_active' => true,
+    ]);
+
+    $user = memberOnType($basic);
+    uploadIdFor($user);
+
+    $result = MemberCompliance::for($user);
+    $activities = $result->requirement('activities');
+
+    expect($result->isLifetime)->toBeFalse()
+        ->and($result->isHonorary)->toBeFalse()
+        ->and($result->isDedicatedEligible)->toBeFalse()
+        ->and($activities->state)->toBe(RequirementState::NotApplicable)
+        ->and($activities->reason)->toContain('does not include the activity requirement')
+        ->and($activities->meta['allows_dedicated_status'])->toBeFalse();
+
+    expect($activities->state->allowsRatioOrTick())->toBeFalse();
+});
+
+/* ------------------------------------------------------------------
  | Fixture 5 — member with an expired ID document
  | ------------------------------------------------------------------ */
 

@@ -35,7 +35,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  *     through the end of the activity window (31 October of the chosen year).
  *   - Required Activities Compliant — Yes when the member has at least the
  *     SystemSetting-defined minimum of APPROVED shooting activities dated
- *     inside 1 January–31 October of the chosen year.
+ *     inside 1 January–31 October of the chosen year. Reads "Not applicable"
+ *     for lifetime, honorary, and non-dedicated-status types (Basic etc.) —
+ *     those memberships do not carry the activity requirement at all.
  *
  * Name + Surname are sourced from the verified ID document when one is on
  * file (metadata.names / metadata.surname — same source as `User::getIdName()`);
@@ -115,7 +117,10 @@ class ActivityComplianceCsvExport
                 foreach ($users as $user) {
                     [$first, $last] = self::splitName($user);
                     $membership = $user->activeMembership;
-                    $approved = $this->approvedActivityCountFor($user);
+                    $type = $membership?->type;
+                    $activityCell = self::activitiesApplyTo($type)
+                        ? ($this->approvedActivityCountFor($user) >= $required ? 'Yes' : 'No')
+                        : 'Not applicable';
 
                     fputcsv($out, [
                         $first,
@@ -124,10 +129,10 @@ class ActivityComplianceCsvExport
                         $user->formatted_member_number,
                         $user->phone ?? '',
                         $user->email ?? '',
-                        $membership?->type?->name ?? '',
+                        $type?->name ?? '',
                         $user->membershipState()->label(),
                         self::goodStanding($membership, $windowEnd) ? 'Yes' : 'No',
-                        $approved >= $required ? 'Yes' : 'No',
+                        $activityCell,
                     ], ',', '"', '');
 
                     AuditLog::log('member.activity_report_exported', $user, null, null, $this->actor, [
@@ -169,6 +174,29 @@ class ActivityComplianceCsvExport
     public function activityWindowEnd(): Carbon
     {
         return Carbon::create($this->year, 10, 31)->endOfDay();
+    }
+
+    /**
+     * Whether the activity requirement applies to this membership type for
+     * CSV reporting purposes. A type that does not allow dedicated status
+     * (Basic, transfer-only, etc.) never carries the requirement and should
+     * read "Not applicable" rather than being bucketed Yes/No.
+     *
+     * Lifetime and honorary types KEEP their Yes/No reading here even though
+     * their compliance surface treats activities as not-applicable: the CSV
+     * is a payment + activity audit, not a compliance resolver, and admins
+     * have historically used the Yes/No column for lifetime/honorary members
+     * too. Only switch non-dedicated types to "Not applicable".
+     */
+    public static function activitiesApplyTo(?\App\Models\MembershipType $type): bool
+    {
+        if (! $type) {
+            // No membership type — behave as before and let the Yes/No column
+            // compute from the (likely zero) approved count.
+            return true;
+        }
+
+        return (bool) $type->allows_dedicated_status;
     }
 
     /**

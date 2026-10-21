@@ -187,6 +187,36 @@ it('marks a lifetime member who has not banked activities as Good Standing Yes, 
         ->and($row[9])->toBe('No');          // No activities -> No
 });
 
+it('marks a non-dedicated-status member as Not applicable for required activities', function () {
+    // The clarification letter feature: Basic / transfer-only types never
+    // carry the activity requirement, so the CSV cell should read
+    // "Not applicable" rather than Yes/No.
+    $basic = MembershipType::create([
+        'slug' => 'test-basic',
+        'name' => 'Basic',
+        'duration_type' => 'annual',
+        'duration_months' => 12,
+        'requires_renewal' => true,
+        'pricing_model' => 'annual',
+        'initial_price' => 300,
+        'renewal_price' => 300,
+        'allows_dedicated_status' => false,
+        'dedicated_type' => null,
+        'is_active' => true,
+    ]);
+
+    $user = csvMakeMember($basic, ['name' => 'Basil Basic']);
+    // Zero activities on purpose — the cell must NOT read "No", it must
+    // read "Not applicable" because the requirement does not apply.
+
+    $rows = csvRun(new ActivityComplianceCsvExport($this->admin, now()->year));
+    $row = $rows[1];
+
+    expect($row[6])->toBe('Basic')
+        ->and($row[8])->toBe('Yes')              // Still in good standing (payment)
+        ->and($row[9])->toBe('Not applicable');  // Activity rule does not apply
+});
+
 it('marks an annual member whose membership lapses before the window end as Good Standing No', function () {
     $type = csvSeedType();
     // Membership expires 30 September — before the 31 October window end.

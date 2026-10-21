@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\MembershipType;
 use App\Queries\MemberDirectory;
 use App\Services\ExcelMemberImporter;
+use App\Support\Members\MemberLetter;
 use App\Support\Membership\MemberCsvExport;
 use App\Support\Membership\MembershipStats;
 use Illuminate\Support\Facades\Auth;
@@ -50,6 +51,17 @@ new #[Title('Members - Admin')] class extends Component {
     public bool $showBulkMessageModal = false;
     public string $bulkMessageSubject = '';
     public string $bulkMessageBody = '';
+
+    // Composer audience: either the users already selected on the page,
+    // every member whose membership type does NOT allow dedicated status
+    // (the activity rule exclusion preset), or every member on a specific
+    // type the admin picks from the dropdown.
+    public const AUDIENCE_SELECTED = 'selected';
+    public const AUDIENCE_ACTIVITY_RULE_NA = 'activity_rule_na';
+    public const AUDIENCE_TYPE = 'type';
+
+    public string $composerAudience = self::AUDIENCE_SELECTED;
+    public string $composerTypeId = '';
 
     public bool $showBulkTypeModal = false;
     public string $bulkMembershipTypeId = '';
@@ -171,10 +183,18 @@ new #[Title('Members - Admin')] class extends Component {
 
     public function openBulkMessage(): void
     {
+        // The composer can target "members whose activity rule does not apply"
+        // or "all members on a specific type" without any selection on the
+        // page, so we only block the modal when the admin has selected zero
+        // AND is sitting on the default "selected" audience (i.e. there is
+        // genuinely nothing to send to).
         if ($this->selectedCount() === 0) {
-            session()->flash('error', 'Select at least one member first.');
-            return;
+            $this->composerAudience = self::AUDIENCE_ACTIVITY_RULE_NA;
+        } else {
+            $this->composerAudience = self::AUDIENCE_SELECTED;
         }
+
+        $this->composerTypeId = '';
         $this->bulkMessageSubject = '';
         $this->bulkMessageBody = '';
         $this->showBulkMessageModal = true;
@@ -185,6 +205,131 @@ new #[Title('Members - Admin')] class extends Component {
         $this->showBulkMessageModal = false;
         $this->bulkMessageSubject = '';
         $this->bulkMessageBody = '';
+        $this->composerAudience = self::AUDIENCE_SELECTED;
+        $this->composerTypeId = '';
+    }
+
+    /**
+     * Fill the composer with the standard clarification letter — the one we
+     * send when a non-dedicated member was wrongly chased for activities.
+     * Admin can edit it before sending.
+     */
+    public function useClarificationLetter(): void
+    {
+        $this->bulkMessageSubject = 'The activity requirement does not apply to your membership';
+        $this->bulkMessageBody = <<<'TXT'
+Dear {first_name},
+
+NRAPA recently asked some members to submit shooting activities. That requirement applies only to memberships that include dedicated status.
+
+Your membership is {membership_type}. The activity requirement does not apply to you. You do not need to submit activities, and nothing is outstanding on your account for this reason.
+
+Your membership status is {status}. It is valid until {expiry}.
+
+Kind regards
+National Rifle Association of South Africa
+TXT;
+
+        // Default the audience to the members who were affected by the
+        // mis-send so one click reaches the right people.
+        $this->composerAudience = self::AUDIENCE_ACTIVITY_RULE_NA;
+    }
+
+    /**
+     * Builder of the users that the current composer audience resolves to.
+     * The three audience modes resolve to:
+     *   - selected          -> the ids ticked on the page (or the whole
+     *                          segment+search if "select all matching" is on)
+     *   - activity_rule_na  -> every current member whose membership type has
+     *                          allows_dedicated_status = false
+     *   - type              -> every current member on the chosen type
+     */
+    public function composerQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        if ($this->composerAudience === self::AUDIENCE_ACTIVITY_RULE_NA) {
+            return User::query()
+                ->where('users.role', User::ROLE_MEMBER)
+                ->whereHas('activeMembership', fn ($q) => $q->whereHas('type',
+                    fn ($t) => $t->where('allows_dedicated_status', false)));
+        }
+
+        if ($this->composerAudience === self::AUDIENCE_TYPE && $this->composerTypeId !== '') {
+            return User::query()
+                ->where('users.role', User::ROLE_MEMBER)
+                ->whereHas('activeMembership', fn ($q) => $q
+                    ->where('membership_type_id', (int) $this->composerTypeId));
+        }
+
+        // Fallback: existing selection
+        return BulkMemberAction::targets(
+            $this->selectAllMatching ? $this->segment : null,
+            $this->search,
+            $this->selectAllMatching ? [] : array_map('intval', $this->selectedUserIds),
+        )->select('users.*');
+    }
+
+    #[Computed]
+    public function composerAudienceCount(): int
+    {
+        if ($this->composerAudience === self::AUDIENCE_SELECTED) {
+            return $this->selectedCount();
+        }
+
+        if ($this->composerAudience === self::AUDIENCE_TYPE && $this->composerTypeId === '') {
+            return 0;
+        }
+
+        return $this->composerQuery()->count();
+    }
+
+    /**
+     * The first member in the audience, used by the preview panel so admins
+     * see the letter with real values before sending.
+     */
+    #[Computed]
+    public function composerPreviewMember(): ?User
+    {
+        $query = $this->composerQuery()
+            ->with(['memberships' => fn ($q) => $q->with('type')->latest('id')])
+            ->orderBy('users.name');
+
+        return $query->first();
+    }
+
+    #[Computed]
+    public function composerPreview(): array
+    {
+        $member = $this->composerPreviewMember;
+
+        if (! $member) {
+            return [
+                'has_member' => false,
+                'subject' => trim($this->bulkMessageSubject),
+                'body' => trim($this->bulkMessageBody),
+                'values' => [],
+                'member_name' => null,
+            ];
+        }
+
+        return [
+            'has_member' => true,
+            'subject' => MemberLetter::render(trim($this->bulkMessageSubject), $member),
+            'body' => MemberLetter::render(trim($this->bulkMessageBody), $member),
+            'values' => MemberLetter::valuesFor($member),
+            'member_name' => $member->name,
+        ];
+    }
+
+    /**
+     * The curly-brace tokens the composer advertises as "click to insert"
+     * chips. Reads from the single source of truth on MemberLetter so adding
+     * a new token in one place lights it up in the UI.
+     *
+     * @return array<int, array{token: string, label: string, description: string}>
+     */
+    public function composerTokens(): array
+    {
+        return MemberLetter::TOKENS;
     }
 
     public function sendBulkMessage(): void
@@ -194,21 +339,53 @@ new #[Title('Members - Admin')] class extends Component {
             'bulkMessageBody' => 'required|string|max:5000',
         ]);
 
-        $count = $this->selectedCount();
-        if ($count === 0) {
-            session()->flash('error', 'No recipients selected.');
-            $this->closeBulkMessage();
+        if ($this->composerAudience === self::AUDIENCE_TYPE && $this->composerTypeId === '') {
+            session()->flash('error', 'Choose a membership type to send to.');
             return;
         }
 
-        $this->dispatchBulk(BulkMemberAction::ACTION_MESSAGE, [
-            'subject' => trim($this->bulkMessageSubject),
-            'body' => trim($this->bulkMessageBody),
-        ]);
+        // Compute the audience size directly here rather than through the
+        // #[Computed] property so method-level calls (and tests that bypass
+        // openBulkMessage) resolve the same way as the UI preview.
+        if ($this->composerAudience === self::AUDIENCE_SELECTED) {
+            $count = $this->selectedCount();
+        } else {
+            $count = $this->composerQuery()->count();
+        }
+
+        if ($count === 0) {
+            session()->flash('error', 'No recipients match that audience.');
+            return;
+        }
+
+        if ($this->composerAudience === self::AUDIENCE_SELECTED) {
+            // Preserve the existing "select all matching" semantics so the
+            // job re-resolves segment + search at run time.
+            $this->dispatchBulk(BulkMemberAction::ACTION_MESSAGE, [
+                'subject' => trim($this->bulkMessageSubject),
+                'body' => trim($this->bulkMessageBody),
+            ]);
+        } else {
+            // Audience-driven send: resolve the ids now so the job targets
+            // exactly the audience shown in the preview count.
+            $ids = $this->composerQuery()->pluck('users.id')->map(fn ($id) => (int) $id)->toArray();
+
+            BulkMemberAction::dispatch(
+                Auth::id(),
+                BulkMemberAction::ACTION_MESSAGE,
+                [
+                    'subject' => trim($this->bulkMessageSubject),
+                    'body' => trim($this->bulkMessageBody),
+                ],
+                $ids,
+                null,
+                '',
+            );
+        }
 
         $this->closeBulkMessage();
         $this->clearSelection();
-        session()->flash('success', "Message queued for {$count} member(s). Bounced or complained addresses get the inbox copy only.");
+        session()->flash('success', "Message queued for {$count} member(s). Each recipient's inbox copy and email use their own first name, type, status, and expiry.");
     }
 
     public function updatedSearch(): void
@@ -437,6 +614,11 @@ new #[Title('Members - Admin')] class extends Component {
                 <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
                 Add Member
             </a>
+            <button type="button" wire:click="openBulkMessage"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-nrapa-blue rounded-lg hover:bg-nrapa-blue-dark transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                Send letter
+            </button>
             <a href="{{ route('admin.members.download-template') }}" class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-200 dark:border-zinc-600 dark:hover:bg-zinc-700 transition-colors">
                 <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 Download Template
@@ -815,43 +997,190 @@ new #[Title('Members - Admin')] class extends Component {
     </div>
     @endif
 
-    {{-- Bulk Message Modal --}}
+    {{-- Bulk Message Modal — formal member letter composer with token insertion,
+         audience presets (selection / activity-rule-doesn't-apply / by type)
+         and a live preview rendered for the first member in the audience. --}}
     @if($showBulkMessageModal)
-    <div class="fixed inset-0 z-50 overflow-y-auto">
-        <div class="flex min-h-screen items-center justify-center p-4">
+    @php
+        $audienceCount = $this->composerAudienceCount;
+        $preview = $this->composerPreview;
+        $tokens = $this->composerTokens();
+    @endphp
+    <div class="fixed inset-0 z-50 overflow-y-auto" x-data="{
+        insertToken(fieldName, token) {
+            const field = this.$refs[fieldName];
+            if (! field) return;
+            const start = field.selectionStart ?? field.value.length;
+            const end = field.selectionEnd ?? field.value.length;
+            const next = field.value.slice(0, start) + token + field.value.slice(end);
+            field.value = next;
+            field.focus();
+            const caret = start + token.length;
+            field.setSelectionRange(caret, caret);
+            field.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    }">
+        <div class="flex min-h-screen items-start justify-center p-4 py-8">
             <div wire:click="closeBulkMessage" class="fixed inset-0 bg-black/50"></div>
-            <div class="relative w-full max-w-lg rounded-xl bg-white shadow-xl dark:bg-zinc-800">
+            <div class="relative w-full max-w-3xl rounded-xl bg-white shadow-xl dark:bg-zinc-800">
                 <div class="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
                     <div>
-                        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Send Message</h3>
-                        <p class="text-xs text-zinc-500 dark:text-zinc-400">To {{ number_format($this->selectedCount()) }} selected member(s)</p>
+                        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Send a member letter</h3>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                            Each member gets a personalised copy — tokens like <code class="text-xs">{first_name}</code> are replaced per recipient.
+                        </p>
                     </div>
-                    <button wire:click="closeBulkMessage" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                    <button type="button" wire:click="closeBulkMessage" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
-                <form wire:submit="sendBulkMessage" class="p-6 space-y-4">
+
+                <form wire:submit="sendBulkMessage" class="p-6 space-y-5">
+
+                    {{-- 1. Who are we writing to? --}}
+                    <fieldset class="space-y-2">
+                        <legend class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Who should receive this letter?</legend>
+
+                        <label class="flex items-start gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm cursor-pointer hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900/40 dark:hover:bg-zinc-900">
+                            <input type="radio" wire:model.live="composerAudience" value="selected"
+                                @disabled($this->selectedCount() === 0)
+                                class="mt-0.5 h-4 w-4 text-nrapa-blue focus:ring-nrapa-blue">
+                            <span>
+                                <span class="font-medium text-zinc-900 dark:text-white">Members I've selected on the page</span>
+                                @if($this->selectedCount() > 0)
+                                    <span class="block text-xs text-zinc-500 dark:text-zinc-400">{{ number_format($this->selectedCount()) }} selected right now</span>
+                                @else
+                                    <span class="block text-xs text-zinc-500 dark:text-zinc-400">No members selected on the page — use one of the audience presets below.</span>
+                                @endif
+                            </span>
+                        </label>
+
+                        <label class="flex items-start gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm cursor-pointer hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900/40 dark:hover:bg-zinc-900">
+                            <input type="radio" wire:model.live="composerAudience" value="activity_rule_na"
+                                class="mt-0.5 h-4 w-4 text-nrapa-blue focus:ring-nrapa-blue">
+                            <span>
+                                <span class="font-medium text-zinc-900 dark:text-white">Members whose activity rule does not apply</span>
+                                <span class="block text-xs text-zinc-500 dark:text-zinc-400">
+                                    Everyone on a membership type that does not include dedicated status (Basic etc.) — the group we accidentally included in the activity chase.
+                                </span>
+                            </span>
+                        </label>
+
+                        <label class="flex items-start gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm cursor-pointer hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900/40 dark:hover:bg-zinc-900">
+                            <input type="radio" wire:model.live="composerAudience" value="type"
+                                class="mt-0.5 h-4 w-4 text-nrapa-blue focus:ring-nrapa-blue">
+                            <span class="flex-1">
+                                <span class="font-medium text-zinc-900 dark:text-white">All members on a specific type</span>
+                                <select wire:model.live="composerTypeId"
+                                    @disabled($composerAudience !== 'type')
+                                    class="mt-1 block w-full rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm focus:border-nrapa-blue focus:ring-1 focus:ring-nrapa-blue dark:border-zinc-600 dark:bg-zinc-700 dark:text-white disabled:opacity-50">
+                                    <option value="">Choose a membership type…</option>
+                                    @foreach($this->membershipTypes as $type)
+                                        <option value="{{ $type->id }}">{{ $type->name }}</option>
+                                    @endforeach
+                                </select>
+                            </span>
+                        </label>
+
+                        <p class="text-xs text-zinc-600 dark:text-zinc-400">
+                            Audience resolves to <strong>{{ number_format($audienceCount) }}</strong> member{{ $audienceCount === 1 ? '' : 's' }}.
+                        </p>
+                    </fieldset>
+
+                    {{-- 2. Quick-start presets --}}
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Letter presets:</span>
+                        <button type="button" wire:click="useClarificationLetter"
+                            class="inline-flex items-center gap-2 rounded-md border border-nrapa-blue bg-nrapa-blue/5 px-3 py-1.5 text-xs font-medium text-nrapa-blue hover:bg-nrapa-blue/10 dark:bg-nrapa-blue/20 dark:text-blue-200 dark:hover:bg-nrapa-blue/30">
+                            Use "activity rule does not apply" clarification
+                        </button>
+                    </div>
+
+                    {{-- 3. Subject + token chips --}}
                     <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Subject <span class="text-red-500">*</span></label>
-                        <input type="text" wire:model="bulkMessageSubject" maxlength="255"
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Subject <span class="text-red-500">*</span></label>
+                            <span class="text-xs text-zinc-500 dark:text-zinc-400">Click a chip to insert it where the cursor is.</span>
+                        </div>
+                        <input type="text" wire:model.live.debounce.300ms="bulkMessageSubject" maxlength="255" x-ref="subject"
                             class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white">
+                        <div class="mt-2 flex flex-wrap gap-1.5">
+                            @foreach($tokens as $tok)
+                                <button type="button"
+                                    x-on:click="insertToken('subject', '{{ $tok['token'] }}')"
+                                    title="{{ $tok['description'] }}"
+                                    class="rounded-full border border-zinc-300 bg-white px-2.5 py-0.5 text-xs text-zinc-700 hover:border-nrapa-blue hover:text-nrapa-blue dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200">
+                                    + {{ $tok['label'] }}
+                                </button>
+                            @endforeach
+                        </div>
                         @error('bulkMessageSubject') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
+
+                    {{-- 4. Body + token chips --}}
                     <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Message <span class="text-red-500">*</span></label>
-                        <textarea wire:model="bulkMessageBody" rows="6" maxlength="5000" placeholder="Each selected member will get their own copy in their inbox and by email."
-                            class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white"></textarea>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Message <span class="text-red-500">*</span></label>
+                            <span class="text-xs text-zinc-500 dark:text-zinc-400">Markdown-like plain text. Line breaks are kept.</span>
+                        </div>
+                        <textarea wire:model.live.debounce.400ms="bulkMessageBody" rows="10" maxlength="5000" x-ref="body"
+                            placeholder="Dear {first_name}, ..."
+                            class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-mono focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white"></textarea>
+                        <div class="mt-2 flex flex-wrap gap-1.5">
+                            @foreach($tokens as $tok)
+                                <button type="button"
+                                    x-on:click="insertToken('body', '{{ $tok['token'] }}')"
+                                    title="{{ $tok['description'] }}"
+                                    class="rounded-full border border-zinc-300 bg-white px-2.5 py-0.5 text-xs text-zinc-700 hover:border-nrapa-blue hover:text-nrapa-blue dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200">
+                                    + {{ $tok['label'] }}
+                                </button>
+                            @endforeach
+                        </div>
                         @error('bulkMessageBody') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
+
+                    {{-- 5. Live preview --}}
+                    <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="text-sm font-semibold text-zinc-900 dark:text-white">Preview</h4>
+                            @if($preview['has_member'])
+                                <span class="text-xs text-zinc-500 dark:text-zinc-400">As it will appear to <strong>{{ $preview['member_name'] }}</strong></span>
+                            @else
+                                <span class="text-xs text-zinc-500 dark:text-zinc-400">No member matches the audience yet.</span>
+                            @endif
+                        </div>
+                        @if($preview['has_member'])
+                            <div class="mb-2 text-xs text-zinc-500 dark:text-zinc-400">
+                                <span class="font-semibold">Subject:</span>
+                                <span class="text-zinc-800 dark:text-zinc-200">{{ $preview['subject'] !== '' ? $preview['subject'] : '(empty)' }}</span>
+                            </div>
+                            <pre class="whitespace-pre-wrap text-sm text-zinc-800 dark:text-zinc-100 font-sans">{{ $preview['body'] !== '' ? $preview['body'] : '(empty)' }}</pre>
+                            <details class="mt-3">
+                                <summary class="cursor-pointer text-xs text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200">Token values used in this preview</summary>
+                                <dl class="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-zinc-600 dark:text-zinc-400">
+                                    @foreach($preview['values'] as $tok => $val)
+                                        <div class="truncate"><code>{{ $tok }}</code></div>
+                                        <div class="truncate">{{ $val !== '' ? $val : '(empty)' }}</div>
+                                    @endforeach
+                                </dl>
+                            </details>
+                        @endif
+                    </div>
+
                     <div class="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20">
                         <p class="text-xs text-amber-800 dark:text-amber-200">
-                            This queues <strong>{{ number_format($this->selectedCount()) }}</strong> individual messages. Each member gets an inbox copy; email goes only to addresses that have not bounced or complained.
+                            This queues <strong>{{ number_format($audienceCount) }}</strong> individual letters. Each member gets an inbox copy; email goes only to addresses that have not bounced, complained, or opted out of non-essential mail.
                         </p>
                     </div>
+
                     <div class="flex justify-end gap-3 pt-2 border-t border-zinc-200 dark:border-zinc-800">
                         <button type="button" wire:click="closeBulkMessage" class="px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-600 transition-colors">Cancel</button>
-                        <button type="submit" wire:confirm="Send this message to {{ number_format($this->selectedCount()) }} member(s)?"
-                            class="px-4 py-2 text-sm font-medium text-white bg-nrapa-blue rounded-lg hover:bg-nrapa-blue-dark transition-colors">Send to {{ number_format($this->selectedCount()) }}</button>
+                        <button type="submit"
+                            @disabled($audienceCount === 0)
+                            wire:confirm="Send this letter to {{ number_format($audienceCount) }} member(s)?"
+                            class="px-4 py-2 text-sm font-medium text-white bg-nrapa-blue rounded-lg hover:bg-nrapa-blue-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            Send to {{ number_format($audienceCount) }}
+                        </button>
                     </div>
                 </form>
             </div>

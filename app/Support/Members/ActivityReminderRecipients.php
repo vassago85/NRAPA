@@ -21,6 +21,8 @@ use Illuminate\Database\Eloquent\Builder;
  *   duration types never lapse). Matches `User::activeMembership()`.
  * - Membership type is NOT lifetime and NOT honorary (both are "always
  *   compliant" for activities — Phase 0 Q1 and Q6).
+ * - Membership type allows dedicated status. Basic / transfer-only types do
+ *   not carry the activity requirement, so they are excluded here too.
  * - User is NOT in their first join-year (exempt for the current year —
  *   Phase 0 Q3).
  * - Fewer than `SystemSetting::get('endorsement_min_activities', 2)`
@@ -87,9 +89,11 @@ class ActivityReminderRecipients
         return User::query()
             // Must be a member role (not admin / owner / developer).
             ->where('users.role', User::ROLE_MEMBER)
-            // Current, in-force membership whose type is NOT lifetime and NOT
-            // honorary. Mirrors Membership::scopeCurrent() inlined so we can
-            // filter the type in the same whereHas.
+            // Current, in-force membership whose type is NOT lifetime, NOT
+            // honorary, and allows dedicated status (the activity rule only
+            // applies to dedicated-status-capable types). Mirrors
+            // Membership::scopeCurrent() inlined so we can filter the type in
+            // the same whereHas.
             ->whereHas('memberships', function (Builder $q) {
                 $q->where('memberships.status', 'active')
                     ->where(function (Builder $q2) {
@@ -104,7 +108,7 @@ class ActivityReminderRecipients
                         })->where(function (Builder $tt) {
                             $tt->whereNull('is_honorary')
                                 ->orWhere('is_honorary', false);
-                        });
+                        })->where('allows_dedicated_status', true);
                     });
             })
             // Exclude join-year members. "In join-year" matches

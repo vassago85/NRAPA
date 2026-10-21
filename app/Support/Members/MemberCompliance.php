@@ -86,7 +86,6 @@ class MemberCompliance
 
         $isLifetime = (bool) ($type?->isLifetime() ?? false);
         $isHonorary = (bool) ($type?->is_honorary ?? false);
-        $isActivityExempt = $isLifetime || $isHonorary;
 
         // Q4b (hybrid). isDedicatedEligible = AND; showsDedicatedSurfaces = OR.
         $allows = (bool) ($type?->allows_dedicated_status ?? false);
@@ -95,6 +94,11 @@ class MemberCompliance
             [MembershipType::DEDICATED_TYPE_HUNTER, MembershipType::DEDICATED_TYPE_SPORT, MembershipType::DEDICATED_TYPE_BOTH],
             true,
         );
+
+        // Activities are only required for memberships whose type allows
+        // dedicated status. Basic / transfer-only / honorary / lifetime
+        // members do not have to log them.
+        $isActivityExempt = $isLifetime || $isHonorary || ($type !== null && ! $allows);
 
         $requirements = [
             'membership' => self::buildMembershipRequirement($membership),
@@ -107,6 +111,8 @@ class MemberCompliance
                 $isLifetime,
                 $isHonorary,
                 hasActiveMembership: $membership !== null,
+                allowsDedicatedStatus: $allows,
+                typeName: $type?->name,
             ),
             'required_documents' => self::buildRequiredDocumentsRequirement($user, $type),
         ];
@@ -311,6 +317,8 @@ class MemberCompliance
         bool $isLifetime,
         bool $isHonorary,
         bool $hasActiveMembership,
+        bool $allowsDedicatedStatus = true,
+        ?string $typeName = null,
     ): Requirement {
         if (! $hasActiveMembership) {
             return new Requirement(
@@ -322,9 +330,16 @@ class MemberCompliance
         }
 
         if ($isActivityExempt) {
-            $reason = $isLifetime
-                ? 'Lifetime members are always compliant.'
-                : 'Honorary members are always compliant.';
+            if ($isLifetime) {
+                $reason = 'Lifetime members are always compliant.';
+            } elseif ($isHonorary) {
+                $reason = 'Honorary members are always compliant.';
+            } else {
+                // Non-dedicated types (e.g. Basic) do not carry the activity
+                // requirement at all.
+                $suffix = $typeName ? " ({$typeName})" : '';
+                $reason = "This membership type{$suffix} does not include the activity requirement.";
+            }
 
             return new Requirement(
                 key: 'activities',
@@ -334,6 +349,7 @@ class MemberCompliance
                 meta: [
                     'is_lifetime' => $isLifetime,
                     'is_honorary' => $isHonorary,
+                    'allows_dedicated_status' => $allowsDedicatedStatus,
                 ],
             );
         }
