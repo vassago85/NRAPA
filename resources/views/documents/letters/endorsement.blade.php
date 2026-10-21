@@ -21,13 +21,19 @@
         default => 'Firearm licence application',
     };
 
+    $bannerSubtitle = match (true) {
+        $request->isSelfDefence() => 'Self-defence supporting letter — issued voluntarily at the member\'s request',
+        $request->isOccasional() => 'Occasional sport shooting or hunting (Section 15) — not a dedicated status letter',
+        default => 'Issued for firearm licence application purposes',
+    };
+
     $title = 'Endorsement Letter — NRAPA';
 @endphp
 
 @section('document-banner')
 <div class="doc-banner">
     <div class="doc-banner-title">Endorsement Letter</div>
-    <div class="doc-banner-subtitle">{{ $request->isSelfDefence() ? 'Self-defence supporting letter — issued voluntarily at the member\'s request' : 'Issued for firearm licence application purposes' }}</div>
+    <div class="doc-banner-subtitle">{{ $bannerSubtitle }}</div>
 </div>
 @endsection
 
@@ -55,6 +61,7 @@
                             <td class="kv-label">Membership Status</td>
                             <td class="kv-value" style="color:#1f6b3a; font-weight:600;">Member in Good Standing</td>
                         </tr>
+                        @unless($request->isOccasional())
                         <tr>
                             <td class="kv-label">Dedicated Status</td>
                             <td class="kv-value">{{ $request->dedicated_status_label }}</td>
@@ -63,6 +70,7 @@
                             <td class="kv-label">Dedicated Category</td>
                             <td class="kv-value">{{ $request->dedicated_category_label }}</td>
                         </tr>
+                        @endunless
                     </table>
                 </div>
             </td>
@@ -84,7 +92,78 @@
         </tr>
     </table>
 
-    @if($request->isSelfDefence())
+    @if($request->isOccasional())
+    {{-- ===== Occasional (Section 15) variant ===== --}}
+    @php
+        $occType = $request->firearm_type_label;
+        $occMakeModel = trim(($request->firearm_make ?? '') . ' ' . ($request->firearm_model ?? ''));
+        $occCalibre = $request->firearm_calibre;
+        $occAction = $request->firearm_action_type_label;
+        $occIgnition = $request->firearm_ignition_type_label;
+        $occSerial = $request->firearm_serial ?: 'Serial to be confirmed';
+    @endphp
+    <div class="card components-card">
+        <div class="card-title">Firearm This Letter Relates To</div>
+        <table class="fg-table">
+            <tr>
+                <td>
+                    <span class="fg-label">Type</span>
+                    <span class="fg-value">{{ $occType }}</span>
+                </td>
+                @if($occMakeModel)
+                <td>
+                    <span class="fg-label">Make / Model</span>
+                    <span class="fg-value">{{ $occMakeModel }}</span>
+                </td>
+                @endif
+                @if($occCalibre)
+                <td>
+                    <span class="fg-label">Calibre</span>
+                    <span class="fg-value">{{ $occCalibre }}</span>
+                </td>
+                @endif
+                <td>
+                    <span class="fg-label">Serial</span>
+                    <span class="fg-value">{{ $occSerial }}</span>
+                </td>
+            </tr>
+            @if($occAction || $occIgnition)
+            <tr>
+                @if($occAction)
+                <td>
+                    <span class="fg-label">Action</span>
+                    <span class="fg-value">{{ $occAction }}</span>
+                </td>
+                @endif
+                @if($occIgnition)
+                <td>
+                    <span class="fg-label">Ignition</span>
+                    <span class="fg-value">{{ $occIgnition }}</span>
+                </td>
+                @endif
+            </tr>
+            @endif
+        </table>
+    </div>
+
+    <div class="letter-body">
+        To whom it may concern,<br/><br/>
+        This letter confirms that <b>{{ $user->getIdName() }}</b>
+        (ID/Passport: <b>{{ $user->getIdNumber() ?? 'N/A' }}</b>) is a
+        <b>member in good standing</b> of the National Rifle &amp; Pistol Association of South Africa (NRAPA).
+        <br/><br/>
+        <div style="background:#f5f7fb; border-left:3px solid #0B4EA2; padding:6px 10px; margin:2px 0 8px 0; font-size:11px;">
+            <b>Firearm to which this letter relates:</b> {{ $occType }}@if($occAction) {{ $occAction }}@endif@if($occIgnition) {{ $occIgnition }}@endif@if($occMakeModel) &mdash; {{ $occMakeModel }}@endif@if($occCalibre), {{ $occCalibre }}@endif ({{ $occSerial }}).
+        </div>
+        The Association confirms that, in its view, the firearm described above is <b>fit for occasional sport shooting or occasional hunting</b> in terms of <b>Section 15</b> of the Firearms Control Act, 2000 (Act 60 of 2000, as amended).
+        <br/><br/>
+        <div style="font-size:10.5px; line-height:1.45; color:#333;">
+            <div style="font-weight:700; color:#0B4EA2; margin-bottom:3px;">Please note the nature and scope of this letter:</div>
+            <p style="margin:0 0 6px 0;"><b>This is not a dedicated status endorsement.</b> It is not issued under Section 16 of the Act and does not confirm, nor rely on, dedicated hunter or dedicated sport shooter status. No activity record, dedicated status compliance or related documentation is required or confirmed by NRAPA for the purposes of this letter.</p>
+            <p style="margin:0;">The sole association requirement for this letter is that the above person is a <b>member in good standing</b> of NRAPA as at the date of issue. The licensing decision remains within the sole discretion of the Registrar of Firearms, and NRAPA expresses no view on the merits of the Section 15 application itself.</p>
+        </div>
+    </div>
+    @elseif($request->isSelfDefence())
     {{-- ===== Self-defence variant ===== --}}
     @php
         $sdType = $request->firearm_type_label;

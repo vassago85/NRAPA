@@ -42,6 +42,12 @@ class EndorsementRequest extends Model implements Approvable
 
     public const ENDORSEMENT_TYPE_SELF_DEFENCE = 'self_defence';
 
+    // Section 15 occasional sport-shooting / hunting letter. For members in good
+    // standing (including basic members) who need DFO-ready proof that a named
+    // firearm is fit for occasional use. This is NOT a dedicated status letter
+    // and does not confirm or require any dedicated-status compliance.
+    public const ENDORSEMENT_TYPE_OCCASIONAL = 'occasional';
+
     // Self-defence firearm type options
     public const FIREARM_TYPE_HANDGUN = 'handgun';
 
@@ -236,7 +242,11 @@ class EndorsementRequest extends Model implements Approvable
 
     public function summaryLine(): string
     {
-        $variant = $this->isSelfDefence() ? 'self-defence letter' : 'dedicated status endorsement';
+        $variant = match (true) {
+            $this->isSelfDefence() => 'self-defence letter',
+            $this->isOccasional() => 'occasional (Section 15) letter',
+            default => 'dedicated status endorsement',
+        };
 
         return ($this->user?->name ?? 'Unknown member').' — '.($this->isRenewal() ? 'renewal of ' : '').$variant;
     }
@@ -256,6 +266,12 @@ class EndorsementRequest extends Model implements Approvable
 
     public function detailWarning(): ?string
     {
+        // Section 15 occasional letters do not depend on dedicated status at all,
+        // so an "not compliant" warning here would be misleading to the admin.
+        if ($this->isOccasional()) {
+            return null;
+        }
+
         $check = DedicatedStatusCompliant::check($this->user);
 
         return $check->passed ? null : 'Dedicated status not compliant';
@@ -267,22 +283,41 @@ class EndorsementRequest extends Model implements Approvable
 
         $clauses = self::selfDefenceClauses();
 
+        [$branch, $title, $badge] = match (true) {
+            $this->isSelfDefence() => [self::ENDORSEMENT_TYPE_SELF_DEFENCE, 'Self-defence supporting letter', 'Self-defence'],
+            $this->isOccasional() => [self::ENDORSEMENT_TYPE_OCCASIONAL, 'Occasional (Section 15) letter', 'Occasional'],
+            default => [self::ENDORSEMENT_TYPE_DEDICATED_STATUS, 'Dedicated status endorsement', 'Dedicated status'],
+        };
+
         return new EvidenceBlock(
             view: 'components.admin.evidence.endorsement',
-            title: $this->isSelfDefence() ? 'Self-defence supporting letter' : 'Dedicated status endorsement',
+            title: $title,
             data: [
                 'request' => $this,
                 'acknowledgements' => $this->acknowledgements->sortBy(fn ($ack) => array_search($ack->clause_key, array_keys($clauses), true))->values(),
-                'branch' => $this->isSelfDefence() ? self::ENDORSEMENT_TYPE_SELF_DEFENCE : self::ENDORSEMENT_TYPE_DEDICATED_STATUS,
-                'eligibility' => $this->user ? self::getEligibilitySummary($this->user) : null,
+                'branch' => $branch,
+                // Occasional letters bypass the dedicated-status eligibility
+                // summary entirely — surfacing it would mislead the reviewer.
+                'eligibility' => (! $this->isOccasional() && $this->user) ? self::getEligibilitySummary($this->user) : null,
             ],
-            badge: $this->isSelfDefence() ? 'Self-defence' : 'Dedicated status',
+            badge: $badge,
             badgeTone: 'violet',
         );
     }
 
     public function preflightChecks(): array
     {
+        // Occasional (Section 15) letters only need good standing + declaration.
+        // No competency on file, no dedicated-status compliance.
+        if ($this->isOccasional()) {
+            return [
+                MembershipActive::check($this->user),
+                AcknowledgementsComplete::check($this),
+                NoDisciplinaryHold::check($this->user),
+                NoOtherOutstandingApproval::check($this, $this->user_id),
+            ];
+        }
+
         return [
             MembershipActive::check($this->user),
             CompetencyOnFile::check($this->user),
@@ -308,11 +343,15 @@ class EndorsementRequest extends Model implements Approvable
         $this->approve($actor, $note, sendNotification: false);
 
         try {
+            // Occasional letters do not carry a dedicated category — the issuer
+            // handles that branch and ignores the category argument.
+            $category = $this->isOccasional() ? null : $this->resolveDedicatedCategoryForIssue();
+
             app(EndorsementLetterIssuer::class)->issueApprovedLetter(
                 $this,
                 $actor,
-                $this->resolveDedicatedCategoryForIssue(),
-                true,
+                $category,
+                $this->isOccasional() ? null : true,
                 request()?->ip(),
                 request()?->userAgent(),
                 autoIssued: true,
@@ -765,6 +804,19 @@ class EndorsementRequest extends Model implements Approvable
     }
 
     /**
+     * Check if this is the occasional Section 15 letter variant.
+     *
+     * Occasional letters confirm a named firearm is fit for occasional sport
+     * shooting or hunting under Section 15 of the Firearms Control Act. They
+     * only require that the member be in good standing — no dedicated status,
+     * no activity record, no competency certificate.
+     */
+    public function isOccasional(): bool
+    {
+        return $this->endorsement_type === self::ENDORSEMENT_TYPE_OCCASIONAL;
+    }
+
+    /**
      * Endorsement type (variant) options.
      */
     public static function getEndorsementTypeOptions(): array
@@ -772,6 +824,7 @@ class EndorsementRequest extends Model implements Approvable
         return [
             self::ENDORSEMENT_TYPE_DEDICATED_STATUS => 'Dedicated Status Endorsement',
             self::ENDORSEMENT_TYPE_SELF_DEFENCE => 'Self-Defence Supporting Letter',
+            self::ENDORSEMENT_TYPE_OCCASIONAL => 'Occasional (Section 15) Letter',
         ];
     }
 
@@ -916,6 +969,15 @@ class EndorsementRequest extends Model implements Approvable
             return $accepted >= $requiredClauses;
         }
 
+        // Occasional (Section 15) variant: inline firearm fields + single declaration.
+        if ($this->isOccasional()) {
+            if (empty($this->firearm_make) || empty($this->firearm_model) || empty($this->firearm_calibre) || empty($this->firearm_type)) {
+                return false;
+            }
+
+            return $this->hasDeclaration();
+        }
+
         // Must have either firearm or at least one component (component-only requests allowed)
         $hasFirearm = (bool) $this->firearm;
         $hasComponents = $this->components()->exists();
@@ -943,6 +1005,29 @@ class EndorsementRequest extends Model implements Approvable
     public function getSubmissionErrors(): array
     {
         $errors = [];
+
+        // Occasional (Section 15) letters only require good standing + a named
+        // firearm + the declaration. No dedicated status check at all.
+        if ($this->isOccasional()) {
+            $standing = app(\App\Services\MembershipStandingService::class);
+            if (! $standing->isInGoodStanding($this->user)) {
+                $errors[] = $standing->getStandingReason($this->user) ?? 'You must be in good standing to request an occasional (Section 15) letter.';
+            }
+
+            if (! $this->isDraft()) {
+                $errors[] = 'Request is not in draft status.';
+            }
+
+            if (empty($this->firearm_make) || empty($this->firearm_model) || empty($this->firearm_calibre) || empty($this->firearm_type)) {
+                $errors[] = 'Firearm make, model, calibre and type are required.';
+            }
+
+            if (! $this->hasDeclaration()) {
+                $errors[] = 'You must accept the declaration.';
+            }
+
+            return $errors;
+        }
 
         // Check dedicated membership status
         $dedicatedType = $this->user->activeMembership?->type?->dedicated_type;
@@ -1100,7 +1185,13 @@ class EndorsementRequest extends Model implements Approvable
 
     /**
      * Issue the endorsement letter (can only be called on approved requests).
-     * Requires dedicated_status_compliant and dedicated_category to be set.
+     *
+     * For dedicated-status endorsements, requires dedicated_status_compliant
+     * and dedicated_category to be set. For occasional (Section 15) letters,
+     * those fields are deliberately left empty — the letter asserts only that
+     * the member is in good standing and the firearm is fit for occasional
+     * sport shooting or hunting, so printing a dedicated category would make
+     * the DFO reject it as the wrong proof.
      */
     public function issue(User $admin, string $letterReference, ?string $letterPath = null, ?bool $dedicatedStatusCompliant = null, ?string $dedicatedCategory = null): void
     {
@@ -1112,6 +1203,33 @@ class EndorsementRequest extends Model implements Approvable
         $membership = $this->user->activeMembership;
         if ($membership && $membership->expires_at && $membership->expires_at->isPast()) {
             throw new \Exception('Cannot issue endorsement letter: membership expired on ' . $membership->expires_at->format('d M Y') . '.');
+        }
+
+        if ($this->isOccasional()) {
+            // Section 15 letters only require good standing. Do not record a
+            // dedicated category or compliance flag — those lines are what
+            // makes a dedicated-status letter the wrong proof for Section 15.
+            $standing = app(\App\Services\MembershipStandingService::class);
+            if (! $standing->isInGoodStanding($this->user)) {
+                throw new \Exception('Member is not in good standing. Occasional (Section 15) letter cannot be issued.');
+            }
+
+            $issuedAt = now();
+            $this->update([
+                'status' => self::STATUS_ISSUED,
+                'issued_at' => $issuedAt,
+                'expires_at' => $issuedAt->copy()->addYear(),
+                'issued_by' => $admin->id,
+                'letter_reference' => $letterReference,
+                'letter_file_path' => $letterPath,
+                'dedicated_status_compliant' => null,
+                'dedicated_category' => null,
+                'dedicated_status_snapshot_at' => now(),
+            ]);
+
+            $this->notifyApproval();
+
+            return;
         }
 
         // If dedicated status not provided, determine from current membership
@@ -1311,11 +1429,15 @@ class EndorsementRequest extends Model implements Approvable
     /**
      * Populate in-memory letter fields so the PDF template matches what issue() will persist.
      * Required before renderEndorsementLetter() when status is still approved.
+     *
+     * For occasional (Section 15) letters the dedicated-status fields are left
+     * null on purpose — the template branches on isOccasional() and does not
+     * render them.
      */
     public function applyLetterRenderSnapshot(
         string $letterReference,
-        bool $dedicatedStatusCompliant,
-        string $dedicatedCategory,
+        ?bool $dedicatedStatusCompliant,
+        ?string $dedicatedCategory,
         ?\Carbon\CarbonInterface $issuedAt = null,
     ): void {
         $this->letter_reference = $letterReference;

@@ -8,11 +8,19 @@
     $accepted = $acknowledgements->where('accepted', true);
 @endphp
 
+@php
+    $templateLabel = match ($branch) {
+        \App\Models\EndorsementRequest::ENDORSEMENT_TYPE_SELF_DEFENCE => 'Self-defence supporting letter',
+        \App\Models\EndorsementRequest::ENDORSEMENT_TYPE_OCCASIONAL => 'Occasional (Section 15) letter',
+        default => 'Dedicated status endorsement',
+    };
+@endphp
+
 <dl class="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
     <div>
         <dt class="text-zinc-500 dark:text-zinc-400">Template</dt>
         <dd class="font-medium text-zinc-900 dark:text-white">
-            {{ $branch === \App\Models\EndorsementRequest::ENDORSEMENT_TYPE_SELF_DEFENCE ? 'Self-defence supporting letter' : 'Dedicated status endorsement' }}
+            {{ $templateLabel }}
             · {{ $request->request_type === \App\Models\EndorsementRequest::TYPE_RENEWAL ? 'Renewal' : 'New' }}
         </dd>
     </div>
@@ -24,10 +32,17 @@
         <dt class="text-zinc-500 dark:text-zinc-400">Serial</dt>
         <dd class="font-mono text-zinc-900 dark:text-white">{{ $serial ?: '—' }}</dd>
     </div>
+    @if($branch !== \App\Models\EndorsementRequest::ENDORSEMENT_TYPE_OCCASIONAL)
     <div>
         <dt class="text-zinc-500 dark:text-zinc-400">Dedicated category</dt>
         <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->dedicated_category ? str($request->dedicated_category)->replace('_', ' ')->title() : 'Not set' }}</dd>
     </div>
+    @else
+    <div>
+        <dt class="text-zinc-500 dark:text-zinc-400">Requirement</dt>
+        <dd class="font-medium text-zinc-900 dark:text-white">Member in good standing only</dd>
+    </div>
+    @endif
     @if($request->motivation_note || $request->member_notes)
         <div class="sm:col-span-2">
             <dt class="text-zinc-500 dark:text-zinc-400">Member's note</dt>
@@ -70,6 +85,11 @@
     </div>
 @elseif($branch === \App\Models\EndorsementRequest::ENDORSEMENT_TYPE_SELF_DEFENCE)
     <p class="mt-5 text-sm text-amber-700 dark:text-amber-300">No acknowledgements were recorded for this request.</p>
+@elseif($branch === \App\Models\EndorsementRequest::ENDORSEMENT_TYPE_OCCASIONAL)
+    <p class="mt-5 text-xs text-zinc-500 dark:text-zinc-400">
+        Section 15 occasional letters do not use a per-clause acknowledgement list &mdash; a single declaration (recorded at
+        {{ optional($request->declaration_accepted_at)->format('d M Y H:i') ?? 'submission time' }}) is sufficient.
+    </p>
 @endif
 
 @if($eligibility && ! empty($eligibility['errors']))

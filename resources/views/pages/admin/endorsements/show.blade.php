@@ -149,13 +149,19 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
 
     public function approveEndorsement(): void
     {
-        if ($this->selectedDedicatedCategory && $this->selectedDedicatedCategory !== $this->request->dedicated_category) {
+        $isOccasional = $this->request->isOccasional();
+
+        // Occasional letters never carry a dedicated category — a stale
+        // selection from the UI would otherwise end up on the issued letter.
+        if (! $isOccasional && $this->selectedDedicatedCategory && $this->selectedDedicatedCategory !== $this->request->dedicated_category) {
             $this->request->update(['dedicated_category' => $this->selectedDedicatedCategory]);
         }
 
         $note = $this->adminNotes ?: null;
 
-        if (! $this->isFullyCompliant) {
+        // The dedicated-status compliance warning is irrelevant to occasional
+        // (Section 15) letters — those only require good standing.
+        if (! $isOccasional && ! $this->isFullyCompliant) {
             $errors = $this->memberEligibility['errors'] ?? [];
             $errorMessages = array_map(fn($error) => is_array($error) ? ($error['message'] ?? '') : $error, $errors);
             $complianceNote = '[APPROVED DESPITE NON-COMPLIANCE] Member is not fully compliant: '.implode('. ', array_filter($errorMessages));
@@ -182,16 +188,23 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
     /**
      * Attempt to auto-issue the endorsement letter after approval.
      * Determines the dedicated category automatically if not already set.
+     *
+     * Occasional (Section 15) letters carry no dedicated category; the issuer
+     * accepts nulls for that variant and writes a Section 15 letter instead.
      */
     protected function autoIssueEndorsementLetter(): void
     {
-        $category = $this->resolveDedicatedCategory();
-        $this->selectedDedicatedCategory = $category;
+        $isOccasional = $this->request->isOccasional();
+        $category = $isOccasional ? null : $this->resolveDedicatedCategory();
+
+        if (! $isOccasional) {
+            $this->selectedDedicatedCategory = $category;
+        }
 
         try {
             $this->dispatchIssueEndorsementLetter(
                 dedicatedCategory: $category,
-                dedicatedStatusCompliant: true,
+                dedicatedStatusCompliant: $isOccasional ? null : true,
                 autoIssued: true,
             );
 
@@ -237,8 +250,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
      * the caller surface any error.
      */
     protected function dispatchIssueEndorsementLetter(
-        string $dedicatedCategory,
-        bool $dedicatedStatusCompliant,
+        ?string $dedicatedCategory,
+        ?bool $dedicatedStatusCompliant,
         bool $autoIssued = false,
         ?string $issuedVia = null,
     ): void {
@@ -348,7 +361,15 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             session()->flash('error', 'Request must be approved before letter can be issued.');
             return;
         }
-        
+
+        // Occasional (Section 15) letters do not depend on dedicated status.
+        // Only good standing is checked — the issuer verifies this again
+        // immediately before writing the PDF.
+        if ($this->request->isOccasional()) {
+            $this->showIssueModal = true;
+            return;
+        }
+
         // Check compliance
         $status = $this->memberDedicatedStatus;
         if (!$status['compliant']) {
@@ -366,15 +387,39 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
 
     public function issueEndorsement(): void
     {
-        // Validate dedicated category is selected
-        if (empty($this->selectedDedicatedCategory)) {
-            session()->flash('error', 'Please select a Dedicated Category.');
-            return;
-        }
-        
         // Can only issue if request is approved
         if (!$this->request->isApproved()) {
             session()->flash('error', 'Request must be approved before letter can be issued.');
+            return;
+        }
+
+        if ($this->request->isOccasional()) {
+            try {
+                // Occasional letters carry no dedicated category or compliance
+                // flag. The issuer null-checks and writes a Section 15 letter.
+                $this->dispatchIssueEndorsementLetter(
+                    dedicatedCategory: null,
+                    dedicatedStatusCompliant: null,
+                );
+
+                $this->showIssueModal = false;
+                session()->flash('success', 'Occasional (Section 15) letter issued — the member has been emailed the letter.');
+                $this->request->refresh();
+            } catch (\Throwable $e) {
+                Log::error('Failed to generate occasional endorsement letter', [
+                    'request_id' => $this->request->id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+                session()->flash('error', 'Failed to generate letter: ' . $e->getMessage());
+            }
+
+            return;
+        }
+
+        // Validate dedicated category is selected
+        if (empty($this->selectedDedicatedCategory)) {
+            session()->flash('error', 'Please select a Dedicated Category.');
             return;
         }
 
@@ -759,14 +804,23 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
 
             $newRequest = $this->request->reissueAsNewLetter(auth()->user());
 
-            $category = $newRequest->dedicated_category
-                ?: $this->resolveDedicatedCategory();
+            // Occasional (Section 15) letters never carry a dedicated category
+            // or compliance flag — the issuer branches on isOccasional() and
+            // writes a Section 15 letter when both are null.
+            if ($newRequest->isOccasional()) {
+                $category = null;
+                $compliant = null;
+            } else {
+                $category = $newRequest->dedicated_category
+                    ?: $this->resolveDedicatedCategory();
+                $compliant = (bool) ($newRequest->dedicated_status_compliant ?? true);
+            }
 
             app(EndorsementLetterIssuer::class)->issueApprovedLetter(
                 $newRequest,
                 auth()->user(),
                 $category,
-                (bool) ($newRequest->dedicated_status_compliant ?? true),
+                $compliant,
                 request()->ip(),
                 request()->userAgent(),
                 false,
@@ -967,7 +1021,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                 </div>
             </div>
 
-            {{-- Compliance Status Card --}}
+            {{-- Compliance Status Card. Hidden for occasional (Section 15)
+                 letters — those only require good standing, so showing
+                 dedicated-status compliance here would mislead the admin. --}}
+            @unless($request->isOccasional())
             <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border {{ $this->isFullyCompliant ? 'border-emerald-300 dark:border-emerald-700' : 'border-amber-300 dark:border-amber-700' }} overflow-hidden">
                 <div class="px-6 py-4 border-b {{ $this->isFullyCompliant ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20' : 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20' }}">
                     <div class="flex items-center justify-between">
@@ -1084,6 +1141,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                     @endif
                 </div>
             </div>
+            @endunless
 
             {{-- Request Details --}}
             <div class="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
@@ -1096,6 +1154,16 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                             <dt class="text-zinc-500">Request Type</dt>
                             <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->request_type_label }}</dd>
                         </div>
+                        @if($request->isOccasional())
+                        <div>
+                            <dt class="text-zinc-500">Variant</dt>
+                            <dd class="font-medium text-zinc-900 dark:text-white">
+                                <span class="inline-flex items-center gap-1.5 rounded-full bg-teal-100 px-2.5 py-0.5 text-xs font-semibold text-teal-800 dark:bg-teal-900/40 dark:text-teal-300">
+                                    Occasional (Section 15) &mdash; not dedicated status
+                                </span>
+                            </dd>
+                        </div>
+                        @else
                         <div>
                             <dt class="text-zinc-500">Dedicated Category</dt>
                             <dd class="font-medium text-zinc-900 dark:text-white">
@@ -1123,6 +1191,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                                 @endif
                             </dd>
                         </div>
+                        @endif
                         <div>
                             <dt class="text-zinc-500">Submitted</dt>
                             <dd class="font-medium text-zinc-900 dark:text-white">
@@ -1148,6 +1217,57 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
                     @endif
                 </div>
             </div>
+
+            {{-- Occasional (Section 15) Firearm --}}
+            @if($request->isOccasional())
+                <div class="bg-white dark:bg-zinc-900 rounded-2xl border border-teal-200 dark:border-teal-800 shadow-sm overflow-hidden">
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 bg-teal-50/50 dark:bg-teal-900/10">
+                        <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">Firearm for Occasional Use (Section 15)</h2>
+                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300">Occasional Letter</span>
+                    </div>
+                    <div class="p-6">
+                        <dl class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <dt class="text-zinc-500">Firearm Type</dt>
+                                <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->firearm_type_label }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-zinc-500">Make / Model</dt>
+                                <dd class="font-medium text-zinc-900 dark:text-white">{{ trim($request->firearm_make . ' ' . $request->firearm_model) }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-zinc-500">Calibre</dt>
+                                <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->firearm_calibre }}</dd>
+                            </div>
+                            @if($request->firearm_action_type)
+                            <div>
+                                <dt class="text-zinc-500">Action</dt>
+                                <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->firearm_action_type_label }}</dd>
+                            </div>
+                            @endif
+                            @if($request->firearm_ignition_type)
+                            <div>
+                                <dt class="text-zinc-500">Ignition</dt>
+                                <dd class="font-medium text-zinc-900 dark:text-white">{{ $request->firearm_ignition_type_label }}</dd>
+                            </div>
+                            @endif
+                            <div>
+                                <dt class="text-zinc-500">Serial Number</dt>
+                                <dd class="font-mono font-medium text-zinc-900 dark:text-white">{{ $request->firearm_serial ?: 'To be confirmed' }}</dd>
+                            </div>
+                            @if($request->motivation_note)
+                                <div class="col-span-2">
+                                    <dt class="text-zinc-500">Member Notes</dt>
+                                    <dd class="mt-1 text-zinc-900 dark:text-white">{{ $request->motivation_note }}</dd>
+                                </div>
+                            @endif
+                        </dl>
+                        <div class="mt-4 p-3 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg text-xs text-teal-800 dark:text-teal-200">
+                            This is a <strong>Section 15</strong> letter. It only requires the member to be in good standing — no dedicated status, activity record, or compliance check is required to issue it.
+                        </div>
+                    </div>
+                </div>
+            @endif
 
             {{-- Self-Defence Firearm + Acknowledgements --}}
             @if($request->isSelfDefence())
@@ -1767,52 +1887,74 @@ new #[Layout('layouts.app.sidebar')] #[Title('Review Endorsement Request - Admin
             <div class="flex min-h-screen items-center justify-center p-4">
                 <div wire:click="$set('showIssueModal', false)" class="fixed inset-0 bg-black/50"></div>
                 <div class="relative bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6">
-                    <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Issue Endorsement Letter</h3>
-                    
-                    @php
-                        $dedicatedStatus = $this->memberDedicatedStatus;
-                    @endphp
-                    
-                    <div class="mb-4 p-3 bg-zinc-50 dark:bg-zinc-700/50 rounded-lg">
-                        <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-2">Member's Current Dedicated Status:</p>
-                        <p class="font-medium text-zinc-900 dark:text-white">
-                            @if($dedicatedStatus['compliant'])
-                                <span class="text-emerald-600 dark:text-emerald-400">Compliant</span>
-                            @else
-                                <span class="text-red-600 dark:text-red-400">Non-Compliant</span>
+                    @if($request->isOccasional())
+                        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Issue Occasional (Section 15) Letter</h3>
+
+                        <div class="mb-4 p-3 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg text-sm text-teal-800 dark:text-teal-200">
+                            <p>This letter will confirm that the named firearm is <strong>fit for occasional sport shooting or hunting</strong> under Section 15. It is <strong>not</strong> a dedicated status endorsement — no category or compliance flag will be recorded.</p>
+                            <p class="mt-2">The only requirement is that the member is in good standing.</p>
+                        </div>
+
+                        <div class="flex justify-end gap-3">
+                            <button wire:click="$set('showIssueModal', false)"
+                                class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
+                                Cancel
+                            </button>
+                            <button wire:click="issueEndorsement"
+                                wire:loading.attr="disabled"
+                                class="px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors disabled:opacity-50">
+                                <span wire:loading.remove wire:target="issueEndorsement">Issue Letter</span>
+                                <span wire:loading wire:target="issueEndorsement">Processing...</span>
+                            </button>
+                        </div>
+                    @else
+                        <h3 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Issue Endorsement Letter</h3>
+
+                        @php
+                            $dedicatedStatus = $this->memberDedicatedStatus;
+                        @endphp
+
+                        <div class="mb-4 p-3 bg-zinc-50 dark:bg-zinc-700/50 rounded-lg">
+                            <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-2">Member's Current Dedicated Status:</p>
+                            <p class="font-medium text-zinc-900 dark:text-white">
+                                @if($dedicatedStatus['compliant'])
+                                    <span class="text-emerald-600 dark:text-emerald-400">Compliant</span>
+                                @else
+                                    <span class="text-red-600 dark:text-red-400">Non-Compliant</span>
+                                @endif
+                            </p>
+                            @if($dedicatedStatus['category'])
+                                <p class="text-sm text-zinc-600 dark:text-zinc-400 mt-1">Category: {{ $dedicatedStatus['category'] }}</p>
                             @endif
-                        </p>
-                        @if($dedicatedStatus['category'])
-                            <p class="text-sm text-zinc-600 dark:text-zinc-400 mt-1">Category: {{ $dedicatedStatus['category'] }}</p>
-                        @endif
-                    </div>
-                    
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                            Dedicated Category <span class="text-red-500">*</span>
-                        </label>
-                        <select wire:model="selectedDedicatedCategory" 
-                            class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
-                            <option value="">Select category...</option>
-                            <option value="Dedicated Sport Shooter">Dedicated Sport Shooter</option>
-                            <option value="Dedicated Hunter">Dedicated Hunter</option>
-                            <option value="Dedicated Sport Shooter & Dedicated Hunter">Dedicated Sport Shooter &amp; Dedicated Hunter</option>
-                        </select>
-                        @error('selectedDedicatedCategory') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                    </div>
-                    
-                    <div class="flex justify-end gap-3">
-                        <button wire:click="$set('showIssueModal', false)"
-                            class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
-                            Cancel
-                        </button>
-                        <button wire:click="issueEndorsement"
-                            wire:loading.attr="disabled"
-                            class="px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors disabled:opacity-50">
-                            <span wire:loading.remove wire:target="issueEndorsement">Issue Letter</span>
-                            <span wire:loading wire:target="issueEndorsement">Processing...</span>
-                        </button>
-                    </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                Dedicated Category <span class="text-red-500">*</span>
+                            </label>
+                            <select wire:model="selectedDedicatedCategory"
+                                class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white">
+                                <option value="">Select category...</option>
+                                <option value="Dedicated Sport Shooter">Dedicated Sport Shooter</option>
+                                <option value="Dedicated Hunter">Dedicated Hunter</option>
+                                <option value="Dedicated Sport Shooter & Dedicated Hunter">Dedicated Sport Shooter &amp; Dedicated Hunter</option>
+                            </select>
+                            @error('selectedDedicatedCategory') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div class="flex justify-end gap-3">
+                            <button wire:click="$set('showIssueModal', false)"
+                                class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
+                                Cancel
+                            </button>
+                            <button wire:click="issueEndorsement"
+                                wire:loading.attr="disabled"
+                                class="px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors disabled:opacity-50">
+                                <span wire:loading.remove wire:target="issueEndorsement">Issue Letter</span>
+                                <span wire:loading wire:target="issueEndorsement">Processing...</span>
+                            </button>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>

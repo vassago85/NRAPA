@@ -19,8 +19,8 @@ class EndorsementLetterIssuer
     public function issueApprovedLetter(
         EndorsementRequest $request,
         User $admin,
-        string $dedicatedCategory,
-        bool $dedicatedStatusCompliant = true,
+        ?string $dedicatedCategory,
+        ?bool $dedicatedStatusCompliant = true,
         ?string $ipAddress = null,
         ?string $userAgent = null,
         bool $autoIssued = false,
@@ -44,6 +44,14 @@ class EndorsementLetterIssuer
             'components',
             'acknowledgements',
         ]);
+
+        // Section 15 occasional letters never carry a dedicated category or a
+        // dedicated-status compliance flag. Null-out any caller-supplied values
+        // so a stale default from the admin UI can't contaminate the letter.
+        if ($request->isOccasional()) {
+            $dedicatedCategory = null;
+            $dedicatedStatusCompliant = null;
+        }
 
         $letterReference = EndorsementRequest::generateLetterReference();
         $issuedAt = now();

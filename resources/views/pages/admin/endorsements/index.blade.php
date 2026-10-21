@@ -211,6 +211,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Requests - Admin')] cl
                                     <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
                                         Self-Defence
                                     </span>
+                                @elseif($request->isOccasional())
+                                    <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300">
+                                        Occasional (S15)
+                                    </span>
                                 @else
                                     <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $request->request_type === 'new' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' }}">
                                         {{ $request->request_type_label }}
@@ -218,7 +222,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Endorsement Requests - Admin')] cl
                                 @endif
                             </td>
                             <td class="px-6 py-4">
-                                @if($request->isSelfDefence())
+                                @if($request->isSelfDefence() || $request->isOccasional())
                                     <p class="text-sm text-zinc-900 dark:text-white">{{ $request->firearm_type_label }}</p>
                                     @if($request->firearm_calibre)
                                         <p class="text-xs text-zinc-500">{{ $request->firearm_calibre }}</p>

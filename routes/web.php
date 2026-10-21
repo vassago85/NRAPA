@@ -408,6 +408,8 @@ Route::middleware(['auth', 'verified', 'membership.required', 'terms.accepted'])
     Route::livewire('endorsements/create', 'pages::member.endorsements.create')->name('member.endorsements.create');
     // Self-defence supporting-letter variant (registered before the {request} catch-all)
     Route::livewire('endorsements/self-defence', 'pages::member.endorsements.self-defence')->name('member.endorsements.self-defence');
+    // Occasional Section 15 letter (registered before the {request} catch-all)
+    Route::livewire('endorsements/occasional', 'pages::member.endorsements.occasional')->name('member.endorsements.occasional');
     Route::livewire('endorsements/{request}/edit', 'pages::member.endorsements.create')->name('member.endorsements.edit');
     Route::livewire('endorsements/{request}', 'pages::member.endorsements.show')->name('member.endorsements.show');
     Route::get('endorsements/{request}/preview', [EndorsementLetterController::class, 'preview'])->name('member.endorsements.preview');

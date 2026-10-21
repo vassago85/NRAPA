@@ -40,11 +40,13 @@ class NotifyAdminsOfEndorsementSubmission implements ShouldQueue
             return;
         }
 
-        $title = $request->isSelfDefence()
-            ? 'New Self-Defence Supporting Letter Request'
-            : 'New Endorsement Request Submitted';
-        if ($request->isSelfDefence()) {
-            $subject = trim(($request->firearm_make ?? '').' '.($request->firearm_model ?? '')) ?: 'a self-defence firearm';
+        $title = match (true) {
+            $request->isSelfDefence() => 'New Self-Defence Supporting Letter Request',
+            $request->isOccasional() => 'New Occasional (Section 15) Letter Request',
+            default => 'New Endorsement Request Submitted',
+        };
+        if ($request->isSelfDefence() || $request->isOccasional()) {
+            $subject = trim(($request->firearm_make ?? '').' '.($request->firearm_model ?? '')) ?: ($request->isOccasional() ? 'an occasional-use firearm' : 'a self-defence firearm');
         } else {
             $subject = $request->firearm
                 ? (trim(($request->firearm->make ?? '').' '.($request->firearm->model ?? '')) ?: 'a firearm')

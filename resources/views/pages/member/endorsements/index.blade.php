@@ -223,8 +223,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                 <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Dedicated Status</h1>
                 <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Manage your dedicated status and request endorsement letters for firearm applications.</p>
             </div>
-            @if($this->dedicatedType)
-                <div class="flex flex-wrap items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
+                @if($this->dedicatedType)
                     <a href="{{ route('member.endorsements.create') }}" wire:navigate
                         class="inline-flex items-center gap-2 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -239,8 +239,19 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                         </svg>
                         Self-Defence Letter
                     </a>
-                </div>
-            @endif
+                @endif
+                {{-- Occasional (Section 15) letter is open to any member in good
+                     standing — including basic members with no dedicated type.
+                     DFOs reject dedicated-status letters as proof for Section
+                     15 motivations, so basic members need their own route. --}}
+                <a href="{{ route('member.endorsements.occasional') }}" wire:navigate
+                    class="inline-flex items-center gap-2 px-4 py-2 border border-nrapa-blue text-nrapa-blue hover:bg-nrapa-blue/10 dark:text-nrapa-blue-light rounded-lg transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                    Occasional (Section 15) Letter
+                </a>
+            </div>
         </div>
     </x-slot>
 
