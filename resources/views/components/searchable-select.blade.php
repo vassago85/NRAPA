@@ -156,7 +156,11 @@
 (function () {
     function registerSearchableSelect() {
         if (!window.Alpine) return false;
-        Alpine.data('searchableSelect', (config) => ({
+        Alpine.data('searchableSelect', (config) => {
+        // Keep the Livewire proxy off Alpine's reactive state. Storing $wire on
+        // the component makes Alpine wrap it, and .set() stops updating the form.
+        let wireHandle = null;
+        return {
         componentId: config.componentId,
         items: Array.isArray(config.initialItems) ? config.initialItems : [],
         allowCustom: !!config.allowCustom,
@@ -176,8 +180,7 @@
             // Try to refresh items from the sibling <script> tag (may be updated by Livewire morphs)
             this.reloadItems();
 
-            // Find the Livewire component that owns us
-            this._wire = this.findWire();
+            const wire = this.wire();
 
             // Hydrate initial state from Livewire
             this.syncFromWire();
@@ -192,11 +195,11 @@
             }
 
             // React to Livewire state changes (e.g. server-side updates, resets)
-            if (this._wire) {
+            if (wire) {
                 try {
-                    this._wire.$watch(this.wireModel, () => this.syncFromWire());
+                    wire.$watch(this.wireModel, () => this.syncFromWire());
                     if (this.hasCustom && this.wireModelCustom) {
-                        this._wire.$watch(this.wireModelCustom, () => this.syncFromWire());
+                        wire.$watch(this.wireModelCustom, () => this.syncFromWire());
                     }
                 } catch (e) {}
 
@@ -227,35 +230,49 @@
         findWire() {
             let el = this.$root;
             while (el) {
-                // __livewire is the component. set() and get() live on its $wire proxy.
-                if (el.__livewire && el.__livewire.$wire) {
-                    return el.__livewire.$wire;
-                }
+                // Livewire.find returns the $wire proxy, whose set() actually updates the form.
                 if (el.getAttribute && el.getAttribute('wire:id') && window.Livewire && window.Livewire.find) {
-                    return window.Livewire.find(el.getAttribute('wire:id'));
+                    const proxy = window.Livewire.find(el.getAttribute('wire:id'));
+                    if (proxy && typeof proxy.set === 'function') {
+                        return proxy;
+                    }
+                }
+                // __livewire is the component. set() and get() live on its $wire proxy.
+                if (el.__livewire && el.__livewire.$wire && typeof el.__livewire.$wire.set === 'function') {
+                    return el.__livewire.$wire;
                 }
                 el = el.parentElement;
             }
             return null;
         },
 
+        wire() {
+            if (!wireHandle || typeof wireHandle.set !== 'function') {
+                const found = this.findWire();
+                wireHandle = found && typeof found.set === 'function' ? found : null;
+            }
+            return wireHandle;
+        },
+
         getWireValue(prop) {
-            if (!this._wire || !prop) return null;
+            const wire = this.wire();
+            if (!wire || !prop) return null;
             try {
-                return this._wire.get(prop);
+                return wire.get(prop);
             } catch (e) {
                 return null;
             }
         },
 
         setWireValue(prop, value, forceLive = null) {
-            if (!this._wire || !prop) return;
+            const wire = this.wire();
+            if (!wire || !prop) return;
             try {
                 // Pass `true` to trigger a Livewire re-render (used when this field
                 // drives dependent dropdowns like Make → Model). Otherwise update
                 // silently so other Alpine/Livewire state isn't disturbed.
                 const live = forceLive === null ? this.liveUpdate : forceLive;
-                this._wire.set(prop, value, live ? true : false);
+                wire.set(prop, value, live ? true : false);
             } catch (e) {}
         },
 
@@ -457,7 +474,8 @@
                 if (el) el.scrollIntoView({ block: 'nearest' });
             });
         },
-        }));
+        };
+        });
         return true;
     }
 
