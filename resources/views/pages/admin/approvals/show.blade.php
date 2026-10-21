@@ -6,6 +6,7 @@ use App\Enums\ApprovalState;
 use App\Exceptions\Approvals\ApprovalAlreadyDecided;
 use App\Exceptions\Approvals\ApprovalNotAllowed;
 use App\Mail\PaymentInstructions;
+use App\Mail\PopResubmitRequested;
 use App\Models\Approval;
 use App\Models\AuditLog;
 use App\Models\Membership;
@@ -24,6 +25,8 @@ new #[Title('Review Application - Admin')] class extends Component {
     public Membership $membership;
     public string $rejectionReason = '';
     public bool $showRejectModal = false;
+    public bool $showPopRequest = false;
+    public string $popRequestMessage = 'Incorrect upload. Please resubmit your proof of payment.';
     public ?float $changeAmount = null;
 
     #[Computed]
@@ -292,6 +295,64 @@ new #[Title('Review Application - Admin')] class extends Component {
             ]);
             session()->flash('error', 'Failed to send email: ' . $e->getMessage());
         }
+    }
+
+    public function requestPopAgain(): void
+    {
+        if ($this->membership->status !== 'pending_payment' || ! $this->membership->proof_of_payment_path) {
+            session()->flash('error', 'There is no uploaded file to send back.');
+
+            return;
+        }
+
+        $this->validate([
+            'popRequestMessage' => ['required', 'string', 'min:10', 'max:1000'],
+        ], [
+            'popRequestMessage.required' => 'Tell the member what to upload instead.',
+            'popRequestMessage.min' => 'The message must be at least 10 characters.',
+        ]);
+
+        $previousPath = $this->membership->proof_of_payment_path;
+
+        $this->membership->update([
+            'pop_resubmit_requested_at' => now(),
+            'pop_resubmit_message' => $this->popRequestMessage,
+        ]);
+
+        AuditLog::log(
+            'pop_resubmit_requested',
+            $this->membership,
+            ['proof_of_payment_path' => $previousPath],
+            ['proof_of_payment_path' => $previousPath, 'pop_resubmit_message' => $this->popRequestMessage],
+            Auth::user()
+        );
+
+        $emailed = false;
+        $email = $this->membership->user?->email;
+
+        if ($email) {
+            try {
+                Mail::to($email)->send(new PopResubmitRequested(
+                    membership: $this->membership->load('type', 'user', 'previousMembership.type'),
+                    reason: $this->popRequestMessage,
+                ));
+                $emailed = true;
+            } catch (\Throwable $e) {
+                Log::warning('Failed to send proof of payment resubmit email', [
+                    'membership_id' => $this->membership->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $this->membership->refresh();
+        $this->showPopRequest = false;
+
+        session()->flash('success', match (true) {
+            $emailed => "Asked {$email} to resubmit proof of payment. The file they uploaded is still here. You will be notified when they send a new one.",
+            $email => 'The request is on their membership page, but the email could not be sent.',
+            default => 'The request is saved, but this member has no email address.',
+        });
     }
 
     private function validateRejection(): void
@@ -810,7 +871,13 @@ new #[Title('Review Application - Admin')] class extends Component {
                 </div>
                 <div>
                     <h2 class="text-lg font-semibold text-emerald-800 dark:text-emerald-200">Proof of Payment</h2>
-                    <p class="text-sm text-emerald-600 dark:text-emerald-400">Uploaded by member — review before approving</p>
+                    <p class="text-sm text-emerald-600 dark:text-emerald-400">
+                        @if($this->membership->awaitsPopResubmit())
+                            Resubmit requested — this is still the file they uploaded
+                        @else
+                            Uploaded by member — review before approving
+                        @endif
+                    </p>
                 </div>
             </div>
 
@@ -1179,25 +1246,16 @@ new #[Title('Review Application - Admin')] class extends Component {
         </div>
         @endif
 
-        @if(!$showRejectModal)
-        <div class="flex gap-3">
-            <button
-                wire:click="approveChange"
-                wire:loading.attr="disabled"
-                wire:confirm="Approve this type change? The member's old membership will be expired and the new type activated."
-                class="inline-flex items-center justify-center gap-2 rounded-lg bg-nrapa-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors"
-            >
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m4.5 12.75 6 6 9-13.5"/></svg>
-                Approve Type Change
-            </button>
-            <button
-                wire:click="$set('showRejectModal', true)"
-                class="inline-flex items-center justify-center gap-2 rounded-lg border border-red-300 bg-white px-6 py-2.5 text-sm font-medium text-red-700 hover:bg-red-50 dark:border-red-700 dark:bg-zinc-800 dark:text-red-400 transition-colors"
-            >
-                Reject Request
-            </button>
+        @if($this->membership->awaitsPopResubmit())
+        <div class="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200">
+            <p>Asked {{ $this->membership->user?->name ?? 'the member' }} to resubmit on {{ $this->membership->pop_resubmit_requested_at->timezone(config('app.timezone'))->format('d M Y \a\t H:i') }}. The file above is still the one they uploaded.</p>
+            @if($this->membership->pop_resubmit_message)
+            <p class="mt-1 whitespace-pre-line">{{ $this->membership->pop_resubmit_message }}</p>
+            @endif
         </div>
-        @else
+        @endif
+
+        @if($showRejectModal)
         <div class="space-y-4">
             <div>
                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Reason for Rejection</label>
@@ -1209,6 +1267,65 @@ new #[Title('Review Application - Admin')] class extends Component {
                 <button wire:click="rejectChange" class="rounded-lg bg-red-600 px-6 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors">Confirm Rejection</button>
                 <button wire:click="$set('showRejectModal', false)" class="rounded-lg border border-zinc-300 bg-white px-6 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 transition-colors">Cancel</button>
             </div>
+        </div>
+        @elseif($showPopRequest)
+        <div class="space-y-4">
+            <div>
+                <label for="popRequestMessage" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Message to the member</label>
+                <textarea
+                    wire:model="popRequestMessage"
+                    id="popRequestMessage"
+                    rows="3"
+                    class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
+                ></textarea>
+                @error('popRequestMessage') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
+                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">The file they uploaded stays on this page. They can send a replacement, and you will be notified when it arrives.</p>
+            </div>
+            <div class="flex gap-3">
+                <button
+                    wire:click="requestPopAgain"
+                    wire:loading.attr="disabled"
+                    wire:target="requestPopAgain"
+                    class="inline-flex items-center justify-center rounded-lg bg-amber-600 px-6 py-2 text-sm font-medium text-white hover:bg-amber-700 transition-colors disabled:opacity-50"
+                >
+                    <span wire:loading.remove wire:target="requestPopAgain">Send request</span>
+                    <span wire:loading wire:target="requestPopAgain">Sending...</span>
+                </button>
+                <button
+                    type="button"
+                    wire:click="$set('showPopRequest', false)"
+                    class="rounded-lg border border-zinc-300 bg-white px-6 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 transition-colors"
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
+        @else
+        <div class="flex flex-wrap gap-3">
+            <button
+                wire:click="approveChange"
+                wire:loading.attr="disabled"
+                wire:confirm="Approve this type change? The member's old membership will be expired and the new type activated."
+                class="inline-flex items-center justify-center gap-2 rounded-lg bg-nrapa-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors"
+            >
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                Approve Type Change
+            </button>
+            @if($this->membership->proof_of_payment_path)
+            <button
+                type="button"
+                wire:click="$set('showPopRequest', true)"
+                class="inline-flex items-center justify-center gap-2 rounded-lg border border-amber-300 bg-white px-6 py-2.5 text-sm font-medium text-amber-800 hover:bg-amber-50 dark:border-amber-700 dark:bg-zinc-800 dark:text-amber-300 dark:hover:bg-amber-950/20 transition-colors"
+            >
+                Request POP again
+            </button>
+            @endif
+            <button
+                wire:click="$set('showRejectModal', true)"
+                class="inline-flex items-center justify-center gap-2 rounded-lg border border-red-300 bg-white px-6 py-2.5 text-sm font-medium text-red-700 hover:bg-red-50 dark:border-red-700 dark:bg-zinc-800 dark:text-red-400 transition-colors"
+            >
+                Reject Request
+            </button>
         </div>
         @endif
     </div>

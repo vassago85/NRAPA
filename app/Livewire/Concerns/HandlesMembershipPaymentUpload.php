@@ -4,7 +4,7 @@ namespace App\Livewire\Concerns;
 
 use App\Helpers\StorageHelper;
 use App\Models\Membership;
-use App\Services\NtfyService;
+use App\Support\Membership\ProofOfPaymentUpload;
 use Illuminate\Support\Facades\Storage;
 use Livewire\WithFileUploads;
 
@@ -22,26 +22,14 @@ trait HandlesMembershipPaymentUpload
             'proofOfPayment' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
         ]);
 
-        $path = $this->proofOfPayment->store(
-            "proof-of-payment/{$membership->user_id}",
-            StorageHelper::getPrivateDisk(),
-        );
+        $resubmit = $membership->awaitsPopResubmit();
 
-        $membership->update(['proof_of_payment_path' => $path]);
+        app(ProofOfPaymentUpload::class)->store($membership, $this->proofOfPayment, auth()->user());
         $this->proofOfPayment = null;
 
-        try {
-            $user = auth()->user();
-            app(NtfyService::class)->notifyAdmins(
-                'payment_received',
-                'Proof of Payment Uploaded',
-                "{$user->name} ({$membership->membership_number}) uploaded proof of payment. Pending review.",
-            );
-        } catch (\Exception $e) {
-            // Non-critical
-        }
-
-        session()->flash('success', 'Proof of payment uploaded successfully. It will be reviewed by an administrator.');
+        session()->flash('success', $resubmit
+            ? 'Proof of payment resubmitted. An administrator will review it.'
+            : 'Proof of payment uploaded successfully. It will be reviewed by an administrator.');
         $this->refreshPaymentUploadState();
     }
 

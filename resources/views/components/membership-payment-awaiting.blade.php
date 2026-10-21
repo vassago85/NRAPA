@@ -96,7 +96,9 @@
     <div class="border-t border-amber-300 dark:border-amber-600 pt-4">
         <h4 class="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-3">Upload Proof of Payment</h4>
 
-        @if($membership->proof_of_payment_path)
+        <x-pop-resubmit-notice :membership="$membership" />
+
+        @if($membership->proof_of_payment_path && ! $membership->awaitsPopResubmit())
             <div class="flex items-center justify-between gap-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
                 <div class="flex items-center gap-2">
                     <svg class="size-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -69,6 +69,8 @@ class Membership extends Model implements Approvable
         'approval_revoked_reason',
         'pop_reminder_sent_at',
         'pop_reminder_count',
+        'pop_resubmit_requested_at',
+        'pop_resubmit_message',
         'payment_confirmed_at',
         'payment_confirmed_by',
         'affiliated_club_id',
@@ -100,6 +102,7 @@ class Membership extends Model implements Approvable
             'approval_revoked_at' => 'datetime',
             'pop_reminder_sent_at' => 'datetime',
             'pop_reminder_count' => 'integer',
+            'pop_resubmit_requested_at' => 'datetime',
             'payment_confirmed_at' => 'datetime',
             'dedicated_declaration_accepted_at' => 'datetime',
             'change_amount' => 'decimal:2',
@@ -128,6 +131,14 @@ class Membership extends Model implements Approvable
             'pop_reminder_sent_at' => now(),
             'pop_reminder_count' => ($this->pop_reminder_count ?? 0) + 1,
         ]);
+    }
+
+    /**
+     * An admin asked for a replacement proof of payment and the member has not sent one yet.
+     */
+    public function awaitsPopResubmit(): bool
+    {
+        return $this->pop_resubmit_requested_at !== null;
     }
 
     /**

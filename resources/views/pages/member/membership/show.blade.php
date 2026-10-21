@@ -2,6 +2,7 @@
 
 use App\Models\Membership;
 use App\Models\SystemSetting;
+use App\Support\Membership\ProofOfPaymentUpload;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Computed;
@@ -36,24 +37,15 @@ new #[Title('Membership Details')] class extends Component {
             'proofOfPayment' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
         ]);
 
-        $path = $this->proofOfPayment->store(
-            "proof-of-payment/{$this->membership->user_id}",
-            \App\Helpers\StorageHelper::getPrivateDisk(),
-        );
+        $resubmit = $this->membership->awaitsPopResubmit();
 
-        $this->membership->update(['proof_of_payment_path' => $path]);
+        app(ProofOfPaymentUpload::class)->store($this->membership, $this->proofOfPayment, auth()->user());
         $this->proofOfPayment = null;
+        $this->membership->refresh();
 
-        try {
-            $user = auth()->user();
-            app(\App\Services\NtfyService::class)->notifyAdmins(
-                'payment_received',
-                'Proof of Payment Uploaded',
-                "{$user->name} ({$this->membership->membership_number}) uploaded proof of payment. Pending review.",
-            );
-        } catch (\Exception $e) {}
-
-        session()->flash('success', 'Proof of payment uploaded successfully. It will be reviewed by an administrator.');
+        session()->flash('success', $resubmit
+            ? 'Proof of payment resubmitted. An administrator will review it.'
+            : 'Proof of payment uploaded successfully. It will be reviewed by an administrator.');
     }
 
     public function removeProofOfPayment(): void
@@ -206,7 +198,9 @@ new #[Title('Membership Details')] class extends Component {
         <div class="mt-4 border-t border-amber-300 dark:border-amber-600 pt-4">
             <h4 class="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-3">Upload Proof of Payment</h4>
 
-            @if($this->membership->proof_of_payment_path)
+            <x-pop-resubmit-notice :membership="$this->membership" />
+
+            @if($this->membership->proof_of_payment_path && ! $this->membership->awaitsPopResubmit())
                 <div class="flex items-center justify-between gap-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
                     <div class="flex items-center gap-2">
                         <svg class="size-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -337,7 +331,9 @@ new #[Title('Membership Details')] class extends Component {
         <div class="border-t border-indigo-300 dark:border-indigo-600 pt-4">
             <h4 class="text-sm font-semibold text-indigo-800 dark:text-indigo-200 mb-3">Upload Proof of Payment</h4>
 
-            @if($this->membership->proof_of_payment_path)
+            <x-pop-resubmit-notice :membership="$this->membership" />
+
+            @if($this->membership->proof_of_payment_path && ! $this->membership->awaitsPopResubmit())
                 <div class="flex items-center justify-between gap-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
                     <div class="flex items-center gap-2">
                         <svg class="size-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
