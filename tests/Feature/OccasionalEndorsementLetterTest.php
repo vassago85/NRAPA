@@ -235,6 +235,83 @@ test('admin create form writes an occasional request with inline firearm fields 
     expect($created->firearm()->exists())->toBeFalse();
 });
 
+test('admin create form writes a self-defence request with inline firearm fields and the correct endorsement_type', function () {
+    Queue::fake();
+
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN, 'is_admin' => true]);
+    $member = occasionalBasicMember();
+
+    $renderer = \Mockery::mock(\App\Contracts\DocumentRenderer::class);
+    $renderer->shouldReceive('renderEndorsementLetter')
+        ->zeroOrMoreTimes()
+        ->andReturn('documents/admin-form-sd-letter.pdf');
+    app()->instance(\App\Contracts\DocumentRenderer::class, $renderer);
+
+    Livewire::actingAs($admin)
+        ->test('pages::admin.endorsements.create')
+        ->call('selectMember', $member->id)
+        ->set('endorsementType', EndorsementRequest::ENDORSEMENT_TYPE_SELF_DEFENCE)
+        ->set('dedicatedCategory', 'Dedicated Sport Shooter')
+        ->set('firearmCategory', 'handgun')
+        ->set('make', 'Glock')
+        ->set('model', '19')
+        ->set('calibreManual', '9mm Luger')
+        ->set('frameSerial', 'GLK-12345')
+        ->call('createEndorsement');
+
+    $created = EndorsementRequest::where('user_id', $member->id)->first();
+
+    expect($created)->not->toBeNull();
+    // The exact regression from the WhatsApp report: a Section 13 letter must
+    // store endorsement_type = self_defence, not occasional, so the Blade
+    // template renders the self-defence banner and body.
+    expect($created->endorsement_type)->toBe(EndorsementRequest::ENDORSEMENT_TYPE_SELF_DEFENCE);
+    expect($created->isSelfDefence())->toBeTrue();
+    expect($created->isOccasional())->toBeFalse();
+    expect($created->dedicated_category)->toBe('Dedicated Sport Shooter');
+    expect($created->firearm_type)->toBe('handgun');
+    expect($created->firearm_make)->toBe('Glock');
+    expect($created->firearm_serial)->toBe('Frame: GLK-12345');
+    expect($created->firearm()->exists())->toBeFalse();
+});
+
+test('self-defence letter template renders the self-defence banner and body, not the occasional wording', function () {
+    $user = occasionalBasicMember();
+
+    $request = EndorsementRequest::create([
+        'user_id' => $user->id,
+        'endorsement_type' => EndorsementRequest::ENDORSEMENT_TYPE_SELF_DEFENCE,
+        'request_type' => EndorsementRequest::TYPE_NEW,
+        'status' => EndorsementRequest::STATUS_ISSUED,
+        'submitted_at' => now()->subDay(),
+        'declaration_accepted_at' => now()->subDay(),
+        'declaration_text' => 'Section 13 self-defence declaration (test).',
+        'letter_reference' => 'END-2026-00123',
+        'issued_at' => now(),
+        'expires_at' => now()->addYear(),
+        'dedicated_category' => 'Dedicated Sport Shooter',
+        'dedicated_status_compliant' => true,
+        'firearm_type' => 'handgun',
+        'firearm_make' => 'Glock',
+        'firearm_model' => '19',
+        'firearm_calibre' => '9mm Luger',
+        'firearm_serial' => 'Frame: GLK-12345',
+    ]);
+
+    $html = view('documents.letters.endorsement', [
+        'request' => $request->fresh(['user', 'user.activeMembership']),
+    ])->render();
+
+    // Must render the Section 13 banner subtitle and body…
+    expect($html)->toContain('Self-defence supporting letter');
+    expect($html)->toContain('Section 13 of the Firearms Control Act');
+
+    // …and must NOT render the Section 15 occasional banner or body.
+    expect($html)->not->toContain('Occasional sport shooting or hunting (Section 15)');
+    expect($html)->not->toContain('not a dedicated status endorsement');
+    expect($html)->not->toContain('fit for occasional sport shooting or occasional hunting');
+});
+
 test('admin create form requires at least one serial on an occasional request', function () {
     $admin = User::factory()->create(['role' => User::ROLE_ADMIN, 'is_admin' => true]);
     $member = occasionalBasicMember();

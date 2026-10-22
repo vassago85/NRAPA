@@ -88,14 +88,42 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
      */
     public function updatedEndorsementType(): void
     {
+        // Section 15 letters never carry a dedicated category — strip any
+        // leftover value so it can't leak into the issued letter.
         if ($this->endorsementType === EndorsementRequest::ENDORSEMENT_TYPE_OCCASIONAL) {
             $this->dedicatedCategory = '';
+        }
+
+        // When switching between the inline-firearm variants (S13/S15) and the
+        // full dedicated-status variant the firearm category options change.
+        // Clear the picked value if it isn't valid for the new scope.
+        $validCategories = $this->usesInlineFirearm()
+            ? array_keys(EndorsementRequest::getSelfDefenceFirearmTypeOptions())
+            : array_keys(EndorsementFirearm::getCategoryOptions());
+
+        if ($this->firearmCategory !== '' && ! in_array($this->firearmCategory, $validCategories, true)) {
+            $this->firearmCategory = '';
+            $this->actionType = '';
         }
     }
 
     public function isOccasional(): bool
     {
         return $this->endorsementType === EndorsementRequest::ENDORSEMENT_TYPE_OCCASIONAL;
+    }
+
+    public function isSelfDefence(): bool
+    {
+        return $this->endorsementType === EndorsementRequest::ENDORSEMENT_TYPE_SELF_DEFENCE;
+    }
+
+    /**
+     * Both Section 13 and Section 15 letters store firearm data inline on the
+     * EndorsementRequest row (rather than in the endorsement_firearms table).
+     */
+    public function usesInlineFirearm(): bool
+    {
+        return $this->isOccasional() || $this->isSelfDefence();
     }
 
     #[Computed]
@@ -190,9 +218,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
                 'user_agent' => request()->userAgent(),
             ]);
 
-            // For an occasional (Section 15) letter the issuer null-nulls these,
-            // but pass nulls explicitly so the admin audit trail reflects that
-            // no dedicated category was ever selected.
+            // For an occasional (Section 15) letter the issuer null-nulls these
+            // regardless, but pass nulls explicitly so the admin audit trail
+            // reflects that no dedicated category was ever selected.
+            // Section 13 (self-defence) and Section 16 (dedicated) both print
+            // the dedicated category on the letter, so pass the real value.
             $dedicatedCategory = $this->isOccasional()
                 ? null
                 : ($this->dedicatedCategory ?: 'Dedicated Sport Shooter');
@@ -231,6 +261,8 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
     protected function persistEndorsement(): EndorsementRequest
     {
         $isOccasional = $this->isOccasional();
+        $isSelfDefence = $this->isSelfDefence();
+        $usesInline = $this->usesInlineFirearm();
 
         $rules = [
             'selectedUserId' => 'required|exists:users,id',
@@ -239,9 +271,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
             'firearmCategory' => 'required|string',
         ];
 
-        // Dedicated category is only meaningful on a dedicated-status endorsement.
-        // The Section 15 occasional letter deliberately omits it so the DFO does
-        // not read it as a Section 16 dedicated proof.
+        // Dedicated category is only meaningful when the letter prints it.
+        // Section 16 (dedicated status) prints both the category and the status
+        // row; Section 13 (self-defence) prints the kv-table rows too so still
+        // needs a category. Section 15 (occasional) deliberately omits them.
         if (! $isOccasional) {
             $rules['dedicatedCategory'] = 'required|in:Dedicated Sport Shooter,Dedicated Hunter';
         }
@@ -252,11 +285,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
             'dedicatedCategory.required' => 'Please select a dedicated category.',
         ]);
 
-        // Occasional (Section 15) letters name a specific firearm; the DFO
+        // Section 13 and Section 15 letters name a specific firearm; the DFO
         // reads the serial off the letter to match the licence application,
         // so at least one serial is required even when the admin is creating
         // the letter on behalf of a member.
-        if ($isOccasional) {
+        if ($usesInline) {
             $hasSerial = trim((string) $this->barrelSerial) !== ''
                 || trim((string) $this->frameSerial) !== ''
                 || trim((string) $this->receiverSerial) !== ''
@@ -273,9 +306,16 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
         $user = User::findOrFail($this->selectedUserId);
         $admin = auth()->user();
 
-        $declarationText = $isOccasional
-            ? 'Admin-created Section 15 occasional-use letter on behalf of member. Member in good standing is the only requirement; this is not a dedicated-status endorsement.'
-            : 'Admin-created endorsement on behalf of member.';
+        $declarationText = match (true) {
+            $isOccasional => 'Admin-created Section 15 occasional-use letter on behalf of member. Member in good standing is the only requirement; this is not a dedicated-status endorsement.',
+            $isSelfDefence => 'Admin-created Section 13 self-defence supporting letter on behalf of member. Admin has confirmed the member\'s circumstances support the issue of this letter.',
+            default => 'Admin-created endorsement on behalf of member.',
+        };
+
+        $purpose = match (true) {
+            $isOccasional, $isSelfDefence => null,
+            default => EndorsementRequest::PURPOSE_SECTION_16,
+        };
 
         $baseAttributes = [
             'user_id' => $user->id,
@@ -283,18 +323,17 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
             'request_type' => $this->requestType,
             'status' => EndorsementRequest::STATUS_SUBMITTED,
             'submitted_at' => now(),
-            'purpose' => $isOccasional ? null : EndorsementRequest::PURPOSE_SECTION_16,
+            'purpose' => $purpose,
             'dedicated_category' => $isOccasional ? null : $this->dedicatedCategory,
             'declaration_accepted_at' => now(),
             'declaration_text' => $declarationText,
             'admin_notes' => trim(($this->adminNotes ? $this->adminNotes . "\n\n" : '') . '[Created by admin: ' . $admin->name . ']'),
         ];
 
-        if ($isOccasional) {
-            // Section 15 letters store firearm data inline on the request itself,
-            // matching the member-side occasional form and the self-defence
-            // pattern. Admin list, show, and letter template all read from
-            // these inline columns for occasional requests.
+        if ($usesInline) {
+            // Section 13 and Section 15 letters store firearm data inline on
+            // the request itself, matching the member-side forms. Admin list,
+            // show, and letter template all read from these inline columns.
             $serialString = EndorsementRequest::formatSelfDefenceSerials([
                 'barrel' => $this->barrelSerial,
                 'frame' => $this->frameSerial,
@@ -314,7 +353,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
 
         $request = EndorsementRequest::create($baseAttributes);
 
-        if (! $isOccasional) {
+        if (! $usesInline) {
             $isComponent = EndorsementFirearm::isComponentCategory($this->firearmCategory);
             $firearmData = [
                 'endorsement_request_id' => $request->id,
@@ -361,7 +400,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
                 'endorsement_type' => $this->endorsementType,
                 'request_type' => $this->requestType,
                 'firearm_category' => $this->firearmCategory,
-                'dedicated_category' => $this->isOccasional() ? null : $this->dedicatedCategory,
+                'dedicated_category' => $isOccasional ? null : $this->dedicatedCategory,
             ],
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
@@ -459,16 +498,21 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
                 </div>
                 <div class="p-6 space-y-5">
                     {{-- Letter variant. Switching this hides the dedicated category
-                        field because Section 15 letters deliberately omit it. --}}
+                        field for Section 15 letters, since they deliberately omit it. --}}
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Letter Type <span class="text-red-500">*</span></label>
                         <select wire:model.live="endorsementType" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
                             <option value="{{ \App\Models\EndorsementRequest::ENDORSEMENT_TYPE_DEDICATED_STATUS }}">Dedicated Status Endorsement (Section 16)</option>
+                            <option value="{{ \App\Models\EndorsementRequest::ENDORSEMENT_TYPE_SELF_DEFENCE }}">Self-Defence Supporting Letter (Section 13)</option>
                             <option value="{{ \App\Models\EndorsementRequest::ENDORSEMENT_TYPE_OCCASIONAL }}">Occasional Sport Shooting or Hunting Letter (Section 15)</option>
                         </select>
                         @if($this->isOccasional())
                             <p class="mt-1 text-xs text-teal-700 dark:text-teal-300">
                                 Section 15 letter: the only requirement is that the member is in good standing. Dedicated status, activities, and competency are not checked.
+                            </p>
+                        @elseif($this->isSelfDefence())
+                            <p class="mt-1 text-xs text-indigo-700 dark:text-indigo-300">
+                                Section 13 self-defence supporting letter. The letter names the firearm the member is applying to license for self-defence and confirms their dedicated status with NRAPA.
                             </p>
                         @endif
                         @error('endorsementType') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
@@ -500,9 +544,17 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Firearm Type <span class="text-red-500">*</span></label>
                         <select wire:model.live="firearmCategory" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
                             <option value="">Select firearm type...</option>
-                            @foreach(EndorsementFirearm::getCategoryOptions() as $val => $label)
-                                <option value="{{ $val }}">{{ $label }}</option>
-                            @endforeach
+                            @if($this->usesInlineFirearm())
+                                {{-- Section 13 and Section 15 letters only cover
+                                    the three standard firearm categories. --}}
+                                @foreach(\App\Models\EndorsementRequest::getSelfDefenceFirearmTypeOptions() as $val => $label)
+                                    <option value="{{ $val }}">{{ $label }}</option>
+                                @endforeach
+                            @else
+                                @foreach(EndorsementFirearm::getCategoryOptions() as $val => $label)
+                                    <option value="{{ $val }}">{{ $label }}</option>
+                                @endforeach
+                            @endif
                         </select>
                         @error('firearmCategory') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
