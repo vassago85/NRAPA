@@ -20,6 +20,12 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
     // Request type
     public string $requestType = 'new';
 
+    // Endorsement variant — which letter are we creating?
+    // Defaults to the dedicated-status flow because that's the historical admin
+    // path; the admin can switch to Occasional (Section 15) for Basic members
+    // who are only applying for a Section 15 licence.
+    public string $endorsementType = EndorsementRequest::ENDORSEMENT_TYPE_DEDICATED_STATUS;
+
     // Firearm details
     public string $firearmCategory = '';
     public string $actionType = '';
@@ -73,6 +79,33 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
         if (!array_key_exists($this->actionType, $available)) {
             $this->actionType = '';
         }
+    }
+
+    /**
+     * Clear fields that don't apply to the Section 15 Occasional variant so a
+     * stale dedicated category from an earlier selection can't leak into the
+     * issued letter.
+     */
+    public function updatedEndorsementType(): void
+    {
+        if ($this->endorsementType === EndorsementRequest::ENDORSEMENT_TYPE_OCCASIONAL) {
+            $this->dedicatedCategory = '';
+        }
+    }
+
+    public function isOccasional(): bool
+    {
+        return $this->endorsementType === EndorsementRequest::ENDORSEMENT_TYPE_OCCASIONAL;
+    }
+
+    #[Computed]
+    public function memberInGoodStanding(): bool
+    {
+        if (! $this->selectedUser) {
+            return false;
+        }
+
+        return app(\App\Services\MembershipStandingService::class)->isInGoodStanding($this->selectedUser);
     }
 
     #[Computed]
@@ -157,13 +190,19 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
                 'user_agent' => request()->userAgent(),
             ]);
 
-            $dedicatedCategory = $this->dedicatedCategory ?: 'Dedicated Sport Shooter';
+            // For an occasional (Section 15) letter the issuer null-nulls these,
+            // but pass nulls explicitly so the admin audit trail reflects that
+            // no dedicated category was ever selected.
+            $dedicatedCategory = $this->isOccasional()
+                ? null
+                : ($this->dedicatedCategory ?: 'Dedicated Sport Shooter');
+            $dedicatedCompliant = $this->isOccasional() ? null : true;
 
             app(EndorsementLetterIssuer::class)->issueApprovedLetter(
                 $request,
                 $admin,
                 $dedicatedCategory,
-                true,
+                $dedicatedCompliant,
                 request()->ip(),
                 request()->userAgent(),
                 true,
@@ -191,64 +230,124 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
      */
     protected function persistEndorsement(): EndorsementRequest
     {
-        $this->validate([
+        $isOccasional = $this->isOccasional();
+
+        $rules = [
             'selectedUserId' => 'required|exists:users,id',
             'requestType' => 'required|in:new,renewal',
+            'endorsementType' => 'required|in:' . implode(',', array_keys(EndorsementRequest::getEndorsementTypeOptions())),
             'firearmCategory' => 'required|string',
-            'dedicatedCategory' => 'required|in:Dedicated Sport Shooter,Dedicated Hunter',
-        ], [
+        ];
+
+        // Dedicated category is only meaningful on a dedicated-status endorsement.
+        // The Section 15 occasional letter deliberately omits it so the DFO does
+        // not read it as a Section 16 dedicated proof.
+        if (! $isOccasional) {
+            $rules['dedicatedCategory'] = 'required|in:Dedicated Sport Shooter,Dedicated Hunter';
+        }
+
+        $this->validate($rules, [
             'selectedUserId.required' => 'Please select a member.',
             'firearmCategory.required' => 'Please select a firearm type.',
             'dedicatedCategory.required' => 'Please select a dedicated category.',
         ]);
 
+        // Occasional (Section 15) letters name a specific firearm; the DFO
+        // reads the serial off the letter to match the licence application,
+        // so at least one serial is required even when the admin is creating
+        // the letter on behalf of a member.
+        if ($isOccasional) {
+            $hasSerial = trim((string) $this->barrelSerial) !== ''
+                || trim((string) $this->frameSerial) !== ''
+                || trim((string) $this->receiverSerial) !== ''
+                || trim((string) $this->serialNumber) !== '';
+            if (! $hasSerial) {
+                $this->addError('barrelSerial', 'Enter at least one serial number (barrel, frame, or receiver).');
+
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'barrelSerial' => 'Enter at least one serial number (barrel, frame, or receiver).',
+                ]);
+            }
+        }
+
         $user = User::findOrFail($this->selectedUserId);
         $admin = auth()->user();
 
-        $request = EndorsementRequest::create([
+        $declarationText = $isOccasional
+            ? 'Admin-created Section 15 occasional-use letter on behalf of member. Member in good standing is the only requirement; this is not a dedicated-status endorsement.'
+            : 'Admin-created endorsement on behalf of member.';
+
+        $baseAttributes = [
             'user_id' => $user->id,
+            'endorsement_type' => $this->endorsementType,
             'request_type' => $this->requestType,
             'status' => EndorsementRequest::STATUS_SUBMITTED,
             'submitted_at' => now(),
-            'purpose' => EndorsementRequest::PURPOSE_SECTION_16,
-            'dedicated_category' => $this->dedicatedCategory,
+            'purpose' => $isOccasional ? null : EndorsementRequest::PURPOSE_SECTION_16,
+            'dedicated_category' => $isOccasional ? null : $this->dedicatedCategory,
             'declaration_accepted_at' => now(),
-            'declaration_text' => 'Admin-created endorsement on behalf of member.',
+            'declaration_text' => $declarationText,
             'admin_notes' => trim(($this->adminNotes ? $this->adminNotes . "\n\n" : '') . '[Created by admin: ' . $admin->name . ']'),
-        ]);
-
-        $isComponent = EndorsementFirearm::isComponentCategory($this->firearmCategory);
-        $firearmData = [
-            'endorsement_request_id' => $request->id,
-            'firearm_category' => $this->firearmCategory,
-            'licence_section' => $this->licenceSection ?: null,
-            'saps_reference' => $this->sapsReference ?: null,
         ];
 
-        if ($isComponent) {
-            $firearmData['component_diameter'] = $this->firearmCategory === 'barrel' ? ($this->componentDiameter ?: null) : null;
-            $firearmData['make'] = $this->make ?: null;
-            $firearmData['serial_number'] = $this->serialNumber ?: null;
-        } else {
-            $isCombination = $this->firearmCategory === EndorsementFirearm::CATEGORY_COMBINATION;
-            $firearmData['ignition_type'] = $this->ignitionType ?: null;
-            // Combination firearms don't record an action.
-            $firearmData['action_type'] = $isCombination ? null : ($this->actionType ?: null);
-            $firearmData['make'] = $this->make ?: null;
-            $firearmData['model'] = $this->model ?: null;
-            $firearmData['calibre_manual'] = $this->calibreManual ?: null;
-            // Second calibre — only meaningful for combination firearms.
-            $firearmData['calibre_text_override_2'] = ($isCombination && trim($this->calibreManual2) !== '')
-                ? trim($this->calibreManual2)
-                : null;
-            $firearmData['barrel_serial_number'] = $this->barrelSerial ?: null;
-            $firearmData['frame_serial_number'] = $this->frameSerial ?: null;
-            $firearmData['receiver_serial_number'] = $this->receiverSerial ?: null;
+        if ($isOccasional) {
+            // Section 15 letters store firearm data inline on the request itself,
+            // matching the member-side occasional form and the self-defence
+            // pattern. Admin list, show, and letter template all read from
+            // these inline columns for occasional requests.
+            $serialString = EndorsementRequest::formatSelfDefenceSerials([
+                'barrel' => $this->barrelSerial,
+                'frame' => $this->frameSerial,
+                'receiver' => $this->receiverSerial,
+            ]);
+
+            $baseAttributes = array_merge($baseAttributes, [
+                'firearm_type' => $this->firearmCategory,
+                'firearm_make' => $this->make ?: null,
+                'firearm_model' => $this->model ?: null,
+                'firearm_calibre' => $this->calibreManual ?: null,
+                'firearm_action_type' => $this->actionType ?: null,
+                'firearm_ignition_type' => $this->ignitionType ?: null,
+                'firearm_serial' => $serialString,
+            ]);
         }
 
-        EndorsementFirearm::create($firearmData);
+        $request = EndorsementRequest::create($baseAttributes);
 
-        app(AutoVerifyEndorsementDocuments::class)->execute($request, $user);
+        if (! $isOccasional) {
+            $isComponent = EndorsementFirearm::isComponentCategory($this->firearmCategory);
+            $firearmData = [
+                'endorsement_request_id' => $request->id,
+                'firearm_category' => $this->firearmCategory,
+                'licence_section' => $this->licenceSection ?: null,
+                'saps_reference' => $this->sapsReference ?: null,
+            ];
+
+            if ($isComponent) {
+                $firearmData['component_diameter'] = $this->firearmCategory === 'barrel' ? ($this->componentDiameter ?: null) : null;
+                $firearmData['make'] = $this->make ?: null;
+                $firearmData['serial_number'] = $this->serialNumber ?: null;
+            } else {
+                $isCombination = $this->firearmCategory === EndorsementFirearm::CATEGORY_COMBINATION;
+                $firearmData['ignition_type'] = $this->ignitionType ?: null;
+                // Combination firearms don't record an action.
+                $firearmData['action_type'] = $isCombination ? null : ($this->actionType ?: null);
+                $firearmData['make'] = $this->make ?: null;
+                $firearmData['model'] = $this->model ?: null;
+                $firearmData['calibre_manual'] = $this->calibreManual ?: null;
+                // Second calibre — only meaningful for combination firearms.
+                $firearmData['calibre_text_override_2'] = ($isCombination && trim($this->calibreManual2) !== '')
+                    ? trim($this->calibreManual2)
+                    : null;
+                $firearmData['barrel_serial_number'] = $this->barrelSerial ?: null;
+                $firearmData['frame_serial_number'] = $this->frameSerial ?: null;
+                $firearmData['receiver_serial_number'] = $this->receiverSerial ?: null;
+            }
+
+            EndorsementFirearm::create($firearmData);
+
+            app(AutoVerifyEndorsementDocuments::class)->execute($request, $user);
+        }
 
         AuditLog::create([
             'user_id' => $admin->id,
@@ -259,9 +358,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
             'new_values' => [
                 'member_id' => $user->id,
                 'member_name' => $user->name,
+                'endorsement_type' => $this->endorsementType,
                 'request_type' => $this->requestType,
                 'firearm_category' => $this->firearmCategory,
-                'dedicated_category' => $this->dedicatedCategory,
+                'dedicated_category' => $this->isOccasional() ? null : $this->dedicatedCategory,
             ],
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
@@ -358,6 +458,22 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">2. Endorsement Details</h2>
                 </div>
                 <div class="p-6 space-y-5">
+                    {{-- Letter variant. Switching this hides the dedicated category
+                        field because Section 15 letters deliberately omit it. --}}
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Letter Type <span class="text-red-500">*</span></label>
+                        <select wire:model.live="endorsementType" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
+                            <option value="{{ \App\Models\EndorsementRequest::ENDORSEMENT_TYPE_DEDICATED_STATUS }}">Dedicated Status Endorsement (Section 16)</option>
+                            <option value="{{ \App\Models\EndorsementRequest::ENDORSEMENT_TYPE_OCCASIONAL }}">Occasional Sport Shooting or Hunting Letter (Section 15)</option>
+                        </select>
+                        @if($this->isOccasional())
+                            <p class="mt-1 text-xs text-teal-700 dark:text-teal-300">
+                                Section 15 letter: the only requirement is that the member is in good standing. Dedicated status, activities, and competency are not checked.
+                            </p>
+                        @endif
+                        @error('endorsementType') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Request Type</label>
@@ -367,15 +483,17 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
                                 @endforeach
                             </select>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Dedicated Category <span class="text-red-500">*</span></label>
-                            <select wire:model="dedicatedCategory" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
-                                <option value="">Select...</option>
-                                <option value="Dedicated Sport Shooter">Dedicated Sport Shooter</option>
-                                <option value="Dedicated Hunter">Dedicated Hunter</option>
-                            </select>
-                            @error('dedicatedCategory') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                        </div>
+                        @if(! $this->isOccasional())
+                            <div>
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Dedicated Category <span class="text-red-500">*</span></label>
+                                <select wire:model="dedicatedCategory" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
+                                    <option value="">Select...</option>
+                                    <option value="Dedicated Sport Shooter">Dedicated Sport Shooter</option>
+                                    <option value="Dedicated Hunter">Dedicated Hunter</option>
+                                </select>
+                                @error('dedicatedCategory') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                        @endif
                     </div>
 
                     <div>
@@ -507,7 +625,34 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
         <div class="space-y-6">
 
             {{-- Eligibility Warnings --}}
-            @if($this->selectedUser)
+            @if($this->selectedUser && $this->isOccasional())
+                {{-- Section 15 only needs good standing — none of the dedicated-status
+                     checks apply, so show the one requirement that actually matters. --}}
+                <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border {{ $this->memberInGoodStanding ? 'border-teal-300 dark:border-teal-700' : 'border-amber-300 dark:border-amber-700' }} overflow-hidden">
+                    <div class="px-6 py-4 border-b {{ $this->memberInGoodStanding ? 'border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-900/20' : 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20' }}">
+                        <h3 class="font-semibold {{ $this->memberInGoodStanding ? 'text-teal-800 dark:text-teal-200' : 'text-amber-800 dark:text-amber-200' }}">
+                            Section 15 Eligibility
+                        </h3>
+                    </div>
+                    <div class="p-4 space-y-3 text-sm">
+                        <div class="flex items-center gap-2">
+                            @if($this->memberInGoodStanding)
+                                <svg class="w-5 h-5 text-teal-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                            @else
+                                <svg class="w-5 h-5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            @endif
+                            <span class="text-zinc-700 dark:text-zinc-300">Member in good standing</span>
+                        </div>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                            Dedicated status, knowledge test, activities, and competency documents are not required for a Section 15 occasional letter.
+                        </p>
+                    </div>
+                </div>
+            @elseif($this->selectedUser)
                 <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border {{ ($this->eligibility['eligible'] ?? false) ? 'border-emerald-300 dark:border-emerald-700' : 'border-amber-300 dark:border-amber-700' }} overflow-hidden">
                     <div class="px-6 py-4 border-b {{ ($this->eligibility['eligible'] ?? false) ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20' : 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20' }}">
                         <h3 class="font-semibold {{ ($this->eligibility['eligible'] ?? false) ? 'text-emerald-800 dark:text-emerald-200' : 'text-amber-800 dark:text-amber-200' }}">
@@ -574,13 +719,21 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
             @endif
 
             {{-- Create Button --}}
+            @php
+                // For occasional (Section 15) the only requirement is good standing;
+                // the dedicated-status eligibility bundle doesn't apply.
+                $isEligible = $this->isOccasional()
+                    ? $this->memberInGoodStanding
+                    : ($this->eligibility['eligible'] ?? false);
+                $warningCopy = $this->isOccasional()
+                    ? 'This member is NOT in good standing. A Section 15 letter should only be issued to members in good standing.'
+                    : 'This member does not meet all eligibility requirements. You can still create the endorsement — it will be flagged when you review it.';
+            @endphp
             <div class="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
                 <div class="p-6">
-                    @if($this->selectedUser && !($this->eligibility['eligible'] ?? false))
+                    @if($this->selectedUser && !$isEligible)
                         <div class="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                            <p class="text-xs text-amber-700 dark:text-amber-300">
-                                This member does not meet all eligibility requirements. You can still create the endorsement — it will be flagged when you review it.
-                            </p>
+                            <p class="text-xs text-amber-700 dark:text-amber-300">{{ $warningCopy }}</p>
                         </div>
                     @endif
 
@@ -590,9 +743,13 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
                             wire:click="createAndApproveEndorsement"
                             wire:loading.attr="disabled"
                             wire:target="createAndApproveEndorsement,createEndorsement"
-                            wire:confirm="{{ ($this->selectedUser && !($this->eligibility['eligible'] ?? true))
-                                ? 'This member is NOT fully eligible. Create, approve AND issue the signed endorsement letter anyway? The member will receive the issued letter by email.'
-                                : 'Create, approve and issue the signed endorsement letter for this member in one step? They will receive the letter by email immediately.' }}"
+                            wire:confirm="{{ ($this->selectedUser && !$isEligible)
+                                ? ($this->isOccasional()
+                                    ? 'This member is NOT in good standing. Create, approve AND issue the Section 15 letter anyway? The member will receive the letter by email.'
+                                    : 'This member is NOT fully eligible. Create, approve AND issue the signed endorsement letter anyway? The member will receive the issued letter by email.')
+                                : ($this->isOccasional()
+                                    ? 'Create, approve and issue the Section 15 occasional-use letter for this member in one step? They will receive the letter by email immediately.'
+                                    : 'Create, approve and issue the signed endorsement letter for this member in one step? They will receive the letter by email immediately.') }}"
                             class="w-full px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                             <span wire:loading.remove wire:target="createAndApproveEndorsement">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -608,8 +765,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
                             wire:click="createEndorsement"
                             wire:loading.attr="disabled"
                             wire:target="createAndApproveEndorsement,createEndorsement"
-                            wire:confirm="{{ ($this->selectedUser && !($this->eligibility['eligible'] ?? true))
-                                ? 'This member is NOT fully eligible. Are you sure you want to create this endorsement anyway?'
+                            wire:confirm="{{ ($this->selectedUser && !$isEligible)
+                                ? ($this->isOccasional()
+                                    ? 'This member is NOT in good standing. Create the Section 15 endorsement anyway?'
+                                    : 'This member is NOT fully eligible. Are you sure you want to create this endorsement anyway?')
                                 : 'Create this endorsement request? You will be taken to the review page where you can approve and issue it.' }}"
                             class="w-full px-4 py-2.5 border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                             <span wire:loading.remove wire:target="createEndorsement">

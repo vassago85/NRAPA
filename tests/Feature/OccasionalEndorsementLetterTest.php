@@ -197,6 +197,62 @@ test('issuing a dedicated-status endorsement still refuses when dedicated status
     ))->toThrow(\Exception::class, 'Dedicated Status is not compliant');
 });
 
+test('admin create form writes an occasional request with inline firearm fields and no dedicated category', function () {
+    Queue::fake();
+
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN, 'is_admin' => true]);
+    $member = occasionalBasicMember();
+
+    // Avoid Gotenberg — assert against the request+audit, not the PDF.
+    $renderer = \Mockery::mock(\App\Contracts\DocumentRenderer::class);
+    $renderer->shouldReceive('renderEndorsementLetter')
+        ->zeroOrMoreTimes()
+        ->andReturn('documents/admin-form-occasional-letter.pdf');
+    app()->instance(\App\Contracts\DocumentRenderer::class, $renderer);
+
+    Livewire::actingAs($admin)
+        ->test('pages::admin.endorsements.create')
+        ->call('selectMember', $member->id)
+        ->set('endorsementType', EndorsementRequest::ENDORSEMENT_TYPE_OCCASIONAL)
+        ->set('firearmCategory', 'rifle')
+        ->set('make', 'Ruger')
+        ->set('model', 'American')
+        ->set('calibreManual', '.223 Remington')
+        ->set('frameSerial', 'RUG-12345')
+        ->call('createEndorsement');
+
+    $created = EndorsementRequest::where('user_id', $member->id)->first();
+
+    expect($created)->not->toBeNull();
+    expect($created->endorsement_type)->toBe(EndorsementRequest::ENDORSEMENT_TYPE_OCCASIONAL);
+    expect($created->dedicated_category)->toBeNull();
+    expect($created->purpose)->toBeNull();
+    expect($created->firearm_make)->toBe('Ruger');
+    expect($created->firearm_model)->toBe('American');
+    expect($created->firearm_calibre)->toBe('.223 Remington');
+    expect($created->firearm_serial)->toBe('Frame: RUG-12345');
+    // No related firearm row — occasional data lives inline, same as self-defence.
+    expect($created->firearm()->exists())->toBeFalse();
+});
+
+test('admin create form requires at least one serial on an occasional request', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN, 'is_admin' => true]);
+    $member = occasionalBasicMember();
+
+    $component = Livewire::actingAs($admin)
+        ->test('pages::admin.endorsements.create')
+        ->call('selectMember', $member->id)
+        ->set('endorsementType', EndorsementRequest::ENDORSEMENT_TYPE_OCCASIONAL)
+        ->set('firearmCategory', 'rifle')
+        ->set('make', 'Ruger')
+        ->set('model', 'American')
+        ->set('calibreManual', '.223 Remington')
+        ->call('createEndorsement');
+
+    $component->assertHasErrors('barrelSerial');
+    expect(EndorsementRequest::where('user_id', $member->id)->count())->toBe(0);
+});
+
 test('occasional request from the member page submits as the ENDORSEMENT_TYPE_OCCASIONAL variant', function () {
     Queue::fake();
 
