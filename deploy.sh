@@ -16,7 +16,7 @@ git pull
 
 echo ""
 echo "Step 2: Building Docker image..."
-docker build -t nrapa-app:latest .
+docker build --pull --no-cache -t nrapa-app:latest .
 
 echo ""
 echo "Step 3: Stopping containers..."
