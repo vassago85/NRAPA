@@ -19,12 +19,12 @@ echo "Step 2: Building Docker image..."
 docker build --pull --no-cache -t nrapa-app:latest .
 
 echo ""
-echo "Step 3: Stopping containers..."
-docker compose down
+echo "Step 3: Ensuring data services are up..."
+docker compose up -d db redis minio gotenberg
 
 echo ""
-echo "Step 4: Starting containers..."
-docker compose up -d
+echo "Step 4: Recreating app, queue, and scheduler..."
+docker compose up -d --force-recreate --no-deps app queue scheduler
 
 echo ""
 echo "Step 5: Waiting for the app health check..."
