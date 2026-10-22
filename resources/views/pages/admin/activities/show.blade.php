@@ -564,11 +564,11 @@ new class extends Component {
 
                             <div class="bg-zinc-100 dark:bg-zinc-900 rounded-lg overflow-hidden" style="min-height: 60vh;">
                                 @php $previewUrl = $this->getPreviewUrl($activity->evidenceDocument); @endphp
-                                @if($previewUrl && str_contains($activity->evidenceDocument->mime_type, 'image'))
+                                @if($previewUrl && $activity->evidenceDocument->previewKind() === 'image')
                                     <div class="p-4 flex items-center justify-center" style="min-height: 60vh;">
                                         <img src="{{ $previewUrl }}" alt="Document preview" class="max-w-full max-h-full mx-auto rounded-lg object-contain">
                                     </div>
-                                @elseif($previewUrl && str_contains($activity->evidenceDocument->mime_type, 'pdf'))
+                                @elseif($previewUrl && $activity->evidenceDocument->previewKind() === 'pdf')
                                     <div class="relative" style="min-height: 60vh;">
                                         <iframe 
                                             src="{{ $previewUrl }}#toolbar=1&navpanes=0&scrollbar=1&view=FitH"
@@ -740,11 +740,11 @@ new class extends Component {
 
                             <div class="bg-zinc-100 dark:bg-zinc-900 rounded-lg overflow-hidden" style="min-height: 60vh;">
                                 @php $previewUrl = $this->getPreviewUrl($activity->additionalDocument); @endphp
-                                @if($previewUrl && str_contains($activity->additionalDocument->mime_type, 'image'))
+                                @if($previewUrl && $activity->additionalDocument->previewKind() === 'image')
                                     <div class="p-4 flex items-center justify-center" style="min-height: 60vh;">
                                         <img src="{{ $previewUrl }}" alt="Document preview" class="max-w-full max-h-full mx-auto rounded-lg object-contain">
                                     </div>
-                                @elseif($previewUrl && str_contains($activity->additionalDocument->mime_type, 'pdf'))
+                                @elseif($previewUrl && $activity->additionalDocument->previewKind() === 'pdf')
                                     <div class="relative" style="min-height: 60vh;">
                                         <iframe 
                                             src="{{ $previewUrl }}#toolbar=1&navpanes=0&scrollbar=1&view=FitH"

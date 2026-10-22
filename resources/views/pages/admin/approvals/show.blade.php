@@ -948,7 +948,7 @@ new #[Title('Review Application - Admin')] class extends Component {
                         @php
                             $tDoc = $tdoc['doc'];
                             $tExt = strtolower(pathinfo($tDoc->file_path, PATHINFO_EXTENSION));
-                            $isImg = in_array($tExt, ['jpg', 'jpeg', 'png']);
+                            $isImg = $tDoc->previewKind() === 'image';
                             $previewUrl = route('documents.preview', $tDoc);
                         @endphp
                         @if($isImg)

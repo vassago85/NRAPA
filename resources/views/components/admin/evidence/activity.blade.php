@@ -29,14 +29,31 @@
     @endif
 </dl>
 
-<div class="mt-5 grid gap-3 sm:grid-cols-2">
+<div class="mt-5 flex flex-col gap-4">
     @foreach(['Evidence' => $activity->evidenceDocument, 'Additional document' => $activity->additionalDocument] as $label => $doc)
         @if($doc)
-            <a href="{{ route('documents.preview', $doc) }}" target="_blank" rel="noopener"
-               class="flex items-center justify-between rounded-lg border border-zinc-200 px-4 py-3 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800">
-                <span class="text-zinc-800 dark:text-zinc-200">{{ $label }}: {{ $doc->original_filename ?: 'file' }}</span>
-                <span class="font-medium text-nrapa-blue">Open</span>
-            </a>
+            @php
+                $previewUrl = route('documents.preview', $doc);
+                $previewKind = $doc->previewKind();
+            @endphp
+            <div class="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
+                <a href="{{ $previewUrl }}" target="_blank" rel="noopener"
+                   class="flex items-center justify-between px-4 py-3 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                    <span class="min-w-0 truncate text-zinc-800 dark:text-zinc-200">{{ $label }}: {{ $doc->original_filename ?: 'file' }}</span>
+                    <span class="ml-3 flex-none font-medium text-nrapa-blue">Open</span>
+                </a>
+                @if($previewKind === 'image')
+                    <img src="{{ $previewUrl }}" alt="{{ $doc->original_filename ?: $label }}" data-evidence-kind="image"
+                         class="max-h-[min(72vh,760px)] w-full border-t border-zinc-200 bg-zinc-50 object-contain dark:border-zinc-700 dark:bg-zinc-950">
+                @elseif($previewKind === 'pdf')
+                    <iframe src="{{ $previewUrl }}#toolbar=1&navpanes=0&view=FitH" title="{{ $doc->original_filename ?: $label }}" data-evidence-kind="pdf"
+                            class="h-[min(72vh,760px)] min-h-[420px] w-full border-t border-zinc-200 dark:border-zinc-700"></iframe>
+                @else
+                    <p class="border-t border-zinc-200 px-4 py-3 text-xs text-zinc-500 dark:border-zinc-700 dark:text-zinc-400" data-evidence-kind="other">
+                        This file type cannot be shown here. Open it to download.
+                    </p>
+                @endif
+            </div>
         @endif
     @endforeach
 </div>

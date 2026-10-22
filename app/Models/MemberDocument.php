@@ -549,6 +549,64 @@ class MemberDocument extends Model implements Approvable
             ->first();
     }
 
+    /**
+     * image, pdf, or other. Phone uploads often store application/octet-stream,
+     * so the filename extension is used when the stored type is missing or generic.
+     */
+    public function previewKind(): string
+    {
+        $type = $this->inlineContentType();
+
+        if ($type === 'application/pdf') {
+            return 'pdf';
+        }
+
+        if (str_starts_with($type, 'image/') && ! str_contains($type, 'svg')) {
+            return 'image';
+        }
+
+        return 'other';
+    }
+
+    /**
+     * Content-Type safe to send inline. A specific image or PDF type on the
+     * record wins; otherwise the filename extension decides, so a JPEG saved
+     * as application/octet-stream still renders under nosniff.
+     */
+    public function inlineContentType(): string
+    {
+        $mime = strtolower(trim((string) $this->mime_type));
+        $generic = $mime === ''
+            || in_array($mime, ['application/octet-stream', 'binary/octet-stream', 'application/x-download'], true);
+
+        if (! $generic && str_starts_with($mime, 'image/') && ! str_contains($mime, 'svg')) {
+            return $mime;
+        }
+
+        if (! $generic && str_contains($mime, 'pdf')) {
+            return 'application/pdf';
+        }
+
+        $extension = strtolower(pathinfo((string) ($this->original_filename ?: $this->file_path), PATHINFO_EXTENSION));
+
+        $fromExtension = match ($extension) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            'bmp' => 'image/bmp',
+            'tif', 'tiff' => 'image/tiff',
+            'pdf' => 'application/pdf',
+            default => null,
+        };
+
+        if ($fromExtension !== null) {
+            return $fromExtension;
+        }
+
+        return $generic ? 'application/octet-stream' : $mime;
+    }
+
     public function evidence(): EvidenceBlock
     {
         $this->loadMissing(['documentType', 'user']);
@@ -559,7 +617,6 @@ class MemberDocument extends Model implements Approvable
             data: [
                 'document' => $this,
                 'fileUrl' => $this->file_path && ! $this->file_purged_at ? route('documents.preview', $this) : null,
-                'isPdf' => str_contains((string) $this->mime_type, 'pdf'),
                 'previousRejection' => $this->previousRejection(),
             ],
         );

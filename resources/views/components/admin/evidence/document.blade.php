@@ -1,4 +1,4 @@
-{{-- Evidence for a MemberDocument approval. Data: document, fileUrl, isPdf, previousRejection --}}
+{{-- Evidence for a MemberDocument approval. Data: document, fileUrl, previousRejection --}}
 <div class="grid gap-4 sm:grid-cols-3">
     <div>
         <p class="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Type</p>
@@ -28,11 +28,15 @@
 
 <div class="mt-5">
     @if($fileUrl)
-        @if($isPdf)
+        @if($document->previewKind() === 'pdf')
             {{-- PDF Open Parameters: hide the thumbnail panel (which steals ~180px and forces a horizontal scrollbar in a narrow preview pane) and fit the page width to the viewer so landscape ID scans aren't rendered as a tiny strip. --}}
-            <iframe src="{{ $fileUrl }}#toolbar=1&navpanes=0&view=FitH" class="h-[min(72vh,760px)] min-h-[520px] w-full rounded-lg border border-zinc-200 dark:border-zinc-700" title="Document"></iframe>
+            <iframe src="{{ $fileUrl }}#toolbar=1&navpanes=0&view=FitH" data-evidence-kind="pdf" class="h-[min(72vh,760px)] min-h-[520px] w-full rounded-lg border border-zinc-200 dark:border-zinc-700" title="Document"></iframe>
+        @elseif($document->previewKind() === 'image')
+            <img src="{{ $fileUrl }}" alt="{{ $document->documentType?->name }}" data-evidence-kind="image" class="w-full max-h-[min(72vh,760px)] rounded-lg border border-zinc-200 object-contain dark:border-zinc-700">
         @else
-            <img src="{{ $fileUrl }}" alt="{{ $document->documentType?->name }}" class="w-full max-h-[min(72vh,760px)] rounded-lg border border-zinc-200 object-contain dark:border-zinc-700">
+            <p class="rounded-lg border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400" data-evidence-kind="other">
+                This file type cannot be shown here. Open it to download.
+            </p>
         @endif
         <a href="{{ $fileUrl }}" target="_blank" rel="noopener" class="mt-2 inline-block text-xs text-zinc-500 hover:text-nrapa-blue hover:underline dark:text-zinc-400">Open full-size in a new tab ↗</a>
     @else

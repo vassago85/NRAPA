@@ -60,23 +60,7 @@ new #[Layout('layouts.app.sidebar')] class extends Component {
      */
     public function previewKind(): string
     {
-        $mime = strtolower((string) $this->document->mime_type);
-        if (str_contains($mime, 'image')) {
-            return 'image';
-        }
-        if (str_contains($mime, 'pdf')) {
-            return 'pdf';
-        }
-
-        $ext = strtolower(pathinfo((string) $this->document->original_filename, PATHINFO_EXTENSION));
-        if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) {
-            return 'image';
-        }
-        if ($ext === 'pdf') {
-            return 'pdf';
-        }
-
-        return 'other';
+        return $this->document->previewKind();
     }
 
     /**

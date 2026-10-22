@@ -25,6 +25,12 @@ class MemberDocumentPreviewController extends Controller
             abort(404);
         }
 
+        $filename = str_replace(
+            ['"', "\r", "\n", '/', '\\'],
+            '-',
+            $document->original_filename ?: basename((string) $document->file_path),
+        );
+
         return response()->stream(function () use ($storage, $document) {
             $stream = $storage->readStream($document->file_path);
             fpassthru($stream);
@@ -32,8 +38,10 @@ class MemberDocumentPreviewController extends Controller
                 fclose($stream);
             }
         }, 200, [
-            'Content-Type' => $document->mime_type,
-            'Content-Disposition' => 'inline; filename="'.$document->original_filename.'"',
+            'Content-Type' => $document->inlineContentType(),
+            'Content-Disposition' => 'inline; filename="'.$filename.'"',
+            'Cache-Control' => 'private, max-age=300',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 }
