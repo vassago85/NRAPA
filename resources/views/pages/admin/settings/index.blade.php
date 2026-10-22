@@ -3,9 +3,7 @@
 use App\Models\MembershipType;
 use App\Models\DocumentType;
 use App\Models\CertificateType;
-use App\Models\ConfigurationChangeRequest;
 use App\Models\SystemSetting;
-use App\Models\User;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -27,7 +25,6 @@ new #[Title('Settings - Admin')] class extends Component {
     public ?int $documentTypeExpiryMonths = null;
     public int $documentTypeArchiveMonths = 12;
     public bool $documentTypeIsActive = true;
-    public string $documentTypeChangeReason = '';
 
     // Certificate Type Form
     public ?int $editingCertificateTypeId = null;
@@ -38,7 +35,6 @@ new #[Title('Settings - Admin')] class extends Component {
     // Document Requirements
     public ?int $configuringMembershipTypeId = null;
     public array $selectedDocumentTypes = [];
-    public string $documentRequirementsChangeReason = '';
 
     #[Computed]
     public function membershipTypes()
@@ -58,27 +54,12 @@ new #[Title('Settings - Admin')] class extends Component {
         return CertificateType::orderBy('name')->get();
     }
 
-    #[Computed]
-    public function pendingRequests()
-    {
-        return ConfigurationChangeRequest::pending()
-            ->where('requested_by', auth()->id())
-            ->latest()
-            ->get();
-    }
-
     public function mount(): void
     {
         $this->renewalWindowDays = (int) SystemSetting::get('renewal_window_days', 30);
         $this->renewalGracePeriodDays = (int) SystemSetting::get('renewal_grace_period_days', 180);
         $this->lateRenewalThresholdDays = (int) SystemSetting::get('late_renewal_threshold_days', 90);
         $this->lateRenewalFeeMultiplier = (float) SystemSetting::get('late_renewal_fee_multiplier', 2);
-    }
-
-    // Check if user is owner or developer (can directly edit without approval)
-    protected function canEditDirectly(): bool
-    {
-        return auth()->user()->hasRoleLevel(User::ROLE_OWNER);
     }
 
     // ==================== RENEWAL POLICY METHODS ====================
@@ -117,7 +98,6 @@ new #[Title('Settings - Admin')] class extends Component {
         $this->documentTypeExpiryMonths = $type->expiry_months;
         $this->documentTypeArchiveMonths = $type->archive_months ?? 12;
         $this->documentTypeIsActive = $type->is_active;
-        $this->documentTypeChangeReason = '';
     }
 
     public function cancelEditDocumentType(): void
@@ -132,9 +112,6 @@ new #[Title('Settings - Admin')] class extends Component {
             'documentTypeName' => ['required', 'string', 'max:255'],
             'documentTypeSlug' => ['required', 'string', 'max:255'],
             'documentTypeArchiveMonths' => ['required', 'integer', 'min:1'],
-            'documentTypeChangeReason' => $this->canEditDirectly() ? [] : ['required', 'string', 'min:10'],
-        ], [
-            'documentTypeChangeReason.required' => 'Please provide a reason for this change (required for owner approval).',
         ]);
 
         $newData = [
@@ -146,36 +123,13 @@ new #[Title('Settings - Admin')] class extends Component {
             'is_active' => $this->documentTypeIsActive,
         ];
 
-        // If owner/developer, apply directly
-        if ($this->canEditDirectly()) {
-            if ($this->editingDocumentTypeId) {
-                DocumentType::findOrFail($this->editingDocumentTypeId)->update($newData);
-                session()->flash('success', 'Document type updated successfully.');
-            } else {
-                $newData['sort_order'] = DocumentType::max('sort_order') + 1;
-                DocumentType::create($newData);
-                session()->flash('success', 'Document type created successfully.');
-            }
+        if ($this->editingDocumentTypeId) {
+            DocumentType::findOrFail($this->editingDocumentTypeId)->update($newData);
+            session()->flash('success', 'Document type updated successfully.');
         } else {
-            // Admin - create change request for owner approval
-            $oldData = null;
-            if ($this->editingDocumentTypeId) {
-                $oldData = DocumentType::findOrFail($this->editingDocumentTypeId)->toArray();
-            } else {
-                $newData['sort_order'] = DocumentType::max('sort_order') + 1;
-            }
-
-            ConfigurationChangeRequest::create([
-                'requested_by' => auth()->id(),
-                'configuration_type' => ConfigurationChangeRequest::TYPE_DOCUMENT_TYPE,
-                'target_id' => $this->editingDocumentTypeId,
-                'action' => $this->editingDocumentTypeId ? ConfigurationChangeRequest::ACTION_UPDATE : ConfigurationChangeRequest::ACTION_CREATE,
-                'old_values' => $oldData,
-                'new_values' => $newData,
-                'reason' => $this->documentTypeChangeReason,
-            ]);
-
-            session()->flash('success', 'Change request submitted for owner approval.');
+            $newData['sort_order'] = DocumentType::max('sort_order') + 1;
+            DocumentType::create($newData);
+            session()->flash('success', 'Document type created successfully.');
         }
 
         $this->cancelEditDocumentType();
@@ -183,12 +137,8 @@ new #[Title('Settings - Admin')] class extends Component {
 
     public function toggleDocumentTypeActive(int $id): void
     {
-        if ($this->canEditDirectly()) {
-            $type = DocumentType::findOrFail($id);
-            $type->update(['is_active' => !$type->is_active]);
-        } else {
-            session()->flash('error', 'Status changes require owner approval. Please edit the document type to request a change.');
-        }
+        $type = DocumentType::findOrFail($id);
+        $type->update(['is_active' => !$type->is_active]);
     }
 
     protected function resetDocumentTypeForm(): void
@@ -199,7 +149,6 @@ new #[Title('Settings - Admin')] class extends Component {
         $this->documentTypeExpiryMonths = null;
         $this->documentTypeArchiveMonths = 12;
         $this->documentTypeIsActive = true;
-        $this->documentTypeChangeReason = '';
     }
 
     // ==================== CERTIFICATE TYPE METHODS ====================
@@ -256,15 +205,12 @@ new #[Title('Settings - Admin')] class extends Component {
         $this->selectedDocumentTypes = $membershipType->documentTypes
             ->mapWithKeys(fn ($doc) => [$doc->id => $doc->pivot->is_required])
             ->toArray();
-        
-        $this->documentRequirementsChangeReason = '';
     }
 
     public function cancelConfigureDocumentRequirements(): void
     {
         $this->configuringMembershipTypeId = null;
         $this->selectedDocumentTypes = [];
-        $this->documentRequirementsChangeReason = '';
     }
 
     public function toggleDocumentRequirement(int $documentTypeId): void
@@ -285,58 +231,14 @@ new #[Title('Settings - Admin')] class extends Component {
 
     public function saveDocumentRequirements(): void
     {
-        if (!$this->canEditDirectly()) {
-            $this->validate([
-                'documentRequirementsChangeReason' => ['required', 'string', 'min:10'],
-            ], [
-                'documentRequirementsChangeReason.required' => 'Please provide a reason for this change (required for owner approval).',
-            ]);
-        }
+        $membershipType = MembershipType::findOrFail($this->configuringMembershipTypeId);
 
-        $membershipType = MembershipType::with('documentTypes')->findOrFail($this->configuringMembershipTypeId);
-        
-        // Prepare the new document requirements
-        $newDocumentTypes = collect($this->selectedDocumentTypes)
-            ->map(fn ($isRequired, $id) => ['id' => $id, 'is_required' => $isRequired])
-            ->values()
+        $syncData = collect($this->selectedDocumentTypes)
+            ->mapWithKeys(fn ($isRequired, $id) => [$id => ['is_required' => $isRequired]])
             ->toArray();
 
-        // If owner/developer, apply directly
-        if ($this->canEditDirectly()) {
-            $syncData = collect($this->selectedDocumentTypes)
-                ->mapWithKeys(fn ($isRequired, $id) => [$id => ['is_required' => $isRequired]])
-                ->toArray();
-
-            $membershipType->documentTypes()->sync($syncData);
-            session()->flash('success', 'Document requirements updated successfully.');
-        } else {
-            // Admin - create change request for owner approval
-            $oldDocumentTypes = $membershipType->documentTypes
-                ->map(fn ($doc) => ['id' => $doc->id, 'name' => $doc->name, 'is_required' => $doc->pivot->is_required])
-                ->toArray();
-
-            // Add names to new values for better display
-            $newDocumentTypesWithNames = collect($newDocumentTypes)->map(function ($doc) {
-                $docType = DocumentType::find($doc['id']);
-                return [
-                    'id' => $doc['id'],
-                    'name' => $docType?->name,
-                    'is_required' => $doc['is_required'],
-                ];
-            })->toArray();
-
-            ConfigurationChangeRequest::create([
-                'requested_by' => auth()->id(),
-                'configuration_type' => ConfigurationChangeRequest::TYPE_DOCUMENT_REQUIREMENTS,
-                'target_id' => $this->configuringMembershipTypeId,
-                'action' => ConfigurationChangeRequest::ACTION_UPDATE,
-                'old_values' => ['membership_type' => $membershipType->name, 'document_types' => $oldDocumentTypes],
-                'new_values' => ['membership_type' => $membershipType->name, 'document_types' => $newDocumentTypesWithNames],
-                'reason' => $this->documentRequirementsChangeReason,
-            ]);
-
-            session()->flash('success', 'Document requirements change request submitted for owner approval.');
-        }
+        $membershipType->documentTypes()->sync($syncData);
+        session()->flash('success', 'Document requirements updated successfully.');
 
         $this->cancelConfigureDocumentRequirements();
     }
@@ -347,18 +249,6 @@ new #[Title('Settings - Admin')] class extends Component {
         <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">General Settings</h1>
         <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Configure platform-wide settings</p>
     </x-slot>
-
-    {{-- Header --}}
-    <div class="flex flex-col gap-2">
-        @if(!$this->canEditDirectly())
-        <p class="text-sm text-amber-600 dark:text-amber-400">
-            <svg class="inline-block size-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
-            </svg>
-            Configuration changes require owner approval.
-        </p>
-        @endif
-    </div>
 
     @if(session('success'))
     <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/40">
@@ -378,20 +268,6 @@ new #[Title('Settings - Admin')] class extends Component {
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
             </svg>
             <p class="text-sm text-red-700 dark:text-red-300">{{ session('error') }}</p>
-        </div>
-    </div>
-    @endif
-
-    {{-- Pending Requests Notice --}}
-    @if($this->pendingRequests->isNotEmpty())
-    <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
-        <div class="flex items-center gap-3">
-            <svg class="size-5 text-amber-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-            </svg>
-            <p class="text-sm text-amber-700 dark:text-amber-300">
-                You have {{ $this->pendingRequests->count() }} pending change request(s) awaiting owner approval.
-            </p>
         </div>
     </div>
     @endif
@@ -615,17 +491,9 @@ new #[Title('Settings - Admin')] class extends Component {
                     <label for="documentTypeIsActive" class="text-sm text-zinc-700 dark:text-zinc-300">Active</label>
                 </div>
 
-                @if(!$this->canEditDirectly())
-                <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Reason for Change *</label>
-                    <textarea wire:model="documentTypeChangeReason" rows="2" placeholder="Explain why this change is needed..." class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"></textarea>
-                    @error('documentTypeChangeReason') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
-                </div>
-                @endif
-
                 <div class="flex gap-3">
                     <button type="submit" class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
-                        {{ $this->canEditDirectly() ? ($editingDocumentTypeId ? 'Update' : 'Create') : 'Submit for Approval' }}
+                        {{ $editingDocumentTypeId ? 'Update' : 'Create' }}
                     </button>
                     <button type="button" wire:click="cancelEditDocumentType" class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
                         Cancel
@@ -680,7 +548,7 @@ new #[Title('Settings - Admin')] class extends Component {
                                 {{ $type->archive_months }} months
                             </td>
                             <td class="whitespace-nowrap px-6 py-4">
-                                <button wire:click="toggleDocumentTypeActive({{ $type->id }})" @if(!$this->canEditDirectly()) title="Status changes require owner approval" @endif>
+                                <button wire:click="toggleDocumentTypeActive({{ $type->id }})">
                                     @if($type->is_active)
                                     <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Active</span>
                                     @else
@@ -765,17 +633,9 @@ new #[Title('Settings - Admin')] class extends Component {
                 </div>
                 @endif
 
-                @if(!$this->canEditDirectly())
-                <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Reason for Change *</label>
-                    <textarea wire:model="documentRequirementsChangeReason" rows="2" placeholder="Explain why this change is needed..." class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"></textarea>
-                    @error('documentRequirementsChangeReason') <p class="mt-1 text-sm text-red-500">{{ $message }}</p> @enderror
-                </div>
-                @endif
-
                 <div class="flex gap-3">
                     <button type="submit" class="rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
-                        {{ $this->canEditDirectly() ? 'Save Requirements' : 'Submit for Approval' }}
+                        Save Requirements
                     </button>
                     <button type="button" wire:click="cancelConfigureDocumentRequirements" class="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors">
                         Cancel
