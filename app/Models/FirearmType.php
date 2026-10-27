@@ -36,6 +36,10 @@ class FirearmType extends Model
 
     public const ACTION_BREAK_ACTION = 'break_action';
 
+    public const ACTION_OVER_UNDER = 'over_under';
+
+    public const ACTION_SIDE_BY_SIDE = 'side_by_side';
+
     public const ACTION_OTHER = 'other';
 
     /**
@@ -105,6 +109,8 @@ class FirearmType extends Model
             self::ACTION_LEVER_ACTION => 'Lever Action',
             self::ACTION_PUMP_ACTION => 'Pump Action',
             self::ACTION_BREAK_ACTION => 'Break Action',
+            self::ACTION_OVER_UNDER => 'Break Neck - Under Over',
+            self::ACTION_SIDE_BY_SIDE => 'Break Neck - Side by Side',
             self::ACTION_OTHER => 'Other',
         ];
 
@@ -134,6 +140,8 @@ class FirearmType extends Model
                 self::ACTION_PUMP_ACTION => 'Pump Action',
                 self::ACTION_SEMI_AUTO => 'Semi-Automatic',
                 self::ACTION_BREAK_ACTION => 'Break Action',
+                self::ACTION_OVER_UNDER => 'Break Neck - Under Over',
+                self::ACTION_SIDE_BY_SIDE => 'Break Neck - Side by Side',
                 self::ACTION_BOLT_ACTION => 'Bolt Action',
                 self::ACTION_LEVER_ACTION => 'Lever Action',
                 self::ACTION_OTHER => 'Other',

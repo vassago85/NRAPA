@@ -243,7 +243,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
         // Map action type
         $actionType = match($this->actionType) {
             'semi_auto' => 'semi_automatic',
-            'bolt_action', 'lever_action', 'pump_action', 'break_action', 'single_shot', 'revolver' => 'manual',
+            'bolt_action', 'lever_action', 'pump_action', 'break_action', 'over_under', 'side_by_side', 'single_shot', 'revolver' => 'manual',
             default => $this->actionType,
         };
         

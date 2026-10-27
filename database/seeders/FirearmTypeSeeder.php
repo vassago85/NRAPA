@@ -114,6 +114,26 @@ class FirearmTypeSeeder extends Seeder
                 'dedicated_type' => 'both',
             ],
             [
+                'name' => 'Break Neck - Under Over',
+                'slug' => 'break-action-shotgun-over-under',
+                'saps_code' => '22',
+                'category' => 'shotgun',
+                'ignition_type' => 'centerfire',
+                'action_type' => 'over_under',
+                'description' => 'Break-action shotgun with the barrels stacked one above the other',
+                'dedicated_type' => 'both',
+            ],
+            [
+                'name' => 'Break Neck - Side by Side',
+                'slug' => 'break-action-shotgun-side-by-side',
+                'saps_code' => '22',
+                'category' => 'shotgun',
+                'ignition_type' => 'centerfire',
+                'action_type' => 'side_by_side',
+                'description' => 'Break-action shotgun with the barrels beside each other',
+                'dedicated_type' => 'both',
+            ],
+            [
                 'name' => 'Pump-Action Shotgun',
                 'saps_code' => '22',
                 'category' => 'shotgun',
@@ -156,7 +176,7 @@ class FirearmTypeSeeder extends Seeder
             $sortOrder++;
 
             FirearmType::updateOrCreate(
-                ['slug' => Str::slug($type['name'])],
+                ['slug' => $type['slug'] ?? Str::slug($type['name'])],
                 [
                     'name' => $type['name'],
                     'saps_code' => $type['saps_code'],

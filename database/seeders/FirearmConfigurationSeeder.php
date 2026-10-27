@@ -120,12 +120,30 @@ class FirearmConfigurationSeeder extends Seeder
                 'sort_order' => 42,
             ],
             [
+                'name' => 'Break Neck - Under Over',
+                'slug' => 'break-action-shotgun-over-under',
+                'category' => 'shotgun',
+                'ignition_type' => 'centerfire',
+                'action_type' => 'over_under',
+                'description' => 'Break-action shotgun with the barrels stacked one above the other.',
+                'sort_order' => 43,
+            ],
+            [
+                'name' => 'Break Neck - Side by Side',
+                'slug' => 'break-action-shotgun-side-by-side',
+                'category' => 'shotgun',
+                'ignition_type' => 'centerfire',
+                'action_type' => 'side_by_side',
+                'description' => 'Break-action shotgun with the barrels beside each other.',
+                'sort_order' => 44,
+            ],
+            [
                 'name' => 'Bolt Action Shotgun',
                 'category' => 'shotgun',
                 'ignition_type' => 'centerfire',
                 'action_type' => 'bolt_action',
                 'description' => 'A shotgun with a manually operated bolt mechanism.',
-                'sort_order' => 43,
+                'sort_order' => 45,
             ],
             [
                 'name' => 'Lever Action Shotgun',
@@ -133,15 +151,18 @@ class FirearmConfigurationSeeder extends Seeder
                 'ignition_type' => 'centerfire',
                 'action_type' => 'lever_action',
                 'description' => 'A shotgun using a lever mechanism to cycle the action.',
-                'sort_order' => 44,
+                'sort_order' => 46,
             ],
         ];
 
         foreach ($types as $type) {
+            $slug = $type['slug'] ?? Str::slug($type['name']);
+            unset($type['slug']);
+
             FirearmType::updateOrCreate(
-                ['slug' => Str::slug($type['name'])],
+                ['slug' => $slug],
                 array_merge($type, [
-                    'slug' => Str::slug($type['name']),
+                    'slug' => $slug,
                     'dedicated_type' => 'both',
                     'is_active' => true,
                 ])
