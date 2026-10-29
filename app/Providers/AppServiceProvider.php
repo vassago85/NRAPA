@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Auth\PasswordBrokerManager;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Cache\LockProvider;
 use Illuminate\Mail\Events\MessageSending;
@@ -21,6 +22,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // PasswordResetServiceProvider is deferred and binds the stock broker
+        // on first use. extend() runs after that binding and swaps in the
+        // repository whose create() upserts instead of delete-then-insert.
+        $this->app->extend('auth.password', function ($manager, $app) {
+            return new PasswordBrokerManager($app);
+        });
+
         // Register DocumentRenderer implementation
         // Use Spatie PDF renderer (Browsershot/Chromium) in production, fallback to fake renderer if not available
         $this->app->singleton(
