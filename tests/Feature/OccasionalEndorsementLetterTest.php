@@ -247,11 +247,13 @@ test('admin create form writes a self-defence request with inline firearm fields
         ->andReturn('documents/admin-form-sd-letter.pdf');
     app()->instance(\App\Contracts\DocumentRenderer::class, $renderer);
 
+    // No dedicatedCategory is set — a Section 13 self-defence letter is NOT
+    // a dedicated-status endorsement, so the admin form must accept the
+    // submission without one.
     Livewire::actingAs($admin)
         ->test('pages::admin.endorsements.create')
         ->call('selectMember', $member->id)
         ->set('endorsementType', EndorsementRequest::ENDORSEMENT_TYPE_SELF_DEFENCE)
-        ->set('dedicatedCategory', 'Dedicated Sport Shooter')
         ->set('firearmCategory', 'handgun')
         ->set('make', 'Glock')
         ->set('model', '19')
@@ -268,7 +270,8 @@ test('admin create form writes a self-defence request with inline firearm fields
     expect($created->endorsement_type)->toBe(EndorsementRequest::ENDORSEMENT_TYPE_SELF_DEFENCE);
     expect($created->isSelfDefence())->toBeTrue();
     expect($created->isOccasional())->toBeFalse();
-    expect($created->dedicated_category)->toBe('Dedicated Sport Shooter');
+    // Section 13 is self-defence, not dedicated status: no category persists.
+    expect($created->dedicated_category)->toBeNull();
     expect($created->firearm_type)->toBe('handgun');
     expect($created->firearm_make)->toBe('Glock');
     expect($created->firearm_serial)->toBe('Frame: GLK-12345');
@@ -289,8 +292,10 @@ test('self-defence letter template renders the self-defence banner and body, not
         'letter_reference' => 'END-2026-00123',
         'issued_at' => now(),
         'expires_at' => now()->addYear(),
-        'dedicated_category' => 'Dedicated Sport Shooter',
-        'dedicated_status_compliant' => true,
+        // Section 13 letters leave the dedicated-status columns null — the
+        // letter does not depend on dedicated status.
+        'dedicated_category' => null,
+        'dedicated_status_compliant' => null,
         'firearm_type' => 'handgun',
         'firearm_make' => 'Glock',
         'firearm_model' => '19',
@@ -310,6 +315,140 @@ test('self-defence letter template renders the self-defence banner and body, not
     expect($html)->not->toContain('Occasional sport shooting or hunting (Section 15)');
     expect($html)->not->toContain('not a dedicated status endorsement');
     expect($html)->not->toContain('fit for occasional sport shooting or occasional hunting');
+});
+
+test('Section 13 letter template does not print any dedicated-status wording', function () {
+    // Regression: NRAPA Section 13 letters are not dedicated-status
+    // endorsements. The letter must only confirm that the member is in good
+    // standing and that the firearm is fit for self-defence. It must not
+    // print a Dedicated Status row, a Dedicated Category row, or the old
+    // "registered dedicated hunter and/or dedicated sports person" wording.
+    $user = occasionalBasicMember();
+
+    $request = EndorsementRequest::create([
+        'user_id' => $user->id,
+        'endorsement_type' => EndorsementRequest::ENDORSEMENT_TYPE_SELF_DEFENCE,
+        'request_type' => EndorsementRequest::TYPE_NEW,
+        'status' => EndorsementRequest::STATUS_ISSUED,
+        'submitted_at' => now()->subDay(),
+        'declaration_accepted_at' => now()->subDay(),
+        'declaration_text' => 'Section 13 self-defence declaration (test).',
+        'letter_reference' => 'END-2026-00124',
+        'issued_at' => now(),
+        'expires_at' => now()->addYear(),
+        'dedicated_category' => null,
+        'dedicated_status_compliant' => null,
+        'firearm_type' => 'handgun',
+        'firearm_make' => 'Glock',
+        'firearm_model' => '19',
+        'firearm_calibre' => '9mm Luger',
+        'firearm_serial' => 'Frame: GLK-12345',
+    ]);
+
+    $html = view('documents.letters.endorsement', [
+        'request' => $request->fresh(['user', 'user.activeMembership']),
+    ])->render();
+
+    // The applicant panel must not list a dedicated row.
+    expect($html)->not->toContain('Dedicated Status');
+    expect($html)->not->toContain('Dedicated Category');
+
+    // The old body wording must be gone.
+    expect($html)->not->toContain('registered dedicated hunter and/or dedicated sports person');
+    expect($html)->not->toContain('active in their dedicated activities');
+
+    // What should be there: the fit-for-purpose confirmation.
+    expect($html)->toContain('fit for the purpose of self-defence');
+});
+
+test('a basic member in good standing can submit a Section 13 self-defence request from the member page', function () {
+    // Regression: Section 13 is a self-defence letter, not a dedicated-status
+    // endorsement. A basic (non-dedicated) member in good standing must be
+    // able to self-serve the request from the member portal — the previous
+    // "Dedicated Membership Required" gate blocked them.
+    $user = occasionalBasicMember();
+
+    Livewire::actingAs($user)
+        ->test('pages::member.endorsements.self-defence')
+        ->assertSuccessful()
+        ->set('applicationType', 'new')
+        ->set('firearmType', 'handgun')
+        ->set('firearmMake', 'Glock')
+        ->set('firearmModel', '19')
+        ->set('firearmCalibre', '9mm Luger')
+        ->set('firearmFrameSerial', 'GLK-99999')
+        ->set('clauses.dedicated_compliant', true)
+        ->set('clauses.single_section_13', true)
+        ->set('clauses.true_declaration', true)
+        ->set('clauses.based_on_declaration', true)
+        ->set('clauses.indemnity', true)
+        ->set('clauses.not_legal_requirement', true)
+        ->call('submit');
+
+    $submitted = EndorsementRequest::where('user_id', $user->id)
+        ->where('endorsement_type', EndorsementRequest::ENDORSEMENT_TYPE_SELF_DEFENCE)
+        ->first();
+
+    expect($submitted)->not->toBeNull();
+    expect($submitted->status)->toBe(EndorsementRequest::STATUS_SUBMITTED);
+    expect($submitted->firearm_type)->toBe('handgun');
+    expect($submitted->firearm_make)->toBe('Glock');
+    expect($submitted->firearm_serial)->toBe('Frame: GLK-99999');
+    // Six acknowledgements, matching the clause keys.
+    expect($submitted->acknowledgements()->count())->toBe(6);
+});
+
+test('member Section 13 page does not reject a basic member with a Dedicated Membership Required gate', function () {
+    $user = occasionalBasicMember();
+
+    $html = Livewire::actingAs($user)
+        ->test('pages::member.endorsements.self-defence')
+        ->html();
+
+    // Before the fix, the page rendered a "Dedicated Membership Required"
+    // panel with an Upgrade Membership button for basic members.
+    expect($html)->not->toContain('Dedicated Membership Required');
+    // And the page copy must not promise the letter confirms dedicated status.
+    expect($html)->not->toContain('confirming your dedicated status');
+    expect($html)->not->toContain('solely to confirm your dedicated status');
+});
+
+test('issuing a Section 13 letter does not require a dedicated category and null-outs the dedicated columns', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN, 'is_admin' => true]);
+    $member = occasionalBasicMember();
+
+    $request = EndorsementRequest::create([
+        'user_id' => $member->id,
+        'endorsement_type' => EndorsementRequest::ENDORSEMENT_TYPE_SELF_DEFENCE,
+        'request_type' => EndorsementRequest::TYPE_NEW,
+        'status' => EndorsementRequest::STATUS_APPROVED,
+        'submitted_at' => now()->subDay(),
+        'declaration_accepted_at' => now()->subDay(),
+        'declaration_text' => 'Section 13 declaration (test).',
+        'firearm_type' => 'handgun',
+        'firearm_make' => 'Glock',
+        'firearm_model' => '19',
+        'firearm_calibre' => '9mm Luger',
+        'firearm_serial' => 'Frame: GLK-12345',
+    ]);
+
+    // No dedicatedCategory supplied — this used to throw
+    // "Dedicated Category must be specified" before Section 13 was separated
+    // from the dedicated-status flow.
+    $request->issue(
+        admin: $admin,
+        letterReference: 'END-2026-00125',
+        letterPath: 'documents/sd-test.pdf',
+        dedicatedStatusCompliant: null,
+        dedicatedCategory: null,
+    );
+
+    $request->refresh();
+
+    expect($request->status)->toBe(EndorsementRequest::STATUS_ISSUED);
+    expect($request->letter_reference)->toBe('END-2026-00125');
+    expect($request->dedicated_category)->toBeNull();
+    expect($request->dedicated_status_compliant)->toBeNull();
 });
 
 test('admin create form requires at least one serial on an occasional request', function () {

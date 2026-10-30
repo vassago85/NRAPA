@@ -915,13 +915,21 @@ class EndorsementRequest extends Model implements Approvable
      */
     public static function selfDefenceClauses(): array
     {
+        // Section 13 is NOT a dedicated-status endorsement. The letter only
+        // confirms that the member is in good standing with NRAPA and that
+        // the firearm named is, in NRAPA's view, fit for self-defence. Any
+        // reference to dedicated status in these clauses contaminates the
+        // acknowledgement audit trail with a condition the letter does not
+        // actually assert. The clause keys stay the same so existing
+        // acknowledgement rows (stored as text snapshots) remain valid and
+        // AcknowledgementsComplete still passes.
         return [
-            'dedicated_compliant' => 'I am a currently registered and compliant dedicated hunter and/or dedicated sports person in good standing with NRAPA; my dedicated status is active and is not lapsed, suspended or under review.',
+            'dedicated_compliant' => 'I am a member in good standing of NRAPA, with my membership subscription paid and my member record in order; my membership is active and not lapsed, suspended or under review.',
             'single_section_13' => 'The firearm to which this request relates is the only Section 13 (self-defence) firearm I hold or am applying for, and I hold no other firearm licensed in terms of Section 13 of the Firearms Control Act, 2000 (Act 60 of 2000). I understand a person may hold only one licence issued under Section 13.',
             'true_declaration' => 'The information I have provided is true, complete and correct to the best of my knowledge. I understand a false declaration to NRAPA and/or the SAPS Designated Firearms Officer is a serious offence.',
             'based_on_declaration' => "I understand NRAPA's endorsement is based solely on my declaration, that NRAPA cannot independently verify my full firearm holdings with SAPS, and that remaining compliant with the Act at all times is my responsibility.",
             'indemnity' => 'I indemnify NRAPA, its office bearers and administrators against any loss, claim or liability arising from any inaccurate, incomplete or false declaration made by me.',
-            'not_legal_requirement' => 'I understand that an association endorsement letter is not a legal requirement for a Section 13 self-defence licence application, that NRAPA is providing this letter voluntarily at my request, and that it confirms only my dedicated status and activity with NRAPA — not the merits of my self-defence application.',
+            'not_legal_requirement' => 'I understand that an association endorsement letter is not a legal requirement for a Section 13 self-defence licence application, that NRAPA is providing this letter voluntarily at my request, and that it confirms only my good standing with NRAPA and that the firearm is fit for self-defence — not the merits of my self-defence application.',
         ];
     }
 
@@ -1186,12 +1194,13 @@ class EndorsementRequest extends Model implements Approvable
     /**
      * Issue the endorsement letter (can only be called on approved requests).
      *
-     * For dedicated-status endorsements, requires dedicated_status_compliant
-     * and dedicated_category to be set. For occasional (Section 15) letters,
-     * those fields are deliberately left empty — the letter asserts only that
-     * the member is in good standing and the firearm is fit for occasional
-     * sport shooting or hunting, so printing a dedicated category would make
-     * the DFO reject it as the wrong proof.
+     * For dedicated-status (Section 16) endorsements, requires
+     * dedicated_status_compliant and dedicated_category to be set. For
+     * Section 13 (self-defence) and Section 15 (occasional) letters, those
+     * fields are deliberately left empty — the letter asserts only that the
+     * member is in good standing (plus, for Section 13, that the firearm is
+     * fit for self-defence). Printing a dedicated category on either would
+     * make the DFO reject it as the wrong proof.
      */
     public function issue(User $admin, string $letterReference, ?string $letterPath = null, ?bool $dedicatedStatusCompliant = null, ?string $dedicatedCategory = null): void
     {
@@ -1205,13 +1214,18 @@ class EndorsementRequest extends Model implements Approvable
             throw new \Exception('Cannot issue endorsement letter: membership expired on ' . $membership->expires_at->format('d M Y') . '.');
         }
 
-        if ($this->isOccasional()) {
-            // Section 15 letters only require good standing. Do not record a
-            // dedicated category or compliance flag — those lines are what
-            // makes a dedicated-status letter the wrong proof for Section 15.
+        // Section 13 and Section 15 are both "good standing only" letters:
+        // no dedicated category, no compliance flag, no eligibility bundle.
+        // Keep the branches side by side so a future reader sees the
+        // intentional parity (the previous bug came from treating Section 13
+        // as a dedicated-status letter).
+        if ($this->isOccasional() || $this->isSelfDefence()) {
             $standing = app(\App\Services\MembershipStandingService::class);
             if (! $standing->isInGoodStanding($this->user)) {
-                throw new \Exception('Member is not in good standing. Occasional (Section 15) letter cannot be issued.');
+                $letterName = $this->isSelfDefence()
+                    ? 'Self-defence (Section 13) letter'
+                    : 'Occasional (Section 15) letter';
+                throw new \Exception('Member is not in good standing. '.$letterName.' cannot be issued.');
             }
 
             $issuedAt = now();

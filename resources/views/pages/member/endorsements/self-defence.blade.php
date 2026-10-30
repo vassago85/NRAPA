@@ -42,22 +42,24 @@ new #[Layout('layouts.app.sidebar')] #[Title('Self-Defence Supporting Letter')] 
         }
     }
 
+    /**
+     * A Section 13 self-defence letter is NOT a dedicated-status endorsement.
+     * The only association requirement is that the member is in good standing.
+     * We deliberately do NOT run the dedicated-status eligibility bundle here
+     * (knowledge test, activities, dedicated documents) — none of those apply
+     * to a Section 13 licence application.
+     */
     #[Computed]
-    public function eligibility(): array
+    public function memberInGoodStanding(): bool
     {
-        return EndorsementRequest::getEligibilitySummary(auth()->user());
+        return app(\App\Services\MembershipStandingService::class)
+            ->isInGoodStanding(auth()->user());
     }
 
     #[Computed]
     public function membership()
     {
         return auth()->user()->activeMembership;
-    }
-
-    #[Computed]
-    public function dedicatedType()
-    {
-        return $this->membership?->type?->dedicated_type;
     }
 
     #[Computed]
@@ -163,10 +165,10 @@ new #[Layout('layouts.app.sidebar')] #[Title('Self-Defence Supporting Letter')] 
     {
         $user = auth()->user();
 
-        // 1. Re-validate eligibility server-side at submit time (never trust page load).
-        $eligibility = EndorsementRequest::checkUserEligibility($user);
-        if (! ($eligibility['eligible'] ?? false)) {
-            session()->flash('error', 'You are not currently eligible to request a self-defence supporting letter. Please resolve the outstanding requirements shown below and try again.');
+        // 1. Re-check good standing server-side (never trust page load).
+        //    Section 13 has NO dedicated-status requirement — just good standing.
+        if (! $this->memberInGoodStanding) {
+            session()->flash('error', 'You are not currently in good standing with NRAPA, so a self-defence supporting letter cannot be issued. Please contact the office if you believe this is incorrect.');
 
             return;
         }
@@ -271,7 +273,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Self-Defence Supporting Letter')] 
     <x-slot name="header">
         <div>
             <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">Self-Defence Supporting Letter</h1>
-            <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Request a voluntary NRAPA letter confirming your dedicated status in support of a Section 13 self-defence licence application.</p>
+            <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Request a voluntary NRAPA letter in support of a Section 13 self-defence licence application. The letter confirms you are a member in good standing and that the firearm named is, in NRAPA's view, fit for self-defence.</p>
         </div>
     </x-slot>
 
@@ -282,37 +284,24 @@ new #[Layout('layouts.app.sidebar')] #[Title('Self-Defence Supporting Letter')] 
         </div>
     @endif
 
-    {{-- Not dedicated --}}
-    @if(! $this->dedicatedType)
-        <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-amber-300 dark:border-amber-700 p-6 mb-6">
-            <h3 class="text-lg font-semibold text-zinc-900 dark:text-white">Dedicated Membership Required</h3>
-            <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                A self-defence supporting letter is only available to active <strong>Dedicated Hunter</strong> or <strong>Dedicated Sport Shooter</strong> members in good standing.
+    {{-- Section 13 is not a dedicated-status endorsement, so any member in
+         good standing can request it. The only association requirement
+         re-checked on submit is good standing. --}}
+    @if(! $this->memberInGoodStanding)
+        <div class="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-xl">
+            <h3 class="font-semibold text-amber-800 dark:text-amber-200">Membership not in good standing</h3>
+            <p class="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                Your NRAPA membership is not currently in good standing, so a self-defence supporting letter cannot be issued. Please contact the office if you believe this is incorrect.
             </p>
-            <a href="{{ route('membership.apply') }}" wire:navigate class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors text-sm font-medium">
-                Upgrade Membership
-            </a>
         </div>
-    @else
-        {{-- Eligibility warning (non-blocking display; submit re-checks) --}}
-        @if(! $this->eligibility['eligible'])
-            <div class="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-xl">
-                <h3 class="font-semibold text-amber-800 dark:text-amber-200">Outstanding requirements</h3>
-                <p class="text-sm text-amber-700 dark:text-amber-300 mt-1">You must resolve the following before this letter can be issued:</p>
-                <ul class="mt-2 list-disc list-inside text-sm text-amber-700 dark:text-amber-300 space-y-1">
-                    @foreach($this->eligibility['errors'] as $err)
-                        <li>{{ is_array($err) ? ($err['message'] ?? '') : $err }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
+    @endif
 
-        {{-- Nature & scope notice --}}
-        <div class="mb-6 p-4 bg-nrapa-blue/5 dark:bg-nrapa-blue/10 border border-nrapa-blue/20 dark:border-nrapa-blue/30 rounded-xl text-sm text-zinc-700 dark:text-zinc-300">
-            <p>
-                An association endorsement is <strong>not a legal requirement</strong> for a Section 13 (self-defence) licence application. NRAPA provides this letter voluntarily, at your request, solely to confirm your dedicated status and activity. It is not a motivation for the licence itself.
-            </p>
-        </div>
+    {{-- Nature & scope notice --}}
+    <div class="mb-6 p-4 bg-nrapa-blue/5 dark:bg-nrapa-blue/10 border border-nrapa-blue/20 dark:border-nrapa-blue/30 rounded-xl text-sm text-zinc-700 dark:text-zinc-300">
+        <p>
+            An association endorsement is <strong>not a legal requirement</strong> for a Section 13 (self-defence) licence application. NRAPA provides this letter voluntarily, at your request, to confirm your good standing with NRAPA and that the firearm named is fit for self-defence. <strong>This is not a dedicated-status endorsement</strong> and is not issued under Section 16 of the Act. It is not a motivation for the licence itself.
+        </p>
+    </div>
 
         <form wire:submit="submit" class="space-y-6">
             {{-- Application type --}}
@@ -478,12 +467,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Self-Defence Supporting Letter')] 
                     </a>
                     <button type="submit"
                         class="inline-flex items-center gap-2 px-5 py-2.5 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white rounded-lg transition-colors text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                        @disabled(! $this->allClausesAccepted)>
+                        @disabled(! $this->allClausesAccepted || ! $this->memberInGoodStanding)>
                         <span wire:loading.remove wire:target="submit">Submit Request</span>
                         <span wire:loading wire:target="submit">Submitting…</span>
                     </button>
                 </div>
             </div>
         </form>
-    @endif
 </div>

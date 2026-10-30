@@ -61,7 +61,11 @@
                             <td class="kv-label">Membership Status</td>
                             <td class="kv-value" style="color:#1f6b3a; font-weight:600;">Member in Good Standing</td>
                         </tr>
-                        @unless($request->isOccasional())
+                        {{-- Dedicated Status / Category only appear on Section
+                            16 dedicated-status letters. Section 13 (self-defence)
+                            and Section 15 (occasional) are not dedicated-status
+                            endorsements and deliberately omit these rows. --}}
+                        @unless($request->isOccasional() || $request->isSelfDefence())
                         <tr>
                             <td class="kv-label">Dedicated Status</td>
                             <td class="kv-value">{{ $request->dedicated_status_label }}</td>
@@ -229,10 +233,13 @@
         <div style="background:#f5f7fb; border-left:3px solid #0B4EA2; padding:6px 10px; margin:2px 0 8px 0; font-size:11px;">
             <b>Firearm to which this letter relates:</b> {{ $sdType }}@if($sdAction) {{ $sdAction }}@endif@if($sdIgnition) {{ $sdIgnition }}@endif@if($sdMakeModel) &mdash; {{ $sdMakeModel }}@endif@if($sdCalibre), {{ $sdCalibre }}@endif ({{ $sdSerial }}).
         </div>
+        The Association confirms that, in its view, the firearm described above is <b>fit for the purpose of self-defence</b> in terms of <b>Section 13</b> of the Firearms Control Act, 2000 (Act 60 of 2000, as amended), and that <b>{{ $user->getIdName() }}</b> is a member in good standing of NRAPA as at the date of issue.
+        <br/><br/>
         <div style="font-size:10.5px; line-height:1.45; color:#333;">
             <div style="font-weight:700; color:#0B4EA2; margin-bottom:3px;">Please note the nature and scope of this endorsement:</div>
+            <p style="margin:0 0 6px 0;"><b>This is not a dedicated-status endorsement.</b> It is not issued under Section 16 of the Act and does not confirm, nor rely on, dedicated hunter or dedicated sport shooter status. The sole association requirement for this letter is that the above person is a member in good standing of NRAPA as at the date of issue.</p>
             <p style="margin:0 0 6px 0;">Based on the information available to NRAPA and as declared by the member, this is the only Section 13 (self-defence) firearm of which NRAPA is aware; the member has declared they hold no other firearm licensed under Section 13. This endorsement relies on information provided by the member, does not warrant their complete firearm holdings, and does not relieve the SAPS of its own verification obligations. It speaks only as at the date of issue, and the licensing decision remains within the sole discretion of the Registrar of Firearms.</p>
-            <p style="margin:0;">An association endorsement is not a legal requirement for a Section 13 (self-defence) licence application. NRAPA provides this letter voluntarily, at the member's request, for the limited purpose of confirming that the member is a registered dedicated hunter and/or dedicated sports person, in good standing and active in their dedicated activities as at the date of issue. It is a confirmation of association status only, and does not constitute a motivation for the self-defence licence. The motivation rests with the member; the SAPS assesses it and the Registrar decides, and NRAPA expresses no view on its merits.</p>
+            <p style="margin:0;">An association endorsement is not a legal requirement for a Section 13 (self-defence) licence application. NRAPA provides this letter voluntarily, at the member's request, for the limited purpose of confirming the member's good standing and that the firearm described is, in NRAPA's view, fit for self-defence. It does not constitute a motivation for the self-defence licence. The motivation rests with the member; the SAPS assesses it and the Registrar decides, and NRAPA expresses no view on its merits.</p>
         </div>
     </div>
     @else

@@ -45,10 +45,12 @@ class EndorsementLetterIssuer
             'acknowledgements',
         ]);
 
-        // Section 15 occasional letters never carry a dedicated category or a
-        // dedicated-status compliance flag. Null-out any caller-supplied values
-        // so a stale default from the admin UI can't contaminate the letter.
-        if ($request->isOccasional()) {
+        // Section 13 (self-defence) and Section 15 (occasional) never carry a
+        // dedicated category or a dedicated-status compliance flag — only
+        // Section 16 dedicated-status letters do. Null-out any caller-supplied
+        // values so a stale default from the admin UI can't contaminate the
+        // letter PDF snapshot or the issued row.
+        if ($request->isOccasional() || $request->isSelfDefence()) {
             $dedicatedCategory = null;
             $dedicatedStatusCompliant = null;
         }
