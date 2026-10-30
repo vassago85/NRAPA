@@ -19,9 +19,14 @@ return Application::configure(basePath: dirname(__DIR__))
         // Add CORS middleware globally for Livewire uploads
         $middleware->prepend(\App\Http\Middleware\HandleCors::class);
 
-        // Handle CORS for Livewire uploads
+        // Handle CORS for Livewire uploads.
+        // Livewire 4 posts the file to /livewire-{hash}/upload-file
+        // (EndpointResolver::uploadPath). The old Livewire 3 path does not
+        // match, so a missing or stale session cookie becomes a 419 before
+        // the signed URL is checked. A bad signature is a 401.
         $middleware->validateCsrfTokens(except: [
             'livewire/upload-file',
+            'livewire-*/upload-file',
             'webhooks/mailgun',
             // RFC 8058 List-Unsubscribe-Post: Gmail / Outlook POST here with
             // body `List-Unsubscribe=One-Click`. There is no browser session,
