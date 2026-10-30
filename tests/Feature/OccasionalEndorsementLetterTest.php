@@ -355,3 +355,73 @@ test('occasional request from the member page submits as the ENDORSEMENT_TYPE_OC
     expect($submitted->firearm_serial)->toBe('Frame: HOWA-999');
     expect($submitted->declaration_accepted_at)->not->toBeNull();
 });
+
+test('choosing a section 13 letter locks the licence section to section 13', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN, 'is_admin' => true]);
+
+    $component = Livewire::actingAs($admin)
+        ->test('pages::admin.endorsements.create')
+        ->set('endorsementType', EndorsementRequest::ENDORSEMENT_TYPE_SELF_DEFENCE)
+        ->set('firearmCategory', 'handgun');
+
+    // The licence section must follow the letter. Leaving it on 16 (or offering
+    // 15 and 16 in the dropdown) is the bug: a Section 13 letter was being
+    // categorised as a Section 15/16 licence.
+    $component->assertSet('licenceSection', '13');
+
+    $html = $component->html();
+    expect($html)->toContain('Section 13 (Self-defence)');
+    expect($html)->not->toContain('value="15"');
+    expect($html)->not->toContain('value="16"');
+    expect($html)->toContain('Handgun');
+    expect($html)->not->toContain('Self-Loading Rifle');
+
+    $component
+        ->set('endorsementType', EndorsementRequest::ENDORSEMENT_TYPE_OCCASIONAL)
+        ->assertSet('licenceSection', '15')
+        ->set('endorsementType', EndorsementRequest::ENDORSEMENT_TYPE_DEDICATED_STATUS)
+        ->assertSet('licenceSection', '16');
+});
+
+test('a section 15 letter locks its licence section and a dedicated letter can still choose one', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN, 'is_admin' => true]);
+    $member = occasionalBasicMember();
+
+    $occasional = Livewire::actingAs($admin)
+        ->test('pages::admin.endorsements.create')
+        ->set('endorsementType', EndorsementRequest::ENDORSEMENT_TYPE_OCCASIONAL)
+        ->set('firearmCategory', 'rifle');
+
+    $occasional->assertSet('licenceSection', '15');
+    $occasionalHtml = $occasional->html();
+    expect($occasionalHtml)->toContain('Section 15 (Occasional hunting/sport)');
+    expect($occasionalHtml)->not->toContain('value="13"');
+    expect($occasionalHtml)->not->toContain('value="16"');
+
+    $dedicated = Livewire::actingAs($admin)
+        ->test('pages::admin.endorsements.create')
+        ->set('firearmCategory', 'rifle');
+
+    $dedicated->assertSet('licenceSection', '16');
+    $dedicatedHtml = $dedicated->html();
+    expect($dedicatedHtml)->toContain('value="13"');
+    expect($dedicatedHtml)->toContain('value="15"');
+    expect($dedicatedHtml)->toContain('value="16"');
+    expect($dedicatedHtml)->toContain('Self-Loading Rifle');
+
+    $dedicated
+        ->call('selectMember', $member->id)
+        ->set('dedicatedCategory', 'Dedicated Hunter')
+        ->set('licenceSection', '15')
+        ->set('make', 'Howa')
+        ->set('model', '1500')
+        ->call('createEndorsement');
+
+    $created = EndorsementRequest::where('user_id', $member->id)->first();
+
+    expect($created)->not->toBeNull();
+    expect($created->endorsement_type)->toBe(EndorsementRequest::ENDORSEMENT_TYPE_DEDICATED_STATUS);
+    expect($created->dedicated_category)->toBe('Dedicated Hunter');
+    expect($created->firearm)->not->toBeNull();
+    expect($created->firearm->licence_section)->toBe('15');
+});

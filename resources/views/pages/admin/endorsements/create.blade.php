@@ -82,16 +82,22 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
     }
 
     /**
-     * Clear fields that don't apply to the Section 15 Occasional variant so a
-     * stale dedicated category from an earlier selection can't leak into the
-     * issued letter.
+     * Keep licence section and dedicated category in step with the letter type.
      */
     public function updatedEndorsementType(): void
     {
-        // Section 15 letters never carry a dedicated category — strip any
-        // leftover value so it can't leak into the issued letter.
+        // The licence section follows the letter. A Section 13 letter must not
+        // stay on the Section 16 default, and must not offer Section 15 / 16
+        // as the category.
         if ($this->endorsementType === EndorsementRequest::ENDORSEMENT_TYPE_OCCASIONAL) {
+            // Section 15 letters never carry a dedicated category — strip any
+            // leftover value so it can't leak into the issued letter.
             $this->dedicatedCategory = '';
+            $this->licenceSection = EndorsementFirearm::LICENCE_SECTION_15;
+        } elseif ($this->endorsementType === EndorsementRequest::ENDORSEMENT_TYPE_SELF_DEFENCE) {
+            $this->licenceSection = EndorsementFirearm::LICENCE_SECTION_13;
+        } else {
+            $this->licenceSection = EndorsementFirearm::LICENCE_SECTION_16;
         }
 
         // When switching between the inline-firearm variants (S13/S15) and the
@@ -542,7 +548,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
 
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Firearm Type <span class="text-red-500">*</span></label>
-                        <select wire:model.live="firearmCategory" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
+                        <select wire:key="firearm-type-{{ $endorsementType }}" wire:model.live="firearmCategory" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
                             <option value="">Select firearm type...</option>
                             @if($this->usesInlineFirearm())
                                 {{-- Section 13 and Section 15 letters only cover
@@ -653,12 +659,21 @@ new #[Layout('layouts.app.sidebar')] #[Title('Create Endorsement - Admin')] clas
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Licence Section</label>
-                                <select wire:model="licenceSection" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
-                                    <option value="">Select...</option>
-                                    @foreach(EndorsementFirearm::getLicenceSectionOptions() as $val => $label)
-                                        <option value="{{ $val }}">{{ $label }}</option>
-                                    @endforeach
-                                </select>
+                                @if($this->isSelfDefence() || $this->isOccasional())
+                                    {{-- Section 13 and Section 15 letters have one
+                                        licence section. A dropdown here used to
+                                        stay on Section 16 and still list 15 and 16. --}}
+                                    <input type="text" readonly disabled
+                                        value="{{ $this->isSelfDefence() ? 'Section 13 (Self-defence)' : 'Section 15 (Occasional hunting/sport)' }}"
+                                        class="w-full rounded-lg border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                                @else
+                                    <select wire:model="licenceSection" class="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-white">
+                                        <option value="">Select...</option>
+                                        @foreach(EndorsementFirearm::getLicenceSectionOptions() as $val => $label)
+                                            <option value="{{ $val }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                @endif
                             </div>
                         </div>
                     @endif
