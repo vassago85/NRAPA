@@ -449,22 +449,22 @@ new class extends Component {
                         </dl>
 
                         <!-- Document thumbnails -->
-                        @if($activity->evidenceDocument?->file_path || $activity->additionalDocument?->file_path)
+                        @if(($activity->evidenceDocument?->file_path && !$activity->evidenceDocument->file_purged_at) || ($activity->additionalDocument?->file_path && !$activity->additionalDocument->file_purged_at))
                             <div class="pt-3 border-t border-zinc-100 dark:border-zinc-800">
                                 <p class="text-xs uppercase tracking-wider text-zinc-500 mb-2">Confirmation Document</p>
                                 <div class="flex gap-2">
-                                    @if($activity->evidenceDocument?->file_path)
+                                    @if($activity->evidenceDocument?->file_path && !$activity->evidenceDocument->file_purged_at)
                                         @if(Str::endsWith(strtolower($activity->evidenceDocument->file_path), ['.jpg', '.jpeg', '.png', '.webp']))
-                                            <img src="{{ Storage::url($activity->evidenceDocument->file_path) }}" alt="Evidence" class="h-12 w-12 rounded-lg object-cover border border-zinc-200 dark:border-zinc-700">
+                                            <img src="{{ route('documents.preview', $activity->evidenceDocument) }}" alt="Evidence" loading="lazy" class="h-12 w-12 rounded-lg object-cover border border-zinc-200 dark:border-zinc-700">
                                         @else
                                             <div class="h-12 w-12 rounded-lg border border-zinc-200 dark:border-zinc-700 flex items-center justify-center bg-zinc-50 dark:bg-zinc-800">
                                                 <svg class="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                                             </div>
                                         @endif
                                     @endif
-                                    @if($activity->additionalDocument?->file_path)
+                                    @if($activity->additionalDocument?->file_path && !$activity->additionalDocument->file_purged_at)
                                         @if(Str::endsWith(strtolower($activity->additionalDocument->file_path), ['.jpg', '.jpeg', '.png', '.webp']))
-                                            <img src="{{ Storage::url($activity->additionalDocument->file_path) }}" alt="Additional" class="h-12 w-12 rounded-lg object-cover border border-zinc-200 dark:border-zinc-700">
+                                            <img src="{{ route('documents.preview', $activity->additionalDocument) }}" alt="Additional" loading="lazy" class="h-12 w-12 rounded-lg object-cover border border-zinc-200 dark:border-zinc-700">
                                         @else
                                             <div class="h-12 w-12 rounded-lg border border-zinc-200 dark:border-zinc-700 flex items-center justify-center bg-zinc-50 dark:bg-zinc-800">
                                                 <svg class="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
