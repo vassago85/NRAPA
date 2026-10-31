@@ -48,4 +48,17 @@
         <h4>Tip</h4>
         <p>Be sure to record the calibre used. If your firearm in the Virtual Safe doesn't have a calibre saved, you'll be asked to choose one when submitting — this keeps your activity records complete for dedicated-status purposes.</p>
     </div>
+
+    <div class="info-card">
+        <h4>Deadlines &mdash; 31 October and the SAPS submission</h4>
+        <p>
+            Activities for the current year must be submitted <strong>by 31 October</strong>. NRAPA then compiles the official list and submits it to SAPS by the end of November.
+        </p>
+        <p>
+            After 31 October you can still load activities on the portal, but late submissions are at admin discretion and may be declined.
+        </p>
+        <p>
+            Once NRAPA has submitted the year's list to SAPS, any new activities you load for that year will be <strong>kept on your personal record</strong> but will <strong>not</strong> count toward the SAPS compliance total for that year. You'll see an "Informational only (post-SAPS)" badge on those entries. Please submit on time to avoid this.
+        </p>
+    </div>
 @endsection

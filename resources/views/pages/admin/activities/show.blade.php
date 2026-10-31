@@ -4,6 +4,7 @@ use App\Enums\ApprovalDecision;
 use App\Livewire\Concerns\DecidesApprovals;
 use App\Models\ActivityTag;
 use App\Models\ActivityType;
+use App\Models\SapsYearSubmission;
 use App\Models\ShootingActivity;
 use Livewire\Component;
 
@@ -226,6 +227,29 @@ new class extends Component {
                 <div>
                     <p class="font-medium text-red-800 dark:text-red-200">Rejection Reason</p>
                     <p class="mt-1 text-sm text-red-700 dark:text-red-300">{{ $activity->rejection_reason }}</p>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- SAPS lock banner: if the activity's date falls in a year that has
+         already been submitted to SAPS, approving still works but it will
+         not count toward that year's SAPS compliance total. --}}
+    @php
+        $activityYear = (int) $activity->activity_date->year;
+        $sapsLock = SapsYearSubmission::activeLockFor($activityYear);
+    @endphp
+    @if ($sapsLock)
+        <div class="mb-6 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4">
+            <div class="flex items-start gap-3">
+                <svg class="size-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                <div class="min-w-0">
+                    <p class="font-medium text-amber-800 dark:text-amber-200">
+                        {{ $activityYear }} was submitted to SAPS on {{ $sapsLock->submitted_at->format('d M Y') }}.
+                    </p>
+                    <p class="mt-1 text-sm text-amber-700 dark:text-amber-300">
+                        You can still approve or reject this activity &mdash; it will stay on the member's record &mdash; but if approved <strong>after</strong> the SAPS submission it will <strong>not count</strong> toward the {{ $activityYear }} SAPS compliance total.
+                    </p>
                 </div>
             </div>
         </div>

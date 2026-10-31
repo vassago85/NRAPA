@@ -5,6 +5,7 @@ use App\Enums\ApprovalDecision;
 use App\Enums\ApprovalType;
 use App\Livewire\Concerns\DecidesApprovals;
 use App\Models\ActivityReminder;
+use App\Models\SapsYearSubmission;
 use App\Models\ShootingActivity;
 use App\Queries\ApprovalQueue;
 use App\Support\Members\ActivityReminderRecipients;
@@ -190,6 +191,27 @@ new class extends Component {
         </div>
     @endif
 
+    {{-- Heads-up banner: if the current activity year has already been
+         submitted to SAPS, approvals processed in this queue beyond that
+         point are informational only. Rows for locked years also carry
+         their own inline "SAPS Locked" chip in the Date column. --}}
+    @php $currentYearLock = SapsYearSubmission::activeLockFor((int) now()->year); @endphp
+    @if ($currentYearLock)
+        <div class="mb-6 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4">
+            <div class="flex items-start gap-3">
+                <svg class="size-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                <div class="min-w-0">
+                    <p class="text-sm font-medium text-amber-800 dark:text-amber-200">
+                        {{ $currentYearLock->year }} was submitted to SAPS on {{ $currentYearLock->submitted_at->format('d M Y') }}.
+                    </p>
+                    <p class="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                        Approve and reject still work for members' own records, but anything approved from here on will not count toward the {{ $currentYearLock->year }} SAPS compliance total.
+                    </p>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <!-- Stats Grid -->
     <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <button wire:click="$set('statusFilter', 'pending')" class="rounded-lg border p-4 text-left transition-colors {{ $statusFilter === 'pending' ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-amber-300' }}">
@@ -269,7 +291,19 @@ new class extends Component {
                                     <div class="text-xs text-zinc-500">{{ $activity->user?->email ?? '-' }}</div>
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4 text-sm text-zinc-600 dark:text-zinc-300">
-                                    {{ $activity->activity_date?->format('d M Y') ?? '-' }}
+                                    <div>{{ $activity->activity_date?->format('d M Y') ?? '-' }}</div>
+                                    @php
+                                        $rowLock = $activity->activity_date
+                                            ? SapsYearSubmission::activeLockFor((int) $activity->activity_date->year)
+                                            : null;
+                                    @endphp
+                                    @if ($rowLock)
+                                        <span class="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:text-amber-200"
+                                            title="This year was submitted to SAPS on {{ $rowLock->submitted_at->format('d M Y') }}. Approvals after that moment do not count toward the {{ $rowLock->year }} SAPS compliance total.">
+                                            <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                                            SAPS locked
+                                        </span>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-300">
                                     <div class="font-medium">{{ $activity->activityType?->name ?? 'N/A' }}</div>

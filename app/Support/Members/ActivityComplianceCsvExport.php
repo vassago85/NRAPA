@@ -6,6 +6,7 @@ namespace App\Support\Members;
 
 use App\Models\AuditLog;
 use App\Models\Membership;
+use App\Models\SapsYearSubmission;
 use App\Models\ShootingActivity;
 use App\Models\SystemSetting;
 use App\Models\User;
@@ -239,14 +240,23 @@ class ActivityComplianceCsvExport
      */
     protected function approvedActivityCountFor(User $user): int
     {
-        return (int) ShootingActivity::query()
+        $q = ShootingActivity::query()
             ->where('user_id', $user->id)
             ->where('status', 'approved')
             ->whereBetween('activity_date', [
                 Carbon::create($this->year, 1, 1)->startOfDay(),
                 $this->activityWindowEnd(),
-            ])
-            ->count();
+            ]);
+
+        // If the year has been submitted to SAPS, only activities verified
+        // on or before the lock timestamp count toward the compliance total.
+        // Late submissions still appear on the member's record but do not
+        // change this CSV number — same rule as MemberCompliance.
+        if ($lock = SapsYearSubmission::activeLockFor($this->year)) {
+            $q->where('verified_at', '<=', $lock->submitted_at);
+        }
+
+        return (int) $q->count();
     }
 
     /**

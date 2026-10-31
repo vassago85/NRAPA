@@ -8,6 +8,7 @@ use App\Models\DocumentType;
 use App\Models\MemberDocument;
 use App\Models\Membership;
 use App\Models\MembershipType;
+use App\Models\SapsYearSubmission;
 use App\Models\ShootingActivity;
 use App\Models\SystemSetting;
 use App\Models\User;
@@ -361,10 +362,18 @@ class MemberCompliance
         $countFor = static function (int $year) use ($user): int {
             $start = Carbon::create($year, 1, 1)->startOfDay();
             $end = Carbon::create($year, 10, 31)->endOfDay();
-            return (int) ShootingActivity::where('user_id', $user->id)
+            $q = ShootingActivity::where('user_id', $user->id)
                 ->where('status', 'approved')
-                ->whereBetween('activity_date', [$start, $end])
-                ->count();
+                ->whereBetween('activity_date', [$start, $end]);
+
+            // Once the year has been submitted to SAPS, activities verified
+            // after that moment are kept on the member's record but do not
+            // count toward the SAPS compliance total for that year.
+            if ($lock = SapsYearSubmission::activeLockFor($year)) {
+                $q->where('verified_at', '<=', $lock->submitted_at);
+            }
+
+            return (int) $q->count();
         };
 
         $currentCount = $countFor($currentYear);

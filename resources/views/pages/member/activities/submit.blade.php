@@ -9,8 +9,10 @@ use App\Models\LoadData;
 use App\Models\MemberDocument;
 use App\Models\DocumentType;
 use App\Models\Province;
+use App\Models\SapsYearSubmission;
 use App\Models\ShootingActivity;
 use App\Models\UserFirearm;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -426,6 +428,39 @@ new class extends Component {
         return $this->country_selection === 'south_africa';
     }
 
+    /**
+     * True once the 31 October deadline for the current calendar year has
+     * passed. Drives the "late submission" warning banner at the top of
+     * the form so members know their submission is at admin discretion.
+     */
+    #[Computed]
+    public function deadlinePassed(): bool
+    {
+        return now()->isAfter(Carbon::create((int) now()->year, 10, 31)->endOfDay());
+    }
+
+    /**
+     * The SAPS submission lock for whichever year the chosen activity_date
+     * falls in (null when the member has not picked a date yet or the year
+     * is not locked). Used for the inline "informational only" warning
+     * under the activity_date field.
+     */
+    #[Computed]
+    public function activityYearLock(): ?SapsYearSubmission
+    {
+        if (! $this->activity_date) {
+            return null;
+        }
+
+        try {
+            $year = (int) Carbon::parse($this->activity_date)->year;
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return SapsYearSubmission::activeLockFor($year);
+    }
+
     #[Computed]
     public function activityTypes()
     {
@@ -568,6 +603,23 @@ new class extends Component {
         </div>
     @endif
 
+    {{-- Late-submission banner: once 31 October has passed, remind members
+         that the SAPS deadline is behind us and late submissions are at
+         admin discretion. Members can still submit — this is informational. --}}
+    @if ($this->deadlinePassed)
+        <div class="mb-6 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4">
+            <div class="flex items-start gap-3">
+                <svg class="size-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                <div class="min-w-0">
+                    <p class="font-medium text-red-800 dark:text-red-200">The 31 October deadline has passed.</p>
+                    <p class="mt-1 text-sm text-red-700 dark:text-red-300">
+                        Late submissions are at admin discretion and may be declined. Please contact NRAPA if you need advice.
+                    </p>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <form wire:submit="submit" class="space-y-8">
         <!-- Activity Information -->
         <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6">
@@ -605,8 +657,25 @@ new class extends Component {
                 <!-- Activity Date -->
                 <div>
                     <label for="activity_date" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Date of Activity <span class="text-red-500">*</span></label>
-                    <input type="date" id="activity_date" wire:model="activity_date" max="{{ date('Y-m-d') }}" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-nrapa-blue focus:ring-nrapa-blue">
+                    <input type="date" id="activity_date" wire:model.live="activity_date" max="{{ date('Y-m-d') }}" class="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-4 py-2.5 text-zinc-900 dark:text-white focus:border-nrapa-blue focus:ring-nrapa-blue">
                     @error('activity_date') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+
+                    {{-- Locked-year inline warning: once the chosen year has
+                         been submitted to SAPS, we still accept the activity
+                         (it lives on the member's record) but it will not
+                         count toward that year's SAPS compliance total. --}}
+                    @php $lock = $this->activityYearLock; @endphp
+                    @if ($lock)
+                        <div class="mt-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3 text-sm text-amber-800 dark:text-amber-200">
+                            <p>
+                                <strong>{{ $lock->year }} has been submitted to SAPS</strong>
+                                (on {{ $lock->submitted_at->format('d M Y') }}).
+                            </p>
+                            <p class="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                                You can still submit this activity &mdash; it will be kept on your record &mdash; but it will <strong>not</strong> count toward the {{ $lock->year }} SAPS compliance total.
+                            </p>
+                        </div>
+                    @endif
                 </div>
 
                 <!-- Rounds Fired -->

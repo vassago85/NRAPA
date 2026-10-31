@@ -1,13 +1,17 @@
 <?php
 
+use App\Models\AuditLog;
 use App\Models\LadderTest;
 use App\Models\LoadData;
 use App\Models\Membership;
 use App\Models\MembershipType;
+use App\Models\SapsYearSubmission;
+use App\Models\ShootingActivity;
 use App\Models\User;
 use App\Models\UserFirearm;
 use App\Support\Members\ActivityComplianceCsvExport;
 use App\Support\Membership\MembershipStats;
+use Carbon\Carbon;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -243,6 +247,119 @@ new #[Title('Membership Reports - Admin')] class extends Component {
         ))->download();
     }
 
+    /**
+     * Lock status card for the current activity year — "Submitted to SAPS?"
+     * Snapshot includes the lock record (if any), the approved count across
+     * all members in the Jan–Oct window, and which admin to credit.
+     */
+    #[Computed]
+    public function sapsYearStatus(): array
+    {
+        $year = (int) now()->year;
+        $lock = SapsYearSubmission::activeLockFor($year);
+
+        $start = Carbon::create($year, 1, 1)->startOfDay();
+        $end = Carbon::create($year, 10, 31)->endOfDay();
+
+        $approvedCountQuery = ShootingActivity::query()
+            ->where('status', 'approved')
+            ->whereBetween('activity_date', [$start, $end]);
+
+        // Current displayed count: if locked, only count activities verified
+        // on or before the lock. Admins seeing this card after a lock should
+        // see the number that was sent to SAPS, not a drifting live total.
+        if ($lock) {
+            $approvedCountQuery->where('verified_at', '<=', $lock->submitted_at);
+        }
+
+        return [
+            'year' => $year,
+            'is_locked' => $lock !== null,
+            'lock' => $lock,
+            'approved_count' => (int) $approvedCountQuery->count(),
+            // Live total ignoring the lock, used when locked to show how many
+            // post-SAPS informational activities have accumulated since.
+            'live_count' => (int) ShootingActivity::query()
+                ->where('status', 'approved')
+                ->whereBetween('activity_date', [$start, $end])
+                ->count(),
+        ];
+    }
+
+    /**
+     * Record that this activity year has been submitted to SAPS. Snapshots
+     * the approved count at the moment of lock, writes an audit log row,
+     * and refuses to double-lock the same year.
+     */
+    public function submitSapsYear(): void
+    {
+        $actor = auth()->user();
+        abort_unless($actor && $actor->isAdmin(), 403);
+
+        $year = (int) now()->year;
+
+        if (SapsYearSubmission::isLocked($year)) {
+            session()->flash('error', "Year {$year} is already marked as submitted to SAPS.");
+            unset($this->sapsYearStatus);
+            return;
+        }
+
+        $start = Carbon::create($year, 1, 1)->startOfDay();
+        $end = Carbon::create($year, 10, 31)->endOfDay();
+
+        $lockedCount = (int) ShootingActivity::query()
+            ->where('status', 'approved')
+            ->whereBetween('activity_date', [$start, $end])
+            ->count();
+
+        $submission = SapsYearSubmission::create([
+            'year' => $year,
+            'submitted_at' => now(),
+            'submitted_by' => $actor->id,
+            'note' => null,
+            'locked_count' => $lockedCount,
+        ]);
+
+        AuditLog::log('admin.saps.year_submitted', $submission, null, [
+            'year' => $year,
+            'locked_count' => $lockedCount,
+        ], $actor);
+
+        unset($this->sapsYearStatus);
+
+        session()->flash('success', "Year {$year} marked as submitted to SAPS. {$lockedCount} approved activities counted. New submissions will be kept on member records as informational only.");
+    }
+
+    /**
+     * Unlock a year (super-admin only). Soft-deletes the submission record
+     * so the audit trail stays intact. Compliance counts and the CSV go
+     * back to counting every approved activity in the window.
+     */
+    public function unlockSapsYear(): void
+    {
+        $actor = auth()->user();
+        abort_unless($actor && $actor->isSuperAdmin(), 403);
+
+        $year = (int) now()->year;
+        $lock = SapsYearSubmission::activeLockFor($year);
+
+        if (! $lock) {
+            session()->flash('error', "Year {$year} is not currently locked.");
+            return;
+        }
+
+        $lock->delete();
+
+        AuditLog::log('admin.saps.year_unlocked', $lock, [
+            'year' => $year,
+            'locked_count' => $lock->locked_count,
+        ], null, $actor);
+
+        unset($this->sapsYearStatus);
+
+        session()->flash('success', "Year {$year} unlocked. Activity counts will now include every approved activity again.");
+    }
+
     public function exportCsv(): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         $rows = $this->typeBreakdown;
@@ -295,6 +412,82 @@ new #[Title('Membership Reports - Admin')] class extends Component {
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
             Export CSV
         </button>
+    </div>
+
+    {{-- Flash messages for SAPS lock/unlock actions --}}
+    @if (session('success'))
+        <div class="rounded-lg border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-200">
+            {{ session('success') }}
+        </div>
+    @endif
+    @if (session('error'))
+        <div class="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800 dark:border-red-700 dark:bg-red-900/20 dark:text-red-200">
+            {{ session('error') }}
+        </div>
+    @endif
+
+    {{-- SAPS Year Submission card.
+         The lock is what tells the compliance count + the CSV "stop counting
+         new activities for this year — they are informational only". The card
+         always shows: never-locked years show the submit button; locked years
+         show who locked it and when, plus any post-SAPS submissions since. --}}
+    @php $saps = $this->sapsYearStatus; @endphp
+    <div class="rounded-2xl border {{ $saps['is_locked'] ? 'border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20' : 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900' }} p-6 shadow-sm">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+            <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                    <h2 class="text-lg font-semibold {{ $saps['is_locked'] ? 'text-amber-900 dark:text-amber-100' : 'text-zinc-900 dark:text-white' }}">
+                        SAPS Activity Submission &mdash; {{ $saps['year'] }}
+                    </h2>
+                    @if ($saps['is_locked'])
+                        <span class="inline-flex items-center gap-1 rounded-full bg-amber-200 px-2 py-0.5 text-xs font-semibold text-amber-900 dark:bg-amber-800 dark:text-amber-100">
+                            <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                            Locked
+                        </span>
+                    @endif
+                </div>
+                @if ($saps['is_locked'])
+                    <p class="mt-2 text-sm text-amber-800 dark:text-amber-200">
+                        Submitted to SAPS on <strong>{{ $saps['lock']->submitted_at->format('d M Y H:i') }}</strong>
+                        by <strong>{{ $saps['lock']->submittedBy?->name ?? 'Unknown' }}</strong>.
+                        <strong>{{ number_format($saps['approved_count']) }}</strong> approved activities counted in the SAPS submission.
+                    </p>
+                    @php $postLock = $saps['live_count'] - $saps['approved_count']; @endphp
+                    @if ($postLock > 0)
+                        <p class="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                            {{ $postLock }} further {{ Str::plural('activity', $postLock) }} {{ $postLock === 1 ? 'has' : 'have' }} been approved since the SAPS submission &mdash; these are kept on member records as informational only and do not count toward the {{ $saps['year'] }} compliance total.
+                        </p>
+                    @endif
+                @else
+                    <p class="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                        Year {{ $saps['year'] }} is <strong>open</strong>.
+                        <strong>{{ number_format($saps['approved_count']) }}</strong> approved activities counted so far in the 1 Jan&ndash;31 Oct window.
+                    </p>
+                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-500">
+                        Click the button once you have sent the SAPS list. After that, late submissions still appear on member records but will not count toward the {{ $saps['year'] }} SAPS compliance total.
+                    </p>
+                @endif
+            </div>
+            <div class="flex shrink-0 flex-wrap items-center gap-2">
+                @if ($saps['is_locked'])
+                    @if (auth()->user()?->isSuperAdmin())
+                        <button wire:click="unlockSapsYear"
+                            wire:confirm="Unlock {{ $saps['year'] }}?&#10;&#10;Compliance counts and the CSV will go back to counting every approved activity in the Jan–Oct window, including any added after you first submitted to SAPS.&#10;&#10;This action is logged."
+                            class="inline-flex items-center gap-2 rounded-lg border border-amber-400 bg-white px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 transition-colors dark:border-amber-600 dark:bg-zinc-900 dark:text-amber-200 dark:hover:bg-zinc-800">
+                            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+                            Unlock {{ $saps['year'] }}
+                        </button>
+                    @endif
+                @else
+                    <button wire:click="submitSapsYear"
+                        wire:confirm="Mark {{ $saps['year'] }} as submitted to SAPS?&#10;&#10;{{ number_format($saps['approved_count']) }} approved activities will be snapshotted as the SAPS compliance total for {{ $saps['year'] }}.&#10;&#10;Members and admins can still submit and approve activities, but anything approved after this moment will NOT count toward the {{ $saps['year'] }} compliance total.&#10;&#10;This action is logged and can be unlocked by a super admin if needed."
+                        class="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 transition-colors">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                        Mark {{ $saps['year'] }} as submitted to SAPS
+                    </button>
+                @endif
+            </div>
+        </div>
     </div>
 
     {{-- Summary Cards --}}

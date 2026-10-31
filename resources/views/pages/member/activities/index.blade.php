@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\SapsYearSubmission;
 use App\Models\ShootingActivity;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -409,13 +410,34 @@ new class extends Component {
                     <div class="p-5">
                         <!-- Header: status + date -->
                         <div class="flex items-center justify-between mb-3">
-                            @if($activity->status === 'approved')
-                                <span class="text-xs px-2 py-1 rounded-full font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">Approved</span>
-                            @elseif($activity->status === 'pending')
-                                <span class="text-xs px-2 py-1 rounded-full font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">Pending</span>
-                            @else
-                                <span class="text-xs px-2 py-1 rounded-full font-medium bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">Rejected</span>
-                            @endif
+                            <div class="flex flex-wrap items-center gap-2">
+                                @if($activity->status === 'approved')
+                                    <span class="text-xs px-2 py-1 rounded-full font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">Approved</span>
+                                @elseif($activity->status === 'pending')
+                                    <span class="text-xs px-2 py-1 rounded-full font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">Pending</span>
+                                @else
+                                    <span class="text-xs px-2 py-1 rounded-full font-medium bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">Rejected</span>
+                                @endif
+
+                                {{-- Informational-only badge: the activity year was
+                                     submitted to SAPS before this activity was
+                                     verified, so it is kept on the member's record
+                                     but does not count toward that year's SAPS
+                                     compliance total. --}}
+                                @php
+                                    $cardLock = SapsYearSubmission::activeLockFor((int) $activity->activity_date->year);
+                                    $postLock = $cardLock
+                                        && $activity->status === 'approved'
+                                        && $activity->verified_at
+                                        && $activity->verified_at->greaterThan($cardLock->submitted_at);
+                                @endphp
+                                @if ($postLock)
+                                    <span class="text-xs px-2 py-1 rounded-full font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200"
+                                        title="{{ $cardLock->year }} was submitted to SAPS on {{ $cardLock->submitted_at->format('d M Y') }}. This activity does not count toward the {{ $cardLock->year }} compliance total.">
+                                        Informational only (post-SAPS)
+                                    </span>
+                                @endif
+                            </div>
                             <span class="text-xs text-zinc-400">Applied: {{ $activity->created_at->format('M d, Y') }}</span>
                         </div>
 
