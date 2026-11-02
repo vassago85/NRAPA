@@ -12,6 +12,7 @@ use App\Support\Approvals\Checks\ActivityWithinMembershipPeriod;
 use App\Support\Approvals\Checks\MembershipActive;
 use App\Support\Approvals\Checks\NoDisciplinaryHold;
 use App\Support\Approvals\EvidenceBlock;
+use App\Support\Members\ActivityDeadline;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
@@ -55,6 +56,9 @@ class ShootingActivity extends Model implements Approvable
         'rejection_reason',
         'verified_at',
         'verified_by',
+        'is_late_approved',
+        'late_decided_at',
+        'late_decided_by',
     ];
 
     /**
@@ -68,6 +72,8 @@ class ShootingActivity extends Model implements Approvable
             'activity_date' => 'date',
             'verified_at' => 'datetime',
             'rounds_fired' => 'integer',
+            'is_late_approved' => 'boolean',
+            'late_decided_at' => 'datetime',
         ];
     }
 
@@ -213,9 +219,19 @@ class ShootingActivity extends Model implements Approvable
         return 'Approving counts this activity towards dedicated status, verifies its evidence, emails the member, and writes an audit entry against your name.';
     }
 
+    /**
+     * Per-request override set by the admin UI when it needs to tell this
+     * approval whether a LATE submission should count toward the member's
+     * 2/2. The default (true) matches the historical behaviour: approving
+     * means "yes, this counts".
+     */
+    public static ?bool $nextLateApprovalCountsToward = null;
+
     public function approveFromQueue(User $actor, ?string $note = null): void
     {
-        $this->approve($actor);
+        $counts = static::$nextLateApprovalCountsToward ?? true;
+        static::$nextLateApprovalCountsToward = null;
+        $this->approve($actor, $counts);
     }
 
     public function declineFromQueue(User $actor, string $reason): void
@@ -404,14 +420,31 @@ class ShootingActivity extends Model implements Approvable
 
     /**
      * Approve the activity and auto-verify its linked evidence documents.
+     *
+     * For a late submission (submitted after the activity-year deadline),
+     * `$countTowardCompliance = true` records the admin's explicit decision
+     * that the activity counts toward the member's 2/2. Setting it to false
+     * approves the activity for the record but excludes it from compliance
+     * (same shape as a post-SAPS-lock approval). The flag is ignored for
+     * non-late submissions — those count unconditionally.
      */
-    public function approve(User $admin): void
+    public function approve(User $admin, bool $countTowardCompliance = true): void
     {
-        $this->update([
+        $isLate = $this->is_late;
+
+        $payload = [
             'status' => 'approved',
             'verified_at' => now(),
             'verified_by' => $admin->id,
-        ]);
+        ];
+
+        if ($isLate) {
+            $payload['is_late_approved'] = $countTowardCompliance;
+            $payload['late_decided_at'] = now();
+            $payload['late_decided_by'] = $admin->id;
+        }
+
+        $this->update($payload);
 
         $this->load(['evidenceDocument', 'additionalDocument']);
 
@@ -430,12 +463,22 @@ class ShootingActivity extends Model implements Approvable
      */
     public function reject(User $admin, string $reason): void
     {
-        $this->update([
+        $isLate = $this->is_late;
+
+        $payload = [
             'status' => 'rejected',
             'rejection_reason' => $reason,
             'verified_at' => now(),
             'verified_by' => $admin->id,
-        ]);
+        ];
+
+        if ($isLate) {
+            $payload['is_late_approved'] = false;
+            $payload['late_decided_at'] = now();
+            $payload['late_decided_by'] = $admin->id;
+        }
+
+        $this->update($payload);
 
         $this->load(['evidenceDocument', 'additionalDocument']);
 
@@ -563,14 +606,15 @@ class ShootingActivity extends Model implements Approvable
 
     /**
      * Scope to activities within the current activity year.
-     * Activity period is fixed: 1 January to 31 October (deadline 31 October).
+     * Activity period is fixed: 1 January to the configured deadline
+     * (see config/compliance.php — SAPS cut-off, default 31 October).
      */
     public function scopeWithinActivityYear($query, User $user, ?int $year = null)
     {
         $year = $year ?? now()->year;
 
         $startDate = Carbon::create($year, 1, 1)->startOfDay();
-        $endDate = Carbon::create($year, 10, 31)->endOfDay();
+        $endDate = ActivityDeadline::endOfDay($year);
 
         return $query->whereBetween('activity_date', [$startDate, $endDate]);
     }
@@ -579,15 +623,15 @@ class ShootingActivity extends Model implements Approvable
 
     /**
      * Get the activity period boundaries.
-     * Fixed period: 1 January to 31 October (submissions due by 31 October).
+     * Fixed period: 1 January to the configured deadline (SAPS cut-off).
      */
     public static function getActivityPeriod(User $user, ?int $year = null): array
     {
         $year = $year ?? now()->year;
 
         $startDate = Carbon::create($year, 1, 1)->startOfDay();
-        $endDate = Carbon::create($year, 10, 31)->endOfDay();
-        $deadline = Carbon::create($year, 10, 31);
+        $endDate = ActivityDeadline::endOfDay($year);
+        $deadline = ActivityDeadline::date($year);
 
         return [
             'start' => $startDate,
@@ -596,6 +640,23 @@ class ShootingActivity extends Model implements Approvable
             'label' => $startDate->format('d M Y').' - '.$endDate->format('d M Y'),
             'deadline_label' => 'Submissions due by '.$deadline->format('d M Y'),
         ];
+    }
+
+    /**
+     * Was this activity submitted after the deadline for its activity year?
+     * A late submission still goes through normal approval, but does NOT
+     * count toward dedicated-status compliance unless an admin explicitly
+     * ticks `is_late_approved` on approval (see MemberCompliance).
+     */
+    public function getIsLateAttribute(): bool
+    {
+        if (! $this->activity_date || ! $this->created_at) {
+            return false;
+        }
+
+        $deadline = ActivityDeadline::endOfDay((int) $this->activity_date->year);
+
+        return $this->created_at->greaterThan($deadline);
     }
 
     /**
@@ -624,7 +685,7 @@ class ShootingActivity extends Model implements Approvable
 
         $countForYear = function (int $year) use ($user) {
             $start = Carbon::create($year, 1, 1)->startOfDay();
-            $end = Carbon::create($year, 10, 31)->endOfDay();
+            $end = ActivityDeadline::endOfDay($year);
 
             $counts = self::where('user_id', $user->id)
                 ->approved()

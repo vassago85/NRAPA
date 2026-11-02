@@ -12,6 +12,7 @@ use App\Models\Province;
 use App\Models\SapsYearSubmission;
 use App\Models\ShootingActivity;
 use App\Models\UserFirearm;
+use App\Support\Members\ActivityDeadline;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -431,12 +432,13 @@ new class extends Component {
     /**
      * True once the 31 October deadline for the current calendar year has
      * passed. Drives the "late submission" warning banner at the top of
-     * the form so members know their submission is at admin discretion.
+     * the form so members know their submission will be flagged late and
+     * needs an NRAPA decision before it counts toward 2-of-2.
      */
     #[Computed]
     public function deadlinePassed(): bool
     {
-        return now()->isAfter(Carbon::create((int) now()->year, 10, 31)->endOfDay());
+        return ActivityDeadline::hasPassed();
     }
 
     /**
@@ -604,16 +606,18 @@ new class extends Component {
     @endif
 
     {{-- Late-submission banner: once 31 October has passed, remind members
-         that the SAPS deadline is behind us and late submissions are at
-         admin discretion. Members can still submit — this is informational. --}}
+         that the SAPS deadline is behind us and NRAPA must decide whether
+         the submission counts toward 2-of-2. Members can still submit. --}}
     @if ($this->deadlinePassed)
-        <div class="mb-6 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4">
+        <div class="mb-6 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 p-4">
             <div class="flex items-start gap-3">
-                <svg class="size-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                <svg class="size-5 text-orange-600 dark:text-orange-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                 <div class="min-w-0">
-                    <p class="font-medium text-red-800 dark:text-red-200">The 31 October deadline has passed.</p>
-                    <p class="mt-1 text-sm text-red-700 dark:text-red-300">
-                        Late submissions are at admin discretion and may be declined. Please contact NRAPA if you need advice.
+                    <p class="font-medium text-orange-800 dark:text-orange-200">
+                        The {{ \App\Support\Members\ActivityDeadline::label((int) now()->year) }} deadline has passed.
+                    </p>
+                    <p class="mt-1 text-sm text-orange-700 dark:text-orange-300">
+                        You can still submit — but this will be flagged as a <strong>late submission</strong>. NRAPA will review it before it counts toward your <strong>2 of 2</strong> dedicated-status compliance for this year. Your Dedicated Status Certificate stays blocked until that decision is made.
                     </p>
                 </div>
             </div>

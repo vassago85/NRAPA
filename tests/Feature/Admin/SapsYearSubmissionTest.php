@@ -71,7 +71,14 @@ function sapsApprovedActivity(User $user, Carbon $activityDate, ?Carbon $verifie
     ]);
     // verified_at is not in $fillable — set it directly and save.
     $activity->verified_at = $verifiedAt ?? now();
+    // Backdate `created_at` to match the verification moment so the row is
+    // not accidentally flagged as a late submission by the activity-year
+    // deadline filter. These helper rows are meant to simulate on-time
+    // approvals; late-submission behaviour has its own dedicated tests.
+    $activity->timestamps = false;
+    $activity->created_at = $verifiedAt ?? $activityDate;
     $activity->save();
+    $activity->timestamps = true;
     return $activity;
 }
 
@@ -270,7 +277,8 @@ it('member submit page shows the late submission warning after 31 October', func
 
     Livewire::actingAs($user)
         ->test('pages::member.activities.submit')
-        ->assertSeeText('The 31 October deadline has passed');
+        ->assertSeeText('deadline has passed')
+        ->assertSeeText('flagged as a late submission');
 
     Carbon::setTestNow();
 });

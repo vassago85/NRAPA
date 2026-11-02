@@ -60,7 +60,7 @@ class ActivityReminderRecipients
     {
         $year = $year ?? self::defaultYear();
         $start = Carbon::create($year, 1, 1)->startOfDay();
-        $end = Carbon::create($year, 10, 31)->endOfDay();
+        $end = ActivityDeadline::endOfDay($year);
 
         return (int) ShootingActivity::query()
             ->where('user_id', $user->id)
@@ -83,7 +83,7 @@ class ActivityReminderRecipients
         $year = $year ?? self::defaultYear();
         $required = self::requiredCount();
         $start = Carbon::create($year, 1, 1)->startOfDay();
-        $end = Carbon::create($year, 10, 31)->endOfDay();
+        $end = ActivityDeadline::endOfDay($year);
         $joinYearStart = Carbon::create($year, 1, 1)->startOfDay();
 
         return User::query()

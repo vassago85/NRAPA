@@ -174,7 +174,7 @@ class ActivityComplianceCsvExport
      */
     public function activityWindowEnd(): Carbon
     {
-        return Carbon::create($this->year, 10, 31)->endOfDay();
+        return ActivityDeadline::endOfDay($this->year);
     }
 
     /**

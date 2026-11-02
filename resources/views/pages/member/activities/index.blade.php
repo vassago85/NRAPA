@@ -190,7 +190,7 @@ new class extends Component {
         $currentYear = now()->year;
         $historyStartYear = $currentYear - 5;
         $historyStart = \Carbon\Carbon::create($historyStartYear, 1, 1)->startOfDay();
-        $historyEnd = \Carbon\Carbon::create($currentYear - 1, 10, 31)->endOfDay();
+        $historyEnd = \App\Support\Members\ActivityDeadline::endOfDay($currentYear - 1);
 
         $yearCounts = ShootingActivity::where('user_id', $user->id)
             ->where('status', 'approved')

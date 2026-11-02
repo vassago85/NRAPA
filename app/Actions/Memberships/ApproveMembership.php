@@ -11,10 +11,12 @@ use App\Models\CertificateType;
 use App\Models\KnowledgeTest;
 use App\Models\KnowledgeTestAttempt;
 use App\Models\Membership;
+use App\Models\MembershipType;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\CertificateIssueService;
 use App\Services\NtfyService;
+use App\Support\Members\PriorYearComplianceResolver;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -52,6 +54,10 @@ class ApproveMembership
 
         $membership->retireOtherActiveMemberships();
         $this->ensureMembershipNumber($membership);
+        // Auto-pass prior-year 2/2 for a renewal whose predecessor was
+        // imported. Must happen BEFORE issueDocuments so the dedicated
+        // certificate gate (via MemberCompliance) sees the override.
+        PriorYearComplianceResolver::autoStampForImportedPredecessor($membership);
         $this->issueDocuments($membership, $admin);
         $this->autoCompleteKnowledgeTests($membership, $admin);
         $this->sendApprovalEmail($membership);
@@ -181,6 +187,62 @@ class ApproveMembership
             $this->certificates->issueMembershipCard($user, $admin);
         } catch (\Throwable $e) {
             $this->fallbackCertificate($membership, $admin, 'membership-card', 'Membership Card', 'NRAPA membership identification card', 'documents.membership-card', 13, 'CARD-', $membership->expires_at);
+        }
+
+        $this->maybeIssueDedicatedCertificate($membership, $admin);
+    }
+
+    /**
+     * Attribute-driven dedicated-status certificate issue.
+     *
+     * Dispatches to the correct {@see CertificateIssueService} method based
+     * on the membership type's `dedicated_type` attribute. Types that do not
+     * allow dedicated status get nothing — no slug matching, no code change
+     * when a new membership type is added.
+     *
+     * Issuance may still throw at the service layer when a precondition is
+     * not met (missing documents, activities short, membership not in good
+     * standing). That is desirable behaviour at RENEWAL time: a member who
+     * is short on activities should not be handed a fresh dedicated cert
+     * just because an admin clicked approve. We log and move on so the
+     * membership itself still activates.
+     */
+    private function maybeIssueDedicatedCertificate(Membership $membership, User $admin): void
+    {
+        $type = $membership->type;
+        if (! $type || ! $type->allows_dedicated_status) {
+            return;
+        }
+
+        $user = $membership->user;
+        if (! $user) {
+            return;
+        }
+
+        $issueFor = match ($type->dedicated_type) {
+            MembershipType::DEDICATED_TYPE_HUNTER => 'hunter',
+            MembershipType::DEDICATED_TYPE_SPORT, 'sport_shooter' => 'sport',
+            MembershipType::DEDICATED_TYPE_BOTH => 'both',
+            default => null,
+        };
+
+        if ($issueFor === null) {
+            return;
+        }
+
+        try {
+            match ($issueFor) {
+                'hunter' => $this->certificates->issueDedicatedHunterCertificate($user, $admin),
+                'sport' => $this->certificates->issueDedicatedSportCertificate($user, $admin),
+                'both' => $this->certificates->issueDedicatedBothCertificate($user, $admin),
+            };
+        } catch (\Throwable $e) {
+            Log::info('Dedicated certificate not issued at approval time', [
+                'membership_id' => $membership->id,
+                'user_id' => $user->id,
+                'dedicated_type' => $type->dedicated_type,
+                'reason' => $e->getMessage(),
+            ]);
         }
     }
 

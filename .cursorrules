@@ -20,8 +20,17 @@ Membership types are admin-defined entities with configurable attributes:
 - `expiry_rule`: fixed_date | rolling | none
 - `pricing_model`: annual | once_off | none
 - `allows_dedicated_status`: boolean
+- `dedicated_type`: `hunter` | `sport` | `sport_shooter` | `both` | null — drives which Section 16 certificate (if any) `ApproveMembership::maybeIssueDedicatedCertificate` issues on approval. Attribute-driven: new dedicated flavours just need the slug and matching certificate type, no code changes.
 - `requires_knowledge_test`: boolean
 - `certificate_entitlements`: array of certificate types
+
+### Dedicated-Status Compliance (2-of-2)
+Dedicated members must have **2 approved shooting activities per calendar year by 31 October** (deadline is config-driven: `config/compliance.php`, overridable per env). This is enforced through two attributes:
+
+- `memberships.prior_year_compliance_verified_at` (+ `_by`, `_note`): admin-set override that satisfies the *prior-year* requirement on dedicated renewal. `PriorYearComplianceResolver::for($membership)` returns the ready/blocked status consulted by `ApprovalService` and `MemberCompliance`. Imported predecessors (`previous_membership_id` with `source = 'import'`) are auto-stamped by `ApproveMembership` so first-cycle imported members do not get blocked.
+- `shooting_activities.is_late_approved` (+ `late_decided_at`, `late_decided_by`): admin flag that lets a *late* submission (one whose `created_at > ActivityDeadline::endOfDay($year)`) count toward the current year's 2-of-2 total. Default: late approvals **do** count (strict but forgiving — members can "update their shit and be compliant, even if it's late"). Admins can tick the opt-out at approval time to keep the audit clean without rewarding genuine negligence. Current-year count in `MemberCompliance` excludes late rows unless this flag is true.
+
+Never special-case dedicated logic by membership type slug — always drive it from `type->allows_dedicated_status`, `type->dedicated_type`, and the two columns above.
 
 ### Document Types
 Document types are admin-configurable with:

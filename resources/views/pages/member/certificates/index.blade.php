@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Certificate;
+use App\Models\ShootingActivity;
+use App\Support\Members\ActivityDeadline;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -171,6 +173,25 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
         }
 
         return $types;
+    }
+
+    /**
+     * Count of this member's pending shooting-activity rows that were
+     * submitted after the 31 October deadline for their activity-year.
+     * Used by the dedicated-certificate card to show an "Awaiting NRAPA
+     * review of late activity" state instead of a Request button that
+     * would just fail the compliance check.
+     */
+    #[Computed]
+    public function pendingLateActivities(): int
+    {
+        $deadline = ActivityDeadline::endOfDay((int) now()->year);
+
+        return ShootingActivity::where('user_id', $this->user->id)
+            ->where('status', 'pending')
+            ->where('created_at', '>', $deadline)
+            ->whereYear('activity_date', (int) now()->year)
+            ->count();
     }
 
     /**
@@ -459,10 +480,19 @@ new #[Layout('layouts.app.sidebar')] #[Title('Certificates & Endorsements')] cla
                             </div>
                         </div>
                         <div class="flex-shrink-0">
+                            @php
+                                $isDedicated = str_contains($certType['slug'], 'dedicated');
+                                $awaitingLate = $isDedicated && !$existingCert && $this->pendingLateActivities > 0;
+                            @endphp
                             @if($existingCert)
                                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                     Valid
+                                </span>
+                            @elseif($awaitingLate)
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/30 rounded-lg" title="You submitted an activity after the 31 October deadline. NRAPA will review it before your Dedicated Status Certificate can be issued.">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M12 3a9 9 0 110 18 9 9 0 010-18z"/></svg>
+                                    Awaiting NRAPA review of late activity
                                 </span>
                             @else
                                 <button wire:click="requestCertificateByType('{{ $certType['slug'] }}')" wire:loading.attr="disabled"

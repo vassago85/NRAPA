@@ -259,7 +259,7 @@ new #[Title('Membership Reports - Admin')] class extends Component {
         $lock = SapsYearSubmission::activeLockFor($year);
 
         $start = Carbon::create($year, 1, 1)->startOfDay();
-        $end = Carbon::create($year, 10, 31)->endOfDay();
+        $end = \App\Support\Members\ActivityDeadline::endOfDay($year);
 
         $approvedCountQuery = ShootingActivity::query()
             ->where('status', 'approved')
@@ -305,7 +305,7 @@ new #[Title('Membership Reports - Admin')] class extends Component {
         }
 
         $start = Carbon::create($year, 1, 1)->startOfDay();
-        $end = Carbon::create($year, 10, 31)->endOfDay();
+        $end = \App\Support\Members\ActivityDeadline::endOfDay($year);
 
         $lockedCount = (int) ShootingActivity::query()
             ->where('status', 'approved')

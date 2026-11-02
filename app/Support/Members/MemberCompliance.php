@@ -114,6 +114,7 @@ class MemberCompliance
                 hasActiveMembership: $membership !== null,
                 allowsDedicatedStatus: $allows,
                 typeName: $type?->name,
+                priorYearVerifiedAt: $membership?->prior_year_compliance_verified_at !== null,
             ),
             'required_documents' => self::buildRequiredDocumentsRequirement($user, $type),
         ];
@@ -320,6 +321,7 @@ class MemberCompliance
         bool $hasActiveMembership,
         bool $allowsDedicatedStatus = true,
         ?string $typeName = null,
+        bool $priorYearVerifiedAt = false,
     ): Requirement {
         if (! $hasActiveMembership) {
             return new Requirement(
@@ -359,12 +361,24 @@ class MemberCompliance
         $currentYear = (int) now()->year;
         $prevYear = $currentYear - 1;
 
-        $countFor = static function (int $year) use ($user): int {
+        $countFor = static function (int $year) use ($user, $currentYear): int {
             $start = Carbon::create($year, 1, 1)->startOfDay();
-            $end = Carbon::create($year, 10, 31)->endOfDay();
+            $end = ActivityDeadline::endOfDay($year);
             $q = ShootingActivity::where('user_id', $user->id)
                 ->where('status', 'approved')
                 ->whereBetween('activity_date', [$start, $end]);
+
+            // Current-year late submissions do not count toward 2/2 unless
+            // an admin has explicitly ticked `is_late_approved` when
+            // approving them. A submission is "late" when it was created
+            // after the activity-year deadline. Prior-year counts are not
+            // filtered — admins will have decided those well before year-end.
+            if ($year === $currentYear) {
+                $q->where(function ($inner) use ($end) {
+                    $inner->where('created_at', '<=', $end)
+                        ->orWhere('is_late_approved', true);
+                });
+            }
 
             // Once the year has been submitted to SAPS, activities verified
             // after that moment are kept on the member's record but do not
@@ -411,6 +425,20 @@ class MemberCompliance
                 state: RequirementState::Met,
                 reason: "You are compliant for {$currentYear} on the strength of your {$prevYear} activities ({$previousCount} approved, need {$required}).",
                 meta: $meta,
+            );
+        }
+
+        // Prior-year compliance can be verified manually at renewal time —
+        // for imported members whose 2/2 was not carried across, or for an
+        // admin-tick exception. Honour that override so the dedicated
+        // certificate gate stays unblocked.
+        if ($priorYearVerifiedAt) {
+            return new Requirement(
+                key: 'activities',
+                label: 'Range activities',
+                state: RequirementState::Met,
+                reason: "Prior-year compliance ({$prevYear}) has been verified by an admin.",
+                meta: $meta + ['prior_year_verified' => true],
             );
         }
 

@@ -13,6 +13,8 @@ use App\Models\Membership;
 use App\Models\Payment;
 use App\Models\SystemSetting;
 use App\Services\Approvals\ApprovalService;
+use App\Support\Members\PriorYearComplianceResolver;
+use App\Support\Members\PriorYearComplianceStatus;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -28,6 +30,7 @@ new #[Title('Review Application - Admin')] class extends Component {
     public bool $showPopRequest = false;
     public string $popRequestMessage = 'Incorrect upload. Please resubmit your proof of payment.';
     public ?float $changeAmount = null;
+    public string $priorYearNote = '';
 
     #[Computed]
     public function proofOfPaymentUrl(): ?string
@@ -49,6 +52,28 @@ new #[Title('Review Application - Admin')] class extends Component {
     public function previousMembership()
     {
         return $this->membership->previousMembership?->load('type');
+    }
+
+    /**
+     * Prior-year 2/2 compliance verdict for this renewal. Not applicable for
+     * new applications or non-dedicated types — the view suppresses the
+     * panel in those cases.
+     */
+    #[Computed]
+    public function priorYearStatus(): PriorYearComplianceStatus
+    {
+        return PriorYearComplianceResolver::for($this->membership);
+    }
+
+    /**
+     * Approve must be blocked whenever a dedicated renewal is sitting on an
+     * unverified prior year. Keeps us strict without making members redo work.
+     */
+    #[Computed]
+    public function priorYearBlocksApproval(): bool
+    {
+        $status = $this->priorYearStatus;
+        return $status->applicable && ! $status->isReady();
     }
 
     public function mount(Membership $membership): void
@@ -97,6 +122,11 @@ new #[Title('Review Application - Admin')] class extends Component {
 
         if (!$this->membership->type) {
             session()->flash('error', 'Cannot approve: membership type is missing.');
+            return;
+        }
+
+        if ($this->priorYearBlocksApproval) {
+            session()->flash('error', 'Prior-year compliance has not been verified for this dedicated renewal. Tick "Verify prior-year compliance" or reject the application.');
             return;
         }
 
@@ -295,6 +325,61 @@ new #[Title('Review Application - Admin')] class extends Component {
             ]);
             session()->flash('error', 'Failed to send email: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Admin ticks "I have verified this member's prior-year 2/2". Writes an
+     * audit log entry so the override is traceable; the compliance resolver
+     * then treats the prior year as met for cert issuance.
+     */
+    public function verifyPriorYear(): void
+    {
+        if (!$this->priorYearStatus->applicable) {
+            session()->flash('error', 'Prior-year verification does not apply to this application.');
+            return;
+        }
+
+        $note = trim($this->priorYearNote) !== '' ? trim($this->priorYearNote) : null;
+
+        PriorYearComplianceResolver::markVerified($this->membership, Auth::user(), $note);
+
+        AuditLog::log(
+            'prior_year_compliance_verified',
+            $this->membership,
+            ['prior_year_compliance_verified_at' => null],
+            ['prior_year_compliance_verified_at' => now()->toIso8601String(), 'note' => $note],
+            Auth::user()
+        );
+
+        $this->membership->refresh();
+        unset($this->priorYearStatus, $this->priorYearBlocksApproval);
+        $this->priorYearNote = '';
+
+        session()->flash('success', 'Prior-year compliance verified. You can approve this renewal.');
+    }
+
+    public function clearPriorYearVerification(): void
+    {
+        if (!$this->priorYearStatus->applicable || !$this->priorYearStatus->isManuallyVerified) {
+            return;
+        }
+
+        $before = $this->membership->prior_year_compliance_verified_at?->toIso8601String();
+
+        PriorYearComplianceResolver::clearVerification($this->membership);
+
+        AuditLog::log(
+            'prior_year_compliance_cleared',
+            $this->membership,
+            ['prior_year_compliance_verified_at' => $before],
+            ['prior_year_compliance_verified_at' => null],
+            Auth::user()
+        );
+
+        $this->membership->refresh();
+        unset($this->priorYearStatus, $this->priorYearBlocksApproval);
+
+        session()->flash('success', 'Prior-year verification cleared.');
     }
 
     public function requestPopAgain(): void
@@ -591,6 +676,126 @@ new #[Title('Review Application - Admin')] class extends Component {
                     <p class="mt-1 text-sm text-amber-800 dark:text-amber-200">
                         The platform launch grace ended 31 Dec 2026. Standard grace is now <strong>{{ $graceDays }} days</strong>. You can apply a late-renewal penalty fee (in addition to the standard renewal fee) based on the lapse duration and the member's history.
                     </p>
+                </div>
+                @endif
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Prior-year dedicated compliance panel: only shown for a dedicated renewal.
+         The approve button is blocked (via `priorYearBlocksApproval`) until the
+         admin sees a verified / imported-first-cycle / activity-compliant result.  --}}
+    @if($this->membership->user && $this->priorYearStatus->applicable)
+    @php $pyStatus = $this->priorYearStatus; @endphp
+    @php
+        $pyTone = $pyStatus->tone();
+        $pyBorder = match ($pyTone) {
+            'success' => 'border-emerald-300 dark:border-emerald-700',
+            'warning' => 'border-amber-300 dark:border-amber-700',
+            'danger' => 'border-red-300 dark:border-red-700',
+            default => 'border-zinc-300 dark:border-zinc-700',
+        };
+        $pyBg = match ($pyTone) {
+            'success' => 'bg-emerald-50 dark:bg-emerald-900/20',
+            'warning' => 'bg-amber-50 dark:bg-amber-900/20',
+            'danger' => 'bg-red-50 dark:bg-red-900/20',
+            default => 'bg-zinc-50 dark:bg-zinc-900',
+        };
+        $pyText = match ($pyTone) {
+            'success' => 'text-emerald-800 dark:text-emerald-200',
+            'warning' => 'text-amber-800 dark:text-amber-200',
+            'danger' => 'text-red-800 dark:text-red-200',
+            default => 'text-zinc-800 dark:text-zinc-200',
+        };
+    @endphp
+    <div class="rounded-2xl shadow-sm border-2 {{ $pyBorder }} {{ $pyBg }} p-6">
+        <div class="flex items-start gap-4">
+            <div class="flex size-12 flex-shrink-0 items-center justify-center rounded-xl bg-white/70 dark:bg-zinc-900/40">
+                <svg class="size-6 {{ $pyText }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <div class="flex items-center gap-3 flex-wrap">
+                    <h3 class="text-lg font-bold {{ $pyText }}">Prior-year dedicated compliance</h3>
+                    <span class="inline-flex items-center rounded-full bg-white/70 dark:bg-zinc-900/40 px-2.5 py-0.5 text-xs font-semibold {{ $pyText }}">
+                        {{ $pyStatus->reason() }}
+                    </span>
+                </div>
+
+                <dl class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                    <div>
+                        <dt class="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Prior year</dt>
+                        <dd class="mt-0.5 font-semibold text-zinc-900 dark:text-white">{{ $pyStatus->priorYear }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Approved activities</dt>
+                        <dd class="mt-0.5 font-semibold text-zinc-900 dark:text-white">
+                            {{ $pyStatus->priorCount }} / {{ $pyStatus->required }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Resolution</dt>
+                        <dd class="mt-0.5 font-semibold text-zinc-900 dark:text-white">
+                            @if($pyStatus->isActivityCompliant) Activity count met
+                            @elseif($pyStatus->isManuallyVerified) Admin-verified
+                            @elseif($pyStatus->isImportedFirstCycle) Imported first cycle
+                            @else <span class="text-red-700 dark:text-red-300">Blocked</span>
+                            @endif
+                        </dd>
+                    </div>
+                </dl>
+
+                @if($pyStatus->isManuallyVerified && $pyStatus->verifiedAt)
+                <p class="mt-3 text-xs text-zinc-600 dark:text-zinc-400">
+                    Verified {{ $pyStatus->verifiedAt->format('d M Y H:i') }}@if($pyStatus->verifiedBy) by {{ $pyStatus->verifiedBy->name }}@endif.
+                    @if($pyStatus->verifiedNote)
+                        <span class="block mt-1 italic">"{{ $pyStatus->verifiedNote }}"</span>
+                    @endif
+                </p>
+                @endif
+
+                @if($pyStatus->isImportedFirstCycle)
+                <p class="mt-3 text-xs {{ $pyText }}">
+                    The previous membership on record is from the bulk import, so the member's prior-year 2/2 may not have been carried across. If you have no reason to doubt their prior-year compliance, tick "Verify prior-year compliance" below and approve. The auto-pass only applies to the first renewal after import.
+                </p>
+                @endif
+
+                @if(!$pyStatus->isManuallyVerified)
+                <div class="mt-4 flex flex-col sm:flex-row sm:items-end gap-3">
+                    <div class="flex-1">
+                        <label for="priorYearNote" class="block text-xs font-medium {{ $pyText }}">Note (optional)</label>
+                        <input
+                            wire:model="priorYearNote"
+                            id="priorYearNote"
+                            type="text"
+                            maxlength="500"
+                            placeholder="e.g. phoned member — confirms 2024 range days at Pretoria Club"
+                            class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-nrapa-blue focus:outline-none focus:ring-1 focus:ring-nrapa-blue dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
+                        >
+                    </div>
+                    <button
+                        wire:click="verifyPriorYear"
+                        wire:loading.attr="disabled"
+                        wire:target="verifyPriorYear"
+                        class="inline-flex items-center justify-center gap-2 rounded-lg bg-nrapa-blue px-5 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors disabled:opacity-50"
+                    >
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m4.5 12.75 6 6 9-13.5"/>
+                        </svg>
+                        Verify prior-year compliance
+                    </button>
+                </div>
+                @else
+                <div class="mt-4">
+                    <button
+                        wire:click="clearPriorYearVerification"
+                        wire:confirm="Clear prior-year verification? The approve button will be blocked again until it is re-verified."
+                        class="inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                    >
+                        Clear verification
+                    </button>
                 </div>
                 @endif
             </div>
@@ -1039,11 +1244,17 @@ new #[Title('Review Application - Admin')] class extends Component {
         <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Decision</h3>
 
         @if(!$showRejectModal)
+        @if($this->priorYearBlocksApproval)
+        <p class="mb-4 text-sm text-red-700 dark:text-red-300">
+            Prior-year compliance has not been verified. Approve is blocked until you tick "Verify prior-year compliance" in the panel above, or reject the application.
+        </p>
+        @endif
         <div class="flex flex-col gap-4 sm:flex-row">
             <button
                 wire:click="approve"
                 wire:loading.attr="disabled"
                 wire:target="approve"
+                @disabled($this->priorYearBlocksApproval)
                 wire:confirm="Are you sure you want to approve this membership application?"
                 class="inline-flex items-center justify-center gap-2 rounded-lg bg-nrapa-blue px-6 py-3 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >

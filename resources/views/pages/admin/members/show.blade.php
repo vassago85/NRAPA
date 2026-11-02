@@ -189,6 +189,80 @@ new #[Title('Member Details - Admin')] class extends Component {
         return $this->activeMembership?->type?->isLifetime() ?? false;
     }
 
+    /**
+     * Prior-year compliance status for the member's active membership. The
+     * admin can tick / untick the override here for one-off edge cases that
+     * never came through the approval screen. Returns null when the active
+     * membership is not a dedicated renewal.
+     */
+    #[Computed]
+    public function priorYearStatus(): ?\App\Support\Members\PriorYearComplianceStatus
+    {
+        if (!$this->activeMembership) {
+            return null;
+        }
+
+        $status = \App\Support\Members\PriorYearComplianceResolver::for($this->activeMembership);
+
+        return $status->applicable ? $status : null;
+    }
+
+    public string $adminPriorYearNote = '';
+
+    public function adminVerifyPriorYear(): void
+    {
+        $membership = $this->activeMembership;
+        if (!$membership) {
+            session()->flash('error', 'No active membership to verify.');
+            return;
+        }
+
+        $status = \App\Support\Members\PriorYearComplianceResolver::for($membership);
+        if (!$status->applicable) {
+            session()->flash('error', 'Prior-year verification does not apply to this membership.');
+            return;
+        }
+
+        $note = trim($this->adminPriorYearNote) !== '' ? trim($this->adminPriorYearNote) : null;
+        \App\Support\Members\PriorYearComplianceResolver::markVerified($membership, Auth::user(), $note);
+
+        \App\Models\AuditLog::log(
+            'prior_year_compliance_verified',
+            $membership,
+            ['prior_year_compliance_verified_at' => null],
+            ['prior_year_compliance_verified_at' => now()->toIso8601String(), 'note' => $note, 'source' => 'member_show'],
+            Auth::user()
+        );
+
+        $this->user->load(['memberships.type', 'memberships.previousMembership.type', 'memberships.approver', 'activeMembership.type']);
+        unset($this->priorYearStatus, $this->activeMembership);
+        $this->adminPriorYearNote = '';
+        session()->flash('success', 'Prior-year compliance verified for this member.');
+    }
+
+    public function adminClearPriorYear(): void
+    {
+        $membership = $this->activeMembership;
+        if (!$membership) {
+            return;
+        }
+
+        $before = $membership->prior_year_compliance_verified_at?->toIso8601String();
+        \App\Support\Members\PriorYearComplianceResolver::clearVerification($membership);
+
+        \App\Models\AuditLog::log(
+            'prior_year_compliance_cleared',
+            $membership,
+            ['prior_year_compliance_verified_at' => $before],
+            ['prior_year_compliance_verified_at' => null, 'source' => 'member_show'],
+            Auth::user()
+        );
+
+        $this->user->load(['memberships.type', 'memberships.previousMembership.type', 'memberships.approver', 'activeMembership.type']);
+        unset($this->priorYearStatus, $this->activeMembership);
+        session()->flash('success', 'Prior-year verification cleared for this member.');
+    }
+
     #[Computed]
     public function memberActivities()
     {
@@ -2124,6 +2198,46 @@ new #[Title('Member Details - Admin')] class extends Component {
                             @endif
                         </dd>
                     </div>
+                    @if($this->priorYearStatus)
+                    @php $py = $this->priorYearStatus; @endphp
+                    <div class="sm:col-span-2 lg:col-span-3 mt-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800/40">
+                        <div class="flex items-center justify-between gap-3 flex-wrap">
+                            <div>
+                                <dt class="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Prior-year dedicated compliance ({{ $py->priorYear }})</dt>
+                                <dd class="mt-0.5 text-sm text-zinc-900 dark:text-white">{{ $py->reason() }}</dd>
+                            </div>
+                            @if($py->isManuallyVerified)
+                            <button
+                                wire:click="adminClearPriorYear"
+                                wire:confirm="Clear the prior-year verification on this membership?"
+                                class="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600 transition-colors"
+                            >
+                                Clear verification
+                            </button>
+                            @elseif(!$py->isActivityCompliant)
+                            <div class="flex items-end gap-2 w-full sm:w-auto">
+                                <div class="flex-1">
+                                    <label for="adminPriorYearNote" class="sr-only">Verification note</label>
+                                    <input
+                                        wire:model="adminPriorYearNote"
+                                        id="adminPriorYearNote"
+                                        type="text"
+                                        maxlength="500"
+                                        placeholder="Optional note"
+                                        class="w-full rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-xs focus:border-nrapa-blue focus:outline-none focus:ring-1 focus:ring-nrapa-blue dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
+                                    >
+                                </div>
+                                <button
+                                    wire:click="adminVerifyPriorYear"
+                                    class="inline-flex items-center gap-1.5 rounded-lg bg-nrapa-blue px-2.5 py-1.5 text-xs font-medium text-white hover:bg-nrapa-blue-dark transition-colors"
+                                >
+                                    Verify prior year
+                                </button>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                    @endif
                 </div>
                 @else
                 <div class="text-center py-8">

@@ -23,6 +23,11 @@ new class extends Component {
     #[Url(nullable: true)]
     public string $statusFilter = 'pending';
 
+    /** When true, restrict the listing to late submissions (submitted after
+     *  the activity-year deadline). Combines with statusFilter. */
+    #[Url(nullable: true)]
+    public bool $lateOnly = false;
+
     public bool $showReminderModal = false;
 
     public function approve(int $activityId): void
@@ -126,8 +131,16 @@ new class extends Component {
 
     public function with(): array
     {
+        // "Late submission" = submitted after the activity-year deadline for
+        // its activity_date. Expressed as a cross-column SQL predicate so we
+        // can both filter and count without loading rows into memory.
+        // {@see ActivityDeadline::lateSqlPredicate} dispatches on the DB
+        // driver so the same filter works on MySQL (prod) and SQLite (tests).
+        $lateSql = \App\Support\Members\ActivityDeadline::lateSqlPredicate();
+
         $activities = ShootingActivity::with(['user', 'activityType', 'tags', 'country', 'province'])
             ->when($this->statusFilter, fn($q) => $q->where('status', $this->statusFilter))
+            ->when($this->lateOnly, fn($q) => $q->whereRaw($lateSql))
             ->when($this->search, fn($q) => $q->whereHas('user', function($query) {
                 $query->where('name', 'like', '%' . $this->search . '%')
                     ->orWhere('email', 'like', '%' . $this->search . '%')
@@ -142,6 +155,9 @@ new class extends Component {
         $pendingCount = app(ApprovalQueue::class)->countsByType()[ApprovalType::Activity->value];
         $approvedCount = (int) ($statusCounts['approved'] ?? 0);
         $rejectedCount = (int) ($statusCounts['rejected'] ?? 0);
+        $latePendingCount = (int) ShootingActivity::where('status', 'pending')
+            ->whereRaw($lateSql)
+            ->count();
 
         $reminderYear = ActivityReminderRecipients::defaultYear();
         $reminderRequired = ActivityReminderRecipients::requiredCount();
@@ -157,6 +173,7 @@ new class extends Component {
             'reminderRequired' => $reminderRequired,
             'reminderRecipientCount' => $reminderRecipientCount,
             'reminderAlreadySentThisYear' => $reminderAlreadySentThisYear,
+            'latePendingCount' => $latePendingCount,
         ];
     }
 }; ?>
@@ -213,8 +230,8 @@ new class extends Component {
     @endif
 
     <!-- Stats Grid -->
-    <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <button wire:click="$set('statusFilter', 'pending')" class="rounded-lg border p-4 text-left transition-colors {{ $statusFilter === 'pending' ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-amber-300' }}">
+    <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
+        <button x-on:click="$wire.set('statusFilter', 'pending'); $wire.set('lateOnly', false)" class="rounded-lg border p-4 text-left transition-colors {{ $statusFilter === 'pending' && !$lateOnly ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-amber-300' }}">
             <div class="flex items-center gap-3">
                 <div class="rounded-full bg-amber-100 dark:bg-amber-900/30 p-2">
                     <svg class="size-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -226,7 +243,19 @@ new class extends Component {
             </div>
         </button>
 
-        <button wire:click="$set('statusFilter', 'approved')" class="rounded-lg border p-4 text-left transition-colors {{ $statusFilter === 'approved' ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-emerald-300' }}">
+        <button x-on:click="$wire.set('statusFilter', 'pending'); $wire.set('lateOnly', true)" class="rounded-lg border p-4 text-left transition-colors {{ $lateOnly ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-orange-300' }}">
+            <div class="flex items-center gap-3">
+                <div class="rounded-full bg-orange-100 dark:bg-orange-900/30 p-2">
+                    <svg class="size-5 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M4.062 19h15.876c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L2.33 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold text-zinc-900 dark:text-white">{{ $latePendingCount }}</p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">Late submissions pending</p>
+                </div>
+            </div>
+        </button>
+
+        <button x-on:click="$wire.set('statusFilter', 'approved'); $wire.set('lateOnly', false)" class="rounded-lg border p-4 text-left transition-colors {{ $statusFilter === 'approved' && !$lateOnly ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-emerald-300' }}">
             <div class="flex items-center gap-3">
                 <div class="rounded-full bg-emerald-100 dark:bg-emerald-900/30 p-2">
                     <svg class="size-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -238,7 +267,7 @@ new class extends Component {
             </div>
         </button>
 
-        <button wire:click="$set('statusFilter', 'rejected')" class="rounded-lg border p-4 text-left transition-colors {{ $statusFilter === 'rejected' ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-red-300' }}">
+        <button x-on:click="$wire.set('statusFilter', 'rejected'); $wire.set('lateOnly', false)" class="rounded-lg border p-4 text-left transition-colors {{ $statusFilter === 'rejected' && !$lateOnly ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-red-300' }}">
             <div class="flex items-center gap-3">
                 <div class="rounded-full bg-red-100 dark:bg-red-900/30 p-2">
                     <svg class="size-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -332,6 +361,11 @@ new class extends Component {
                                         <span class="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/30 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">Pending</span>
                                     @else
                                         <span class="inline-flex items-center rounded-full bg-red-100 dark:bg-red-900/30 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:text-red-400">Rejected</span>
+                                    @endif
+                                    @if($activity->is_late)
+                                        <span class="mt-1 inline-flex items-center gap-1 rounded-full bg-orange-100 dark:bg-orange-900/40 px-2 py-0.5 text-[10px] font-semibold text-orange-800 dark:text-orange-200" title="Submitted after the activity-year deadline">
+                                            Late
+                                        </span>
                                     @endif
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4 text-right text-sm">

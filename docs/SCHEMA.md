@@ -72,6 +72,7 @@ Admin-defined membership types with configurable attributes.
 | pricing_model | enum | annual, once_off, none |
 | price | decimal | Amount in ZAR |
 | allows_dedicated_status | boolean | Can apply for dedicated |
+| dedicated_type | enum/string | Which Section 16 certificate `ApproveMembership::maybeIssueDedicatedCertificate` auto-issues on approval of a dedicated application: `hunter`, `sport` (alias `sport_shooter`), `both`, or null. Attribute-driven — adding a new flavour never requires a code change. |
 | requires_knowledge_test | boolean | Test required |
 | discount_eligible | boolean | Eligible for discounts |
 | is_active | boolean | Available for selection |
@@ -102,6 +103,9 @@ Member's actual membership records with state machine.
 | revoked_by | bigint | FK to users (admin) |
 | revocation_reason | text | Reason for revocation |
 | previous_membership_id | bigint | FK to memberships (renewal chain) |
+| prior_year_compliance_verified_at | timestamp | Admin-set override that satisfies the previous-year 2-of-2 requirement for dedicated renewals. Set automatically by `ApproveMembership` when the previous membership's `source = 'import'` (first renewal cycle after a legacy import), or by an admin via the approvals/show toggle. Consulted by `PriorYearComplianceResolver` and `MemberCompliance`. Null = no override. |
+| prior_year_compliance_verified_by | bigint | FK to users (admin who set the override; nullable, system-set rows store the resolver's actor or null). |
+| prior_year_compliance_verified_note | string | Short free-text explanation shown in the approval timeline (`"Imported predecessor"`, `"Confirmed with secretary"`, etc.). |
 | notes | text | Admin notes |
 | created_at | timestamp | |
 | updated_at | timestamp | |
@@ -251,7 +255,10 @@ Activity tracking for dedicated status eligibility.
 | evidence_document_id | bigint | FK to member_documents |
 | verified_at | timestamp | Verification date |
 | verified_by | bigint | FK to users (admin) |
-| created_at | timestamp | |
+| is_late_approved | bool | When the row's `created_at` is after the activity-year deadline (31 October by default; see `config/compliance.php`), this flag records whether the approving admin elected to count it toward the member's 2-of-2 total. Default `false`. `MemberCompliance` excludes a late row from the current-year count unless this is `true`. |
+| late_decided_at | timestamp | Timestamp of the late-approval / late-rejection decision. Null for on-time rows. |
+| late_decided_by | bigint | FK to users (admin who made the late decision). Null for on-time rows. |
+| created_at | timestamp | Also drives the derived `is_late` accessor (`created_at > ActivityDeadline::endOfDay(activity_date.year)`). |
 | updated_at | timestamp | |
 
 ---

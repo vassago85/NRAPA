@@ -80,6 +80,9 @@ class Membership extends Model implements Approvable
         'transfer_competency_document_id',
         'transfer_membership_document_id',
         'previous_association_name',
+        'prior_year_compliance_verified_at',
+        'prior_year_compliance_verified_by',
+        'prior_year_compliance_verified_note',
     ];
 
     /**
@@ -105,6 +108,7 @@ class Membership extends Model implements Approvable
             'pop_resubmit_requested_at' => 'datetime',
             'payment_confirmed_at' => 'datetime',
             'dedicated_declaration_accepted_at' => 'datetime',
+            'prior_year_compliance_verified_at' => 'datetime',
             'change_amount' => 'decimal:2',
         ];
     }

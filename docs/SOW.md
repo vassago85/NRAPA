@@ -138,10 +138,15 @@ Archived documents remain admin-accessible.
 
 Dedicated status must be implemented as an **optional membership attribute**, not a standalone membership type.
 
-* Requires admin enablement per membership type
-* Requires activity tracking
-* Requires manual admin approval
-* Certificates only issued if all attribute conditions are met
+* Requires admin enablement per membership type (`allows_dedicated_status`)
+* Flavour (`hunter` / `sport` / `both`) is driven by `membership_types.dedicated_type` — `ApproveMembership::maybeIssueDedicatedCertificate` reads it to decide which Section 16 certificate to auto-issue on approval. New dedicated flavours never require code changes.
+* Requires activity tracking: **2 approved shooting activities per calendar year by 31 October** (configurable via `config/compliance.php`; env-overridable).
+* On renewal, the prior year's 2-of-2 must also be ready:
+  * Members with 2 approved prior-year activities pass automatically.
+  * Members whose previous membership was `source = 'import'` are auto-stamped by `ApproveMembership` on their first renewal cycle so legacy data gaps do not block them.
+  * Admins can manually tick `prior_year_compliance_verified_at` from the approvals screen or the member show page when they can confirm compliance outside the system.
+* Late activity submissions (`created_at > 31 October` of the activity-year) stay pending for admin review. On approval, the admin chooses whether the activity counts toward the current year's 2-of-2 total (`shooting_activities.is_late_approved`). The dedicated certificate stays blocked until the admin decides. Default is strict-but-forgiving: approve late submissions and let them count.
+* Certificates only issued if all attribute conditions are met.
 
 ---
 

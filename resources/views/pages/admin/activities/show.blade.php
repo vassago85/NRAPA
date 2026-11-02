@@ -15,6 +15,13 @@ new class extends Component {
     public string $rejectionReason = '';
     public bool $showEvidencePreview = false;
     public bool $showAdditionalPreview = false;
+    /**
+     * When the activity was submitted after the activity-year deadline, this
+     * flag decides whether approval also counts toward the member's 2/2.
+     * Defaults to true so admin's intent "approve this late one" is respected
+     * unless they explicitly uncheck the box.
+     */
+    public bool $countLateTowardCompliance = true;
 
     // Inline editing of classification (track / type / tags) before approval.
     public bool $editingDetails = false;
@@ -135,7 +142,19 @@ new class extends Component {
 
     public function approve(): void
     {
-        if (! $this->decideFor($this->activity, ApprovalDecision::Approve)) {
+        // Propagate the late-count decision to the model layer. See
+        // ShootingActivity::$nextLateApprovalCountsToward for the mechanism.
+        if ($this->activity->is_late) {
+            ShootingActivity::$nextLateApprovalCountsToward = $this->countLateTowardCompliance;
+        }
+
+        $note = $this->activity->is_late
+            ? ($this->countLateTowardCompliance
+                ? 'Late submission approved — counts toward member\'s 2/2.'
+                : 'Late submission approved for record — excluded from 2/2.')
+            : null;
+
+        if (! $this->decideFor($this->activity, ApprovalDecision::Approve, $note)) {
             return;
         }
 
@@ -204,6 +223,19 @@ new class extends Component {
                 <span class="inline-flex items-center gap-1 rounded-full bg-red-100 dark:bg-red-900/30 px-3 py-1 text-sm font-medium text-red-800 dark:text-red-400">
                     <svg class="size-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
                     Rejected
+                </span>
+            @endif
+
+            @if($activity->is_late)
+                <span class="inline-flex items-center gap-1 rounded-full bg-orange-100 dark:bg-orange-900/30 px-3 py-1 text-sm font-medium text-orange-800 dark:text-orange-300" title="Submitted after the activity-year deadline">
+                    <svg class="size-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                    Late submission
+                </span>
+            @endif
+
+            @if($activity->status === 'approved' && $activity->is_late)
+                <span class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium {{ $activity->is_late_approved ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300' }}" title="Admin's late-decision outcome">
+                    {{ $activity->is_late_approved ? 'Counts toward 2/2' : 'Excluded from 2/2' }}
                 </span>
             @endif
         </div>
@@ -527,6 +559,19 @@ new class extends Component {
                 <div class="rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
                     <h2 class="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Actions</h2>
 
+                    @if($activity->is_late)
+                        <div class="mb-4 rounded-lg border border-orange-200 bg-orange-50 p-3 dark:border-orange-800 dark:bg-orange-900/20">
+                            <p class="text-sm font-medium text-orange-800 dark:text-orange-200">Late submission</p>
+                            <p class="mt-1 text-xs text-orange-700 dark:text-orange-300">
+                                This activity was submitted after the {{ \App\Support\Members\ActivityDeadline::label((int) $activity->activity_date->year) }} deadline. Decide whether it counts toward the member's 2/2 dedicated-status compliance before approving.
+                            </p>
+                            <label class="mt-3 flex items-center gap-2 text-sm text-orange-900 dark:text-orange-100">
+                                <input type="checkbox" wire:model="countLateTowardCompliance" class="rounded border-orange-400 bg-white text-nrapa-blue focus:ring-nrapa-blue dark:border-orange-600 dark:bg-zinc-800">
+                                <span>Allow this late submission to count toward the member's 2/2</span>
+                            </label>
+                        </div>
+                    @endif
+
                     <div class="space-y-4">
                         <button wire:click="approve" class="w-full rounded-lg bg-nrapa-blue px-4 py-2.5 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                             Approve Activity
@@ -706,7 +751,17 @@ new class extends Component {
                             @if($activity->status === 'pending')
                             <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-4">
                                 <h4 class="text-sm font-semibold text-zinc-900 dark:text-white mb-3">Review Actions</h4>
-                                
+
+                                @if($activity->is_late)
+                                    <div class="mb-3 rounded-lg border border-orange-200 bg-orange-50 p-3 dark:border-orange-800 dark:bg-orange-900/20">
+                                        <p class="text-xs font-medium text-orange-800 dark:text-orange-200">Late submission — submitted after {{ \App\Support\Members\ActivityDeadline::label((int) $activity->activity_date->year) }}.</p>
+                                        <label class="mt-2 flex items-center gap-2 text-xs text-orange-900 dark:text-orange-100">
+                                            <input type="checkbox" wire:model="countLateTowardCompliance" class="rounded border-orange-400 bg-white text-nrapa-blue focus:ring-nrapa-blue dark:border-orange-600 dark:bg-zinc-800">
+                                            <span>Count toward member's 2/2</span>
+                                        </label>
+                                    </div>
+                                @endif
+
                                 <div class="space-y-3">
                                     <button wire:click="approve" class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2.5 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                                         <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

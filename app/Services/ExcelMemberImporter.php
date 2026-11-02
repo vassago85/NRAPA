@@ -1133,7 +1133,7 @@ class ExcelMemberImporter
             ->where('status', 'approved')
             ->whereBetween('activity_date', [
                 \Carbon\Carbon::create($currentYear, 1, 1)->startOfDay(),
-                \Carbon\Carbon::create($currentYear, 10, 31)->endOfDay(),
+                \App\Support\Members\ActivityDeadline::endOfDay($currentYear),
             ])
             ->count();
 
