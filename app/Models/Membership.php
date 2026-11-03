@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
@@ -1031,6 +1032,11 @@ class Membership extends Model implements Approvable
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function invoice(): MorphOne
+    {
+        return $this->morphOne(Invoice::class, 'source');
     }
 
     /**

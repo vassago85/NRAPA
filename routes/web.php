@@ -562,6 +562,12 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     // Billing Reports
     Route::livewire('billing', 'pages::admin.billing.index')->name('billing.index');
 
+    // Invoice downloads (Phase 1: admin only)
+    Route::get('invoices/{invoice:number}/download', [\App\Http\Controllers\Admin\InvoiceDownloadController::class, 'download'])
+        ->name('invoices.download');
+    Route::get('billing/memberships/{membership}/invoice', [\App\Http\Controllers\Admin\InvoiceDownloadController::class, 'downloadForMembership'])
+        ->name('invoices.download-for-membership');
+
     // Membership Reports
     Route::livewire('reports', 'pages::admin.reports.index')->name('reports.index');
 

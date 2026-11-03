@@ -268,7 +268,7 @@ new class extends Component {
         try {
             $memberships = Membership::billable()
                 ->paidInMonth($this->selectedYear, $this->selectedMonth)
-                ->with(['user', 'type', 'previousMembership.type', 'affiliatedClub'])
+                ->with(['user', 'type', 'previousMembership.type', 'affiliatedClub', 'invoice'])
                 ->orderBy('payment_confirmed_at', 'desc')
                 ->paginate(20);
         } catch (\Exception $e) {
@@ -765,6 +765,7 @@ new class extends Component {
                         <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Club</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Category</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Source</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Invoice</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -838,10 +839,29 @@ new class extends Component {
                                     </span>
                                 @endif
                             </td>
+                            <td class="px-4 py-4 whitespace-nowrap text-right">
+                                @if($membership->invoice)
+                                    <a href="{{ route('admin.invoices.download', $membership->invoice->number) }}"
+                                       target="_blank"
+                                       class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white transition-colors"
+                                       title="Download {{ $membership->invoice->number }}">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h3.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293H19a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+                                        <span class="font-mono">{{ $membership->invoice->number }}</span>
+                                    </a>
+                                @else
+                                    <a href="{{ route('admin.invoices.download-for-membership', $membership) }}"
+                                       target="_blank"
+                                       class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-zinc-100 dark:bg-zinc-700 hover:bg-indigo-600 hover:text-white text-zinc-700 dark:text-zinc-200 transition-colors"
+                                       title="Issue and download invoice">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                        Issue
+                                    </a>
+                                @endif
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="10" class="px-6 py-12 text-center text-zinc-500 dark:text-zinc-400">
+                            <td colspan="11" class="px-6 py-12 text-center text-zinc-500 dark:text-zinc-400">
                                 No payments received for this period.
                             </td>
                         </tr>

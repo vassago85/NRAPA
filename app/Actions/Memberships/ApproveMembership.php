@@ -14,6 +14,8 @@ use App\Models\Membership;
 use App\Models\MembershipType;
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Services\Billing\InvoiceIssuer;
+use App\Services\Billing\InvoiceNotIssuableException;
 use App\Services\CertificateIssueService;
 use App\Services\NtfyService;
 use App\Support\Members\PriorYearComplianceResolver;
@@ -68,6 +70,8 @@ class ApproveMembership
 
         $this->notifyAdmins($membership, $admin, 'Membership Approved', "{$admin->name} approved {$membership->user?->name}'s {$membership->type->name} membership.");
 
+        $this->mintInvoice($membership, $admin);
+
         SyncMembershipToSage::dispatch($membership)->afterCommit();
     }
 
@@ -107,7 +111,37 @@ class ApproveMembership
         $this->sendApprovalEmail($membership, force: true);
         $this->notifyAdmins($membership, $admin, 'Membership Upgrade Approved', "{$admin->name} approved {$membership->user?->name}'s upgrade to {$membership->type->name}.");
 
+        $this->mintInvoice($membership, $admin);
+
         SyncMembershipToSage::dispatch($membership)->afterCommit();
+    }
+
+    /**
+     * Mint an I-NRAPA invoice for a freshly-approved billable membership.
+     *
+     * The approval itself has already succeeded by the time we get here;
+     * invoicing is bookkeeping, so a failure MUST NOT block activation or
+     * email delivery. InvoiceIssuer is idempotent, so a later admin
+     * download or a backfill run will still produce the invoice if this
+     * fails.
+     */
+    private function mintInvoice(Membership $membership, User $admin): void
+    {
+        $membership->refresh();
+
+        try {
+            app(InvoiceIssuer::class)->forMembership($membership, $admin);
+        } catch (InvoiceNotIssuableException $e) {
+            Log::info('Invoice not issued at approval time', [
+                'membership_id' => $membership->id,
+                'reason' => $e->getMessage(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Invoice mint failed at approval time', [
+                'membership_id' => $membership->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
