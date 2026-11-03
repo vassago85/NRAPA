@@ -149,9 +149,6 @@
         <td>
             <div class="label">Bill to</div>
             <div class="name">{{ $to['name'] ?? '' }}</div>
-            @if (! empty($to['id_number']))
-                <div class="muted">ID {{ $to['id_number'] }}</div>
-            @endif
             @if ($address !== '')
                 <div class="muted" style="margin-top:2mm;">{!! $multiline($address) !!}</div>
             @endif

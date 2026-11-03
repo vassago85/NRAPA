@@ -314,7 +314,8 @@ it('renders a simple invoice with the NRAPA logo and no Sage clutter', function 
     SystemSetting::set('bank_account_number', '62864215176', 'string', 'bank');
 
     $membership = invMakeConfirmedMembership();
-    $invoice = app(InvoiceIssuer::class)->forMembership($membership);
+    $membership->user->update(['id_number' => '8703095080022']);
+    $invoice = app(InvoiceIssuer::class)->forMembership($membership->fresh(['user', 'type']));
 
     $html = view('documents.invoices.standard', ['invoice' => $invoice])->render();
 
@@ -327,6 +328,7 @@ it('renders a simple invoice with the NRAPA logo and no Sage clutter', function 
         ->toContain('Total')
         ->toContain('R550.00')
         ->toContain('data:image/png;base64,')
+        ->not->toContain('8703095080022')
         ->not->toContain('Sales Rep')
         ->not->toContain('Overall Discount')
         ->not->toContain('Customer VAT');
