@@ -81,7 +81,9 @@ class InvoiceIssuer
                 'user_id' => $membership->user_id,
                 'source_type' => Membership::class,
                 'source_id' => $membership->id,
-                'issued_at' => $membership->payment_confirmed_at,
+                // First mint wins: day they were asked to pay, or the day payment
+                // was confirmed if someone only downloads after the fact.
+                'issued_at' => $membership->payment_confirmed_at ?? now(),
                 'currency' => 'ZAR',
                 'subtotal' => $amount,
                 'vat_rate' => 0,
@@ -177,15 +179,9 @@ class InvoiceIssuer
 
     private function assertBillable(Membership $membership): void
     {
-        if (! $membership->isBillable()) {
+        if (! $membership->canIssueInvoice()) {
             throw new InvoiceNotIssuableException(
-                'Membership '.$membership->id.' is not billable (source: '.$membership->source.').'
-            );
-        }
-
-        if (! $membership->payment_confirmed_at) {
-            throw new InvoiceNotIssuableException(
-                'Membership '.$membership->id.' has no payment_confirmed_at — no invoice to issue.'
+                'Membership '.$membership->id.' is not ready for an invoice (source: '.$membership->source.', status: '.$membership->status.').'
             );
         }
     }

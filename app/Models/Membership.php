@@ -1029,6 +1029,32 @@ class Membership extends Model implements Approvable
         return in_array($this->source, self::BILLABLE_SOURCES, true);
     }
 
+    /**
+     * Whether an I-NRAPA invoice may be minted / downloaded for this row.
+     *
+     * Members who have reached "you need to pay" (new application or renewal)
+     * can download before they EFT. Paid memberships can reprint the same
+     * invoice afterwards. Imports and rows with nothing due stay out.
+     */
+    public function canIssueInvoice(): bool
+    {
+        if (! $this->isBillable()) {
+            return false;
+        }
+
+        if ($this->payment_confirmed_at) {
+            return true;
+        }
+
+        // Same "needs to pay" gate as PaymentLedger: upgrades waiting for EFT,
+        // or a billable application/renewal still in applied.
+        if ($this->status === 'pending_payment') {
+            return true;
+        }
+
+        return $this->status === 'applied';
+    }
+
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);

@@ -6,6 +6,7 @@ use App\Http\Controllers\DocumentPreviewController;
 use App\Http\Controllers\EmailPreferencesController;
 use App\Http\Controllers\EndorsementLetterController;
 use App\Http\Controllers\FirearmLicenceController;
+use App\Http\Controllers\Member\InvoiceDownloadController;
 use App\Http\Controllers\MemberDocumentPreviewController;
 use App\Http\Controllers\SageOAuthController;
 use App\Http\Controllers\SitemapController;
@@ -302,6 +303,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('membership/apply', 'pages::member.membership.apply')->name('membership.apply');
     Route::livewire('membership/club-apply/{club}', 'pages::member.membership.club-apply')->name('membership.club-apply');
     Route::livewire('membership/{membership}', 'pages::member.membership.show')->name('membership.show');
+    Route::get('membership/{membership}/invoice', InvoiceDownloadController::class)
+        ->name('membership.invoice');
 });
 
 // Member Portal Routes - Requires ACTIVE membership (paid members only).

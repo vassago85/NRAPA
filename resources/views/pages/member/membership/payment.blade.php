@@ -159,6 +159,14 @@ new class extends Component {
 
         <!-- Actions -->
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            @if($this->membership->canIssueInvoice())
+            <a href="{{ route('membership.invoice', $this->membership) }}"
+               target="_blank"
+               class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-nrapa-blue hover:bg-nrapa-blue-dark text-white font-medium rounded-lg transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0-3-3m3 3 3-3M3 17V7a2 2 0 012-2h3.586a1 1 0 01.707.293l2.414 2.414A1 1 0 0012.414 8H19a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+                Download Invoice
+            </a>
+            @endif
             <button wire:click="resendEmail"
                     class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>

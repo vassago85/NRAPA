@@ -670,6 +670,15 @@ new #[Title('My Membership')] class extends Component {
             </span>
             @endif
 
+            @if($membership->canIssueInvoice())
+            <a href="{{ route('membership.invoice', $membership) }}"
+               target="_blank"
+               class="inline-flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300 dark:hover:bg-indigo-950/70 transition-colors">
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0-3-3m3 3 3-3M3 17V7a2 2 0 012-2h3.586a1 1 0 01.707.293l2.414 2.414A1 1 0 0012.414 8H19a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+                Download Invoice
+            </a>
+            @endif
+
             {{-- View Details Toggle --}}
             <button wire:click="toggleDetails" 
                 class="inline-flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 ml-auto transition-colors">

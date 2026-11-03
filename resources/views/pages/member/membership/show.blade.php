@@ -194,6 +194,17 @@ new #[Title('Membership Details')] class extends Component {
             Your membership will be activated once payment is confirmed (1-3 business days).
         </p>
 
+        @if($this->membership->canIssueInvoice())
+        <div class="mt-4">
+            <a href="{{ route('membership.invoice', $this->membership) }}"
+               target="_blank"
+               class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue hover:bg-nrapa-blue-dark px-4 py-2 text-sm font-medium text-white transition-colors">
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0-3-3m3 3 3-3M3 17V7a2 2 0 012-2h3.586a1 1 0 01.707.293l2.414 2.414A1 1 0 0012.414 8H19a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+                Download Invoice
+            </a>
+        </div>
+        @endif
+
         {{-- Proof of Payment Upload --}}
         <div class="mt-4 border-t border-amber-300 dark:border-amber-600 pt-4">
             <h4 class="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-3">Upload Proof of Payment</h4>

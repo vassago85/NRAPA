@@ -132,9 +132,61 @@ it('refuses to invoice a membership that is not billable (import)', function () 
         ->toThrow(InvoiceNotIssuableException::class);
 });
 
-it('refuses to invoice a membership that has no payment_confirmed_at', function () {
+it('issues an invoice for a billable membership that still needs payment', function () {
+    $type = invMakeAnnualType();
+    $user = User::factory()->create(['role' => User::ROLE_MEMBER]);
+
+    $membership = Membership::create([
+        'user_id' => $user->id,
+        'membership_type_id' => $type->id,
+        'status' => 'applied',
+        'source' => 'web',
+        'applied_at' => now(),
+        'payment_reference' => 'NRAPA-UNPAID-0001',
+    ]);
+
+    $invoice = app(InvoiceIssuer::class)->forMembership($membership);
+
+    expect($invoice->number)->toBe('I-NRAPA-000001')
+        ->and($invoice->total)->toEqual(550)
+        ->and($invoice->line_items[0]['sku'])->toBe('NEWMEM');
+});
+
+it('keeps the same invoice number after payment is later confirmed', function () {
+    $type = invMakeAnnualType();
+    $user = User::factory()->create(['role' => User::ROLE_MEMBER]);
+
+    $membership = Membership::create([
+        'user_id' => $user->id,
+        'membership_type_id' => $type->id,
+        'status' => 'applied',
+        'source' => 'web',
+        'applied_at' => now(),
+        'payment_reference' => 'NRAPA-UNPAID-0002',
+    ]);
+
+    $first = app(InvoiceIssuer::class)->forMembership($membership);
+
+    $membership->update([
+        'status' => 'active',
+        'payment_confirmed_at' => now(),
+        'approved_at' => now(),
+        'activated_at' => now(),
+    ]);
+
+    $second = app(InvoiceIssuer::class)->forMembership($membership->fresh());
+
+    expect($second->id)->toBe($first->id)
+        ->and($second->number)->toBe($first->number)
+        ->and(Invoice::count())->toBe(1);
+});
+
+it('refuses to invoice an active membership with no payment due and no confirmation', function () {
     $membership = invMakeConfirmedMembership();
-    $membership->update(['payment_confirmed_at' => null]);
+    $membership->update([
+        'payment_confirmed_at' => null,
+        'status' => 'active',
+    ]);
 
     expect(fn () => app(InvoiceIssuer::class)->forMembership($membership->fresh()))
         ->toThrow(InvoiceNotIssuableException::class);
@@ -343,4 +395,62 @@ it('lets an admin download an invoice from the member profile', function () {
     Livewire::actingAs($admin)
         ->test('pages::admin.members.show', ['user' => $membership->user])
         ->assertSee(route('admin.invoices.download-for-membership', $membership), false);
+});
+
+it('lets the owning member download an invoice before they pay', function () {
+    $type = invMakeAnnualType();
+    $member = User::factory()->create(['role' => User::ROLE_MEMBER]);
+
+    $membership = Membership::create([
+        'user_id' => $member->id,
+        'membership_type_id' => $type->id,
+        'status' => 'applied',
+        'source' => 'web',
+        'applied_at' => now(),
+        'payment_reference' => 'NRAPA-MEMBER-0001',
+    ]);
+
+    $response = $this->actingAs($member)
+        ->get(route('membership.invoice', $membership));
+
+    $response->assertOk();
+    expect($response->headers->get('content-type'))->toContain('application/pdf')
+        ->and(Invoice::count())->toBe(1);
+});
+
+it('rejects another member downloading someone else\'s invoice', function () {
+    $owner = User::factory()->create(['role' => User::ROLE_MEMBER]);
+    $stranger = User::factory()->create(['role' => User::ROLE_MEMBER]);
+    $type = invMakeAnnualType();
+
+    $membership = Membership::create([
+        'user_id' => $owner->id,
+        'membership_type_id' => $type->id,
+        'status' => 'applied',
+        'source' => 'web',
+        'applied_at' => now(),
+        'payment_reference' => 'NRAPA-MEMBER-0002',
+    ]);
+
+    $this->actingAs($stranger)
+        ->get(route('membership.invoice', $membership))
+        ->assertForbidden();
+});
+
+it('shows the download invoice link on the payment page when payment is due', function () {
+    $type = invMakeAnnualType();
+    $member = User::factory()->create(['role' => User::ROLE_MEMBER]);
+
+    $membership = Membership::create([
+        'user_id' => $member->id,
+        'membership_type_id' => $type->id,
+        'status' => 'applied',
+        'source' => 'web',
+        'applied_at' => now(),
+        'payment_reference' => 'NRAPA-MEMBER-0003',
+    ]);
+
+    Livewire::actingAs($member)
+        ->test('pages::member.membership.payment', ['membership' => $membership])
+        ->assertSee(route('membership.invoice', $membership), false);
 });

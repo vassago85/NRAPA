@@ -2127,7 +2127,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                         Revoke Approval
                     </button>
                     @endif
-                    @if($this->activeMembership->isBillable() && $this->activeMembership->payment_confirmed_at)
+                    @if($this->activeMembership->canIssueInvoice())
                     <a href="{{ route('admin.invoices.download-for-membership', $this->activeMembership) }}"
                        target="_blank"
                        class="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300 dark:hover:bg-indigo-950/70 transition-colors"
@@ -2373,7 +2373,7 @@ new #[Title('Member Details - Admin')] class extends Component {
                                 <button wire:click="openEditMembershipModal({{ $membership->id }})" class="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors" title="Edit">
                                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z"/></svg>
                                 </button>
-                                @if($membership->isBillable() && $membership->payment_confirmed_at)
+                                @if($membership->canIssueInvoice())
                                 <a href="{{ route('admin.invoices.download-for-membership', $membership) }}"
                                    target="_blank"
                                    class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors text-xs font-medium"
