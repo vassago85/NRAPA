@@ -128,7 +128,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
         return [
             'start' => Carbon::create($year, 1, 1)->startOfDay(),
             'end' => Carbon::create($year, 9, 30)->endOfDay(),
-            'nrapa_deadline' => Carbon::create($year, 10, 31),
+            'nrapa_deadline' => \App\Support\Members\ActivityDeadline::date($year),
             'saps_report' => Carbon::create($year, 12, 1),
             'label' => "1 Jan {$year} - 30 Sep {$year}",
         ];
@@ -335,20 +335,14 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
             {{-- Activity Progress (single total; NRAPA requires 2 approved activities per year regardless of category) --}}
             <div class="p-6">
                 @if($this->complianceStatus['not_applicable'])
-                    {{-- Phase 1 (Q1): lifetime / honorary members get an "always compliant" panel in place of the ratio. --}}
-                    @php
-                        $exemptLabel = $this->complianceStatus['is_lifetime']
-                            ? 'Lifetime member'
-                            : ($this->complianceStatus['is_honorary'] ? 'Honorary member' : 'Exempt');
-                    @endphp
-                    <div class="p-4 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20">
+                    <div class="p-4 rounded-lg border border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20">
                         <div class="flex items-start gap-3">
-                            <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clip-rule="evenodd"/>
+                            <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                             </svg>
                             <div>
-                                <p class="font-semibold text-blue-800 dark:text-blue-200">{{ $exemptLabel }} — always compliant</p>
-                                <p class="text-sm text-blue-700 dark:text-blue-300 mt-0.5">{{ $this->complianceStatus['reason'] }}</p>
+                                <p class="font-semibold text-emerald-800 dark:text-emerald-200">Up to date</p>
+                                <p class="text-sm text-emerald-700 dark:text-emerald-300 mt-0.5">{{ $this->complianceStatus['reason'] }}</p>
                             </div>
                         </div>
                     </div>
@@ -396,7 +390,9 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                     </div>
                 @endif
 
-                {{-- Deadline Notice --}}
+                {{-- Deadline Notice. Hidden when activities are not required so a lifetime
+                     member does not see a countdown or a target count. --}}
+                @unless($this->complianceStatus['not_applicable'])
                 <div class="mt-4 flex items-center justify-between pt-4 border-t border-zinc-200 dark:border-zinc-700">
                     <div class="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -414,6 +410,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                         </span>
                     @endif
                 </div>
+                @endunless
 
                 @if(!$this->complianceStatus['is_compliant'] && !$this->complianceStatus['not_applicable'])
                     <div class="mt-4">
@@ -543,8 +540,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Dedicated Status')] class extends 
                         <h3 class="font-semibold text-zinc-900 dark:text-white">Approved Activities</h3>
                     </div>
                     @if($this->complianceStatus['not_applicable'])
-                        {{-- Phase 1 (Q1): lifetime / honorary members get the exempt sentence, not "0 / 2". --}}
-                        <p class="text-sm text-zinc-600 dark:text-zinc-400">{{ $this->complianceStatus['reason'] }}</p>
+                        <p class="text-sm text-emerald-700 dark:text-emerald-300">Up to date</p>
                     @else
                         <p class="text-sm text-zinc-600 dark:text-zinc-400">
                             {{ $this->eligibility['activity_details']['approved_count'] }} / {{ $this->eligibility['activity_details']['required'] }} required

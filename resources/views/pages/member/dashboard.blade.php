@@ -345,6 +345,7 @@ new #[Title('Dashboard')] class extends Component {
 
         return [
             'approved' => (int) ($meta['approved_count'] ?? 0),
+            'approved_count' => (int) ($meta['approved_count'] ?? 0),
             'required' => (int) ($meta['required'] ?? 2),
             'met' => (bool) $req?->isSatisfied(),
             'exempt' => (bool) $req?->isExempt(),
@@ -1276,9 +1277,6 @@ new #[Title('Dashboard')] class extends Component {
             // Phase 1 (Q1): lifetime / honorary members must not see a "0 / 2" ratio
             // or a success tick for the activity row — they get an exempt badge.
             $activitiesNotApplicable = ($this->activityCompliance['not_applicable'] ?? false);
-            $activityExemptLabel = $this->compliance->isLifetime
-                ? 'Lifetime'
-                : ($this->compliance->isHonorary ? 'Honorary' : 'N/A');
         @endphp
         <div class="rounded-xl border border-zinc-200 bg-white p-5 sm:p-6 dark:border-zinc-700 dark:bg-zinc-800">
             {{-- Header --}}
@@ -1427,12 +1425,11 @@ new #[Title('Dashboard')] class extends Component {
                         </div>
                     </div>
                     @if($activitiesNotApplicable)
-                        {{-- Phase 1 (Q1): lifetime/honorary members see the exempt badge, NEVER "0 / 2". --}}
-                        <span class="inline-flex items-center gap-1 rounded-full bg-blue-100 dark:bg-blue-900/40 px-2.5 py-1 text-xs font-medium text-blue-700 dark:text-blue-300">
+                        <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
                             <svg class="size-3" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clip-rule="evenodd"/>
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                             </svg>
-                            {{ $activityExemptLabel }}
+                            Up to date
                         </span>
                     @elseif($activitiesMet)
                         <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
@@ -1645,21 +1642,18 @@ new #[Title('Dashboard')] class extends Component {
             // rendered in place of "0 / 2". `not_applicable` is driven by the
             // resolver; see dashboard.blade.php's compliance() property.
             $acNotApplicable = $ac['not_applicable'] ?? false;
-            $acExemptLabel = $this->compliance->isLifetime
-                ? 'Lifetime'
-                : ($this->compliance->isHonorary ? 'Honorary' : 'N/A');
         @endphp
         <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-5">
             <div class="flex items-center justify-between mb-3">
                 <h3 class="text-xs uppercase tracking-wider font-semibold text-zinc-500">Compliance Status</h3>
-                <span class="text-xs px-2 py-1 rounded-full font-medium {{ $ac['met'] ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' }}">
-                    {{ $acNotApplicable ? 'Compliant' : ($ac['met'] ? 'Complete' : 'Incomplete') }}
+                <span class="text-xs px-2 py-1 rounded-full font-medium {{ ($acNotApplicable || $ac['met']) ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' }}">
+                    {{ $acNotApplicable ? 'Up to date' : ($ac['met'] ? 'Complete' : 'Incomplete') }}
                 </span>
             </div>
             <div class="text-center">
                 @if($acNotApplicable)
-                    <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $acExemptLabel }}</p>
-                    <p class="text-xs uppercase tracking-wider text-zinc-500 mt-1">Always compliant</p>
+                    <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">Up to date</p>
+                    <p class="text-xs uppercase tracking-wider text-zinc-500 mt-1">No targets required</p>
                 @else
                     <p class="text-2xl font-bold {{ $ac['met'] ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}">{{ $ac['approved'] }} / {{ $ac['required'] }}</p>
                     <p class="text-xs uppercase tracking-wider text-zinc-500 mt-1">Sport Activities OCT {{ now()->year }}</p>
@@ -1718,14 +1712,13 @@ new #[Title('Dashboard')] class extends Component {
             @if($this->hasDedicatedMembership)
             <a href="{{ route('activities.index') }}" wire:navigate
                class="group relative rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md hover:border-nrapa-blue/30 dark:hover:border-nrapa-blue/30 transition p-4 text-center">
-                @if($this->activityCompliance['not_applicable'])
-                    {{-- Phase 1 (Q1): lifetime / honorary members see the exempt badge, never "0/2". --}}
-                    <span class="absolute -top-1.5 -right-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500 text-white">{{ $this->compliance->isLifetime ? 'Lifetime' : ($this->compliance->isHonorary ? 'Honorary' : 'N/A') }}</span>
-                @elseif($this->activityCompliance['exempt'])
-                    <span class="absolute -top-1.5 -right-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500 text-white">Exempt</span>
-                @else
-                    <span class="absolute -top-1.5 -right-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full {{ $this->activityCompliance['met'] ? 'bg-emerald-500' : 'bg-amber-500' }} text-white">{{ $this->activityCompliance['approved'] }}/{{ $this->activityCompliance['required'] }}</span>
-                @endif
+                @unless($this->activityCompliance['not_applicable'])
+                    @if($this->activityCompliance['exempt'])
+                        <span class="absolute -top-1.5 -right-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500 text-white">Exempt</span>
+                    @else
+                        <span class="absolute -top-1.5 -right-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full {{ $this->activityCompliance['met'] ? 'bg-emerald-500' : 'bg-amber-500' }} text-white">{{ $this->activityCompliance['approved'] }}/{{ $this->activityCompliance['required'] }}</span>
+                    @endif
+                @endunless
                 <div class="mx-auto mb-2 flex size-10 items-center justify-center rounded-xl bg-nrapa-blue/10 dark:bg-nrapa-blue/20 group-hover:bg-nrapa-blue/20 transition">
                     <svg class="w-5 h-5 text-nrapa-blue dark:text-nrapa-blue-light" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                 </div>

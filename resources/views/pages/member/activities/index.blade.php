@@ -2,6 +2,7 @@
 
 use App\Models\SapsYearSubmission;
 use App\Models\ShootingActivity;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
@@ -179,9 +180,6 @@ new class extends Component {
         $bankingCount = $compliance['banking_year']['total'];     // this year's approved
         $isNotApplicable = (bool) $activitiesReq?->isNotApplicable();
         $notApplicableReason = $activitiesReq?->reason ?? '';
-        $exemptLabel = $complianceResult->isLifetime
-            ? 'Lifetime member'
-            : ($complianceResult->isHonorary ? 'Honorary member' : 'Exempt');
 
         $isPaidUp = $user->activeMembership && (!$user->activeMembership->expires_at || $user->activeMembership->expires_at->isFuture());
         $complianceMet = $compliance['is_compliant_now'];
@@ -189,26 +187,33 @@ new class extends Component {
 
         $currentYear = now()->year;
         $historyStartYear = $currentYear - 5;
-        $historyStart = \Carbon\Carbon::create($historyStartYear, 1, 1)->startOfDay();
-        $historyEnd = \App\Support\Members\ActivityDeadline::endOfDay($currentYear - 1);
-
-        $yearCounts = ShootingActivity::where('user_id', $user->id)
-            ->where('status', 'approved')
-            ->whereBetween('activity_date', [$historyStart, $historyEnd])
-            ->selectRaw('YEAR(activity_date) as yr, count(*) as cnt')
-            ->groupByRaw('YEAR(activity_date)')
-            ->pluck('cnt', 'yr');
-
         $complianceHistory = [];
-        for ($year = $currentYear - 1; $year >= $historyStartYear; $year--) {
-            $yearApproved = (int) ($yearCounts[$year] ?? 0);
-            $complianceHistory[] = [
-                'year' => $year,
-                'label' => "OCT {$year}",
-                'approved' => $yearApproved,
-                'required' => $requiredCount,
-                'met' => $yearApproved >= $requiredCount,
-            ];
+
+        // Exempt members never see the year-by-year ratios, so skip the query.
+        if (! $isNotApplicable) {
+            $historyStart = \Carbon\Carbon::create($historyStartYear, 1, 1)->startOfDay();
+            $historyEnd = \App\Support\Members\ActivityDeadline::endOfDay($currentYear - 1);
+            $yearSql = DB::connection()->getDriverName() === 'sqlite'
+                ? "cast(strftime('%Y', activity_date) as integer)"
+                : 'YEAR(activity_date)';
+
+            $yearCounts = ShootingActivity::where('user_id', $user->id)
+                ->where('status', 'approved')
+                ->whereBetween('activity_date', [$historyStart, $historyEnd])
+                ->selectRaw("{$yearSql} as yr, count(*) as cnt")
+                ->groupByRaw($yearSql)
+                ->pluck('cnt', 'yr');
+
+            for ($year = $currentYear - 1; $year >= $historyStartYear; $year--) {
+                $yearApproved = (int) ($yearCounts[$year] ?? 0);
+                $complianceHistory[] = [
+                    'year' => $year,
+                    'label' => "OCT {$year}",
+                    'approved' => $yearApproved,
+                    'required' => $requiredCount,
+                    'met' => $yearApproved >= $requiredCount,
+                ];
+            }
         }
 
         return [
@@ -224,7 +229,6 @@ new class extends Component {
             'compliance' => $compliance,
             'isNotApplicable' => $isNotApplicable,
             'notApplicableReason' => $notApplicableReason,
-            'exemptLabel' => $exemptLabel,
         ];
     }
 }; ?>
@@ -234,7 +238,13 @@ new class extends Component {
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">My Activities</h1>
-                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Track and manage your shooting activities for dedicated status</p>
+                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                    @if($isNotApplicable)
+                        Your activity record. No yearly targets are required for your membership.
+                    @else
+                        Track and manage your shooting activities for dedicated status
+                    @endif
+                </p>
             </div>
             <a href="{{ route('activities.submit') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg bg-nrapa-blue px-4 py-2 text-sm font-medium text-white hover:bg-nrapa-blue-dark transition-colors">
                 <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -304,17 +314,26 @@ new class extends Component {
     </div>
 
     <!-- Compliance Summary + History -->
+    @if($isNotApplicable)
+        {{-- Lifetime, honorary, and non-dedicated types do not carry the 2-of-2 target.
+             Show a status only — never a ratio, a history of 0/2, or a banking count. --}}
+        <div class="mb-6 rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-zinc-900 shadow-sm p-5">
+            <div class="flex items-center justify-between gap-3">
+                <h2 class="text-xs uppercase tracking-wider font-semibold text-zinc-500">Compliance for {{ now()->year }}</h2>
+                <span class="text-xs px-2 py-1 rounded-full font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                    Up to date
+                </span>
+            </div>
+            <p class="mt-3 text-lg font-semibold text-emerald-700 dark:text-emerald-300">Up to date</p>
+            <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{{ $notApplicableReason }}</p>
+        </div>
+    @else
     <div class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <!-- Compliance Card -->
         <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-5">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-xs uppercase tracking-wider font-semibold text-zinc-500">Compliance for {{ now()->year }}</h2>
-                @if($isNotApplicable)
-                    {{-- Phase 1 (Q1): lifetime / honorary members get the Compliant badge, not a ratio. --}}
-                    <span class="text-xs px-2 py-1 rounded-full font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                        Compliant
-                    </span>
-                @elseif($isExempt)
+                @if($isExempt)
                     <span class="text-xs px-2 py-1 rounded-full font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
                         Exempt
                     </span>
@@ -326,11 +345,7 @@ new class extends Component {
             </div>
             <div class="grid grid-cols-3 gap-4">
                 <div class="text-center">
-                    @if($isNotApplicable)
-                        <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $exemptLabel === 'Lifetime member' ? 'Lifetime' : ($exemptLabel === 'Honorary member' ? 'Honorary' : 'N/A') }}</p>
-                        <p class="text-xs uppercase tracking-wider text-zinc-500 mt-1">Always compliant</p>
-                        <p class="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">no activities required</p>
-                    @elseif($isExempt)
+                    @if($isExempt)
                         <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">Exempt</p>
                         <p class="text-xs uppercase tracking-wider text-zinc-500 mt-1">First year</p>
                         <p class="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">no activities required for {{ now()->year }}</p>
@@ -375,6 +390,7 @@ new class extends Component {
             </div>
         </div>
     </div>
+    @endif
 
     <!-- Filters -->
     <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -396,11 +412,19 @@ new class extends Component {
     @if($activities->isEmpty())
         <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-12 text-center">
             <svg class="mx-auto size-12 text-zinc-300 dark:text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-            <p class="mt-2 text-sm text-zinc-600 dark:text-zinc-400">No activities submitted yet</p>
+            <p class="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                @if($isNotApplicable)
+                    No activities on file. You do not need to upload targets.
+                @else
+                    No activities submitted yet
+                @endif
+            </p>
+            @unless($isNotApplicable)
             <a href="{{ route('activities.submit') }}" wire:navigate class="mt-4 inline-flex items-center gap-2 text-sm font-medium text-nrapa-blue hover:text-nrapa-blue-dark transition-colors">
                 Submit your first activity
                 <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
             </a>
+            @endunless
         </div>
     @else
         <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">

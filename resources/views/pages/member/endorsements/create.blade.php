@@ -323,7 +323,7 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
             ->where('status', 'approved')
             ->whereBetween('activity_date', [
                 \Carbon\Carbon::create($year, 1, 1)->startOfDay(),
-                \Carbon\Carbon::create($year, 10, 31)->endOfDay(),
+                \App\Support\Members\ActivityDeadline::endOfDay($year),
             ])
             ->with(['activityType', 'eventCategory'])
             ->orderBy('activity_date', 'desc')
@@ -1489,7 +1489,11 @@ new #[Layout('layouts.app.sidebar')] #[Title('Request Endorsement Letter')] clas
                                     </span>
                                 </div>
                                 <p class="text-xs {{ $eligibility['activities_met'] ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300' }}">
-                                    {{ $eligibility['activity_details']['approved_count'] ?? 0 }} / {{ $eligibility['activity_details']['required'] ?? 2 }} required
+                                    @if(in_array($eligibility['activity_details']['period'] ?? '', ['Lifetime', 'Honorary'], true))
+                                        Up to date
+                                    @else
+                                        {{ $eligibility['activity_details']['approved_count'] ?? 0 }} / {{ $eligibility['activity_details']['required'] ?? 2 }} required
+                                    @endif
                                 </p>
                             </div>
                         </div>
