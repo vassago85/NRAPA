@@ -16,6 +16,7 @@ use App\Services\CertificateIssueService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
@@ -308,7 +309,7 @@ it('issues an invoice when a billable application is approved', function () {
         ->and($invoice->total)->toEqual(550);
 });
 
-it('renders invoice HTML with the member name, bank reference, and balance due', function () {
+it('renders a simple invoice with the NRAPA logo and no Sage clutter', function () {
     SystemSetting::set('bank_name', 'FIRST NATIONAL BANK', 'string', 'bank');
     SystemSetting::set('bank_account_number', '62864215176', 'string', 'bank');
 
@@ -323,6 +324,19 @@ it('renders invoice HTML with the member name, bank reference, and balance due',
         ->toContain($membership->payment_reference)
         ->toContain('FIRST NATIONAL BANK')
         ->toContain('62864215176')
-        ->toContain('Balance Due')
-        ->toContain('R550.00');
+        ->toContain('Total')
+        ->toContain('R550.00')
+        ->toContain('data:image/png;base64,')
+        ->not->toContain('Sales Rep')
+        ->not->toContain('Overall Discount')
+        ->not->toContain('Customer VAT');
+});
+
+it('lets an admin download an invoice from the member profile', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN, 'is_admin' => true]);
+    $membership = invMakeConfirmedMembership();
+
+    Livewire::actingAs($admin)
+        ->test('pages::admin.members.show', ['user' => $membership->user])
+        ->assertSee(route('admin.invoices.download-for-membership', $membership), false);
 });

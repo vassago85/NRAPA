@@ -124,7 +124,7 @@ class InvoiceIssuer
 
         return [
             'sku' => $sku,
-            'description' => $sku.' - '.$description,
+            'description' => $description,
             'qty' => 1,
             'unit_price' => $amount,
             'discount_pct' => 0.0,
