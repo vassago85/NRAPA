@@ -312,6 +312,7 @@ it('issues an invoice when a billable application is approved', function () {
 it('renders a simple invoice with the NRAPA logo and no Sage clutter', function () {
     SystemSetting::set('bank_name', 'FIRST NATIONAL BANK', 'string', 'bank');
     SystemSetting::set('bank_account_number', '62864215176', 'string', 'bank');
+    SystemSetting::set(InvoiceIssuer::SETTING_PHYSICAL_ADDRESS, "10 Invoice Footer Road\nPretoria\n0001", 'string', 'invoicing');
 
     $membership = invMakeConfirmedMembership();
     $membership->user->update(['id_number' => '8703095080022']);
@@ -328,6 +329,7 @@ it('renders a simple invoice with the NRAPA logo and no Sage clutter', function 
         ->toContain('Total')
         ->toContain('R550.00')
         ->toContain('data:image/png;base64,')
+        ->toContain('10 Invoice Footer Road')
         ->not->toContain('8703095080022')
         ->not->toContain('Sales Rep')
         ->not->toContain('Overall Discount')

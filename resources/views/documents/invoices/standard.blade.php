@@ -1,6 +1,7 @@
 @php
     /** @var \App\Models\Invoice $invoice */
     $payload = $invoice->payload ?? [];
+    $from = $payload['from'] ?? [];
     $to = $payload['to'] ?? [];
     $bank = $payload['bank'] ?? [];
     $membership = $payload['membership'] ?? [];
@@ -11,6 +12,10 @@
 
     $address = trim((string) ($to['physical_address'] ?? ''))
         ?: trim((string) ($to['postal_address'] ?? ''));
+
+    $footerAddress = trim((string) ($from['physical_address'] ?? ''))
+        ?: trim((string) ($from['postal_address'] ?? ''))
+        ?: \App\Services\Billing\InvoiceIssuer::DEFAULT_ADDRESS;
 
     $logoPath = public_path('logo-nrapa-blue-text.png');
     $logoData = is_file($logoPath)
@@ -123,6 +128,16 @@
         .pay .label { margin-bottom: 2mm; }
         .pay .bank { font-weight: 700; margin-bottom: 1mm; }
         .pay .row { font-size: 10pt; color: #1a2332; line-height: 1.55; }
+
+        .footer {
+            margin-top: 16mm;
+            padding-top: 4mm;
+            border-top: 1px solid #e6e9ee;
+            font-size: 9pt;
+            color: #5b6573;
+            text-align: center;
+            line-height: 1.45;
+        }
     </style>
 </head>
 <body>
@@ -212,6 +227,10 @@
             <div class="row">Use reference {{ $invoice->reference }}</div>
         @endif
     </div>
+@endif
+
+@if ($footerAddress !== '')
+    <div class="footer">{!! $multiline($footerAddress) !!}</div>
 @endif
 
 </body>
