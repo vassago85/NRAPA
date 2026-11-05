@@ -9,6 +9,7 @@ use App\Exceptions\Approvals\ApprovalAlreadyDecided;
 use App\Exceptions\Approvals\ApprovalNotAllowed;
 use App\Mail\ApprovalDecisionMail;
 use App\Models\Approval;
+use App\Models\EmailLog;
 use App\Models\User;
 use App\Support\Approvals\PreflightCheck;
 use Illuminate\Support\Facades\DB;
@@ -260,9 +261,29 @@ class ApprovalService
             return;
         }
 
+        $log = null;
+
         try {
-            Mail::to($member->email)->queue(new ApprovalDecisionMail($approval, $decision, $note, $items));
+            $mail = new ApprovalDecisionMail($approval, $decision, $note, $items);
+
+            // Written before the worker sends, so the admin email log shows the
+            // member and the comment mail even while it is still queued.
+            $log = EmailLog::log(
+                toEmail: $member->email,
+                subject: $mail->envelope()->subject,
+                mailableClass: ApprovalDecisionMail::class,
+                toName: $member->name,
+                userId: $member->id,
+                status: 'queued',
+            );
+
+            Mail::to($member->email, $member->name)->queue($mail);
         } catch (\Throwable $e) {
+            $log?->update([
+                'status' => 'failed',
+                'error_message' => \Illuminate\Support\Str::limit($e->getMessage(), 500),
+            ]);
+
             Log::warning('Failed to queue approval decision email', [
                 'approval_id' => $approval->id,
                 'error' => $e->getMessage(),

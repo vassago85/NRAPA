@@ -99,6 +99,14 @@ test('a mandatory comment on an endorsement request emails the member', function
         && $mail->hasTo($approval->user->email));
     Mail::assertNotQueued(EndorsementRejected::class);
 
+    $logged = EmailLog::where('user_id', $approval->user_id)
+        ->where('mailable_class', ApprovalDecisionMail::class)
+        ->first();
+    expect($logged)->not->toBeNull()
+        ->and($logged->status)->toBe('queued')
+        ->and($logged->to_name)->toBe($approval->user->name)
+        ->and($logged->subject)->toContain('changes needed');
+
     $request = $approval->approvable->fresh();
     expect($request->status)->toBe(EndorsementRequest::STATUS_PENDING_DOCUMENTS)
         ->and($request->admin_notes)->toBe($comment);
