@@ -5,10 +5,12 @@ use App\Enums\ApprovalState;
 use App\Exceptions\Approvals\ApprovalNotAllowed;
 use App\Mail\ApprovalChaseMail;
 use App\Mail\ApprovalDecisionMail;
+use App\Mail\EndorsementRejected;
 use App\Models\Approval;
 use App\Models\ApprovalChase;
 use App\Models\AuditLog;
 use App\Models\EmailLog;
+use App\Models\EndorsementRequest;
 use App\Models\MemberDocument;
 use App\Models\Membership;
 use App\Models\Payment;
@@ -83,6 +85,43 @@ test('members are refused even for other members items', function () {
 
     expect(fn () => $this->service->decide($approval, ApprovalDecision::Approve, ApprovalFixtures::member()))
         ->toThrow(ApprovalNotAllowed::class);
+});
+
+test('a mandatory comment on an endorsement request emails the member', function () {
+    $approval = ApprovalFixtures::endorsementApproval();
+    $comment = 'Please upload a clearer copy of your competency certificate.';
+
+    $this->service->decide($approval, ApprovalDecision::RequestChanges, $this->admin, $comment);
+
+    Mail::assertQueued(ApprovalDecisionMail::class, fn (ApprovalDecisionMail $mail) => $mail->approval->is($approval)
+        && $mail->decision === ApprovalDecision::RequestChanges
+        && $mail->note === $comment
+        && $mail->hasTo($approval->user->email));
+    Mail::assertNotQueued(EndorsementRejected::class);
+
+    $request = $approval->approvable->fresh();
+    expect($request->status)->toBe(EndorsementRequest::STATUS_PENDING_DOCUMENTS)
+        ->and($request->admin_notes)->toBe($comment);
+
+    // The review workspace sends the same required comment as line items.
+    $fromWorkspace = ApprovalFixtures::endorsementApproval();
+    $this->service->decide($fromWorkspace, ApprovalDecision::RequestChanges, $this->admin, null, [
+        'The serial number on the form does not match the firearm.',
+    ]);
+
+    Mail::assertQueued(ApprovalDecisionMail::class, fn (ApprovalDecisionMail $mail) => $mail->approval->is($fromWorkspace)
+        && $mail->items === ['The serial number on the form does not match the firearm.']);
+});
+
+test('declining an endorsement emails the required reason once', function () {
+    $approval = ApprovalFixtures::endorsementApproval();
+    $reason = 'The firearm details do not match the licence application.';
+
+    $this->service->decide($approval, ApprovalDecision::Decline, $this->admin, $reason);
+
+    Mail::assertQueued(EndorsementRejected::class, fn (EndorsementRejected $mail) => $mail->reason === $reason
+        && $mail->hasTo($approval->user->email));
+    Mail::assertNotQueued(ApprovalDecisionMail::class);
 });
 
 test('the member is emailed once per outcome', function () {
