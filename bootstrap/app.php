@@ -55,6 +55,15 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->report(function (\Throwable $e) {
             if (request()->is('livewire*') || str_contains((string) request()->path(), 'livewire')) {
+                // Login (and the other Fortify screens) are plain Blade views.
+                // Livewire still serves /livewire-{hash}/js/{component}.js, and a
+                // request for auth.login — the view name, not a component — throws
+                // ComponentNotFoundException. That is not an application failure.
+                if ($e instanceof \Livewire\Exceptions\ComponentNotFoundException
+                    && request()->is('livewire-*/js/*', 'livewire-*/css/*')) {
+                    return false;
+                }
+
                 // A vanished livewire-tmp file (member navigated away mid-upload,
                 // or the temp-file janitor swept it between client snapshots) is
                 // not an application failure. Log it at warning level so the
@@ -75,6 +84,23 @@ return Application::configure(basePath: dirname(__DIR__))
 
                 return false;
             }
+        });
+
+        // A missing component has no script or stylesheet. Return an empty
+        // module so the browser import resolves instead of a 500 error page.
+        $exceptions->render(function (\Livewire\Exceptions\ComponentNotFoundException $e, \Illuminate\Http\Request $request) {
+            if (! $request->is('livewire-*/js/*', 'livewire-*/css/*')) {
+                return null;
+            }
+
+            $javascript = str_contains($request->path(), '/js/');
+
+            return response($javascript ? "export function run() {}\n" : "\n", 200, [
+                'Content-Type' => $javascript
+                    ? 'application/javascript; charset=UTF-8'
+                    : 'text/css; charset=UTF-8',
+                'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            ]);
         });
 
         $exceptions->report(function (\Illuminate\Session\TokenMismatchException $e) {
