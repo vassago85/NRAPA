@@ -58,6 +58,10 @@
                             <td class="kv-value">{{ $membership->membership_number ?? 'N/A' }}</td>
                         </tr>
                         <tr>
+                            <td class="kv-label">Enrolment Date</td>
+                            <td class="kv-value">{{ $user->joinedOn()?->format('d F Y') ?? 'N/A' }}</td>
+                        </tr>
+                        <tr>
                             <td class="kv-label">Membership Status</td>
                             <td class="kv-value" style="color:#1f6b3a; font-weight:600;">Member in Good Standing</td>
                         </tr>

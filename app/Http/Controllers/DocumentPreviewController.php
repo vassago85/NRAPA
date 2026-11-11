@@ -76,6 +76,9 @@ class DocumentPreviewController extends Controller
         ]);
         $user->id = 999999;
         $user->uuid = 'preview-user-00000000-0000-0000-0000-000000000000';
+        // joinedOn() reads membership rows, then falls back to created_at.
+        // This preview user has no rows, so created_at is the enrolment date on the letter.
+        $user->created_at = Carbon::parse('2024-03-15');
 
         return $user;
     }

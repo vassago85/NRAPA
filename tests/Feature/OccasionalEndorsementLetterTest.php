@@ -136,6 +136,38 @@ test('issuer writes an occasional letter with no dedicated category or complianc
     expect($request->expires_at)->not->toBeNull();
 });
 
+test('every endorsement letter prints the member enrolment date', function (string $type) {
+    $user = occasionalBasicMember();
+    $enrolledOn = $user->joinedOn();
+
+    $request = EndorsementRequest::create([
+        'user_id' => $user->id,
+        'request_type' => EndorsementRequest::TYPE_NEW,
+        'endorsement_type' => $type,
+        'purpose' => EndorsementRequest::PURPOSE_SECTION_16,
+        'status' => EndorsementRequest::STATUS_ISSUED,
+        'dedicated_category' => $type === EndorsementRequest::ENDORSEMENT_TYPE_DEDICATED_STATUS
+            ? 'Dedicated Hunter'
+            : null,
+        'letter_reference' => 'END-2026-00999',
+        'issued_at' => now(),
+        'expires_at' => now()->addYear(),
+        'declaration_accepted_at' => now(),
+        'declaration_text' => 'Enrolment date coverage (test).',
+    ]);
+
+    $html = view('documents.letters.endorsement', [
+        'request' => $request->fresh(['user', 'user.activeMembership']),
+    ])->render();
+
+    expect($html)->toContain('Enrolment Date');
+    expect($html)->toContain($enrolledOn->format('d F Y'));
+})->with([
+    'dedicated status' => [EndorsementRequest::ENDORSEMENT_TYPE_DEDICATED_STATUS],
+    'occasional' => [EndorsementRequest::ENDORSEMENT_TYPE_OCCASIONAL],
+    'self-defence' => [EndorsementRequest::ENDORSEMENT_TYPE_SELF_DEFENCE],
+]);
+
 test('occasional letter template contains the Section 15 wording and omits dedicated-status language', function () {
     $user = occasionalBasicMember();
     $request = occasionalDraft($user, [
